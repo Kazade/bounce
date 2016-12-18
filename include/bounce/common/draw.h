@@ -1,0 +1,108 @@
+/*
+* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+*
+* This software is provided 'as-is', without any express or implied
+* warranty.  In no event will the authors be held liable for any damages
+* arising from the use of this software.
+* Permission is granted to anyone to use this software for any purpose,
+* including commercial applications, and to alter it and redistribute it
+* freely, subject to the following restrictions:
+* 1. The origin of this software must not be misrepresented; you must not
+* claim that you wrote the original software. If you use this software
+* in a product, an acknowledgment in the product documentation would be
+* appreciated but is not required.
+* 2. Altered source versions must be plainly marked as such, and must not be
+* misrepresented as being the original software.
+* 3. This notice may not be removed or altered from any source distribution.
+*/
+
+#ifndef B3_DRAW_H
+#define B3_DRAW_H
+
+#include <bounce\common\math\math.h>
+#include <bounce\collision\shapes\aabb3.h>
+
+// Color channels used by the debug b3Draw interface.
+struct b3Color 
+{
+	b3Color() { }
+	
+	b3Color(float32 R, float32 G, float32 B, float32 A = 1.0f) : r(R),	g(G), b(B),	a(A) { }
+	
+	float32 r, g, b, a;
+};
+
+// Implement this interface and set to a world so it can b3Draw the physics entities.
+class b3Draw 
+{
+public :
+	// Bit flags to tell the world what needs to be b3Draw.
+	enum b3Flags
+	{
+		e_shapesFlag = 0x0001,
+		e_centerOfMassesFlag = 0x0002,
+		e_jointsFlag = 0x0004,
+		e_contactPointsFlag = 0x0008,
+		e_contactNormalsFlag = 0x0010,
+		e_contactTangentsFlag = 0x0020,
+		e_aabbsFlag = 0x0040,
+	};
+
+	b3Draw()
+	{
+		m_flags = 0;
+	}
+	
+	~b3Draw()
+	{
+
+	}
+
+	void SetFlags(u32 flags);
+	void AppendFlags(u32 flags);
+	
+	// Draw a point.
+	virtual void DrawPoint(const b3Vec3& point, const b3Color& color) = 0;
+
+	// Draw a line segment.
+	virtual void DrawSegment(const b3Vec3& a, const b3Vec3& b, const b3Color& color) = 0;
+	
+	// Draw a polygon with vertices ordered CCW.
+	virtual void DrawPolygon(const b3Vec3* vertices, u32 count, const b3Color& color) = 0;
+	
+	// Draw a solid polygon with vertices ordered CCW.
+	virtual void DrawSolidPolygon(const b3Vec3* vertices, u32 count, const b3Color& color) = 0;
+
+	// Draw a circle with center, normal, and radius.
+	virtual void DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color) = 0;
+	
+	// Draw a solid circle with center, normal, and radius.
+	virtual void DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color) = 0;
+
+	// Draw a sphere with center and radius.
+	virtual void DrawSphere(const b3Vec3& center, float32 radius, const b3Color& color) = 0;
+
+	// Draw a solid sphere with center and radius.
+	virtual void DrawSolidSphere(const b3Vec3& center, float32 radius, const b3Color& color) = 0;
+	
+	// Draw a AABB.
+	virtual void DrawAABB(const b3AABB3& aabb, const b3Color& color) = 0;
+
+	// Draw a b3Transform.
+	virtual void DrawTransform(const b3Transform& xf) = 0;
+
+	// Debug b3Draw flags.
+	u32 m_flags;
+};
+
+inline void b3Draw::SetFlags(u32 flags)
+{
+	m_flags = flags;
+}
+
+inline void b3Draw::AppendFlags(u32 flags)
+{
+	m_flags |= flags;
+}
+
+#endif

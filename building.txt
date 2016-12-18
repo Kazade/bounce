@@ -1,0 +1,14 @@
+Bounce uses premake for generating project files in a platform agnostic manner. 
+
+Grab premake from http://industriousone.com/premake.
+Put premake.exe into bounce/.
+
+Visual Studio 2015
+
+Open bounce/bat.
+Open premake_vs2015.bat. This will run a premake script and open bounce/build/vs2015/bounce.sln.
+Set testbed as the startup project.
+Press F5 or Ctrl-F5 to run.
+
+premake files for building on Mac will be available later because I don't run Mac currently and 
+therefore can't test the build system in this platform.
