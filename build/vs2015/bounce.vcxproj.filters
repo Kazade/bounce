@@ -1,0 +1,455 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{89AF369E-F58E-B539-FEA6-40106A051C9B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce">
+      <UniqueIdentifier>{D419DC43-C0E7-CF49-A97B-407095E8ABAE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce\collision">
+      <UniqueIdentifier>{0FC81CFD-FBEC-6B7D-2438-510D10BC6A9B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce\collision\gjk">
+      <UniqueIdentifier>{9AC16B4F-867C-5BFB-2F34-D4451BCEA58B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce\collision\sat">
+      <UniqueIdentifier>{86F36B4F-72AE-5BFB-1B66-D4450700A68B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce\collision\shapes">
+      <UniqueIdentifier>{02B88A21-6E9B-9961-779E-C79DE30060B2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce\collision\trees">
+      <UniqueIdentifier>{A12552DA-8D4B-1C41-7691-A10C6256410D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce\common">
+      <UniqueIdentifier>{AC64A0F9-18D1-5BF4-E1C4-F3514DF07D5C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce\common\math">
+      <UniqueIdentifier>{252146D6-1131-F2A6-7AEA-56C56619E13F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce\common\memory">
+      <UniqueIdentifier>{B4B69780-A071-872C-4929-007735C3D1BC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce\common\template">
+      <UniqueIdentifier>{577D3B7B-43A3-05E2-2CE9-8AAD18AE2AAE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce\dynamics">
+      <UniqueIdentifier>{DB55CFD2-478D-176A-5097-7B8DBC4D3E63}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce\dynamics\contacts">
+      <UniqueIdentifier>{09FBB88C-F54B-A4CE-1EB0-92900A603738}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce\dynamics\contacts\collide">
+      <UniqueIdentifier>{14818B0F-00FE-7E52-297B-7F6615571BE6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce\dynamics\joints">
+      <UniqueIdentifier>{A1E236CD-8D08-0134-764E-86FF62132600}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce\dynamics\shapes">
+      <UniqueIdentifier>{4E48B2E1-3A6E-7C48-23B4-01140F79A114}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\bounce\quickhull">
+      <UniqueIdentifier>{F52AA7E9-E14F-F669-0A9B-DBF9F61EF587}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{2DAB880B-99B4-887C-2230-9F7C8E38947C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\bounce">
+      <UniqueIdentifier>{F814F251-E4CC-339F-4DD4-0CFB39ABCE8F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\bounce\collision">
+      <UniqueIdentifier>{33003210-1F8F-BBD9-C8AD-CFD4B41BCC7F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\bounce\collision\gjk">
+      <UniqueIdentifier>{BE6BE8DC-AA90-375D-D3DB-1CEDBF5F367B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\bounce\collision\sat">
+      <UniqueIdentifier>{AA9DE8DC-96C2-375D-BF0D-1DEDAB91367B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\bounce\collision\shapes">
+      <UniqueIdentifier>{A6DFD2EA-12ED-00D1-9BD3-FCBB07E0CC87}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\bounce\collision\trees">
+      <UniqueIdentifier>{C5E8A1B9-B1F8-4D8A-1AB2-B2A806E13C23}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\bounce\common">
+      <UniqueIdentifier>{50EF0F83-BC05-0E19-057D-993A71D2DEA0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\bounce\common\math">
+      <UniqueIdentifier>{49F28903-35EC-B255-1E59-49660AF218C2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\bounce\common\memory">
+      <UniqueIdentifier>{D860140E-C485-638E-EDD0-481ED95462AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\bounce\dynamics">
+      <UniqueIdentifier>{7F194C76-EB7A-2984-74E8-6F36E0486043}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\bounce\dynamics\contacts">
+      <UniqueIdentifier>{2D17067F-19D2-F52A-C289-6E75AE2340BB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\bounce\dynamics\contacts\collide">
+      <UniqueIdentifier>{3881B4FC-2468-76F4-CDB8-DC11B97EEF5A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\bounce\dynamics\joints">
+      <UniqueIdentifier>{C5A586AC-B1B5-327D-1A6F-979B069E2116}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\bounce\dynamics\shapes">
+      <UniqueIdentifier>{720B02C1-5E1B-AE91-C7D4-12B0B3039D2A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\bounce\quickhull">
+      <UniqueIdentifier>{1963BCFC-05F2-45C6-AE10-5AC19A7E566C}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\include\bounce\bounce.h">
+      <Filter>include\bounce</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\broad_phase.h">
+      <Filter>include\bounce\collision</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\distance.h">
+      <Filter>include\bounce\collision</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\gjk\gjk.h">
+      <Filter>include\bounce\collision\gjk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\gjk\gjk_cache.h">
+      <Filter>include\bounce\collision\gjk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\gjk\gjk_proxy.h">
+      <Filter>include\bounce\collision\gjk</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\sat\sat.h">
+      <Filter>include\bounce\collision\sat</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\sat\sat_edge_and_hull.h">
+      <Filter>include\bounce\collision\sat</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\sat\sat_vertex_and_hull.h">
+      <Filter>include\bounce\collision\sat</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\shapes\aabb3.h">
+      <Filter>include\bounce\collision\shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\shapes\box_hull.h">
+      <Filter>include\bounce\collision\shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\shapes\capsule.h">
+      <Filter>include\bounce\collision\shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\shapes\hull.h">
+      <Filter>include\bounce\collision\shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\shapes\mesh.h">
+      <Filter>include\bounce\collision\shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\shapes\sphere.h">
+      <Filter>include\bounce\collision\shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\shapes\triangle_hull.h">
+      <Filter>include\bounce\collision\shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\trees\dynamic_tree.h">
+      <Filter>include\bounce\collision\trees</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\collision\trees\static_tree.h">
+      <Filter>include\bounce\collision\trees</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\draw.h">
+      <Filter>include\bounce\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\geometry.h">
+      <Filter>include\bounce\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\math\mat.h">
+      <Filter>include\bounce\common\math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\math\mat22.h">
+      <Filter>include\bounce\common\math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\math\mat33.h">
+      <Filter>include\bounce\common\math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\math\math.h">
+      <Filter>include\bounce\common\math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\math\quat.h">
+      <Filter>include\bounce\common\math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\math\transform.h">
+      <Filter>include\bounce\common\math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\math\vec2.h">
+      <Filter>include\bounce\common\math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\math\vec3.h">
+      <Filter>include\bounce\common\math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\memory\block_pool.h">
+      <Filter>include\bounce\common\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\memory\stack_allocator.h">
+      <Filter>include\bounce\common\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\settings.h">
+      <Filter>include\bounce\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\template\array.h">
+      <Filter>include\bounce\common\template</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\template\list.h">
+      <Filter>include\bounce\common\template</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\template\object_array.h">
+      <Filter>include\bounce\common\template</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\template\stack.h">
+      <Filter>include\bounce\common\template</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\common\time.h">
+      <Filter>include\bounce\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\body.h">
+      <Filter>include\bounce\dynamics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\contact_manager.h">
+      <Filter>include\bounce\dynamics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\contacts\collide\clip.h">
+      <Filter>include\bounce\dynamics\contacts\collide</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\contacts\collide\collide.h">
+      <Filter>include\bounce\dynamics\contacts\collide</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\contacts\contact.h">
+      <Filter>include\bounce\dynamics\contacts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\contacts\contact_cluster.h">
+      <Filter>include\bounce\dynamics\contacts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\contacts\contact_solver.h">
+      <Filter>include\bounce\dynamics\contacts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\contacts\convex_contact.h">
+      <Filter>include\bounce\dynamics\contacts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\contacts\manifold.h">
+      <Filter>include\bounce\dynamics\contacts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\contacts\mesh_contact.h">
+      <Filter>include\bounce\dynamics\contacts</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\island.h">
+      <Filter>include\bounce\dynamics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\joint_manager.h">
+      <Filter>include\bounce\dynamics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\joints\cone_joint.h">
+      <Filter>include\bounce\dynamics\joints</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\joints\joint.h">
+      <Filter>include\bounce\dynamics\joints</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\joints\joint_solver.h">
+      <Filter>include\bounce\dynamics\joints</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\joints\mouse_joint.h">
+      <Filter>include\bounce\dynamics\joints</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\joints\revolute_joint.h">
+      <Filter>include\bounce\dynamics\joints</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\joints\sphere_joint.h">
+      <Filter>include\bounce\dynamics\joints</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\joints\spring_joint.h">
+      <Filter>include\bounce\dynamics\joints</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\shapes\capsule_shape.h">
+      <Filter>include\bounce\dynamics\shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\shapes\hull_shape.h">
+      <Filter>include\bounce\dynamics\shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\shapes\mesh_shape.h">
+      <Filter>include\bounce\dynamics\shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\shapes\shape.h">
+      <Filter>include\bounce\dynamics\shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\shapes\sphere_shape.h">
+      <Filter>include\bounce\dynamics\shapes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\time_step.h">
+      <Filter>include\bounce\dynamics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\world.h">
+      <Filter>include\bounce\dynamics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\dynamics\world_listeners.h">
+      <Filter>include\bounce\dynamics</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\bounce\quickhull\qh_hull.h">
+      <Filter>include\bounce\quickhull</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\bounce\collision\broad_phase.cpp">
+      <Filter>src\bounce\collision</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\collision\distance.cpp">
+      <Filter>src\bounce\collision</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\collision\gjk\gjk.cpp">
+      <Filter>src\bounce\collision\gjk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\collision\gjk\gjk_cache.cpp">
+      <Filter>src\bounce\collision\gjk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\collision\gjk\gjk_feature_pair.cpp">
+      <Filter>src\bounce\collision\gjk</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\collision\sat\sat.cpp">
+      <Filter>src\bounce\collision\sat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\collision\sat\sat_edge_and_hull.cpp">
+      <Filter>src\bounce\collision\sat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\collision\sat\sat_vertex_and_hull.cpp">
+      <Filter>src\bounce\collision\sat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\collision\shapes\hull.cpp">
+      <Filter>src\bounce\collision\shapes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\collision\trees\dynamic_tree.cpp">
+      <Filter>src\bounce\collision\trees</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\collision\trees\static_tree.cpp">
+      <Filter>src\bounce\collision\trees</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\common\math\mat.cpp">
+      <Filter>src\bounce\common\math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\common\memory\block_pool.cpp">
+      <Filter>src\bounce\common\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\common\memory\stack_allocator.cpp">
+      <Filter>src\bounce\common\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\common\settings.cpp">
+      <Filter>src\bounce\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\body.cpp">
+      <Filter>src\bounce\dynamics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contact_manager.cpp">
+      <Filter>src\bounce\dynamics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contacts\collide\clip.cpp">
+      <Filter>src\bounce\dynamics\contacts\collide</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contacts\collide\collide.cpp">
+      <Filter>src\bounce\dynamics\contacts\collide</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contacts\collide\collide_capsule_and_hull.cpp">
+      <Filter>src\bounce\dynamics\contacts\collide</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contacts\collide\collide_capsules.cpp">
+      <Filter>src\bounce\dynamics\contacts\collide</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contacts\collide\collide_hulls.cpp">
+      <Filter>src\bounce\dynamics\contacts\collide</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contacts\collide\collide_hulls_cache.cpp">
+      <Filter>src\bounce\dynamics\contacts\collide</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contacts\collide\collide_sphere_and_capsule.cpp">
+      <Filter>src\bounce\dynamics\contacts\collide</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contacts\collide\collide_sphere_and_hull.cpp">
+      <Filter>src\bounce\dynamics\contacts\collide</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contacts\collide\collide_spheres.cpp">
+      <Filter>src\bounce\dynamics\contacts\collide</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contacts\contact.cpp">
+      <Filter>src\bounce\dynamics\contacts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contacts\contact_cluster.cpp">
+      <Filter>src\bounce\dynamics\contacts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contacts\contact_solver.cpp">
+      <Filter>src\bounce\dynamics\contacts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contacts\convex_contact.cpp">
+      <Filter>src\bounce\dynamics\contacts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contacts\manifold.cpp">
+      <Filter>src\bounce\dynamics\contacts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\contacts\mesh_contact.cpp">
+      <Filter>src\bounce\dynamics\contacts</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\draw_world.cpp">
+      <Filter>src\bounce\dynamics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\island.cpp">
+      <Filter>src\bounce\dynamics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\joint_manager.cpp">
+      <Filter>src\bounce\dynamics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\joints\cone_joint.cpp">
+      <Filter>src\bounce\dynamics\joints</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\joints\joint.cpp">
+      <Filter>src\bounce\dynamics\joints</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\joints\joint_solver.cpp">
+      <Filter>src\bounce\dynamics\joints</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\joints\mouse_joint.cpp">
+      <Filter>src\bounce\dynamics\joints</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\joints\revolute_joint.cpp">
+      <Filter>src\bounce\dynamics\joints</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\joints\sphere_joint.cpp">
+      <Filter>src\bounce\dynamics\joints</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\joints\spring_joint.cpp">
+      <Filter>src\bounce\dynamics\joints</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\shapes\capsule_shape.cpp">
+      <Filter>src\bounce\dynamics\shapes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\shapes\hull_shape.cpp">
+      <Filter>src\bounce\dynamics\shapes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\shapes\mesh_shape.cpp">
+      <Filter>src\bounce\dynamics\shapes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\shapes\shape.cpp">
+      <Filter>src\bounce\dynamics\shapes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\shapes\sphere_shape.cpp">
+      <Filter>src\bounce\dynamics\shapes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\dynamics\world.cpp">
+      <Filter>src\bounce\dynamics</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\bounce\quickhull\qh_hull.cpp">
+      <Filter>src\bounce\quickhull</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\include\bounce\collision\shapes\hull.inl">
+      <Filter>include\bounce\collision\shapes</Filter>
+    </None>
+    <None Include="..\..\include\bounce\quickhull\qh_hull.inl">
+      <Filter>include\bounce\quickhull</Filter>
+    </None>
+  </ItemGroup>
+</Project>
