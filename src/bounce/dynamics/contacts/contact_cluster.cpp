@@ -16,8 +16,8 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\contacts\contact_cluster.h>
-#include <bounce\collision\distance.h>
+#include <bounce/dynamics/contacts/contact_cluster.h>
+#include <bounce/collision/distance.h>
 
 inline void AddCluster(b3Array<b3Cluster>& clusters, const b3Vec3& centroid)
 {

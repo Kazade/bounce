@@ -37,7 +37,7 @@
 // Define this to 1 if building GLFW for X11
 /* #undef _GLFW_X11 */
 // Define this to 1 if building GLFW for Win32
-#define _GLFW_WIN32
+//#define _GLFW_WIN32
 // Define this to 1 if building GLFW for Cocoa
 /* #undef _GLFW_COCOA */
 // Define this to 1 if building GLFW for Wayland
@@ -63,3 +63,16 @@
 // Define this to 1 if windows should use full resolution on Retina displays
 /* #undef _GLFW_USE_RETINA */
 
+#if defined ( _WIN32 )
+	#define _GLFW_WIN32
+	#define _GLFW_WGL
+#elif defined ( __APPLE__ )
+	#define _GLFW_COCOA
+	#define _GLFW_NSGL
+#else
+	#define _GLFW_X11
+	#define _GLFW_GLX
+#endif
+
+#define _GLFW_USE_MENUBAR
+#define _GLFW_USE_OPENGL

@@ -19,10 +19,10 @@
 #ifndef TEST_H
 #define TEST_H
 
-#include <glfw\glfw3.h>
-#include <imgui\imgui.h>
-#include "..\framework\debug_draw.h"
-#include <bounce\bounce.h>
+#include <glfw/glfw3.h>
+#include <imgui/imgui.h>
+#include "../framework/debug_draw.h"
+#include <bounce/bounce.h>
 
 struct Settings
 {
@@ -199,7 +199,6 @@ public:
 	b3Profile m_maxProfile;
 
 	RayCastHit m_rayHit;
-	b3Body* m_groundBody;
 	b3BoxHull m_groundHull;
 	b3BoxHull m_boxHull;
 	b3BoxHull m_tallHull;

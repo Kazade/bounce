@@ -16,14 +16,14 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\shapes\mesh_shape.h>
-#include <bounce\collision\shapes\mesh.h>
+#include <bounce/dynamics/shapes/mesh_shape.h>
+#include <bounce/collision/shapes/mesh.h>
 
 b3MeshShape::b3MeshShape() 
 {
 	m_type = e_meshShape;
 	m_radius = B3_HULL_RADIUS;
-	m_mesh = nullptr;
+	m_mesh = NULL;
 }
 
 b3MeshShape::~b3MeshShape() 
@@ -161,7 +161,7 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 	callback.hit = false;
 	callback.output.fraction = B3_MAX_FLOAT;
 
-	m_mesh->tree.QueryRay(&callback, subInput);
+	m_mesh->tree.RayCast(&callback, subInput);
 
 	output->fraction = callback.output.fraction;
 	output->normal = b3Mul(xf.rotation, callback.output.normal);

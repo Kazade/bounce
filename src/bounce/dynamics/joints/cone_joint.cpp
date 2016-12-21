@@ -16,17 +16,20 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\joints\cone_joint.h>
-#include <bounce\dynamics\body.h>
-#include <bounce\common\draw.h>
+#include <bounce/dynamics/joints/cone_joint.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/common/draw.h>
 
-// C = dot(u2, u1) - cos(0.5 * angle) > 0
+// C = dot(u2, u1) - cos(angle / 2) > 0
 // Cdot = dot(u2, omega1 x u1) + dot(u1, omega2 x u2)
 // Cycle:
 // dot(u1 x u2, omega1) + dot(u2 x u1, omega2) = 
 // dot(-u2 x u1, omega1) + dot(u2 x u1, omega2)
 // n = u2 x u1
 // J = [0 -n 0 n]
+
+// Stable C: 
+// C =  angle / 2 - atan2( norm(u2 x u1), dot(u2, u1) ) > 0
 
 void b3ConeJointDef::Initialize(b3Body* bA, b3Body* bB,
 	const b3Vec3& axis, const b3Vec3& anchor, float32 angle)
@@ -109,7 +112,7 @@ void b3ConeJoint::InitializeConstraints(const b3SolverData* data)
 		float32 mass = b3Dot((m_iA + m_iB) * m_limitAxis, m_limitAxis);
 		m_limitMass = mass > 0.0f ? 1.0f / mass : 0.0f;
 		
-		// C = cone - angle >= 0
+		// C = cone / 2 - angle >= 0
 		float32 cosine = b3Dot(u2, u1);
 		float32 sine = b3Length(m_limitAxis);
 		float32 angle = atan2(sine, cosine);
@@ -185,23 +188,12 @@ void b3ConeJoint::SolveVelocityConstraints(const b3SolverData* data)
 	// Solve limit constraint.
 	if (m_enableLimit && m_limitState != e_inactiveLimit)
 	{
-		float32 impulse = 0.0f;
+		float32 Cdot = b3Dot(m_limitAxis, wB - wA);
+		float32 impulse = -m_limitMass * Cdot;
+		float32 oldImpulse = m_limitImpulse;
+		m_limitImpulse = b3Max(m_limitImpulse + impulse, 0.0f);
+		impulse = m_limitImpulse - oldImpulse;
 
-		if (m_limitState == e_equalLimits)
-		{
-			float32 Cdot = b3Dot(m_limitAxis, wB - wA);
-			impulse = -m_limitMass * Cdot;
-			m_limitImpulse += impulse;
-		}
-		else if (m_limitState == e_atLowerLimit)
-		{
-			float32 Cdot = b3Dot(m_limitAxis, wB - wA);
-			impulse = -m_limitMass * Cdot;
-			float32 oldImpulse = m_limitImpulse;
-			m_limitImpulse = b3Max(m_limitImpulse + impulse, 0.0f);
-			impulse = m_limitImpulse - oldImpulse;
-		}
-		
 		b3Vec3 P = impulse * m_limitAxis;
 
 		wA -= m_iA * P;
@@ -258,12 +250,12 @@ bool b3ConeJoint::SolvePositionConstraints(const b3SolverData* data)
 	float32 limitError = 0.0f;
 	if (m_enableLimit)
 	{
-		// Compute Jacobian
+		// Compute fresh Jacobian
 		b3Vec3 u1 = b3Mul(qA, m_localFrameA.rotation.y);
 		b3Vec3 u2 = b3Mul(qB, m_localFrameB.rotation.y);
 		b3Vec3 limitAxis = b3Cross(u2, u1);
 		
-		// Compute effective mass.
+		// Compute fresh effective mass.
 		float32 mass = b3Dot((iA + iB) * limitAxis, limitAxis);
 		float32 limitMass = mass > 0.0f ? 1.0f / mass : 0.0f;
 
@@ -301,24 +293,24 @@ bool b3ConeJoint::SolvePositionConstraints(const b3SolverData* data)
 	return linearError <= B3_LINEAR_SLOP && limitError <= B3_ANGULAR_SLOP;
 }
 
-const b3Transform& b3ConeJoint::GetFrameA() const
+b3Transform b3ConeJoint::GetFrameA() const
+{
+	return GetBodyA()->GetWorldFrame(m_localFrameA);
+}
+
+b3Transform b3ConeJoint::GetFrameB() const
+{
+	return GetBodyB()->GetWorldFrame(m_localFrameB);
+}
+
+const b3Transform& b3ConeJoint::GetLocalFrameA() const
 {
 	return m_localFrameA;
 }
 
-void b3ConeJoint::SetFrameA(const b3Transform& frame)
-{
-	m_localFrameA = frame;
-}
-
-const b3Transform& b3ConeJoint::GetFrameB() const
+const b3Transform& b3ConeJoint::GetLocalFrameB() const
 {
 	return m_localFrameB;
-}
-
-void b3ConeJoint::SetFrameB(const b3Transform& frame)
-{
-	m_localFrameB = frame;
 }
 
 bool b3ConeJoint::IsLimitEnabled() const
@@ -338,14 +330,14 @@ void b3ConeJoint::SetEnableLimit(bool bit)
 	}
 }
 
-float32 b3ConeJoint::GetLowerLimit() const
+float32 b3ConeJoint::GetConeAngle() const
 {
 	return m_coneAngle;
 }
 
-void b3ConeJoint::SetLimit(float32 angle)
+void b3ConeJoint::SetConeAngle(float32 angle)
 {
-	if (angle != m_coneAngle || angle != m_coneAngle)
+	if (angle != m_coneAngle)
 	{
 		GetBodyA()->SetAwake(true);
 		GetBodyB()->SetAwake(true);
@@ -354,10 +346,10 @@ void b3ConeJoint::SetLimit(float32 angle)
 	}
 }
 
-void b3ConeJoint::Draw(b3Draw* b3Draw) const
+void b3ConeJoint::Draw(b3Draw* draw) const
 {
-	b3Transform xfA = GetBodyA()->GetWorldFrame(m_localFrameA);
-	b3Draw->DrawTransform(xfA);
-	b3Transform xfB = GetBodyB()->GetWorldFrame(m_localFrameB);
-	b3Draw->DrawTransform(xfB);
+	b3Transform xfA = GetFrameA();
+	draw->DrawTransform(xfA);
+	b3Transform xfB = GetFrameB();
+	draw->DrawTransform(xfB);
 }

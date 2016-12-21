@@ -19,7 +19,7 @@
 #ifndef B3_BROAD_PHASE_H
 #define B3_BROAD_PHASE_H
 
-#include <bounce\collision\trees\dynamic_tree.h>
+#include <bounce/collision/trees/dynamic_tree.h>
 #include <algorithm>
 
 // A pair of broad-phase proxies.
@@ -29,8 +29,8 @@ struct b3Pair
 	i32 proxy2;
 };
 
-// The broad-phase collision interface. 
-// It is used to perform ray, AABB, and overlapping-pair queries 
+// The broad-phase interface. 
+// It is used to perform ray casts, volume queries, and overlapping queries 
 // against AABBs.
 class b3BroadPhase 
 {
@@ -38,14 +38,14 @@ public:
 	b3BroadPhase();
 	~b3BroadPhase();
 
-	// Create a broad-phase proxy and return a proxy.
+	// Create a proxy and return a index to it.
 	i32 CreateProxy(const b3AABB3& aabb, void* userData);
 	
-	// Destroy an existing proxy.
+	// Destroy a given proxy and remove it from the broadphase.
 	void DestroyProxy(i32 proxyId);
 
-	// Update an existing proxy with a given AABB and a displacement.
-	// displacement = int[a, b](dv/dt) dt = F(b) - F(a) = x(b) - x(a) ~= v * dt
+	// Update an existing proxy AABB with a given AABB and a displacement.
+	// displacement = dt * velocity
 	// Return true if the proxy has moved.
 	bool MoveProxy(i32 proxyId, const b3AABB3& aabb, const b3Vec3& displacement);
 
@@ -65,15 +65,15 @@ public:
 	// Notify the client callback the AABBs that are overlapping the 
 	// passed ray.
 	template<class T>
-	void QueryRay(T* callback, const b3RayCastInput& input) const;
+	void RayCast(T* callback, const b3RayCastInput& input) const;
 
 	// Notify the client callback the AABB pairs that are overlapping.
 	// The client must store the notified pairs.
 	template<class T>
 	void FindNewPairs(T* callback);
 
-	// Debug b3Draw the AABB proxies.
-	void Draw(b3Draw* b3Draw) const;
+	// Draw the proxy AABBs.
+	void Draw(b3Draw* draw) const;
 private :
 	friend class b3DynamicTree;
 	
@@ -81,18 +81,18 @@ private :
 	// Only moved proxies will be used as an AABB query reference object.
 	void BufferMove(i32 proxyId);
 
-	// The client callback used to add a overlapping pair
+	// The client callback used to add an overlapping pair
 	// to the overlapping pair buffer.
 	bool Report(i32 proxyId);
 	
 	// The dynamic tree.
 	b3DynamicTree m_tree;
 
-	// The current proxy being queried for 
-	// overlap witha another proxies. Is used to avoid a proxy overlap with itself.
+	// The current proxy being queried for overlap with another proxies. 
+	// It is used to avoid a proxy overlap with itself.
 	i32 m_queryProxyId;
 
-	// Keep a buffer of the objects that have moved in a step.
+	// The objects that have moved in a step.
 	i32* m_moveBuffer;
 	u32 m_moveBufferCount;
 	u32 m_moveBufferCapacity;
@@ -120,9 +120,9 @@ inline void b3BroadPhase::QueryAABB(T* callback, const b3AABB3& aabb) const
 }
 
 template<class T>
-inline void b3BroadPhase::QueryRay(T* callback, const b3RayCastInput& input) const 
+inline void b3BroadPhase::RayCast(T* callback, const b3RayCastInput& input) const 
 {
-	return m_tree.QueryRay(callback, input);
+	return m_tree.RayCast(callback, input);
 }
 
 inline bool operator<(const b3Pair& pair1, const b3Pair& pair2) 
@@ -189,9 +189,9 @@ inline void b3BroadPhase::FindNewPairs(T* callback)
 	}
 }
 
-inline void b3BroadPhase::Draw(b3Draw* b3Draw) const
+inline void b3BroadPhase::Draw(b3Draw* draw) const
 {
-	m_tree.Draw(b3Draw);
+	m_tree.Draw(draw);
 }
 
 #endif

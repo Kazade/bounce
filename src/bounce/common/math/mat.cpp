@@ -16,8 +16,8 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\common\math\mat22.h>
-#include <bounce\common\math\mat33.h>
+#include <bounce/common/math/mat22.h>
+#include <bounce/common/math/mat33.h>
 
 b3Vec2 b3Mat22::Solve(const b3Vec2& b) const
 {

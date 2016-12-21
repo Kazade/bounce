@@ -16,15 +16,15 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\joints\mouse_joint.h>
-#include <bounce\dynamics\body.h>
-#include <bounce\common\draw.h>
+#include <bounce/dynamics/joints/mouse_joint.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/common/draw.h>
 
 b3MouseJoint::b3MouseJoint(const b3MouseJointDef* def) 
 {
 	m_type = e_mouseJoint;
-	m_worldAnchorA = def->worldAnchorA;
-	m_localAnchorB = def->localAnchorB;	
+	m_worldTargetA = def->target;
+	m_localAnchorB = def->bodyB->GetLocalPoint(def->target);
 	m_maxForce = def->maxForce;
 	m_impulse.SetZero();
 }
@@ -42,7 +42,7 @@ void b3MouseJoint::InitializeConstraints(const b3SolverData* data)
 
 	b3Vec3 worldAnchorB = b3Mul(qB, m_localAnchorB) + xB;
 	
-	m_C = worldAnchorB - m_worldAnchorA;	
+	m_C = worldAnchorB - m_worldTargetA;	
 	m_rB = worldAnchorB - xB;
 
 	b3Mat33 M = b3Diagonal(m_mB);
@@ -54,7 +54,7 @@ void b3MouseJoint::InitializeConstraints(const b3SolverData* data)
 void b3MouseJoint::WarmStart(const b3SolverData* data) 
 {
 	data->velocities[m_indexB].v += m_mB * m_impulse;
-	data->velocities[m_indexB].w += b3Mul(m_iB, b3Cross(m_rB, m_impulse));
+	data->velocities[m_indexB].w += m_iB * b3Cross(m_rB, m_impulse);
 }
 
 void b3MouseJoint::SolveVelocityConstraints(const b3SolverData* data) 
@@ -80,7 +80,7 @@ void b3MouseJoint::SolveVelocityConstraints(const b3SolverData* data)
 	impulse = m_impulse - oldImpulse;
 
 	vB += m_mB * impulse;
-	wB += b3Mul(m_iB, b3Cross(m_rB, impulse));
+	wB += m_iB * b3Cross(m_rB, impulse);
 	
 	data->velocities[m_indexB].v = vB;
 	data->velocities[m_indexB].w = wB;
@@ -88,27 +88,41 @@ void b3MouseJoint::SolveVelocityConstraints(const b3SolverData* data)
 
 bool b3MouseJoint::SolvePositionConstraints(const b3SolverData* data) 
 {
-	// There is no position correction for spring joints.
+	// There is no position correction for this constraint.
+	// todo Implement Buda spring?
 	return true;
 }
 
-// Get the world space anchor point on the first body (usually the mouse world space position).
-b3Vec3 b3MouseJoint::GetWorldAnchorB() const 
+b3Vec3 b3MouseJoint::GetAnchorA() const 
 {
-	return b3Mul(GetBodyB()->GetTransform(), m_localAnchorB);
+	return m_worldTargetA;
 }
 
-void b3MouseJoint::Draw(b3Draw* b3Draw) const 
+b3Vec3 b3MouseJoint::GetAnchorB() const
 {
-	b3Color red = b3Color(1.0f, 0.0f, 0.0f, 1.0f);
-	b3Color green = b3Color(0.0f, 1.0f, 0.0f, 1.0f);
-	b3Color yellow = b3Color(1.0f, 1.0f, 0.0f, 1.0f);
-	
-	b3Transform xfB = GetBodyB()->m_xf;
-	b3Vec3 worldAnchorA = m_worldAnchorA;
-	b3Vec3 worldAnchorB = b3Mul(xfB, m_localAnchorB);
+	return GetBodyB()->GetWorldPoint(m_localAnchorB);
+}
 
-	b3Draw->DrawPoint(worldAnchorA, green);
-	b3Draw->DrawPoint(worldAnchorB, red);
-	b3Draw->DrawSegment(worldAnchorA, worldAnchorB, yellow);
+const b3Vec3& b3MouseJoint::GetTarget() const
+{
+	return m_worldTargetA;
+}
+
+void b3MouseJoint::SetTarget(const b3Vec3& target)
+{
+	m_worldTargetA = target;
+}
+
+void b3MouseJoint::Draw(b3Draw* draw) const 
+{
+	b3Color red(1.0f, 0.0f, 0.0f);
+	b3Color green(0.0f, 1.0f, 0.0f);
+	b3Color yellow(1.0f, 1.0f, 0.0f);
+	
+	b3Vec3 a = GetAnchorA();
+	b3Vec3 b = GetAnchorB();
+
+	draw->DrawPoint(a, green);
+	draw->DrawPoint(b, red);
+	draw->DrawSegment(a, b, yellow);
 }

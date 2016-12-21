@@ -19,7 +19,7 @@
 #ifndef CLUSTER_H
 #define CLUSTER_H
 
-#include <bounce\dynamics\contacts\contact_cluster.h>
+#include <bounce/dynamics/contacts/contact_cluster.h>
 
 extern DebugDraw* g_debugDraw;
 extern Camera g_camera;

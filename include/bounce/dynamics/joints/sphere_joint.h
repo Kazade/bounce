@@ -19,7 +19,7 @@
 #ifndef B3_SPHERE_JOINT_H
 #define B3_SPHERE_JOINT_H
 
-#include <bounce\dynamics\joints\joint.h>
+#include <bounce/dynamics/joints/joint.h>
 
 struct b3SphereJointDef : public b3JointDef
 {
@@ -30,31 +30,29 @@ struct b3SphereJointDef : public b3JointDef
 		localAnchorB.SetZero();
 	}
 
-	// Initialize this definition.
+	// Initialize this definition from bodies and world anchor point.
 	void Initialize(b3Body* bodyA, b3Body* bodyB, const b3Vec3& anchor);
 
+	// The anchor point relative to body A's origin
 	b3Vec3 localAnchorA;
+
+	// The anchor point relative to body B's origin
 	b3Vec3 localAnchorB;
 };
 
-// A ball-in-socket joint.
+// A sphere joint constrains the bodies to rotate relative to each 
+// other about a specified anchor point.
 class b3SphereJoint : public b3Joint
 {
 public:
-	// Get the local anchor point on body A.
-	const b3Vec3& GetLocalAnchorA() const;
+	// Get the anchor point on body A in world coordinates.
+	b3Vec3 GetAnchorA() const;
 	
-	// Set the local anchor point on body A.
-	void SetLocalAnchorA(const b3Vec3& point);
-
-	// Get the local anchor point on body B.
-	const b3Vec3& GetLocalAnchorB() const;
+	// Get the anchor point on body B in world coordinates.
+	b3Vec3 GetAnchorB() const;
 	
-	// Set the local anchor point on body B.
-	void SetLocalAnchorB(const b3Vec3& point);
-
-	// Implement b3Joint
-	void Draw(b3Draw* b3Draw) const;
+	// Draw this joint.
+	void Draw(b3Draw* draw) const;
 private:
 	friend class b3Joint;
 	friend class b3JointManager;
@@ -67,12 +65,11 @@ private:
 	virtual void SolveVelocityConstraints(const b3SolverData* data);
 	virtual bool SolvePositionConstraints(const b3SolverData* data);
 
-	// The local joint frames on each body.
+	// Solver shared
 	b3Vec3 m_localAnchorA;
 	b3Vec3 m_localAnchorB;
 
-	// Temporary data copied from the joint solver
-	// to reduce cache misses.
+	// Solver temp
 	u32 m_indexA;
 	u32 m_indexB;
 	float32 m_mA;
@@ -80,7 +77,6 @@ private:
 	b3Mat33 m_iA;
 	b3Mat33 m_iB;
 
-	// Constraint data.
 	b3Vec3 m_localCenterA;
 	b3Vec3 m_localCenterB;
 	b3Vec3 m_rA;
@@ -88,25 +84,5 @@ private:
 	b3Mat33 m_mass;
 	b3Vec3 m_impulse;
 };
-
-inline const b3Vec3& b3SphereJoint::GetLocalAnchorA() const
-{
-	return m_localAnchorA;
-}
-
-inline void b3SphereJoint::SetLocalAnchorA(const b3Vec3& point)
-{
-	m_localAnchorA = point;
-}
-
-inline const b3Vec3& b3SphereJoint::GetLocalAnchorB() const
-{
-	return m_localAnchorB;
-}
-
-inline void b3SphereJoint::SetLocalAnchorB(const b3Vec3& point)
-{
-	m_localAnchorB = point;
-}
 
 #endif

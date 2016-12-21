@@ -19,7 +19,7 @@
 #ifndef B3_HULL_H
 #define B3_HULL_H
 
-#include <bounce\common\geometry.h>
+#include <bounce/common/geometry.h>
 
 struct b3Face
 {
@@ -52,14 +52,14 @@ struct b3Hull
 
 	u32 GetSupportVertex(const b3Vec3& direction) const;
 	u32 GetSupportFace(const b3Vec3& direction) const;
-	
 	b3Plane GetEdgeSidePlane(u32 index) const;
+	
 	u32 GetSize() const;
 	void Validate() const;
 	void Validate(const b3Face* face) const;
 	void Validate(const b3HalfEdge* edge) const;
 };
 
-#include <bounce\collision\shapes\hull.inl>
+#include <bounce/collision/shapes/hull.inl>
 
 #endif

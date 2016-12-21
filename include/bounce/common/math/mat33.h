@@ -19,7 +19,7 @@
 #ifndef B3_MAT_33_H
 #define B3_MAT_33_H
 
-#include <bounce\common\math\vec3.h>
+#include <bounce/common/math/vec3.h>
 
 // A 3-by-3 matrix stored in column-major order.
 struct b3Mat33 
@@ -27,7 +27,7 @@ struct b3Mat33
 	// Does nothing for performance.
 	b3Mat33() { }
 
-	// Set this matrix from three elements.
+	// Set this matrix from three column vectors.
 	b3Mat33(const b3Vec3& _x, const b3Vec3& _y, const b3Vec3& _z) :	x(_x), y(_y), z(_z) { }
 
 	// Read an indexed column vector from this matrix.
@@ -40,6 +40,12 @@ struct b3Mat33
 	b3Vec3& operator[](u32 i) 
 	{
 		return (&x)[i];
+	}
+
+	// Read an indexed element from this matrix.
+	float32 operator()(u32 i, u32 j) const
+	{
+		return (&x.x)[i + 3 * j];
 	}
 
 	// Add a matrix to this matrix.
@@ -71,11 +77,6 @@ struct b3Mat33
 	// Therefore, is more efficient.
 	// Returns the zero vector if the matrix is singular.
 	b3Vec3 Solve(const b3Vec3& b) const;
-
-	float32 operator()(u32 i, u32 j) const
-	{
-		return (&x.x)[i + 3 * j];
-	}
 
 	b3Vec3 x, y, z;
 };
@@ -134,7 +135,7 @@ inline b3Mat33 b3Mul(const b3Mat33& A, const b3Mat33& B)
 
 // Multiply the transpose of a matrix times a vector. If 
 // the matrix represents a rotation frame this transforms the 
-// vector from one frame to another (inverse b3Transform).
+// vector from one frame to another (inverse transform).
 inline b3Vec3 b3MulT(const b3Mat33& A, const b3Vec3& v) 
 {
 	return b3Vec3(b3Dot(A.x, v), b3Dot(A.y, v), b3Dot(A.z, v));

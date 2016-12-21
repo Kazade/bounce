@@ -19,9 +19,9 @@
 #ifndef B3_CONVEX_CONTACT_H
 #define B3_CONVEX_CONTACT_H
 
-#include <bounce\dynamics\contacts\contact.h>
-#include <bounce\dynamics\contacts\manifold.h>
-#include <bounce\dynamics\contacts\collide\collide.h>
+#include <bounce/dynamics/contacts/contact.h>
+#include <bounce/dynamics/contacts/manifold.h>
+#include <bounce/dynamics/contacts/collide/collide.h>
 
 class b3ConvexContact : public b3Contact 
 {
@@ -36,8 +36,6 @@ private:
 
 	void Collide();
 	
-	void SynchronizeShapes();
-
 	b3Manifold m_stackManifold;
 	b3ConvexCache m_cache;
 };

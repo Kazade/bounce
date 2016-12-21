@@ -16,27 +16,13 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_COLLISION_H
-#define B3_COLLISION_H
+#ifndef B3_DISTANCE_H
+#define B3_DISTANCE_H
 
-#include <bounce\common\geometry.h>
-#include <bounce\collision\shapes\aabb3.h>
-#include <bounce\collision\shapes\capsule.h>
+#include <bounce/common/geometry.h>
+#include <bounce/collision/shapes/aabb3.h>
 
-// Input for a ray cast query.
-struct b3RayCastInput
-{
-	b3Vec3 p1; // first point on segment
-	b3Vec3 p2; // second point on segment
-	float32 maxFraction; // maximum intersection
-};
-
-// Output of ray cast query.
-struct b3RayCastOutput
-{
-	float32 fraction; // time of intersection
-	b3Vec3 normal; // surface normal of intersection
-};
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Find the closest point for a point P to a normalized plane.
 b3Vec3 b3ClosestPointOnPlane(const b3Vec3& P, const b3Plane& plane);
@@ -59,9 +45,26 @@ void b3ClosestPointsOnNormalizedLines(b3Vec3* C1, b3Vec3* C2,
 	const b3Vec3& P1, const b3Vec3& N1,
 	const b3Vec3& P2, const b3Vec3& N2);
 
-// Find the closest points of two segments P1-Q1 to a segment P2-Q2.
+// Find the closest points of two segments.
 void b3ClosestPointsOnSegments(b3Vec3* C1, b3Vec3* C2,
 	const b3Vec3& P1, const b3Vec3& Q1,
 	const b3Vec3& P2, const b3Vec3& Q2);
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Input for a ray cast.
+struct b3RayCastInput
+{
+	b3Vec3 p1; // first point on segment
+	b3Vec3 p2; // second point on segment
+	float32 maxFraction; // maximum intersection
+};
+
+// Output of a ray cast.
+struct b3RayCastOutput
+{
+	float32 fraction; // time of intersection on ray-segment
+	b3Vec3 normal; // surface normal of intersection
+};
 
 #endif

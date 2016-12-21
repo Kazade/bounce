@@ -16,19 +16,19 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\contact_manager.h>
-#include <bounce\dynamics\contacts\convex_contact.h>
-#include <bounce\dynamics\contacts\mesh_contact.h>
-#include <bounce\dynamics\shapes\shape.h>
-#include <bounce\dynamics\body.h>
-#include <bounce\dynamics\world_listeners.h>
+#include <bounce/dynamics/contact_manager.h>
+#include <bounce/dynamics/contacts/convex_contact.h>
+#include <bounce/dynamics/contacts/mesh_contact.h>
+#include <bounce/dynamics/shapes/shape.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/dynamics/world_listeners.h>
 
 b3ContactManager::b3ContactManager() : 
 	m_convexBlocks(sizeof(b3ConvexContact)),
 	m_meshBlocks(sizeof(b3MeshContact))
 {
-	m_contactListener = nullptr;
-	m_contactFilter = nullptr;
+	m_contactListener = NULL;
+	m_contactFilter = NULL;
 }
 
 void b3ContactManager::AddPair(void* dataA, void* dataB) 
@@ -123,7 +123,7 @@ void b3ContactManager::AddPair(void* dataA, void* dataB)
 	// Add the contact to the world contact list.
 	m_contactList.PushFront(c);
 	
-	if (c->m_type == b3ContactType::e_meshContact)
+	if (c->m_type == e_meshContact)
 	{
 		// Add the contact to the world mesh contact list.
 		b3MeshContact* mc = (b3MeshContact*)c;
@@ -237,7 +237,7 @@ b3Contact* b3ContactManager::Create(b3Shape* shapeA, b3Shape* shapeB)
 
 	B3_ASSERT(typeA <= typeB);
 
-	b3Contact* c = nullptr;
+	b3Contact* c = NULL;
 	if (typeA != e_meshShape && typeB != e_meshShape) 
 	{
 		void* block = m_convexBlocks.Allocate();
@@ -267,7 +267,7 @@ b3Contact* b3ContactManager::Create(b3Shape* shapeA, b3Shape* shapeB)
 
 void b3ContactManager::Destroy(b3Contact* c) 
 {
-	// Report to the contact listener that the contact will be destroyed.
+	// Report to the contact listener the contact will be destroyed.
 	if (m_contactListener) 
 	{
 		if (c->IsOverlapping()) 
@@ -297,7 +297,7 @@ void b3ContactManager::Destroy(b3Contact* c)
 	{
 		b3MeshContact* mc = (b3MeshContact*)c;
 		
-		// Remove the contact from the world mesh contact list.
+		// Remove the mesh contact from the world mesh contact list.
 		m_meshContactList.Remove(&mc->m_link);
 		
 		mc->~b3MeshContact();

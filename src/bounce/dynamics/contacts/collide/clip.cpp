@@ -16,9 +16,9 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\contacts\collide\clip.h>
-#include <bounce\collision\shapes\capsule.h>
-#include <bounce\collision\shapes\hull.h>
+#include <bounce/dynamics/contacts/collide/clip.h>
+#include <bounce/collision/shapes/capsule.h>
+#include <bounce/collision/shapes/hull.h>
 
 void b3BuildEdge(b3ClipVertex vOut[2],
 	const b3Capsule* hull)

@@ -16,13 +16,13 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\collision\trees\static_tree.h>
-#include <bounce\common\template\stack.h>
+#include <bounce/collision/trees/static_tree.h>
+#include <bounce/common/template/stack.h>
 #include <algorithm>
 
 b3StaticTree::b3StaticTree()
 {
-	m_nodes = nullptr;
+	m_nodes = NULL;
 	m_nodeCount = 0;
 }
 
@@ -31,17 +31,46 @@ b3StaticTree::~b3StaticTree()
 	b3Free(m_nodes);
 }
 
-void b3StaticTree::Build(u32* ids, const b3AABB3* set, u32 N)
+struct b3Params
 {
-	B3_ASSERT(N > 0);
+	u32 node;
+	u32* indices;
+	u32 numObjects;
+};
 
-	// Leafs = N, Internals = N - 1, Total = 2N - 1, if we assume
+struct b3SortPredicate
+{
+	const b3AABB3* bs;
+	u32 axis;
+
+	bool operator()(const u32& i, const u32& j) const
+	{
+		const b3AABB3* b1 = bs + i;
+		const b3AABB3* b2 = bs + j;
+
+		b3Vec3 c1 = b1->Centroid();
+		b3Vec3 c2 = b2->Centroid();
+
+		if (c1[axis] < c2[axis])
+		{
+			return true;
+		}
+		
+		return false;	
+	}
+};
+
+void b3StaticTree::Build(u32* ids, const b3AABB3* set, u32 n)
+{
+	B3_ASSERT(n > 0);
+
+	// Leafs = n, Internals = n - 1, Total = 2n - 1, if we assume
 	// each leaf node contains exactly 1 object.
 	const u32 kMinObjectsPerLeaf = 1;
 
-	u32 internalCapacity = N - 1;
-	u32 leafCapacity = N;
-	u32 nodeCapacity = 2 * N - 1;
+	u32 internalCapacity = n - 1;
+	u32 leafCapacity = n;
+	u32 nodeCapacity = 2 * n - 1;
 
 	u32 internalCount = 0;
 	u32 leafCount = 0;
@@ -49,42 +78,13 @@ void b3StaticTree::Build(u32* ids, const b3AABB3* set, u32 N)
 	m_nodes = (b3Node*)b3Alloc(nodeCapacity * sizeof(b3Node));
 	m_nodeCount = 1;
 
-	struct b3Params
-	{
-		u32 node;
-		u32* indices;
-		u32 numObjects;
-	};
-
-	struct b3SortPredicate
-	{
-		const b3AABB3* bs;
-		u32 axis;
-
-		bool operator()(const u32& i, const u32& j) const
-		{
-			const b3AABB3* b1 = bs + i;
-			const b3AABB3* b2 = bs + j;
-
-			b3Vec3 c1 = b1->Centroid();
-			b3Vec3 c2 = b2->Centroid();
-
-			if (c1[axis] < c2[axis])
-			{
-				return true;
-			}
-
-			return false;
-		}
-	};
-
 	b3Stack<b3Params, 256> stack;
 
 	{
 		b3Params params;
 		params.node = 0;
 		params.indices = ids;
-		params.numObjects = N;
+		params.numObjects = n;
 		stack.Push(params);
 	}
 
@@ -189,7 +189,7 @@ void b3StaticTree::Build(u32* ids, const b3AABB3* set, u32 N)
 	B3_ASSERT(m_nodeCount == nodeCapacity);
 }
 
-void b3StaticTree::Draw(b3Draw* b3Draw) const
+void b3StaticTree::Draw(b3Draw* draw) const
 {
 	b3Color red = b3Color(1.0f, 0.0f, 0.0f, 1.0f);
 	b3Color green = b3Color(0.0f, 1.0f, 0.0f, 1.0f);
@@ -215,11 +215,11 @@ void b3StaticTree::Draw(b3Draw* b3Draw) const
 		const b3Node* node = m_nodes + nodeIndex;
 		if (node->IsLeaf())
 		{
-			b3Draw->DrawAABB(node->aabb, purple);
+			draw->DrawAABB(node->aabb, purple);
 		}
 		else
 		{
-			b3Draw->DrawAABB(node->aabb, red);
+			draw->DrawAABB(node->aabb, red);
 			
 			stack.Push(node->child1);
 			stack.Push(node->child2);

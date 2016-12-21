@@ -19,7 +19,7 @@
 #ifndef B3_JOINT_SOLVER_H
 #define B3_JOINT_SOLVER_H
 
-#include <bounce\dynamics\time_step.h>
+#include <bounce/dynamics/time_step.h>
 
 class b3Joint;
 
@@ -31,18 +31,6 @@ struct b3Jacobian
 	b3Vec3 linearB;
 	b3Vec3 angularB;
 };
-
-// 1x3 times 3x3.
-inline b3Vec3 b3Mul(const b3Vec3& v, const b3Mat33& A)
-{
-	return b3Transpose(A) * v;
-}
-
-// 1x3 times 3x1.
-inline float32 b3Mul(const b3Vec3& v, const b3Vec3& w)
-{
-	return b3Dot(v, w);
-}
 
 struct b3JointSolverDef 
 {

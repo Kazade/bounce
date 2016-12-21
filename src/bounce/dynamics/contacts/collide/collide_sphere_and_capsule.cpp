@@ -16,12 +16,12 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\contacts\collide\collide.h>
-#include <bounce\dynamics\contacts\manifold.h>
-#include <bounce\dynamics\shapes\sphere_shape.h>
-#include <bounce\dynamics\shapes\capsule_shape.h>
-#include <bounce\collision\shapes\sphere.h>
-#include <bounce\collision\shapes\capsule.h>
+#include <bounce/dynamics/contacts/collide/collide.h>
+#include <bounce/dynamics/contacts/manifold.h>
+#include <bounce/dynamics/shapes/sphere_shape.h>
+#include <bounce/dynamics/shapes/capsule_shape.h>
+#include <bounce/collision/shapes/sphere.h>
+#include <bounce/collision/shapes/capsule.h>
 
 void b3CollideSphereAndCapsule(b3Manifold& manifold,
 	const b3Transform& xfA, const b3SphereShape* sA,

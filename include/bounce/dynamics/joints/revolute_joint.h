@@ -19,8 +19,8 @@
 #ifndef B3_REVOLUTE_JOINT_H
 #define B3_REVOLUTE_JOINT_H
 
-#include <bounce\dynamics\joints\joint.h>
-#include <bounce\common\math\mat.h>
+#include <bounce/dynamics/joints/joint.h>
+#include <bounce/common/math/mat.h>
 
 struct b3RevoluteJointDef : public b3JointDef 
 {
@@ -37,13 +37,13 @@ struct b3RevoluteJointDef : public b3JointDef
 		maxMotorTorque = 0.0f;
 	}
 
-	// Initialize this definition given an axis, anchor point, and the lower and upper angle limits in radians.
+	// Initialize this definition from hinge axis, anchor point, and the lower and upper angle limits in radians.
 	void Initialize(b3Body* bodyA, b3Body* bodyB, const b3Vec3& axis, const b3Vec3& anchor, float32 lowerAngle, float32 upperAngle);
 
-	// The joint frame relative to the frame of body A.
+	// The joint frame relative body A's frame.
 	b3Transform localFrameA;
 	
-	// The joint frame relative to the frame of body B.
+	// The joint frame relative body B's frame.
 	b3Transform localFrameB;
 
 	// Enable the joint limit.
@@ -65,27 +65,27 @@ struct b3RevoluteJointDef : public b3JointDef
 	float32 maxMotorTorque;
 };
 
-// A revolute joint constrains two bodies to share a common point while they
-// are free to rotate about the point and a given axis. 
-// The relative rotation about the shared axis
-// is the joint angle. You can limit the relative rotation with
-// a lower and upper angle limit. Also, you can use a motor
-// to drive the relative rotation about the shared axis. 
+// A revolute joint constrains two bodies to share a point and an axis while 
+// they are free to rotate about the point and the axis. 
+// The relative rotation about the shared axis is the joint angle. 
+// You can limit the relative rotation with a lower and upper angle limit. 
+// You can use a motor to drive the relative rotation about the shared axis. 
 // A maximum motor torque is provided so that infinite forces are not generated.
+// This joint can be used to create structures such as doors.
 class b3RevoluteJoint : public b3Joint
 {
 public:
-	// Get the joint frame relative to the frame of body A.
-	const b3Transform& GetFrameA() const;	
+	// Get the joint frame on body A in world coordinates.
+	b3Transform GetFrameA() const;
 
-	// Set the joint frame relative to the frame of body A.
-	void SetFrameA(const b3Transform& xf);
+	// Get the joint frame on body B in world coordinates.
+	b3Transform GetFrameB() const;
 
-	// Get the joint frame relative to the frame of body B.
-	const b3Transform& GetFrameB() const;
-	
-	// Set the joint frame relative to the frame of body B.
-	void SetFrameB(const b3Transform& xf);
+	// Get the joint frame relative body A's frame.
+	const b3Transform& GetLocalFrameA() const;
+
+	// Get the joint frame relative body B's frame.
+	const b3Transform& GetLocalFrameB() const;
 
 	// Is the joint limit enabled?
 	bool IsLimitEnabled() const;
@@ -96,7 +96,7 @@ public:
 	// Get the lower angle limit.
 	float32 GetLowerLimit() const;
 
-	// Get the upper limit.
+	// Get the upper angle limit.
 	float32 GetUpperLimit() const;
 
 	// Set the angle limits.
@@ -108,20 +108,20 @@ public:
 	// Set the joint motor enabled.
 	void SetEnableMotor(bool bit);
 
-	// Get the desired motor speed (radians per second).
+	// Get the desired motor speed in radians per second.
 	float32 GetMotorSpeed() const;
 
-	// Set the desired motor speed (radians per second).
+	// Set the desired motor speed in radians per second.
 	void SetMotorSpeed(float32 speed);
 
-	// Get the maximum motor torque (Newton per meter).
+	// Get the maximum motor torque in Newton per meter.
 	float32 GetMaxMotorTorque() const;
 
-	// Set the maximum motor torque (Newton per meter).
+	// Set the maximum motor torque in Newton per meter.
 	void SetMaxMotorTorque(float32 torque);
 
 	// Draw this joint.
-	void Draw(b3Draw* b3Draw) const;
+	void Draw(b3Draw* draw) const;
 private:
 	friend class b3Joint;
 	friend class b3JointManager;
@@ -171,8 +171,8 @@ private:
 	b3Vec3 m_rB;
 	b3Vec3 m_nA;
 	b3Vec3 m_nB;
-	b3Mat<5, 5> m_mass;
-	b3Vec<5> m_impulse;
+	b3Mat<5, 5> m_mass; // block solver
+	b3Vec<5> m_impulse; // block solver
 };
 
 #endif

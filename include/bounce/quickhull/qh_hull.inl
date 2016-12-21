@@ -3,7 +3,7 @@
 template<class T>
 inline void qhList<T>::PushFront(T* link)
 {
-	link->prev = nullptr;
+	link->prev = NULL;
 	link->next = head;
 	if (head)
 	{
@@ -31,8 +31,8 @@ inline T* qhList<T>::Remove(T* link)
 		head = link->next;
 	}
 
-	link->prev = nullptr;
-	link->next = nullptr;
+	link->prev = NULL;
+	link->next = NULL;
 
 	--count;
 	return next;
@@ -78,7 +78,7 @@ inline qhHalfEdge* qhFace::FindTwin(const qhVertex* tail, const qhVertex* head) 
 		e = e->next;
 	} while (e != edge);
 
-	return nullptr;
+	return NULL;
 }
 
 inline b3Vec3 b3Newell(const b3Vec3& a, const b3Vec3& b)
@@ -128,7 +128,7 @@ inline qhHalfEdge* qhHull::FindTwin(const qhVertex* tail, const qhVertex* head) 
 		}
 		face = face->next;
 	}
-	return nullptr;
+	return NULL;
 }
 
 inline u32 qhGetMemorySize(u32 V)

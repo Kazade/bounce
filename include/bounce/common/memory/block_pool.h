@@ -19,7 +19,7 @@
 #ifndef B3_BLOCK_POOL_H
 #define B3_BLOCK_POOL_H
 
-#include <bounce\common\settings.h>
+#include <bounce/common/settings.h>
 
 // Number of blocks per chunk.
 const u32 b3_blockCount = 32;

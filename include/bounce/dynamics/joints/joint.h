@@ -19,9 +19,9 @@
 #ifndef B3_JOINT_H
 #define B3_JOINT_H
 
-#include <bounce\common\math\transform.h>
-#include <bounce\common\template\list.h>
-#include <bounce\dynamics\time_step.h>
+#include <bounce/common/math/transform.h>
+#include <bounce/common/template/list.h>
+#include <bounce/dynamics/time_step.h>
 
 class b3Draw;
 class b3Body;
@@ -44,9 +44,9 @@ struct b3JointDef
 	b3JointDef()
 	{
 		type = e_unknownJoint;
-		bodyA = nullptr;
-		bodyB = nullptr;
-		userData = nullptr;
+		bodyA = NULL;
+		bodyB = NULL;
+		userData = NULL;
 		collideLinked = false;
 	}
 
@@ -57,6 +57,7 @@ struct b3JointDef
 	bool collideLinked;
 };
 
+// A joint edge to a joint graph, where a body is a vertex and a joint an edge.
 struct b3JointEdge
 {
 	b3Body* other;
@@ -66,8 +67,7 @@ struct b3JointEdge
 	b3JointEdge* m_next;
 };
 
-// This goes inside a joint.
-// It holds two bodies that are linked.
+// This is stored in a joint. It stores two bodies that are linked by the joint.
 struct b3LinkedPair
 {
 	// To the body A joint edge list
@@ -79,66 +79,54 @@ struct b3LinkedPair
 	b3JointEdge edgeB;
 };
 
-// @note All the data members of the joint structure they will be initialized
-// by the world.
+// Base joint class. For simplicity, a joint is unique per body pair. 
+// There are many joint types, some of them provide motors and limits.
 class b3Joint
 {
-public :
-	// Get the joint type.
+public:
+	// Get this joint type.
 	b3JointType GetType() const;
 
-	// Get the first body connected to the joint.
+	// Get the body A connected to this joint.
 	const b3Body* GetBodyA() const;
 	b3Body* GetBodyA();
 
-	// Set the body to be connected to the joint as the first body.
-	virtual void SetBodyA(b3Body* bodyA);
-
-	// Get the second body connected to the joint.
+	// Get the body B connected to this joint.
 	const b3Body* GetBodyB() const;
 	b3Body* GetBodyB();
 
-	// Set the body to be connected to the joint as the second body.
-	virtual void SetBodyB(b3Body* bodyB);
-
-	// Get the user specific data associated with the joint.
+	// Get the user data associated with this joint.
 	void* GetUserData();
 	const void* GetUserData() const;
 
 	// Set the user data to be associated with the joint.
 	void SetUserData(void* data);
 
-	// Tell the world if the bodies linked by this joint 
-	// should collide with each other.
-	void SetCollideLinked(bool flag);
-	
-	// Check if the bodies linked by this joint 
-	// should collide with each other.
+	// Should the bodies linked by this joint collide with each other?
 	bool CollideLinked() const;
-
+	
+	// Set if the bodies linked by this joint should collide with each other.
+	void SetCollideLinked(bool bit);
+	
 	// Dump this joint to the log file.
 	virtual void Dump() const
 	{
-		b3Log("Dump not implemented for this joint type.\n");
+		b3Log("Dump feature not implemented for this joint type.\n");
 	}
 
 	// Get the next joint in the world joint list.
-	b3Joint* GetNext();
 	const b3Joint* GetNext() const;
-
-	// Create joint.
-	static b3Joint* Create(const b3JointDef* def);
-
-	// Destroy joint.
-	static void Destroy(b3Joint* j);
-protected :
+	b3Joint* GetNext();
+protected:
 	friend class b3Body;
 	friend class b3World;
 	friend class b3Island;
 	friend class b3JointManager;
 	friend class b3JointSolver;
-
 	friend class b3List2<b3Joint>;
+	
+	static b3Joint* Create(const b3JointDef* def);
+	static void Destroy(b3Joint* j);
 
 	b3Joint() {	}
 	virtual ~b3Joint() { }
@@ -181,29 +169,14 @@ inline b3Body* b3Joint::GetBodyA()
 	return m_pair.bodyA;
 }
 
-inline void b3Joint::SetBodyA(b3Body* bodyA) 
+inline const b3Body* b3Joint::GetBodyB() const
 {
-	m_pair.bodyA = bodyA;
+	return m_pair.bodyB;
 }
 
 inline b3Body* b3Joint::GetBodyB() 
 {
 	return m_pair.bodyB;
-}
-
-inline const b3Body* b3Joint::GetBodyB() const 
-{
-	return m_pair.bodyB;
-}
-
-inline void b3Joint::SetBodyB(b3Body* bodyB) 
-{
-	m_pair.bodyB = bodyB;
-}
-
-inline void b3Joint::SetUserData(void* data) 
-{
-	m_userData = data;
 }
 
 inline void* b3Joint::GetUserData() 
@@ -214,6 +187,11 @@ inline void* b3Joint::GetUserData()
 inline const void* b3Joint::GetUserData() const 
 {
 	return m_userData;
+}
+
+inline void b3Joint::SetUserData(void* data)
+{
+	m_userData = data;
 }
 
 inline void b3Joint::SetCollideLinked(bool bit)

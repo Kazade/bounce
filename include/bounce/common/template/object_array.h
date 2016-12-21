@@ -19,7 +19,7 @@
 #ifndef B3_OBJECT_ARRAY_H
 #define B3_OBJECT_ARRAY_H
 
-#include <bounce\common\settings.h>
+#include <bounce/common/settings.h>
 
 // An array for objects.
 template <typename T>

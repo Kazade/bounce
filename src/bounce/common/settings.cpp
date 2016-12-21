@@ -16,8 +16,8 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\common\settings.h>
-#include <bounce\common\math\math.h>
+#include <bounce/common/settings.h>
+#include <bounce/common/math/math.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>

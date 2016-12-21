@@ -19,28 +19,28 @@
 #ifndef B3_STATIC_TREE_H
 #define B3_STATIC_TREE_H
 
-#include <bounce\common\draw.h>
-#include <bounce\common\template\stack.h>
-#include <bounce\collision\shapes\aabb3.h>
-#include <bounce\collision\distance.h>
+#include <bounce/common/draw.h>
+#include <bounce/common/template/stack.h>
+#include <bounce/collision/shapes/aabb3.h>
+#include <bounce/collision/distance.h>
 
 #define NULL_NODE_S (0xFFFFFFFF)
 
-// An AABB tree for static AABBs.
+// AABB tree for static AABBs.
 class b3StaticTree 
 {
 public:
 	b3StaticTree();
 	~b3StaticTree();
 
-	// Build the tree.
-	// Output a sorted index array.
+	// Build this tree from a list of AABBs and the list 
+	// of indices to the AABBs.
 	void Build(u32* indices, const b3AABB3* aabbs, u32 count);
 
 	// Get the AABB of a given proxy.
 	const b3AABB3& GetAABB(u32 proxyId) const;
 
-	// Get the index associated of a given proxy.
+	// Get the user data associated with a given proxy.
 	u32 GetUserData(u32 proxyId) const;
 
 	// Report the client callback all AABBs that are overlapping with
@@ -53,10 +53,10 @@ public:
 	// the given ray. The client callback must return the new intersection fraction 
 	// (real). If the fraction == 0 then the query is cancelled immediatly.
 	template<class T>
-	void QueryRay(T* callback, const b3RayCastInput& input) const;
+	void RayCast(T* callback, const b3RayCastInput& input) const;
 
-	// Draw the hierarchy.
-	void Draw(b3Draw* b3Draw) const;
+	// Draw this tree.
+	void Draw(b3Draw* draw) const;
 private :
 	// A node in a static tree.
 	struct b3Node
@@ -69,13 +69,14 @@ private :
 			u32 index;
 		};
 
-		// Check if a node is a leaf node
+		// Is this node a leaf?
 		bool IsLeaf() const
 		{
 			return child1 == NULL_NODE_S;
 		}
 	};
 
+	// The nodes of this tree stored in an array.
 	u32 m_nodeCount;
 	b3Node* m_nodes;
 };
@@ -109,7 +110,12 @@ inline void b3StaticTree::QueryAABB(T* callback, const b3AABB3& aabb) const
 	while (stack.IsEmpty() == false) 
 	{
 		u32 nodeIndex = stack.Top();
-		
+
+		if (nodeIndex == NULL_NODE_S)
+		{
+			continue;
+		}
+
 		stack.Pop();
 
 		const b3Node* node = m_nodes + nodeIndex;
@@ -133,7 +139,7 @@ inline void b3StaticTree::QueryAABB(T* callback, const b3AABB3& aabb) const
 }
 
 template<class T>
-inline void b3StaticTree::QueryRay(T* callback, const b3RayCastInput& input) const 
+inline void b3StaticTree::RayCast(T* callback, const b3RayCastInput& input) const 
 {
 	if (m_nodeCount == 0)
 	{
@@ -145,7 +151,7 @@ inline void b3StaticTree::QueryRay(T* callback, const b3RayCastInput& input) con
 	b3Vec3 d = p2 - p1;
 	float32 maxFraction = input.maxFraction;
 
-	// Ensure non-degeneracy.
+	// Ensure non-degenerate segment.
 	B3_ASSERT(b3Dot(d, d) > B3_EPSILON * B3_EPSILON);
 
 	u32 root = 0;

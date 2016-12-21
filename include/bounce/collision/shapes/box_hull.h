@@ -19,7 +19,7 @@
 #ifndef B3_BOX_HULL_H
 #define B3_BOX_HULL_H
 
-#include <bounce\collision\shapes\hull.h>
+#include <bounce/collision/shapes/hull.h>
 
 struct b3BoxHull : public b3Hull
 {
@@ -28,9 +28,10 @@ struct b3BoxHull : public b3Hull
 	b3Face boxFaces[6];
 	b3Plane boxPlanes[6];
 
+	// Does nothing for performance.
 	b3BoxHull() { }
 
-	// Set this box to the unit box.
+	// Set this box to the unit box centered at the origin.
 	void SetIdentity()
 	{
 		boxVertices[0] = b3Vec3(1.0f, 1.0f, -1.0f);
@@ -90,9 +91,18 @@ struct b3BoxHull : public b3Hull
 		planes = boxPlanes;
 		faceCount = 6;
 	}
+	
+	// Set this box from three extents and centered at the origin.
+	void Set(float32 ex, float32 ey, float32 ez)
+	{
+		b3Transform xf;
+		xf.position.SetZero();
+		xf.rotation = b3Diagonal(ex, ey, ez);
+		SetTransform(xf);
+	}
 
-	// Set this box to the unit box and transform 
-	// it. The transform must not contain non-uniform 
+	// Set this box to the unit box and transform it. 
+	// Warning: The transform must not contain non-uniform 
 	// scaling!
 	void SetTransform(const b3Transform& T)
 	{

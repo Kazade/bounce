@@ -19,7 +19,7 @@
 #ifndef DEBUG_DRAW_H
 #define DEBUG_DRAW_H
 
-#include <bounce\bounce.h>
+#include <bounce/bounce.h>
 #include "mat44.h"
 
 struct DrawPoints;

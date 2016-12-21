@@ -6,21 +6,23 @@
 // If you are new to ImGui, see examples/README.txt and documentation at the top of imgui.cpp.
 // https://github.com/ocornut/imgui
 
-#include "imgui.h"
+#include <imgui/imgui.h>
 #include "imgui_impl_glfw_gl3.h"
 
-// GL3W/GLFW
 #if defined(__APPLE_CC__)
-#include <OpenGL/gl3.h>
+	#include <OpenGL/gl3.h>
 #else
-#include <glad/glad.h>
+	// GLEW/GL3W/GLAD/...
+	#include <glad/glad.h>
 #endif
+
 #include <glfw/glfw3.h>
-#ifdef _WIN32
-#undef APIENTRY
-#define GLFW_EXPOSE_NATIVE_WIN32
-#define GLFW_EXPOSE_NATIVE_WGL
-#include <glfw/glfw3native.h>
+
+#if defined ( _WIN32 )
+	#undef APIENTRY
+	#define GLFW_EXPOSE_NATIVE_WIN32
+	#define GLFW_EXPOSE_NATIVE_WGL
+	#include <glfw/glfw3native.h>
 #endif
 
 // Data
@@ -208,7 +210,7 @@ bool ImGui_ImplGlfwGL3_CreateDeviceObjects()
     glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
 
     const GLchar *vertex_shader =
-        "#version 330\n"
+        "#version 130\n"
         "uniform mat4 ProjMtx;\n"
         "in vec2 Position;\n"
         "in vec2 UV;\n"
@@ -223,7 +225,7 @@ bool ImGui_ImplGlfwGL3_CreateDeviceObjects()
         "}\n";
 
     const GLchar* fragment_shader =
-        "#version 330\n"
+        "#version 130\n"
         "uniform sampler2D Texture;\n"
         "in vec2 Frag_UV;\n"
         "in vec4 Frag_Color;\n"

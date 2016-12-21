@@ -19,12 +19,12 @@
 #ifndef B3_WORLD_H
 #define B3_WORLD_H
 
-#include <bounce\common\memory\stack_allocator.h>
-#include <bounce\common\memory\block_pool.h>
-#include <bounce\common\template\list.h>
-#include <bounce\dynamics\time_step.h>
-#include <bounce\dynamics\joint_manager.h>
-#include <bounce\dynamics\contact_manager.h>
+#include <bounce/common/memory/stack_allocator.h>
+#include <bounce/common/memory/block_pool.h>
+#include <bounce/common/template/list.h>
+#include <bounce/dynamics/time_step.h>
+#include <bounce/dynamics/joint_manager.h>
+#include <bounce/dynamics/contact_manager.h>
 
 struct b3BodyDef;
 class b3Body;
@@ -34,18 +34,19 @@ class b3ContactListener;
 class b3ContactFilter;
 class b3Draw;
 
-// Use a physics world to create/destroy rigid bodies, execute ray cast and AABB queries.
+// Use a physics world to create/destroy rigid bodies, execute ray cast and volume queries.
 class b3World
 {
 public:
 	b3World();
 	~b3World();
 
-	// Set the debug b3Draw interface.
+	// Set the debug draw interface.
 	// The user must implement this interface to tell the world to 
-	// b3Draw the physics entities.
-	void SetDebugDraw(b3Draw* b3Draw);
+	// draw the physics entities.
+	void SetDebugDraw(b3Draw* draw);
 
+	// Get the debug draw interface.
 	b3Draw* GetDebugDraw();
 
 	// The filter passed can tell the world to disallow the contact creation between 
@@ -77,9 +78,9 @@ public:
 	// Remove a joint from the world and deallocate it from the memory.
 	void DestroyJoint(b3Joint* joint);
 
-	// Call the function below to simulate a physics step.
+	// Simulate a physics step.
 	// The function parameters are the ammount of time to simulate, 
-	// and the number of contact solver iterations.
+	// and the number of constraint solver iterations.
 	void Step(float32 dt, u32 velocityIterations, u32 positionIterations);
 	
 	// Perform a ray cast with the world.
@@ -87,13 +88,13 @@ public:
 	// in the world. The ray cast output is the intercepted shape, the intersection 
 	// point in world space, the face normal on the shape associated with the point, 
 	// and the intersection fraction.
-	void CastRay(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const;
+	void RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const;
 
 	// Perform a AABB cast with the world.
 	// The query listener will be notified when two shape AABBs are overlapping.
 	// If the listener returns false then the query is stopped immediately.
 	// Otherwise, it continues searching for new overlapping shape AABBs.
-	void CastAABB(b3QueryListener* listener, const b3AABB3& aabb) const;
+	void QueryAABB(b3QueryListener* listener, const b3AABB3& aabb) const;
 
 	// Get the list of bodies in this world.
 	const b3List2<b3Body>& GetBodyList() const;
@@ -110,7 +111,7 @@ public:
 	// Get the time spent to finish executing each simulation module of the last physics step.
 	const b3Profile& GetProfile() const;
 
-	// Tell the world to b3Draw the entities that belong to this world.
+	// Tell the world to draw the entities that belong to this world.
 	void DebugDraw() const;
 	void DrawShape(const b3Transform& xf, const b3Shape* shape) const;
 	void DrawJoint(const b3Joint* joint) const;

@@ -16,36 +16,36 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <testbed\tests\test.h>
-#include <testbed\tests\quickhull_test.h>
-#include <testbed\tests\cluster_test.h>
-#include <testbed\tests\distance_test.h>
-#include <testbed\tests\capsule_distance.h>
-#include <testbed\tests\collide_test.h>
-#include <testbed\tests\capsule_collision.h>
-#include <testbed\tests\capsule_and_hull_collision.h>
-#include <testbed\tests\hull_collision.h>
-#include <testbed\tests\spring.h>
-#include <testbed\tests\newton_cradle.h>
-#include <testbed\tests\hinge_motor.h>
-#include <testbed\tests\hinge_chain.h>
-#include <testbed\tests\ragdoll.h>
-#include <testbed\tests\quadrics.h>
-#include <testbed\tests\mesh_contact_test.h>
-#include <testbed\tests\sphere_stack.h>
-#include <testbed\tests\capsule_stack.h>
-#include <testbed\tests\box_stack.h>
-#include <testbed\tests\shape_stack.h>
-#include <testbed\tests\jenga.h>
-#include <testbed\tests\thin.h>
-#include <testbed\tests\pyramid.h>
-#include <testbed\tests\pyramids.h>
-#include <testbed\tests\ray_cast.h>
-#include <testbed\tests\sensor_test.h>
-#include <testbed\tests\character_test.h>
-#include <testbed\tests\body_types.h>
-#include <testbed\tests\varying_friction.h>
-#include <testbed\tests\varying_restitution.h>
+#include <testbed/tests/test.h>
+#include <testbed/tests/quickhull_test.h>
+#include <testbed/tests/cluster_test.h>
+#include <testbed/tests/distance_test.h>
+#include <testbed/tests/capsule_distance.h>
+#include <testbed/tests/collide_test.h>
+#include <testbed/tests/capsule_collision.h>
+#include <testbed/tests/capsule_and_hull_collision.h>
+#include <testbed/tests/hull_collision.h>
+#include <testbed/tests/spring.h>
+#include <testbed/tests/newton_cradle.h>
+#include <testbed/tests/hinge_motor.h>
+#include <testbed/tests/hinge_chain.h>
+#include <testbed/tests/ragdoll.h>
+#include <testbed/tests/quadrics.h>
+#include <testbed/tests/mesh_contact_test.h>
+#include <testbed/tests/sphere_stack.h>
+#include <testbed/tests/capsule_stack.h>
+#include <testbed/tests/box_stack.h>
+#include <testbed/tests/shape_stack.h>
+#include <testbed/tests/jenga.h>
+#include <testbed/tests/thin.h>
+#include <testbed/tests/pyramid.h>
+#include <testbed/tests/pyramids.h>
+#include <testbed/tests/ray_cast.h>
+#include <testbed/tests/sensor_test.h>
+#include <testbed/tests/character_test.h>
+#include <testbed/tests/body_types.h>
+#include <testbed/tests/varying_friction.h>
+#include <testbed/tests/varying_restitution.h>
 
 TestEntry g_tests[e_testCount] =
 {

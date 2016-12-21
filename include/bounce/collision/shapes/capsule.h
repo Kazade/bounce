@@ -19,7 +19,7 @@
 #ifndef B3_CAPSULE_H
 #define B3_CAPSULE_H
 
-#include <bounce\common\math\vec3.h>
+#include <bounce/common/math/vec3.h>
 
 struct b3Capsule
 {
@@ -27,7 +27,6 @@ struct b3Capsule
 	float32 radius;
 
 	const b3Vec3& GetVertex(u32 index) const;
-
 	u32 GetSupportVertex(const b3Vec3& direction) const;
 };
 
@@ -36,9 +35,9 @@ inline const b3Vec3& b3Capsule::GetVertex(u32 index) const
 	return vertices[index];
 }
 
-inline u32 b3Capsule::GetSupportVertex(const b3Vec3& direction) const
+inline u32 b3Capsule::GetSupportVertex(const b3Vec3& d) const
 {
-	if (b3Dot(direction, vertices[0]) > b3Dot(direction, vertices[1]))
+	if (b3Dot(d, vertices[0]) > b3Dot(d, vertices[1]))
 	{
 		return 0;
 	}

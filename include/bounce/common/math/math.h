@@ -20,7 +20,7 @@
 #define B3_MATH_H
 
 #include <cmath>
-#include <bounce\common\settings.h>
+#include <bounce/common/settings.h>
 
 inline bool b3IsValid(float32 fx)
 {
@@ -30,13 +30,13 @@ inline bool b3IsValid(float32 fx)
 
 inline float32 b3Sqrt(float32 x) 
 {
-	return sqrtf(x);
+	return std::sqrt(x);
 }
 
 template <class T>
 inline T b3Abs(T x) 
 {
-	return abs(x);
+	return std::abs(x);
 }
 
 template <class T>

@@ -19,7 +19,7 @@
 #ifndef B3_MAT_22_H
 #define B3_MAT_22_H
 
-#include <bounce\common\math\vec2.h>
+#include <bounce/common/math/vec2.h>
 
 // A 2-by-2 matrix stored in column-major order.
 struct b3Mat22
@@ -27,7 +27,7 @@ struct b3Mat22
 	// Does nothing for performance.
 	b3Mat22() { }
 
-	// Set this matrix from two vector elements.
+	// Set this matrix from two vectors.
 	b3Mat22(const b3Vec2& _x, const b3Vec2& _y) : x(_x), y(_y) { }
 
 	// Solve Ax = b. 

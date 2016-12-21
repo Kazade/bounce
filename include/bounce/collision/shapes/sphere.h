@@ -19,7 +19,7 @@
 #ifndef B3_SPHERE_H
 #define B3_SPHERE_H
 
-#include <bounce\common\math\vec3.h>
+#include <bounce/common/math/vec3.h>
 
 struct b3Sphere
 {
@@ -27,7 +27,6 @@ struct b3Sphere
 	float32 radius;
 	
 	const b3Vec3& GetVertex(u32 index) const;
-
 	u32 GetSupportVertex(const b3Vec3& direction) const;
 };
 

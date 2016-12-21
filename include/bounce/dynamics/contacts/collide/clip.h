@@ -19,8 +19,8 @@
 #ifndef B3_CLIP_H
 #define B3_CLIP_H
 
-#include <bounce\common\template\array.h>
-#include <bounce\common\geometry.h>
+#include <bounce/common/template/array.h>
+#include <bounce/common/geometry.h>
 
 #define B3_NULL_EDGE (0xFF)
 

@@ -16,9 +16,9 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\joints\sphere_joint.h>
-#include <bounce\dynamics\body.h>
-#include <bounce\common\draw.h>
+#include <bounce/dynamics/joints/sphere_joint.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/common/draw.h>
 
 void b3SphereJointDef::Initialize(b3Body* bA, b3Body* bB, const b3Vec3& anchor)
 {
@@ -147,12 +147,22 @@ bool b3SphereJoint::SolvePositionConstraints(const b3SolverData* data)
 	return b3Length(C) <= B3_LINEAR_SLOP;
 }
 
-void b3SphereJoint::Draw(b3Draw* b3Draw) const
+b3Vec3 b3SphereJoint::GetAnchorA() const
 {
-	b3Vec3 pA = GetBodyA()->GetWorldPoint(m_localAnchorA);
-	b3Draw->DrawPoint(pA, b3Color(1.0f, 0.0f, 0.0f, 1.0f));
-	b3Vec3 pB = GetBodyB()->GetWorldPoint(m_localAnchorB);
-	b3Draw->DrawPoint(pB, b3Color(0.0f, 1.0f, 0.0f, 1.0f));
+	return GetBodyA()->GetWorldPoint(m_localAnchorA);
+}
+
+b3Vec3 b3SphereJoint::GetAnchorB() const
+{
+	return GetBodyB()->GetWorldPoint(m_localAnchorB);
+}
+
+void b3SphereJoint::Draw(b3Draw* draw) const
+{
+	b3Vec3 a = GetAnchorA();
+	b3Vec3 b = GetAnchorB();
 	
-	b3Draw->DrawSegment(pA, pB, b3Color(1.0f, 1.0f, 0.0f, 1.0f));
+	draw->DrawPoint(a, b3Color(1.0f, 0.0f, 0.0f));
+	draw->DrawPoint(b, b3Color(0.0f, 1.0f, 0.0f));
+	draw->DrawSegment(a, b, b3Color(1.0f, 1.0f, 0.0f));
 }

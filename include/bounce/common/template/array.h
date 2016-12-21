@@ -19,7 +19,7 @@
 #ifndef B3_ARRAY_POD_H
 #define B3_ARRAY_POD_H
 
-#include <bounce\common\settings.h>
+#include <bounce/common/settings.h>
 
 // An array for bytes (POD).
 template <typename T>

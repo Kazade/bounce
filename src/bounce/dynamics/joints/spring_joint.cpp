@@ -16,9 +16,9 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\joints\spring_joint.h>
-#include <bounce\dynamics\body.h>
-#include <bounce\common\draw.h>
+#include <bounce/dynamics/joints/spring_joint.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/common/draw.h>
 
 // C = ||x2 + r2 - x1 - r1|| - length
 // Cdot = dot(n, v2 + w2 x r2 - v1 - w1 x r1)
@@ -44,6 +44,56 @@ b3SpringJoint::b3SpringJoint(const b3SpringJointDef* def)
 	m_impulse = 0.0f;
 }
 
+b3Vec3 b3SpringJoint::GetAnchorA() const
+{
+	return GetBodyA()->GetWorldPoint(m_localAnchorA);
+}
+
+b3Vec3 b3SpringJoint::GetAnchorB() const
+{
+	return GetBodyB()->GetWorldPoint(m_localAnchorB);
+}
+
+const b3Vec3& b3SpringJoint::GetLocalAnchorA() const
+{
+	return m_localAnchorA;
+}
+
+const b3Vec3& b3SpringJoint::GetLocalAnchorB() const
+{
+	return m_localAnchorB;
+}
+
+float32 b3SpringJoint::GetLength() const
+{
+	return m_length;
+}
+
+void b3SpringJoint::SetLength(float32 length)
+{
+	m_length = length;
+}
+
+float32 b3SpringJoint::GetFrequency() const
+{
+	return m_frequencyHz;
+}
+
+void b3SpringJoint::SetFrequency(float32 frequency)
+{
+	m_frequencyHz = frequency;
+}
+
+float32 b3SpringJoint::GetDampingRatio() const
+{
+	return m_dampingRatio;
+}
+
+void b3SpringJoint::SetDampingRatio(float32 ratio)
+{
+	m_dampingRatio = ratio;
+}
+
 void b3SpringJoint::InitializeConstraints(const b3SolverData* data) 
 {
 	b3Body* m_bodyA = GetBodyA();
@@ -66,7 +116,7 @@ void b3SpringJoint::InitializeConstraints(const b3SolverData* data)
 	b3Vec3 xB = data->positions[m_indexB].x;
 	b3Quat qB = data->positions[m_indexB].q;
 
-	// Handle singularity 
+	// Singularity check.
 	m_n = xB + m_rB - xA - m_rA;
 	float32 length = b3Length(m_n);
 	if (length > B3_LINEAR_SLOP)
@@ -199,16 +249,16 @@ bool b3SpringJoint::SolvePositionConstraints(const b3SolverData* data)
 	return b3Abs(C) < B3_LINEAR_SLOP;
 }
 
-void b3SpringJoint::Draw(b3Draw* b3Draw) const 
+void b3SpringJoint::Draw(b3Draw* draw) const 
 {
 	b3Color red = b3Color(1.0f, 0.0f, 0.0f, 1.0f);
 	b3Color green = b3Color(0.0f, 1.0f, 0.0f, 1.0f);
 	b3Color blue = b3Color(0.0f, 0.0f, 1.0f, 1.0f);
 
-	b3Vec3 pA = GetBodyA()->GetWorldPoint(m_localAnchorA);
-	b3Vec3 pB = GetBodyB()->GetWorldPoint(m_localAnchorB);
+	b3Vec3 a = GetBodyA()->GetWorldPoint(m_localAnchorA);
+	b3Vec3 b = GetBodyB()->GetWorldPoint(m_localAnchorB);
 	
-	b3Draw->DrawPoint(pA, green);
-	b3Draw->DrawPoint(pB, green);
-	b3Draw->DrawSegment(pA, pB, blue);
+	draw->DrawPoint(a, green);
+	draw->DrawPoint(b, green);
+	draw->DrawSegment(a, b, blue);
 }

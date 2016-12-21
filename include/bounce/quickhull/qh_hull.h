@@ -19,8 +19,8 @@
 #ifndef QH_HULL_H
 #define QH_HULL_H
 
-#include <bounce\common\geometry.h>
-#include <bounce\common\template\array.h>
+#include <bounce/common/geometry.h>
+#include <bounce/common/template/array.h>
 
 template<class T>
 struct qhList

@@ -16,15 +16,15 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\world.h>
-#include <bounce\dynamics\body.h>
-#include <bounce\dynamics\island.h>
-#include <bounce\dynamics\world_listeners.h>
-#include <bounce\dynamics\shapes\shape.h>
-#include <bounce\dynamics\contacts\contact.h>
-#include <bounce\dynamics\joints\joint.h>
-#include <bounce\dynamics\time_step.h>
-#include <bounce\common\time.h>
+#include <bounce/dynamics/world.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/dynamics/island.h>
+#include <bounce/dynamics/world_listeners.h>
+#include <bounce/dynamics/shapes/shape.h>
+#include <bounce/dynamics/contacts/contact.h>
+#include <bounce/dynamics/joints/joint.h>
+#include <bounce/dynamics/time_step.h>
+#include <bounce/common/time.h>
 
 extern u32 b3_allocCalls;
 extern u32 b3_maxAllocCalls;
@@ -33,7 +33,7 @@ b3World::b3World() : m_bodyBlocks(sizeof(b3Body))
 {
 	b3_allocCalls = 0;
 	b3_maxAllocCalls = 0;
-	m_debugDraw = nullptr;
+	m_debugDraw = NULL;
 	memset(&m_profile, 0, sizeof(b3Profile));
 
 	m_flags = e_clearForcesFlag;
@@ -329,7 +329,7 @@ void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
 	}
 }
 
-struct b3CastRayCallback
+struct b3RayCastCallback
 {
 	float32 Report(const b3RayCastInput& input, i32 proxyId)
 	{
@@ -338,7 +338,7 @@ struct b3CastRayCallback
 		b3Shape* shape = (b3Shape*)userData;
 		
 		// Calculate transformation from shape local space to world space.
-		b3Transform xf = shape->GetTransform();
+		b3Transform xf = shape->GetBody()->GetTransform();
 
 		b3RayCastOutput output;
 		bool hit = shape->RayCast(&output, input, xf);
@@ -364,20 +364,20 @@ struct b3CastRayCallback
 	const b3BroadPhase* broadPhase;
 };
 
-void b3World::CastRay(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const
+void b3World::RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const
 {
 	b3RayCastInput input;
 	input.p1 = p1;
 	input.p2 = p2;
 	input.maxFraction = 1.0f;
 	
-	b3CastRayCallback callback;
+	b3RayCastCallback callback;
 	callback.listener = listener;
 	callback.broadPhase = &m_contactMan.m_broadPhase;
-	m_contactMan.m_broadPhase.QueryRay(&callback, input);
+	m_contactMan.m_broadPhase.RayCast(&callback, input);
 }
 
-struct b3CastAABBCallback
+struct b3QueryAABBCallback
 {
 	bool Report(i32 proxyID)
 	{
@@ -389,9 +389,9 @@ struct b3CastAABBCallback
 	const b3BroadPhase* broadPhase;
 };
 
-void b3World::CastAABB(b3QueryListener* listener, const b3AABB3& aabb) const
+void b3World::QueryAABB(b3QueryListener* listener, const b3AABB3& aabb) const
 {
-	b3CastAABBCallback callback;
+	b3QueryAABBCallback callback;
 	callback.listener = listener;
 	callback.broadPhase = &m_contactMan.m_broadPhase;
 	m_contactMan.m_broadPhase.QueryAABB(&callback, aabb);

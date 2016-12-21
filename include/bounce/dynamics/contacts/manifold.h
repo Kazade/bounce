@@ -19,8 +19,8 @@
 #ifndef B3_MANIFOLD_H
 #define B3_MANIFOLD_H
 
-#include <bounce\common\math\vec2.h>
-#include <bounce\common\geometry.h>
+#include <bounce/common/math/vec2.h>
+#include <bounce/common/geometry.h>
 
 #define B3_NULL_TRIANGLE (0xFFFFFFFF)
 

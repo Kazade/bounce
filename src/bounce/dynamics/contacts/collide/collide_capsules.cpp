@@ -16,11 +16,11 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\contacts\collide\collide.h>
-#include <bounce\dynamics\contacts\collide\clip.h>
-#include <bounce\dynamics\contacts\manifold.h>
-#include <bounce\dynamics\shapes\capsule_shape.h>
-#include <bounce\collision\shapes\capsule.h>
+#include <bounce/dynamics/contacts/collide/collide.h>
+#include <bounce/dynamics/contacts/collide/clip.h>
+#include <bounce/dynamics/contacts/manifold.h>
+#include <bounce/dynamics/shapes/capsule_shape.h>
+#include <bounce/collision/shapes/capsule.h>
 
 bool b3AreParalell(const b3Capsule& hullA, const b3Capsule& hullB)
 {

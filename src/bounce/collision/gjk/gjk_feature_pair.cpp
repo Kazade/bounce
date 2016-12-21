@@ -16,7 +16,7 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\collision\gjk\gjk_cache.h>
+#include <bounce/collision/gjk/gjk_cache.h>
 
 b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 {

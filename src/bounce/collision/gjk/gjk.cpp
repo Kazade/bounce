@@ -16,8 +16,8 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\collision\gjk\gjk.h>
-#include <bounce\collision\gjk\gjk_proxy.h>
+#include <bounce/collision/gjk/gjk.h>
+#include <bounce/collision/gjk/gjk_proxy.h>
 
 // Implementation of the GJK (Gilbert-Johnson-Keerthi) algorithm 
 // using Voronoi regions and Barycentric coordinates.

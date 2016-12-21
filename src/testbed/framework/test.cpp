@@ -16,7 +16,7 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <testbed\tests\test.h>
+#include <testbed/tests/test.h>
 
 extern u32 b3_allocCalls, b3_maxAllocCalls;
 extern u32 b3_gjkCalls, b3_gjkIters, b3_gjkMaxIters;
@@ -49,9 +49,8 @@ Test::Test()
 	g_camera.m_center.SetZero();
 	g_settings.drawGrid = false;
 
-	m_rayHit.m_shape = nullptr;
-	m_mouseJoint = nullptr;
-	m_groundBody = nullptr;
+	m_rayHit.m_shape = NULL;
+	m_mouseJoint = NULL;
 
 	{
 		b3Transform xf;
@@ -363,20 +362,23 @@ void Test::MouseMove(const Ray3& pw)
 		float32 w1 = 1.0f - hitFraction;
 		float32 w2 = hitFraction;
 
-		b3Vec3 worldPointA = w1 * pw.Start() + w2 * pw.End();
-		m_mouseJoint->SetWorldAnchorA(worldPointA);
+		b3Vec3 target = w1 * pw.Start() + w2 * pw.End();
+		m_mouseJoint->SetTarget(target);
 	}
 }
 
 void Test::MouseLeftDown(const Ray3& pw)
 {
 	// Clear the current hit
-	m_rayHit.m_shape = nullptr;
+	m_rayHit.m_shape = NULL;
 	if (m_mouseJoint)
 	{
+		b3Body* groundBody = m_mouseJoint->GetBodyA();
+		
 		m_world.DestroyJoint(m_mouseJoint);
-		m_mouseJoint = nullptr;
-		m_world.DestroyBody(m_groundBody);
+		m_mouseJoint = NULL;
+		
+		m_world.DestroyBody(groundBody);
 	}
 
 	b3Vec3 p1 = pw.Start();
@@ -384,7 +386,7 @@ void Test::MouseLeftDown(const Ray3& pw)
 
 	// Perform the ray cast
 	RayCastListener listener;
-	m_world.CastRay(&listener, p1, p2);
+	m_world.RayCast(&listener, p1, p2);
 
 	int hitId = listener.FindClosestHit();
 
@@ -400,40 +402,28 @@ void Test::MouseLeftDown(const Ray3& pw)
 
 void Test::MouseLeftUp(const Ray3& pw)
 {
-	m_rayHit.m_shape = nullptr;
+	m_rayHit.m_shape = NULL;
 	if (m_mouseJoint)
 	{
+		b3Body* groundBody = m_mouseJoint->GetBodyA();		
+		
 		m_world.DestroyJoint(m_mouseJoint);
-		m_mouseJoint = nullptr;
-		m_world.DestroyBody(m_groundBody);
+		m_mouseJoint = NULL;
+		
+		m_world.DestroyBody(groundBody);
 	}
 }
 
 void Test::RayHit()
 {
 	b3BodyDef bdef;
-	m_groundBody = m_world.CreateBody(bdef);
-
-	b3Shape* shape = m_rayHit.m_shape;
-
-	b3Body* bodyA = m_groundBody;
-	b3Body* bodyB = shape->GetBody();
-
-	// Ray hit point in world space
-	b3Vec3 worldPointA = m_rayHit.m_point;
-
-	// xf from world space to the local space of the shape
-	b3Transform xf = shape->GetTransform();
-
-	// Ray hit point in world space
-	// lp = xf^-1 * wp
-	b3Vec3 localPointA = b3MulT(xf, worldPointA);
-
+	b3Body* bodyA = m_world.CreateBody(bdef);
+	b3Body* bodyB = m_rayHit.m_shape->GetBody();
+	
 	b3MouseJointDef def;
 	def.bodyA = bodyA;
 	def.bodyB = bodyB;
-	def.worldAnchorA = worldPointA;
-	def.localAnchorB = localPointA;
+	def.target = m_rayHit.m_point;
 	def.maxForce = 2000.0f * bodyB->GetMass();
 
 	m_mouseJoint = (b3MouseJoint*)m_world.CreateJoint(def);

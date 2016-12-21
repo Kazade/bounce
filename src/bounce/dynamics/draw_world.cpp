@@ -16,29 +16,29 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\common\draw.h>
-#include <bounce\dynamics\world.h>
-#include <bounce\dynamics\body.h>
+#include <bounce/common/draw.h>
+#include <bounce/dynamics/world.h>
+#include <bounce/dynamics/body.h>
 
-#include <bounce\dynamics\contacts\convex_contact.h>
-#include <bounce\dynamics\contacts\mesh_contact.h>
+#include <bounce/dynamics/contacts/convex_contact.h>
+#include <bounce/dynamics/contacts/mesh_contact.h>
 
-#include <bounce\dynamics\shapes\shape.h>
-#include <bounce\dynamics\shapes\sphere_shape.h>
-#include <bounce\dynamics\shapes\capsule_shape.h>
-#include <bounce\dynamics\shapes\hull_shape.h>
-#include <bounce\dynamics\shapes\mesh_shape.h>
+#include <bounce/dynamics/shapes/shape.h>
+#include <bounce/dynamics/shapes/sphere_shape.h>
+#include <bounce/dynamics/shapes/capsule_shape.h>
+#include <bounce/dynamics/shapes/hull_shape.h>
+#include <bounce/dynamics/shapes/mesh_shape.h>
 
-#include <bounce\dynamics\joints\mouse_joint.h>
-#include <bounce\dynamics\joints\spring_joint.h>
-#include <bounce\dynamics\joints\revolute_joint.h>
-#include <bounce\dynamics\joints\sphere_joint.h>
-#include <bounce\dynamics\joints\cone_joint.h>
+#include <bounce/dynamics/joints/mouse_joint.h>
+#include <bounce/dynamics/joints/spring_joint.h>
+#include <bounce/dynamics/joints/revolute_joint.h>
+#include <bounce/dynamics/joints/sphere_joint.h>
+#include <bounce/dynamics/joints/cone_joint.h>
 
-#include <bounce\collision\shapes\sphere.h>
-#include <bounce\collision\shapes\capsule.h>
-#include <bounce\collision\shapes\hull.h>
-#include <bounce\collision\shapes\mesh.h>
+#include <bounce/collision/shapes/sphere.h>
+#include <bounce/collision/shapes/capsule.h>
+#include <bounce/collision/shapes/hull.h>
+#include <bounce/collision/shapes/mesh.h>
 
 void b3World::DebugDraw() const
 {
@@ -108,7 +108,7 @@ void b3World::DebugDraw() const
 			const b3Manifold* m = manifolds + i;
 
 			b3WorldManifold wm;
-			wm.Initialize(m, shapeA->GetTransform(), shapeA->m_radius, shapeB->GetTransform(), shapeB->m_radius);
+			wm.Initialize(m, shapeA->GetBody()->GetTransform(), shapeA->m_radius, shapeB->GetBody()->GetTransform(), shapeB->m_radius);
 
 			if (wm.pointCount > 0)
 			{

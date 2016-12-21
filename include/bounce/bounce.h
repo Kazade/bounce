@@ -21,40 +21,40 @@
 
 // Include this file header in your project to directly access Bounce objects.
 
-#include <bounce\common\settings.h>
-#include <bounce\common\math\math.h>
-#include <bounce\common\time.h>
-#include <bounce\common\draw.h>
+#include <bounce/common/settings.h>
+#include <bounce/common/math/math.h>
+#include <bounce/common/time.h>
+#include <bounce/common/draw.h>
 
-#include <bounce\collision\broad_phase.h>
-#include <bounce\collision\gjk\gjk.h>
-#include <bounce\collision\gjk\gjk_cache.h>
-#include <bounce\collision\sat\sat.h>
+#include <bounce/collision/gjk/gjk.h>
+#include <bounce/collision/gjk/gjk_cache.h>
+#include <bounce/collision/sat/sat.h>
+#include <bounce/collision/distance.h>
+#include <bounce/collision/broad_phase.h>
 
-#include <bounce\collision\shapes\sphere.h>
-#include <bounce\collision\shapes\capsule.h>
-#include <bounce\collision\shapes\hull.h>
-#include <bounce\collision\shapes\triangle_hull.h>
-#include <bounce\collision\shapes\box_hull.h>
-#include <bounce\collision\shapes\mesh.h>
+#include <bounce/collision/shapes/sphere.h>
+#include <bounce/collision/shapes/capsule.h>
+#include <bounce/collision/shapes/hull.h>
+#include <bounce/collision/shapes/box_hull.h>
+#include <bounce/collision/shapes/mesh.h>
 
-#include <bounce\dynamics\joints\mouse_joint.h>
-#include <bounce\dynamics\joints\spring_joint.h>
-#include <bounce\dynamics\joints\sphere_joint.h>
-#include <bounce\dynamics\joints\revolute_joint.h>
-#include <bounce\dynamics\joints\cone_joint.h>
+#include <bounce/dynamics/joints/mouse_joint.h>
+#include <bounce/dynamics/joints/spring_joint.h>
+#include <bounce/dynamics/joints/sphere_joint.h>
+#include <bounce/dynamics/joints/revolute_joint.h>
+#include <bounce/dynamics/joints/cone_joint.h>
 
-#include <bounce\dynamics\shapes\sphere_shape.h>
-#include <bounce\dynamics\shapes\capsule_shape.h>
-#include <bounce\dynamics\shapes\hull_shape.h>
-#include <bounce\dynamics\shapes\mesh_shape.h>
+#include <bounce/dynamics/shapes/sphere_shape.h>
+#include <bounce/dynamics/shapes/capsule_shape.h>
+#include <bounce/dynamics/shapes/hull_shape.h>
+#include <bounce/dynamics/shapes/mesh_shape.h>
 
-#include <bounce\dynamics\contacts\contact.h>
-#include <bounce\dynamics\contacts\convex_contact.h>
-#include <bounce\dynamics\contacts\mesh_contact.h>
+#include <bounce/dynamics/contacts/contact.h>
+#include <bounce/dynamics/contacts/convex_contact.h>
+#include <bounce/dynamics/contacts/mesh_contact.h>
 
-#include <bounce\dynamics\body.h>
-#include <bounce\dynamics\world.h>
-#include <bounce\dynamics\world_listeners.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/dynamics/world.h>
+#include <bounce/dynamics/world_listeners.h>
 
 #endif

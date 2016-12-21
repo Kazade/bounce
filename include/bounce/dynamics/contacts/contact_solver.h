@@ -19,10 +19,10 @@
 #ifndef B3_CONTACT_SOLVER_H
 #define B3_CONTACT_SOLVER_H
 
-#include <bounce\common\math\vec2.h>
-#include <bounce\common\math\mat22.h>
-#include <bounce\dynamics\time_step.h>
-#include <bounce\dynamics\contacts\manifold.h>
+#include <bounce/common/math/vec2.h>
+#include <bounce/common/math/mat22.h>
+#include <bounce/dynamics/time_step.h>
+#include <bounce/dynamics/contacts/manifold.h>
 
 class b3StackAllocator;
 class b3Contact;

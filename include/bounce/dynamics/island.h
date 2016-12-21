@@ -19,7 +19,7 @@
 #ifndef B3_ISLAND_H
 #define B3_ISLAND_H
 
-#include <bounce\common\math\vec3.h>
+#include <bounce/common/math/vec3.h>
 
 class b3StackAllocator;
 class b3Contact;

@@ -60,7 +60,7 @@ typedef float float32;
 #define B3_AABB_MULTIPLIER (2.0f)
 
 // Collision and constraint tolerance.
-#define B3_LINEAR_SLOP (0.005f)
+#define B3_LINEAR_SLOP (0.01f)
 
 // Collision and constraint tolerance.
 #define B3_ANGULAR_SLOP (2.0f / 180.0f * B3_PI)

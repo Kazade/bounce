@@ -16,11 +16,11 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\contacts\contact_solver.h>
-#include <bounce\dynamics\contacts\contact.h>
-#include <bounce\dynamics\shapes\shape.h>
-#include <bounce\dynamics\body.h>
-#include <bounce\common\memory\stack_allocator.h>
+#include <bounce/dynamics/contacts/contact_solver.h>
+#include <bounce/dynamics/contacts/contact.h>
+#include <bounce/dynamics/shapes/shape.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/common/memory/stack_allocator.h>
 
 // This solver implements PGS for solving velocity constraints and 
 // NGS for solving position constraints.

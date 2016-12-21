@@ -16,10 +16,10 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_EDGE_SAT_H
-#define B3_EDGE_SAT_H
+#ifndef B3_EDGE_HULL_SAT_H
+#define B3_EDGE_HULL_SAT_H
 
-#include <bounce\collision\sat\sat.h>
+#include <bounce/collision/sat/sat.h>
 
 struct b3Capsule;
 

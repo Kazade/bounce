@@ -16,11 +16,11 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\body.h>
-#include <bounce\dynamics\world.h>
-#include <bounce\dynamics\shapes\shape.h>
-#include <bounce\dynamics\joints\joint.h>
-#include <bounce\dynamics\contacts\contact.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/dynamics/world.h>
+#include <bounce/dynamics/shapes/shape.h>
+#include <bounce/dynamics/joints/joint.h>
+#include <bounce/dynamics/contacts/contact.h>
 
 b3Body::b3Body(const b3BodyDef& def, b3World* world) 
 {
@@ -107,7 +107,7 @@ b3Shape* b3Body::CreateShape(const b3ShapeDef& def)
 	}
 
 	// Compute the world AABB of the new shape and assign a broad-phase proxy to it.
-	b3Transform xf = shape->GetTransform();
+	b3Transform xf = m_xf;
 	
 	b3AABB3 aabb;
 	shape->ComputeAABB(&aabb, xf);

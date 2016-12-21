@@ -19,9 +19,9 @@
 #ifndef B3_CONTACT_MANAGER_H
 #define B3_CONTACT_MANAGER_H
 
-#include <bounce\common\memory\block_pool.h>
-#include <bounce\common\template\list.h>
-#include <bounce\collision\broad_phase.h>
+#include <bounce/common/memory/block_pool.h>
+#include <bounce/common/template/list.h>
+#include <bounce/collision/broad_phase.h>
 
 class b3Shape;
 class b3Contact;
@@ -29,7 +29,7 @@ class b3ContactFilter;
 class b3ContactListener;
 struct b3MeshContactLink;
 
-// This is used to avoid b3World pollution.
+// Contact delegator for b3World.
 class b3ContactManager 
 {
 public:
@@ -38,6 +38,8 @@ public:
 	// The broad-phase callback.
 	void AddPair(void* proxyDataA, void* proxyDataB);
 
+	// Reference AABBs in mesh contacts need to be synchronized with the 
+	// synchronized body transforms.
 	void SynchronizeShapes();
 
 	void FindNewContacts();
@@ -45,7 +47,6 @@ public:
 	void UpdateContacts();
 
 	b3Contact* Create(b3Shape* shapeA, b3Shape* shapeB);
-
 	void Destroy(b3Contact* c);
 
 	b3BlockPool m_convexBlocks;

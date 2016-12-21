@@ -19,7 +19,7 @@
 #ifndef MAT44_H
 #define MAT44_H
 
-#include <bounce\bounce.h>
+#include <bounce/bounce.h>
 
 struct Vec4
 {

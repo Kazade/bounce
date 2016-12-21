@@ -19,7 +19,7 @@
 #ifndef B3_CONE_JOINT_H
 #define B3_CONE_JOINT_H
 
-#include <bounce\dynamics\joints\joint.h>
+#include <bounce/dynamics/joints/joint.h>
 
 struct b3ConeJointDef : public b3JointDef
 {
@@ -32,36 +32,41 @@ struct b3ConeJointDef : public b3JointDef
 		coneAngle = 0.0f;
 	}
 
-	// Initialize this definition given an axis, anchor point, and cone angle limit in radians.
+	// Initialize this definition from bodies, cone axis, anchor point, and full cone angle in radians.
 	void Initialize(b3Body* bodyA, b3Body* bodyB, const b3Vec3& axis, const b3Vec3& anchor, float32 angle);
 
-	// The joint frame in the frame of body A.
+	// The joint frame relative to body A's frame.
 	b3Transform localFrameA;
 	
-	// The joint frame in the frame of body B.
+	// The joint frame relative to body B's frame.
 	b3Transform localFrameB;
 
-	// Enable the joint limit.
+	// Enable cone angle limit.
 	bool enableLimit;
 
-	// The cone angle limit in radians.
+	// The full cone angle in radians.
 	float32 coneAngle;
 };
 
+// This joint constrains the bodies to share a common point (cone tip). 
+// The relative rotation about the shared axis is the joint angle. 
+// If the joint angle exceeds the half-cone angle then the axis is shared. 
+// You can limit the relative rotation with a lower angle limit. 
+// This joint can be used to create structures such as ragdolls.
 class b3ConeJoint : public b3Joint
 {
 public:
-	// Get the joint frame in the frame of body A.
-	const b3Transform& GetFrameA() const;
+	// Get the joint frame on body A in world coordinates.
+	b3Transform GetFrameA() const;
 
-	// Set the joint frame in the frame of body A.
-	void SetFrameA(const b3Transform& xf);
+	// Get the joint frame on body B in world coordinates.
+	b3Transform GetFrameB() const;
 
-	// Get the joint frame in the frame of body B.
-	const b3Transform& GetFrameB() const;
-
-	// Set the joint frame in the frame of body B.
-	void SetFrameB(const b3Transform& xf);
+	// Get the joint frame relative to body A's frame.
+	const b3Transform& GetLocalFrameA() const;
+	
+	// Get the joint frame relative to body B's frame.
+	const b3Transform& GetLocalFrameB() const;
 
 	// Is the joint limit enabled?
 	bool IsLimitEnabled() const;
@@ -69,14 +74,14 @@ public:
 	// Set the joint limit enabled.
 	void SetEnableLimit(bool bit);
 
-	// Get the lower cone angle limit.
-	float32 GetLowerLimit() const;
+	// Get the cone angle in radians.
+	float32 GetConeAngle() const;
 
-	// Set the lower cone angle limit.
-	void SetLimit(float32 lowerAngle);
+	// Set the cone angle in radians.
+	void SetConeAngle(float32 angle);
 
 	// Draw this joint.
-	void Draw(b3Draw* b3Draw) const;
+	void Draw(b3Draw* draw) const;
 private:
 	friend class b3Joint;
 	friend class b3Body;
@@ -95,10 +100,9 @@ private:
 	// Solver shared
 	b3Transform m_localFrameA;
 	b3Transform m_localFrameB;
-
-	bool m_enableLimit;
 	float32 m_coneAngle;
-	
+	bool m_enableLimit;
+
 	// Solver temp
 	u32 m_indexA;
 	u32 m_indexB;

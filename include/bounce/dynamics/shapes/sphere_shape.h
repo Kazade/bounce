@@ -19,7 +19,7 @@
 #ifndef B3_SPHERE_SHAPE_H
 #define B3_SPHERE_SHAPE_H
 
-#include <bounce\dynamics\shapes\shape.h>
+#include <bounce/dynamics/shapes/shape.h>
 
 class b3SphereShape : public b3Shape 
 {

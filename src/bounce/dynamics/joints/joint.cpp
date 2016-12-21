@@ -16,16 +16,16 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\joints\joint.h>
-#include <bounce\dynamics\joints\mouse_joint.h>
-#include <bounce\dynamics\joints\spring_joint.h>
-#include <bounce\dynamics\joints\revolute_joint.h>
-#include <bounce\dynamics\joints\sphere_joint.h>
-#include <bounce\dynamics\joints\cone_joint.h>
+#include <bounce/dynamics/joints/joint.h>
+#include <bounce/dynamics/joints/mouse_joint.h>
+#include <bounce/dynamics/joints/spring_joint.h>
+#include <bounce/dynamics/joints/revolute_joint.h>
+#include <bounce/dynamics/joints/sphere_joint.h>
+#include <bounce/dynamics/joints/cone_joint.h>
 
 b3Joint* b3Joint::Create(const b3JointDef* def)
 {
-	b3Joint* joint = nullptr;
+	b3Joint* joint = NULL;
 	switch (def->type)
 	{
 	case e_mouseJoint:

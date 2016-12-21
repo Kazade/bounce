@@ -19,11 +19,11 @@
 #ifndef B3_BODY_H
 #define B3_BODY_H
 
-#include <bounce\common\math\vec3.h>
-#include <bounce\common\math\mat33.h>
-#include <bounce\common\math\quat.h>
-#include <bounce\common\math\transform.h>
-#include <bounce\common\template\list.h>
+#include <bounce/common/math/vec3.h>
+#include <bounce/common/math/mat33.h>
+#include <bounce/common/math/quat.h>
+#include <bounce/common/math/transform.h>
+#include <bounce/common/template/list.h>
 
 class b3World;
 class b3Shape;
@@ -51,7 +51,7 @@ struct b3BodyDef
 		fixedRotationX = false;
 		fixedRotationY = false;
 		fixedRotationZ = false;
-		userData = nullptr;
+		userData = NULL;
 		position.SetZero();
 		orientation.SetIdentity();
 		linearVelocity.SetZero();
@@ -81,6 +81,13 @@ public:
 	// A world manages the body destruction.
 	~b3Body() { }
 
+	// Get the type of the body.
+	b3BodyType GetType() const;
+
+	// Set the type of the body. 
+	// This will reset the current body inertial properties.
+	void SetType(b3BodyType type);
+
 	// Create a new shape for the body given the shape definition and return a pointer to its clone.
 	// The shape passed to the definition it will be cloned and is not recommended modifying 
 	// it inside simulation callbacks. 
@@ -90,36 +97,20 @@ public:
 	// Destroy a given shape from the body.
 	void DestroyShape(b3Shape* shape);
 
-	// Destroy all shapes associated with the body.
-	void DestroyShapes();
-
-	// Destroy all contacts associated with the body.
-	void DestroyContacts();
-
-	// Destroy all joints connected to the body.
-	void DestroyJoints();
-
 	// Get the shapes associated with the body.
 	const b3List1<b3Shape>& GetShapeList() const;
 	b3List1<b3Shape>& GetShapeList();
-
-	// Get the type of the body.
-	b3BodyType GetType() const;
-
-	// Set the type of the body. 
-	// This will reset the current body inertial properties.
-	void SetType(b3BodyType type);
 
 	// Get the world the body belongs to.
 	const b3World* GetWorld() const;
 	b3World* GetWorld();
 
-	// Get the body world b3Transform.
+	// Get the body world transform.
 	const b3Transform& GetTransform() const;
 	
-	// Set the body world b3Transform from a position, axis of rotation and an angle 
+	// Set the body world transform from a position, axis of rotation and an angle 
 	// of rotation about the axis.
-	// However, manipulating a body b3Transform during the simulation may cause non-physical behaviour.
+	// However, manipulating a body transform during the simulation may cause non-physical behaviour.
 	void SetTransform(const b3Vec3& position, const b3Vec3& axis, float32 angle);
 	
 	// Get the gravity scale of the body. One is used by default.
@@ -186,7 +177,7 @@ public:
 	// Get the rotational inertia of the body about the center of mass. Typically in kg/m^3.
 	const b3Mat33& GetInertia() const;
 	
-	// Get the total kinetic energy of the body.
+	// Get the total kinetic energy of the body in Joules (kilogram-meters squared per second squared).
 	float32 GetKineticEnergy() const;
 
 	// Transform a vector to the local space of this body.
@@ -242,18 +233,25 @@ private:
 		e_fixedRotationY = 0x0008,
 		e_fixedRotationZ = 0x0010,
 	};
-	
+
+	// Destroy all shapes associated with the body.
+	void DestroyShapes();
+
+	// Destroy all contacts associated with the body.
+	void DestroyContacts();
+
+	// Destroy all joints connected to the body.
+	void DestroyJoints();
+
 	// Recalculate the mass of the body based on the shapes associated
 	// with it.
 	void ResetMass();
 
-	// Synchronize this body b3Transform with its world 
+	// Synchronize this body transform with its world 
 	// center of mass and orientation.
 	void SynchronizeTransform();
 
-	// Compute the body world inertial tensor.
-	// Compute the shapes world AABBs.
-	// Usually this is called after the body b3Transform is synchronized.	
+	// Synchronize this body shape AABBs with the synchronized transform. 	
 	void SynchronizeShapes();
 
 	// Check if this body should collide with another.
@@ -267,7 +265,7 @@ private:
 	// The shapes attached to this body.
 	b3List1<b3Shape> m_shapeList;
 	
-	// Bidirectional joint edges for this body
+	// Joint edges for this body joint graph.
 	b3List2<b3JointEdge> m_jointEdges;
 
 	// User associated data (usually an entity).
@@ -275,13 +273,16 @@ private:
 
 	// Body mass.
 	float32 m_mass;
+
 	// Inverse body mass.
 	float32 m_invMass;
 	
 	// Inertia about the body local center of mass.
 	b3Mat33 m_I;	
+	
 	// Inverse inertia about the body local center of mass.
 	b3Mat33 m_invI;	
+	
 	// Inverse inertia about the body world center of mass.
 	b3Mat33 m_worldInvI;
 	

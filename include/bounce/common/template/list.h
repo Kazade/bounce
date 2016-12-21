@@ -19,7 +19,7 @@
 #ifndef B3_LIST_H
 #define B3_LIST_H
 
-#include <bounce\common\settings.h>
+#include <bounce/common/settings.h>
 
 // A singly-linked list.
 template<class T>
@@ -28,7 +28,7 @@ class b3List1
 public:
 	b3List1()
 	{
-		m_head = nullptr;
+		m_head = NULL;
 		m_count = 0;
 	}
 	
@@ -58,7 +58,7 @@ class b3List2
 public:
 	b3List2()
 	{
-		m_head = nullptr;
+		m_head = NULL;
 		m_count = 0;
 	}
 
@@ -66,7 +66,7 @@ public:
 	
 	void PushFront(T* link)
 	{
-		link->m_prev = nullptr;
+		link->m_prev = NULL;
 		link->m_next = m_head;
 		if (m_head)
 		{

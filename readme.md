@@ -7,14 +7,14 @@ Here is how to control the Testbed. The Testbed is a collection of tests and exa
 Camera (as in Maya):
 
 <ul>
-	<li>Rotate the scene holding ALT + LMB</li>
-	<li>Translate the scene holding ALT + RMB</li>
-	<li>Zoom in/out the scene using ALT + Mouse Wheel</li>
+	<li>Rotate the scene holding LSHIFT + LMB</li>
+	<li>Translate the scene holding LSHIFT + RMB</li>
+	<li>Zoom in/out the scene using LSHIFT + Mouse Wheel</li>
 </ul>
 
 Bounce is released under the <b>zlib</b> license.
 
-[Irlan Robson](http://irlan.net)
+Irlan Robson
 
 <h3>Features</h3>
 
@@ -32,15 +32,14 @@ Bounce is released under the <b>zlib</b> license.
 	<li>Static tree "midphase"</li>
 	<li>SAT</li>
 	<li>GJK</li>
-	<li>Spheres, capsules, hulls</li>
+	<li>Spheres, capsules, hulls, triangle meshes</li>
 	<li>Optimized pair management</li>
 
 <h4>Dynamics</h4>
 
-	<li>Spheres, capsules, hulls, triangle meshes</li>
-	<li>Distance, spring, sphere, cone, revolute joint types</li>
-	<li>Joint motors, limits</li>
 	<li>Contact, friction, restitution</li>
+	<li>Mouse, spring, sphere, cone, revolute joint types</li>
+	<li>Joint motors, limits</li>
 	<li>Constraint graphs</li>
 	<li>Simulation islands and sleep management</li>
 	<li>Linear time solver</li>

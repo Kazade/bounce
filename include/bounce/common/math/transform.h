@@ -19,10 +19,10 @@
 #ifndef B3_TRANSFORM_H
 #define B3_TRANSFORM_H
 
-#include <bounce\common\math\mat33.h>
-#include <bounce\common\math\quat.h>
+#include <bounce/common/math/mat33.h>
+#include <bounce/common/math/quat.h>
 
-// A b3Transform represents a rigid frame. 
+// A transform represents a rigid frame. 
 // It has a translation representing a position
 // and a rotation representing an orientation.
 struct b3Transform 
@@ -30,7 +30,7 @@ struct b3Transform
 	// Default ctor does nothing for performance.
 	b3Transform() { }
 	
-	// Set this b3Transform from a translation vector and an orientation 
+	// Set this transform from a translation vector and an orientation 
 	// quaternion.
 	b3Transform(const b3Vec3& p, const b3Quat& q)
 	{
@@ -38,7 +38,7 @@ struct b3Transform
 		rotation = b3ConvertQuatToRot(q);
 	}
 	
-	// Set this b3Transform to the identity.
+	// Set this transform to the identity.
 	void SetIdentity() 
 	{
 		position.SetZero();
@@ -61,7 +61,7 @@ struct b3Sweep
 	b3Vec3 worldCenter; // world center
 	b3Quat orientation; // world orientation
 
-	// Get this sweep b3Transform at a given time between [0, 1]
+	// Get this sweep transform at a given time between [0, 1]
 	b3Transform GetTransform(float32 t) const;
 
 	// Advance to a new initial state.
@@ -90,7 +90,7 @@ inline void b3Sweep::Advance(float32 t)
 	t0 = t;
 }
 
-// Multiply a b3Transform times a vector. If the b3Transform 
+// Multiply a transform times a vector. If the transform 
 // represents a frame this returns the vector in terms 
 // of the frame.
 inline b3Vec3 operator*(const b3Transform& T, const b3Vec3& v)
@@ -98,7 +98,7 @@ inline b3Vec3 operator*(const b3Transform& T, const b3Vec3& v)
 	return b3Mul(T.rotation, v) + T.position;
 }
 
-// Multiply a b3Transform times another b3Transform (composed b3Transform).
+// Multiply a transform times another transform (composed transform).
 // [A y][B x] = [AB Ax+y]
 // [0 1][0 1]   [0  1   ]
 inline b3Transform operator*(const b3Transform& A, const b3Transform& B)
@@ -109,13 +109,13 @@ inline b3Transform operator*(const b3Transform& A, const b3Transform& B)
 	return C;
 }
 
-// Multiply a b3Transform times a vector.
+// Multiply a transform times a vector.
 inline b3Vec3 b3Mul(const b3Transform& T, const b3Vec3& v)
 {
 	return b3Mul(T.rotation, v) + T.position;
 }
 
-// Multiply a b3Transform times another b3Transform.
+// Multiply a transform times another transform.
 // [A y][B x] = [AB Ax+y]
 // [0 1][0 1]   [0  1   ]
 inline b3Transform b3Mul(const b3Transform& A, const b3Transform& B)
@@ -126,8 +126,8 @@ inline b3Transform b3Mul(const b3Transform& A, const b3Transform& B)
 	return C;
 }
 
-// Multiply the transpose of one b3Transform (inverse 
-// b3Transform) times another b3Transform (composed b3Transform).
+// Multiply the transpose of one transform (inverse 
+// transform) times another transform (composed transform).
 //[A^-1  -A^-1*y][B x] = [A^-1*B A^-1(x-y)]
 //[0      1     ][0 1]   [0      1        ]
 inline b3Transform b3MulT(const b3Transform& A, const b3Transform& B) 
@@ -138,9 +138,9 @@ inline b3Transform b3MulT(const b3Transform& A, const b3Transform& B)
 	return C;
 }
 
-// Multiply the transpose of a b3Transform times a vector.
-// If the b3Transform represents a frame then this transforms
-// the vector from one frame to another (inverse b3Transform).
+// Multiply the transpose of a transform times a vector.
+// If the transform represents a frame then this transforms
+// the vector from one frame to another (inverse transform).
 //[A^-1  -A^-1*y][x] = A^-1*x - A^-1*y = A^-1 * (x - y)
 //[0     1      ][1]   
 inline b3Vec3 b3MulT(const b3Transform& A, const b3Vec3& v)
@@ -148,7 +148,7 @@ inline b3Vec3 b3MulT(const b3Transform& A, const b3Vec3& v)
 	return b3MulT(A.rotation, v - A.position);
 }
 
-// Inverse b3Transform.
+// Inverse transform.
 inline b3Transform b3Inverse(const b3Transform& T)
 {
 	b3Transform B;

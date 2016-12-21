@@ -19,7 +19,7 @@
 #ifndef B3_STACK_H
 #define B3_STACK_H
 
-#include <bounce\common\settings.h>
+#include <bounce/common/settings.h>
 
 // A growable stack for plain-old-data (POD).
 template <typename T, u32 N>
@@ -39,7 +39,7 @@ public:
 		{
 			b3Free(m_elements);
 		}
-		m_elements = nullptr;
+		m_elements = NULL;
 	}
 
 	const T& Top() const

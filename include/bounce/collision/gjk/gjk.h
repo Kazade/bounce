@@ -19,7 +19,7 @@
 #ifndef B3_GJK_H
 #define B3_GJK_H
 
-#include <bounce\common\geometry.h>
+#include <bounce/common/geometry.h>
 
 class b3GJKProxy;
 struct b3SimplexCache;
@@ -30,8 +30,8 @@ struct b3SimplexVertex
 	b3Vec3 pointB; // support vertex on proxy B
 	b3Vec3 point; // minkowski vertex
 	float32 weight; // barycentric coordinate for point
-	u32 indexA; // support A index
-	u32 indexB; // support B index
+	u32 indexA; // support A vertex index
+	u32 indexB; // support B vertex index
 };
 
 struct b3Simplex
@@ -58,7 +58,8 @@ struct b3Simplex
 // The output of the GJK algorithm.
 // It contains the closest points between two proxies 
 // and their euclidean distance.
-struct b3GJKOutput 
+// If the distance is zero then the proxies are overlapping.
+struct b3GJKOutput
 {
 	b3Vec3 pointA; // closest point on proxy A
 	b3Vec3 pointB; // closest point on proxy B
@@ -67,7 +68,6 @@ struct b3GJKOutput
 };
 
 // Find the closest points and distance between two proxies.
-// If the distance is zero then the proxies are overlapping.
 b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA, 
 	const b3Transform& xfB, const b3GJKProxy& proxyB);
 

@@ -16,15 +16,15 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\island.h>
-#include <bounce\dynamics\body.h>
-#include <bounce\dynamics\time_step.h>
-#include <bounce\dynamics\joints\joint.h>
-#include <bounce\dynamics\joints\joint_solver.h>
-#include <bounce\dynamics\contacts\contact.h>
-#include <bounce\dynamics\contacts\contact_solver.h>
-#include <bounce\common\memory\stack_allocator.h>
-#include <bounce\common\time.h>
+#include <bounce/dynamics/island.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/dynamics/time_step.h>
+#include <bounce/dynamics/joints/joint.h>
+#include <bounce/dynamics/joints/joint_solver.h>
+#include <bounce/dynamics/contacts/contact.h>
+#include <bounce/dynamics/contacts/contact_solver.h>
+#include <bounce/common/memory/stack_allocator.h>
+#include <bounce/common/time.h>
 
 b3Island::b3Island(b3StackAllocator* allocator, u32 bodyCapacity, u32 contactCapacity, u32 jointCapacity) 
 {

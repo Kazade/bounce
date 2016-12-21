@@ -19,8 +19,8 @@
 #ifndef B3_GEOMETRY_H
 #define B3_GEOMETRY_H
 
-#include <bounce\common\math\math.h>
-#include <bounce\common\math\transform.h>
+#include <bounce/common/math/math.h>
+#include <bounce/common/math/transform.h>
 
 // A triangle in indexed form.
 struct b3Triangle
@@ -106,13 +106,13 @@ inline b3Plane b3Mul(const b3Transform& T, const b3Plane& plane)
 	return b3Plane(normal, plane.offset + b3Dot(normal, T.position));
 }
 
+// Compute the distance between a point and a plane.
 inline float32 b3Distance(const b3Vec3& P, const b3Plane& plane)
 {
 	return b3Dot(plane.normal, P) - plane.offset;
 }
 
-// Project a point onto a plane.
-// The plane must be normalized.
+// Project a point onto a normal plane.
 inline b3Vec3 b3Project(const b3Vec3& P, const b3Plane& plane)
 {
 	float32 fraction = b3Distance(P, plane);

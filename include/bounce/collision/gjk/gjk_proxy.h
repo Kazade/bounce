@@ -19,31 +19,31 @@
 #ifndef B3_GJK_PROXY_H
 #define B3_GJK_PROXY_H
 
-#include <bounce\common\math\vec3.h>
+#include <bounce/common/math/vec3.h>
 
 // A GJK proxy encapsulates any convex hull to be used by the GJK.
 class b3GJKProxy
 {
 public:
-	b3GJKProxy() : m_vertices(nullptr), m_count(0), m_radius(0.0f) { }
+	b3GJKProxy() : m_vertices(NULL), m_count(0), m_radius(0.0f) { }
 
-	// Get the number of vertices of this proxy.
+	// Get the number of vertices in this proxy.
 	u32 GetVertexCount() const;
 
 	// Read an indexed vertex from this proxy.
 	const b3Vec3& GetVertex(u32 index) const;
 
 	// Get the support vertex index in a given direction.
-	u32 GetSupportIndex(const b3Vec3& d) const;
+	u32 GetSupportIndex(const b3Vec3& direction) const;
 
 	// Convenience function.
 	// Get the support vertex in a given direction.
-	const b3Vec3& GetSupportVertex(const b3Vec3& d) const;
+	const b3Vec3& GetSupportVertex(const b3Vec3& direction) const;
 
-	b3Vec3 m_buffer[3]; // for childs
-	const b3Vec3* m_vertices;
-	u32 m_count;
-	float32 m_radius;
+	const b3Vec3* m_vertices; // vertices in this proxy
+	u32 m_count; // number of vertices
+	float32 m_radius; // shape radius
+	b3Vec3 m_buffer[3]; // vertices from a child shape
 };
 
 inline u32 b3GJKProxy::GetVertexCount() const

@@ -16,9 +16,9 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\collision\sat\sat_vertex_and_hull.h>
-#include <bounce\collision\shapes\sphere.h>
-#include <bounce\collision\shapes\hull.h>
+#include <bounce/collision/sat/sat_vertex_and_hull.h>
+#include <bounce/collision/shapes/sphere.h>
+#include <bounce/collision/shapes/hull.h>
 
 float32 b3ProjectVertex(const b3Sphere* hull, const b3Plane& plane)
 {

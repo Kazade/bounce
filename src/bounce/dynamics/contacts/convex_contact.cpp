@@ -16,9 +16,10 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\contacts\convex_contact.h>
-#include <bounce\dynamics\shapes\shape.h>
-#include <bounce\dynamics\world.h>
+#include <bounce/dynamics/contacts/convex_contact.h>
+#include <bounce/dynamics/shapes/shape.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/dynamics/world.h>
 
 b3ConvexContact::b3ConvexContact(b3Shape* shapeA, b3Shape* shapeB)
 {
@@ -35,10 +36,10 @@ b3ConvexContact::b3ConvexContact(b3Shape* shapeA, b3Shape* shapeB)
 bool b3ConvexContact::TestOverlap()
 {
 	b3Shape* shapeA = GetShapeA();
-	b3Transform xfA = shapeA->GetTransform();
+	b3Transform xfA = shapeA->GetBody()->GetTransform();
 
 	b3Shape* shapeB = GetShapeB();
-	b3Transform xfB = shapeB->GetTransform();
+	b3Transform xfB = shapeB->GetBody()->GetTransform();
 
 	return b3TestOverlap(xfA, 0, shapeA, xfB, 0, shapeB, &m_cache);
 }
@@ -46,16 +47,14 @@ bool b3ConvexContact::TestOverlap()
 void b3ConvexContact::Collide()
 {
 	b3Shape* shapeA = GetShapeA();
-	b3Transform xfA = shapeA->GetTransform();
+	b3Body* bodyA = shapeA->GetBody();
+	b3Transform xfA = bodyA->GetTransform();
 
 	b3Shape* shapeB = GetShapeB();
-	b3Transform xfB = shapeB->GetTransform();
+	b3Body* bodyB = shapeB->GetBody();
+	b3Transform xfB = bodyB->GetTransform();
 
 	B3_ASSERT(m_manifoldCount == 0);
 	b3CollideShapeAndShape(m_stackManifold, xfA, shapeA, xfB, shapeB, &m_cache);
 	m_manifoldCount = 1;
-}
-
-void b3ConvexContact::SynchronizeShapes()
-{
 }

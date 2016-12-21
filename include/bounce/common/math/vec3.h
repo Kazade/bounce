@@ -19,7 +19,7 @@
 #ifndef B3_VEC_3_H
 #define B3_VEC_3_H
 
-#include <bounce\common\math\math.h>
+#include <bounce/common/math/math.h>
 
 // A 3D column vector.
 struct b3Vec3 

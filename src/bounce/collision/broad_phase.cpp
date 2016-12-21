@@ -16,18 +16,18 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\collision\broad_phase.h>
+#include <bounce/collision/broad_phase.h>
 
 b3BroadPhase::b3BroadPhase() 
 {
 	m_moveBufferCapacity = 16;
 	m_moveBuffer = (i32*)b3Alloc(m_moveBufferCapacity * sizeof(i32));
-	memset(m_moveBuffer, NULL, m_moveBufferCapacity * sizeof(i32));
+	memset(m_moveBuffer, 0, m_moveBufferCapacity * sizeof(i32));
 	m_moveBufferCount = 0;
 
 	m_pairBufferCapacity = 16;
 	m_pairBuffer = (b3Pair*)b3Alloc(m_pairBufferCapacity * sizeof(b3Pair));
-	memset(m_pairBuffer, NULL, m_pairBufferCapacity * sizeof(b3Pair));
+	memset(m_pairBuffer, 0, m_pairBufferCapacity * sizeof(b3Pair));
 	m_pairBufferCount = 0;
 }
 

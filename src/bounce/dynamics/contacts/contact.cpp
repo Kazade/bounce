@@ -16,12 +16,12 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\contacts\contact.h>
-#include <bounce\dynamics\contacts\manifold.h>
-#include <bounce\dynamics\shapes\shape.h>
-#include <bounce\dynamics\body.h>
-#include <bounce\dynamics\world.h>
-#include <bounce\dynamics\world_listeners.h>
+#include <bounce/dynamics/contacts/contact.h>
+#include <bounce/dynamics/contacts/manifold.h>
+#include <bounce/dynamics/shapes/shape.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/dynamics/world.h>
+#include <bounce/dynamics/world_listeners.h>
 
 const b3Manifold* b3Contact::GetManifold(u32 index) const
 {
@@ -41,10 +41,10 @@ void b3Contact::GetWorldManifold(b3WorldManifold* out, u32 index) const
 	b3Manifold* m = m_manifolds + index;
 
 	const b3Shape* shapeA = GetShapeA();
-	b3Transform xfA = shapeA->GetTransform();
+	b3Transform xfA = shapeA->GetBody()->GetTransform();
 
 	const b3Shape* shapeB = GetShapeB();
-	b3Transform xfB = shapeB->GetTransform();
+	b3Transform xfB = shapeB->GetBody()->GetTransform();
 
 	out->Initialize(m, xfA, shapeA->m_radius, xfB, shapeB->m_radius);
 }
@@ -54,12 +54,12 @@ void b3Contact::Update(b3ContactListener* listener)
 	b3Shape* shapeA = GetShapeA();
 	b3Body* bodyA = shapeA->GetBody();
 	i32 proxyA = shapeA->m_broadPhaseID;
-	b3Transform xfA = shapeA->GetTransform();
+	b3Transform xfA = bodyA->GetTransform();
 
 	b3Shape* shapeB = GetShapeB();
 	b3Body* bodyB = shapeB->GetBody();
 	i32 proxyB = shapeB->m_broadPhaseID;
-	b3Transform xfB = shapeB->GetTransform();
+	b3Transform xfB = bodyB->GetTransform();
 
 	b3World* world = bodyA->GetWorld();
 
@@ -134,7 +134,7 @@ void b3Contact::Update(b3ContactListener* listener)
 	}
 
 	// Notify the contact listener the new contact state.
-	if (listener != nullptr) 
+	if (listener != NULL) 
 	{
 		if (wasOverlapping == false && isOverlapping == true)
 		{

@@ -16,8 +16,8 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\collision\gjk\gjk_cache.h>
-#include <bounce\collision\gjk\gjk_proxy.h>
+#include <bounce/collision/gjk/gjk_cache.h>
+#include <bounce/collision/gjk/gjk_proxy.h>
 
 extern u32 b3_gjkCalls, b3_gjkIters, b3_gjkMaxIters;
 u32 b3_gjkCacheHits;

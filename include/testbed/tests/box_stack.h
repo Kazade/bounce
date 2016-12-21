@@ -45,7 +45,7 @@ public:
 
 			b3ShapeDef sdef;
 			sdef.shape = &hs;
-			sdef.userData = nullptr;
+			sdef.userData = NULL;
 			sdef.friction = 1.0f;
 
 			b3Shape* shape = body->CreateShape(sdef);
@@ -80,7 +80,7 @@ public:
 					sdef.density = 0.5f;
 					sdef.friction = 0.3f;
 					sdef.shape = &hs;
-					sdef.userData = nullptr;
+					sdef.userData = NULL;
 
 					b3Shape* shape = body->CreateShape(sdef);
 				}

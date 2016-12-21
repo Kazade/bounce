@@ -16,7 +16,7 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\collision\trees\dynamic_tree.h>
+#include <bounce/collision/trees/dynamic_tree.h>
 
 b3DynamicTree::b3DynamicTree() 
 {
@@ -25,7 +25,7 @@ b3DynamicTree::b3DynamicTree()
 	// Preallocate 32 nodes.
 	m_nodeCapacity = 32;
 	m_nodes = (b3Node*) b3Alloc(m_nodeCapacity * sizeof(b3Node));
-	memset(m_nodes, NULL, m_nodeCapacity * sizeof(b3Node));
+	memset(m_nodes, 0, m_nodeCapacity * sizeof(b3Node));
 	m_nodeCount = 0;
 
 	// Link the allocated nodes and make the first node 
@@ -67,7 +67,7 @@ i32 b3DynamicTree::AllocateNode()
 	m_nodes[node].child1 = NULL_NODE;
 	m_nodes[node].child2 = NULL_NODE;
 	m_nodes[node].height = 0;
-	m_nodes[node].userData = nullptr;
+	m_nodes[node].userData = NULL;
 
 	++m_nodeCount;
 
@@ -133,7 +133,7 @@ void b3DynamicTree::UpdateNode(i32 proxyId, const b3AABB3& aabb)
 	InsertLeaf(proxyId);
 }
 
-i32 b3DynamicTree::HeuristicSearch(const b3AABB3& leafAABB) const 
+i32 b3DynamicTree::FindBest(const b3AABB3& leafAABB) const 
 {
 	// To find a good branch node, the manhattan distance could be used as heuristic. 
 	// However, the current propagated node and the leaf node volume are incompletely considerable.
@@ -215,7 +215,7 @@ void b3DynamicTree::InsertLeaf(i32 leaf)
 	b3AABB3 leafAabb = m_nodes[leaf].aabb;
 	
 	// Search for the best branch node of this tree starting from the tree root node.
-	i32 sibling = HeuristicSearch(leafAabb);
+	i32 sibling = FindBest(leafAabb);
 
 	i32 oldParent = m_nodes[sibling].parent;
 	
@@ -226,7 +226,7 @@ void b3DynamicTree::InsertLeaf(i32 leaf)
 	m_nodes[sibling].parent = newParent;	
 	m_nodes[newParent].child2 = leaf;
 	m_nodes[leaf].parent = newParent;	
-	m_nodes[newParent].userData = nullptr;
+	m_nodes[newParent].userData = NULL;
 	m_nodes[newParent].aabb = b3Combine(leafAabb, m_nodes[sibling].aabb);
 	m_nodes[newParent].height = m_nodes[sibling].height + 1;
 
@@ -362,7 +362,7 @@ void b3DynamicTree::Validate(i32 nodeID) const
 	}
 }
 
-void b3DynamicTree::Draw(b3Draw* b3Draw) const
+void b3DynamicTree::Draw(b3Draw* draw) const
 {
 	b3Color red = b3Color(1.0f, 0.0f, 0.0f);
 	b3Color green = b3Color(0.0f, 1.0f, 0.0f);
@@ -390,11 +390,11 @@ void b3DynamicTree::Draw(b3Draw* b3Draw) const
 		const b3Node* node = m_nodes + nodeIndex;
 		if (node->IsLeaf())
 		{
-			b3Draw->DrawAABB(node->aabb, purple);
+			draw->DrawAABB(node->aabb, purple);
 		}
 		else
 		{
-			b3Draw->DrawAABB(node->aabb, red);
+			draw->DrawAABB(node->aabb, red);
 			
 			stack.Push(node->child1);
 			stack.Push(node->child2);

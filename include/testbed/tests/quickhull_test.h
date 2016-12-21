@@ -19,7 +19,7 @@
 #ifndef QHULL_H
 #define QHULL_H
 
-#include <bounce\quickhull\qh_hull.h>
+#include <bounce/quickhull/qh_hull.h>
 
 extern DebugDraw* g_debugDraw;
 extern Camera g_camera;
@@ -48,7 +48,7 @@ struct Map
 				return pair;
 			}
 		}
-		return nullptr;
+		return NULL;
 	}
 
 	b3StackArray<Pair, 256> m_pairs;

@@ -16,9 +16,9 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\collision\sat\sat_edge_and_hull.h>
-#include <bounce\collision\shapes\capsule.h>
-#include <bounce\collision\shapes\hull.h>
+#include <bounce/collision/sat/sat_edge_and_hull.h>
+#include <bounce/collision/shapes/capsule.h>
+#include <bounce/collision/shapes/hull.h>
 
 float32 b3ProjectEdge(const b3Capsule* hull, const b3Plane& plane)
 {

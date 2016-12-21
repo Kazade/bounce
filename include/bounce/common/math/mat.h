@@ -19,7 +19,7 @@
 #ifndef B3_MAT_H
 #define B3_MAT_H
 
-#include <bounce\common\math\math.h>
+#include <bounce/common/math/math.h>
 
 // A vector stored in column-major order.
 template<u32 n>
@@ -79,7 +79,10 @@ struct b3Mat
 };
 
 // Solve Ax = b.
-// Warning: Make sure to pass a copy of A to the function. It will be invalidated.
+// It doesn't compute the inverse. 
+// Therefore, is more efficient.
+// Returns false if the matrix is singular.
+// Warning: Make sure to pass a copy of the original matrix to the function. A will be invalidated.
 bool b3Solve(float32* b, float32* A, u32 n);
 
 #endif

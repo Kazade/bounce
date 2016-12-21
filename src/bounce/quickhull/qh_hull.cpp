@@ -16,9 +16,9 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\quickhull\qh_hull.h>
-#include <bounce\common\template\stack.h>
-#include <bounce\common\draw.h>
+#include <bounce/quickhull/qh_hull.h>
+#include <bounce/common/template/stack.h>
+#include <bounce/common/draw.h>
 
 float32 qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Array<b3Vec3>& vertices)
 {
@@ -76,31 +76,31 @@ void qhHull::Construct(void* memory, const b3Array<b3Vec3>& vs)
 	// Euler's formula
 	// V - E + F = 2
 	
-	m_freeVertices = nullptr;
+	m_freeVertices = NULL;
 	qhVertex* vertices = (qhVertex*)memory;
 	for (u32 i = 0; i < V; ++i)
 	{
 		FreeVertex(vertices + i);
 	}
 
-	m_freeEdges = nullptr;
+	m_freeEdges = NULL;
 	qhHalfEdge* edges = (qhHalfEdge*)((u8*)vertices + V * sizeof(qhVertex));
 	for (u32 i = 0; i < HE; ++i)
 	{
 		FreeEdge(edges + i);
 	}
 	
-	m_freeFaces = nullptr;
+	m_freeFaces = NULL;
 	qhFace* faces = (qhFace*)((u8*)edges + HE * sizeof(qhHalfEdge));
 	for (u32 i = 0; i < F; ++i)
 	{
 		qhFace* f = faces + i;
-		f->conflictList.head = nullptr;
+		f->conflictList.head = NULL;
 		f->conflictList.count = 0;
 		FreeFace(f);
 	}
 		
-	m_faceList.head = nullptr;
+	m_faceList.head = NULL;
 	m_faceList.count = 0;
 	m_iteration = 0;
 
@@ -295,7 +295,7 @@ bool qhHull::BuildInitialHull(const b3Array<b3Vec3>& vertices)
 
 		// Discard internal points since they can't be in the hull.
 		float32 d0 = m_tolerance;
-		qhFace* f0 = nullptr;
+		qhFace* f0 = NULL;
 
 		for (u32 j = 0; j < 4; ++j)
 		{
@@ -324,7 +324,7 @@ qhVertex* qhHull::NextVertex()
 {
 	// Find the point furthest from the current hull.
 	float32 d0 = m_tolerance;
-	qhVertex* v0 = nullptr;
+	qhVertex* v0 = NULL;
 
 	qhFace* f = m_faceList.head;
 	while (f)
@@ -479,7 +479,7 @@ qhHalfEdge* qhHull::AddAdjoiningTriangle(qhVertex* eye, qhHalfEdge* horizonEdge)
 	e1->tail = v1;
 	e1->prev = e3;
 	e1->next = e2;
-	e1->twin = nullptr;
+	e1->twin = NULL;
 	e1->face = face;
 
 	e2->tail = v2;
@@ -492,10 +492,10 @@ qhHalfEdge* qhHull::AddAdjoiningTriangle(qhVertex* eye, qhHalfEdge* horizonEdge)
 	e3->tail = v3;
 	e3->prev = e2;
 	e3->next = e1;
-	e3->twin = nullptr;
+	e3->twin = NULL;
 	e3->face = face;
 
-	horizonEdge->twin = nullptr;
+	horizonEdge->twin = NULL;
 
 	face->edge = e1;
 	face->center = (v1->position + v2->position + v3->position) / 3.0f;
@@ -511,8 +511,8 @@ void qhHull::AddNewFaces(b3Array<qhFace*>& newFaces, qhVertex* eye, const b3Arra
 {
 	newFaces.Reserve(horizon.Count());
 
-	qhHalfEdge* beginEdge = nullptr;
-	qhHalfEdge* prevEdge = nullptr;
+	qhHalfEdge* beginEdge = NULL;
+	qhHalfEdge* prevEdge = NULL;
 
 	{
 		qhHalfEdge* edge = horizon[0];
@@ -571,7 +571,7 @@ void qhHull::AddNewFaces(b3Array<qhFace*>& newFaces, qhVertex* eye, const b3Arra
 
 			// Use tolerance and discard internal points.
 			float32 max = m_tolerance;
-			qhFace* iMax = nullptr;
+			qhFace* iMax = NULL;
 
 			for (u32 i = 0; i < newFaces.Count(); ++i)
 			{
@@ -587,7 +587,7 @@ void qhHull::AddNewFaces(b3Array<qhFace*>& newFaces, qhVertex* eye, const b3Arra
 			if (iMax)
 			{
 				qhVertex* v0 = v;
-				v->conflictFace = nullptr;
+				v->conflictFace = NULL;
 				v = f->conflictList.Remove(v);
 				iMax->conflictList.PushFront(v0);
 				v0->conflictFace = iMax;
@@ -595,7 +595,7 @@ void qhHull::AddNewFaces(b3Array<qhFace*>& newFaces, qhVertex* eye, const b3Arra
 			else
 			{
 				qhVertex* v0 = v;
-				v->conflictFace = nullptr;
+				v->conflictFace = NULL;
 				v = f->conflictList.Remove(v);
 				FreeVertex(v0);
 			}
@@ -739,7 +739,7 @@ bool qhHull::IsConsistent() const
 	return true;
 }
 
-void qhHull::Draw(b3Draw* b3Draw) const
+void qhHull::Draw(b3Draw* draw) const
 {
 	qhFace* face = m_faceList.head;
 	while (face)
@@ -750,12 +750,12 @@ void qhHull::Draw(b3Draw* b3Draw) const
 		qhVertex* v = face->conflictList.head;
 		while (v)
 		{
-			b3Draw->DrawPoint(v->position, b3Color(1.0f, 1.0f, 0.0f));
-			b3Draw->DrawSegment(c, v->position, b3Color(1.0f, 1.0f, 0.0f));
+			draw->DrawPoint(v->position, b3Color(1.0f, 1.0f, 0.0f));
+			draw->DrawSegment(c, v->position, b3Color(1.0f, 1.0f, 0.0f));
 			v = v->next;
 		}
 
-		b3Draw->DrawSegment(c, c + n, b3Color(1.0f, 1.0f, 1.0f));
+		draw->DrawSegment(c, c + n, b3Color(1.0f, 1.0f, 1.0f));
 
 		b3StackArray<b3Vec3, 32> polygon;
 		qhHalfEdge* edge = face->edge;
@@ -765,7 +765,7 @@ void qhHull::Draw(b3Draw* b3Draw) const
 			edge = edge->next;
 		} while (edge != face->edge);
 
-		b3Draw->DrawSolidPolygon(polygon.Elements(), polygon.Count(), b3Color(0.0f, 0.0f, 1.0f, 1.0f));
+		draw->DrawSolidPolygon(polygon.Elements(), polygon.Count(), b3Color(0.0f, 0.0f, 1.0f, 1.0f));
 		
 		face = face->next;
 	}

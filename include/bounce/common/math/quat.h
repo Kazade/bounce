@@ -19,10 +19,10 @@
 #ifndef B3_QUAT_H
 #define B3_QUAT_H
 
-#include <bounce\common\math\math.h>
-#include <bounce\common\math\mat33.h>
+#include <bounce/common/math/math.h>
+#include <bounce/common/math/mat33.h>
 
-// A quaternion represents an orientation with 4 real numbers.
+// A quaternion can represent an orientation with 4 scalars.
 struct b3Quat 
 {
 	// Default constructor does nothing for performance.
@@ -157,13 +157,13 @@ inline b3Quat b3Normalize(const b3Quat& q)
 	return b3Quat(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
-// Compute the dot poduct of two quaternions.
+// Perform the dot poduct of two quaternions.
 inline float b3Dot(const b3Quat& a, const b3Quat& b)
 {
 	return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
 
-// Compute the conjugate of a quaternion.
+// Conjugate of a quaternion.
 inline b3Quat b3Conjugate(const b3Quat& q)
 {
 	return b3Quat(-q.x, -q.y, -q.z, q.w);
@@ -230,7 +230,6 @@ inline b3Quat b3Slerp(const b3Quat& a, const b3Quat& b, float32 fraction)
 	b3Quat q1 = sin(w1 * angle) * a;
 	b3Quat q2 = sin(w2 * angle) * b2;
 	float32 invSin = 1.0f / sine;
-
 	return invSin * (q1 + q2);
 }
 

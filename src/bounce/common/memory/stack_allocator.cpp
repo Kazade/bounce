@@ -16,7 +16,7 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\common\memory\stack_allocator.h>
+#include <bounce/common/memory/stack_allocator.h>
 
 b3StackAllocator::b3StackAllocator() 
 {

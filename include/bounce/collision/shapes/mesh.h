@@ -19,8 +19,8 @@
 #ifndef B3_MESH_H
 #define B3_MESH_H
 
-#include <bounce\common\geometry.h>
-#include <bounce\collision\trees\static_tree.h>
+#include <bounce/common/geometry.h>
+#include <bounce/collision/trees/static_tree.h>
 
 struct b3Mesh 
 {

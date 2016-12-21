@@ -16,15 +16,15 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\shapes\hull_shape.h>
-#include <bounce\collision\shapes\hull.h>
-#include <bounce\common\template\array.h>
+#include <bounce/dynamics/shapes/hull_shape.h>
+#include <bounce/collision/shapes/hull.h>
+#include <bounce/common/template/array.h>
 
 b3HullShape::b3HullShape()
 {
 	m_type = e_hullShape;
 	m_radius = B3_HULL_RADIUS;
-	m_hull = nullptr;
+	m_hull = NULL;
 }
 
 b3HullShape::~b3HullShape()

@@ -19,7 +19,7 @@
 #ifndef B3_SPRING_JOINT_H
 #define B3_SPRING_JOINT_H
 
-#include <bounce\dynamics\joints\joint.h>
+#include <bounce/dynamics/joints/joint.h>
 
 struct b3SpringJointDef : public b3JointDef 
 {
@@ -36,35 +36,65 @@ struct b3SpringJointDef : public b3JointDef
 	// Initialize this definition from bodies and world anchors.
 	void Initialize(b3Body* bodyA, b3Body* bodyB, const b3Vec3& anchorA, const b3Vec3& anchorB);
 
-	// The joint anchor point relative to the frame of body A
+	// The anchor point relative to body A's origin
 	b3Vec3 localAnchorA;
 
-	// The joint anchor point relative to the frame of body B
+	// The anchor point relative to body B's origin
 	b3Vec3 localAnchorB;
 	
-	// The spring rest length
+	// The spring rest length.
 	float32 length;
 	
-	// The mass-spring-damper frequency in units of hertz
-	// 0 = disable spring softness
+	// The mass-spring-damper frequency in Hz
+	// 0 = disable softness
 	float32 frequencyHz;
 	
-	// The damping ration in the interval [0, 1].
+	// The damping ration in the interval [0, 1]
 	// 0 = undamped spring
 	// 1 = critical damping
 	float32 dampingRatio;
 };
 
+// A spring joint constrains the bodies to rotate relative to each 
+// other about a specified spring position. 
+// The tunable soft parameters control how much/fast the bodies should translate 
+// relative to each other about the spring position. 
+// This joint can be used to create behaviours such as a car suspension.
 class b3SpringJoint : public b3Joint 
 {
-public :	
-	// Get the local anchor point in the local space of the first body.
+public:	
+	// Get the anchor point on body A in world coordinates.
+	b3Vec3 GetAnchorA() const;
+
+	// Get the anchor point on body B in world coordinates.
+	b3Vec3 GetAnchorB() const;
+	
+	// Get the anchor point relative to body A's origin.
 	const b3Vec3& GetLocalAnchorA() const;
 
-	// Get the local anchor point in the local space of the second body.
+	// Get the anchor point relative to body B's origin.
 	const b3Vec3& GetLocalAnchorB() const;
 
-	void Draw(b3Draw* b3Draw) const;
+	// Get the natural spring length.
+	float32 GetLength() const;
+	
+	// Set the natural spring length.
+	void SetLength(float32 length);
+	
+	// Get the damper frequency in Hz.
+	float32 GetFrequency() const;
+
+	// Set the damper frequency in Hz.
+	void SetFrequency(float32 frequency);
+
+	// Get the damping ratio.
+	float32 GetDampingRatio() const;
+	
+	// Set the damping ratio.
+	void SetDampingRatio(float32 ratio);
+
+	// Draw this joint.
+	void Draw(b3Draw* draw) const;
 private:
 	friend class b3Joint;
 	friend class b3JointManager;
@@ -102,15 +132,5 @@ private:
 	float32 m_mass;
 	float32 m_impulse;
 };
-
-inline const b3Vec3& b3SpringJoint::GetLocalAnchorA() const
-{
-	return m_localAnchorA;
-}
-
-inline const b3Vec3& b3SpringJoint::GetLocalAnchorB() const
-{
-	return m_localAnchorB;
-}
 
 #endif

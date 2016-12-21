@@ -19,9 +19,9 @@
 #ifndef B3_TIME_STEP_H
 #define B3_TIME_STEP_H
 
-#include <bounce\common\math\vec3.h>
-#include <bounce\common\math\mat33.h>
-#include <bounce\common\math\quat.h>
+#include <bounce/common/math/vec3.h>
+#include <bounce/common/math/mat33.h>
+#include <bounce/common/math/quat.h>
 
 struct b3Position
 {

@@ -19,9 +19,9 @@
 #ifndef B3_SHAPE_H
 #define B3_SHAPE_H
 
-#include <bounce\common\math\transform.h>
-#include <bounce\common\template\list.h>
-#include <bounce\collision\distance.h>
+#include <bounce/common/math/transform.h>
+#include <bounce/common/template/list.h>
+#include <bounce/collision/distance.h>
 
 struct b3ContactEdge;
 
@@ -41,8 +41,8 @@ struct b3ShapeDef
 {
 	b3ShapeDef() 
 	{
-		shape = nullptr;
-		userData = nullptr;
+		shape = NULL;
+		userData = NULL;
 		isSensor = false;
 		density = 0.0f;
 		friction = 0.3f;
@@ -59,15 +59,19 @@ struct b3ShapeDef
 
 struct b3MassData 
 {
+	// The mass of the shape in kilograms.
 	float32 mass;
+
+	// The shape center of mass relative to the shape's origin. 
 	b3Vec3 center;
+
+	// The rotational inertia of the shape about the shape's center of mass.
 	b3Mat33 I;
 };
 
 class b3Shape
 {
 public:
-	// A shape is created and initialized by an user and a body.
 	b3Shape() { }
 	virtual ~b3Shape() { }
 
@@ -78,11 +82,7 @@ public:
 	const b3Body* GetBody() const;
 	b3Body* GetBody();
 
-	// Get the frame of the shape relative to the world.
-	b3Transform GetTransform() const;
-
-	// Calculate the mass data for this shape given the shape density, that is,
-	// the mass per unit volume.
+	// Calculate the mass data for this shape given the shape density.
 	virtual void ComputeMass(b3MassData* data, float32 density) const = 0;
 
 	// Compute the shape world AABB.
@@ -91,26 +91,40 @@ public:
 	// Test if a point is contained inside this shape.
 	virtual bool TestPoint(const b3Vec3& point, const b3Transform& xf) const = 0;
 
-	// Compute the ray intersection point, normal, and fraction.
+	// Compute the ray intersection point, normal of surface, and fraction.
 	virtual bool RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf) const = 0;
 	
-	bool IsSensor() const;
-	void SetSensor(bool flag);
+	// Set if this shape is a sensor.
+	void SetSensor(bool bit);
 
+	// Is this shape a sensor?
+	bool IsSensor() const;
+
+	// Get the shape density.
 	float32 GetDensity() const;
+
+	// Set the shape density.
 	void SetDensity(float32 density);
 
+	// Get the shape coefficient of restitution.
 	float32 GetRestitution() const;
+
+	// Set the shape coefficient of restitution.
+	// This is a value in the range [0, 1].
 	void SetRestitution(float32 restitution);
 
+	// Get the shape coefficient of friction.
 	float32 GetFriction() const;
+	
+	// Set the shape coefficient of friction.
+	// This is a value in the range [0, 1].
 	void SetFriction(float32 friction);
 
+	// Get the user data associated with this shape.
 	void* GetUserData() const;
-	void SetUserData(void* data);
 
-	// Destroy the contacts associated with this shape.
-	void DestroyContacts();
+	// Set the user data associated with this shape.
+	void SetUserData(void* data);
 
 	// Dump this shape to the log file.
 	void Dump(i32 bodyIndex) const;
@@ -119,23 +133,31 @@ public:
 	const b3Shape* GetNext() const;
 	b3Shape* GetNext();
 
-	// Create a shape.
+	float32 m_radius;
+protected:
+	friend class b3World;
+	friend class b3Body;
+	friend class b3Contact;
+	friend class b3ContactManager;
+	friend class b3ContactSolver;
+	friend class b3List1<b3Shape>;
+
 	static b3Shape* Create(const b3ShapeDef& def);
-	
-	// Destroy a shape.
 	static void Destroy(b3Shape* shape);
 
+	// Convenience function.
+	// Destroy the contacts associated with this shape.
+	void DestroyContacts();
+	
 	b3ShapeType m_type;
 	bool m_isSensor;
 	void* m_userData;
-	i32 m_broadPhaseID;
-
-	float32 m_radius;
 	float32 m_density;
 	float32 m_restitution;
 	float32 m_friction;
-	
-	// Contact edges for this shape.
+	i32 m_broadPhaseID;
+
+	// Contact edges for this shape contact graph.
 	b3List2<b3ContactEdge> m_contactEdges;
 	
 	// The parent body of this shape.

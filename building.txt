@@ -1,14 +1,35 @@
 Bounce uses premake for generating project files in a platform agnostic manner. 
 
 Grab premake from http://industriousone.com/premake.
-Put premake.exe into bounce/.
+Put premake into bounce/.
 
 Visual Studio 2015
 
-Open bounce/bat.
-Open premake_vs2015.bat. This will run a premake script and open bounce/build/vs2015/bounce.sln.
+Say { premake5 vs2015 } on a command line.
+Open build/vs2015/bounce.sln.
 Set testbed as the startup project.
-Press F5 or Ctrl-F5 to run.
+Press F5 to run.
 
-premake files for building on Mac will be available later because I don't run Mac currently and 
-therefore can't test the build system in this platform.
+Linux
+
+On a clean Ubuntu 16.04 install these packages first:
+
+mesa-common-dev
+libgl1-mesa-dev
+libglu1-mesa-dev 
+
+x32
+
+Say { premake5 gmake } on a terminal.
+From build/gmake say { make config="debug_x32" }.
+Open testbed from /bin/x32/testbed/.
+
+x64
+
+Say { premake5 gmake } on a terminal.
+From build/gmake say { make config="debug_x64" }.
+Open testbed from /bin/x64/testbed/.
+
+Mac
+
+I don't run Mac currently and therefore can't test the build system in this platform.

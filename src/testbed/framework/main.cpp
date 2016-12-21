@@ -16,11 +16,11 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <glad\glad.h>
-#include <glfw\glfw3.h>
-#include <imgui\imgui.h>
-#include <imgui\imgui_impl_glfw_gl3.h>
-#include <testbed\tests\test.h>
+#include <glad/glad.h>
+#include <glfw/glfw3.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw_gl3.h>
+#include <testbed/tests/test.h>
 
 GLFWwindow* g_window;
 Settings g_settings;
@@ -29,7 +29,7 @@ Camera g_camera;
 DebugDraw* g_debugDraw;
 bool g_leftDown;
 bool g_rightDown;
-bool g_altDown;
+bool g_shiftDown;
 b3Vec2 g_ps0;
 
 void WindowSize(int w, int h)
@@ -51,7 +51,7 @@ void MouseMove(GLFWwindow* w, double x, double y)
 	float32 nx = b3Clamp(dp.x, -1.0f, 1.0f);
 	float32 ny = b3Clamp(dp.y, -1.0f, 1.0f);
 
-	if (g_altDown)
+	if (g_shiftDown)
 	{
 		if (g_leftDown)
 		{
@@ -83,7 +83,7 @@ void MouseMove(GLFWwindow* w, double x, double y)
 void MouseWheel(GLFWwindow* w, double dx, double dy)
 {
 	float32 n = b3Clamp(float32(dy), -1.0f, 1.0f);
-	if (g_altDown)
+	if (g_shiftDown)
 	{
 		g_camera.m_zoom += 0.5f * -n;
 	}
@@ -106,7 +106,7 @@ void MouseButton(GLFWwindow* w, int button, int action, int mods)
 		{
 			g_leftDown = true;
 
-			if (g_altDown == false)
+			if (g_shiftDown == false)
 			{
 				g_test->MouseLeftDown(pw);
 			}
@@ -125,7 +125,7 @@ void MouseButton(GLFWwindow* w, int button, int action, int mods)
 		{
 			g_leftDown = false;
 
-			if (g_altDown == false)
+			if (g_shiftDown == false)
 			{
 				g_test->MouseLeftUp(pw);
 			}
@@ -150,13 +150,13 @@ void KeyButton(GLFWwindow* w, int button, int scancode, int action, int mods)
 	{
 	case GLFW_PRESS:
 	{
-		if (button == GLFW_KEY_LEFT_ALT)
+		if (button == GLFW_KEY_LEFT_SHIFT)
 		{
-			g_altDown = true;
+			g_shiftDown = true;
 			g_test->KeyDown(button);
 		}
 
-		if (g_altDown)
+		if (g_shiftDown)
 		{
 			if (button == GLFW_KEY_DOWN)
 			{
@@ -166,11 +166,6 @@ void KeyButton(GLFWwindow* w, int button, int scancode, int action, int mods)
 			if (button == GLFW_KEY_UP)
 			{
 				g_camera.m_zoom -= 0.05f;
-			}
-
-			if (button == GLFW_KEY_R)
-			{
-				g_settings.lastTestID = -1;
 			}
 		}
 		else
@@ -182,12 +177,12 @@ void KeyButton(GLFWwindow* w, int button, int scancode, int action, int mods)
 	}
 	case GLFW_RELEASE:
 	{
-		if (button == GLFW_KEY_LEFT_ALT)
+		if (button == GLFW_KEY_LEFT_SHIFT)
 		{
-			g_altDown = false;
+			g_shiftDown = false;
 		}
 
-		if (g_altDown == false)
+		if (g_shiftDown == false)
 		{
 			g_test->KeyUp(button);
 		}
@@ -247,7 +242,7 @@ void Interface()
 	}
 
 	ImVec2 buttonSize = ImVec2(-1, 0);
-	if (ImGui::Button("Restart (R)", buttonSize))
+	if (ImGui::Button("Restart", buttonSize))
 	{
 		g_settings.lastTestID = -1;
 	}
@@ -345,13 +340,6 @@ void Run()
 		
 		ImGui_ImplGlfwGL3_NewFrame();
 		
-		Step();
-
-		if (g_settings.drawShapes)
-		{
-			g_debugDraw->Submit(g_test->m_world);
-		}
-		
 		if (g_settings.drawGrid)
 		{
 			u32 n = 20;
@@ -397,9 +385,16 @@ void Run()
 				g_debugDraw->DrawSegment(p1, p2, color2);
 			}
 		}
-
+		
+		Step();
+		
 		g_debugDraw->Submit();
 
+		if (g_settings.drawShapes)
+		{
+			g_debugDraw->Submit(g_test->m_world);
+		}
+		
 		Interface();
 
 		ImGui::Render();
@@ -411,38 +406,49 @@ void Run()
 }
 
 int main(int argc, char** args)
-{	
-	// Create g_window
+{
 	if (glfwInit() == 0)
 	{
 		fprintf(stderr, "Failed to initialize GLFW\n");
 		return -1;
 	}
-
+	
+	// Create g_window
 	extern b3Version b3_version;
 	char title[256];
-	sprintf_s(title, "Bounce Testbed Version %d.%d.%d", b3_version.major, b3_version.minor, b3_version.revision);
-
+	sprintf(title, "Bounce Testbed Version %d.%d.%d", b3_version.major, b3_version.minor, b3_version.revision);
+	
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    	
 	g_window = glfwCreateWindow(1024, 768, title, NULL, NULL);
-
-	g_leftDown = false;
-	g_rightDown = false;
-	g_altDown = false;
-	g_ps0.SetZero();
-
-	glfwMakeContextCurrent(g_window);	
-	glfwSwapInterval(1);
+	if (g_window == NULL)
+	{		
+		fprintf(stderr, "Failed to opengl GLFW window\n");
+		glfwTerminate();
+		return -1;
+	}
+	
+	glfwMakeContextCurrent(g_window);
 	glfwSetCursorPosCallback(g_window, MouseMove);
 	glfwSetScrollCallback(g_window, MouseWheel);
 	glfwSetMouseButtonCallback(g_window, MouseButton);
 	glfwSetKeyCallback(g_window, KeyButton);
 	glfwSetCharCallback(g_window, Char);
-
+	glfwSwapInterval(1);
 	if (gladLoadGL() == 0)
 	{
 		fprintf(stderr, "Error: %d\n", glad_glGetError());
+		glfwTerminate();
 		exit(EXIT_FAILURE);
 	}
+
+	printf("OpenGL %s, GLSL %s\n", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
+	
+	g_leftDown = false;
+	g_rightDown = false;
+	g_shiftDown = false;
+	g_ps0.SetZero();
 
 	// Create UI
 	CreateInterface();
@@ -450,14 +456,15 @@ int main(int argc, char** args)
 	// Create renderer
 	g_debugDraw = new DebugDraw();
 
-	// Run the g_tests
-	g_test = nullptr;
+	// Run the testbed
+	g_test = NULL;
 	Run();
 
+	// Destroy the last test
 	if (g_test)
 	{
 		delete g_test;
-		g_test = nullptr;
+		g_test = NULL;
 	}
 
 	// Destroy renderer

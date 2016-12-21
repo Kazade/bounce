@@ -19,15 +19,16 @@
 #ifndef B3_GJK_CACHE_H
 #define B3_GJK_CACHE_H
 
-#include <bounce\collision\gjk\gjk.h>
+#include <bounce/collision/gjk/gjk.h>
 
-// A simplex used to improve the performance 
+// A cached simplex is used to improve the performance 
 // of the GJK when called more than once. 
 // Make sure to set cache.count to zero before 
-// calling the GJK for the first time.
+// passing this structure as an argument to GJK when called 
+// for the first time.
 struct b3SimplexCache
 {
-	float32 metric; // length or area or volume
+	float32 metric; // distance or area or volume
 	u32 iterations; // number of GJK iterations
 	u16 count; // number of support vertices
 	u8 indexA[4]; // support vertices on proxy A
@@ -36,11 +37,13 @@ struct b3SimplexCache
 
 // Find the closest points and distance between two proxies. 
 // Assumes a simplex is given for increasing the performance of 
-// the GJK when called more than once.
+// the algorithm when called more than once.
 b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA,
 				  const b3Transform& xfB, const b3GJKProxy& proxyB,
 				  bool applyRadius, b3SimplexCache* cache);
 
+// A feature pair contains the vertices of the features associated 
+// with the closest points.
 struct b3GJKFeaturePair
 {
 	enum Type
@@ -57,7 +60,7 @@ struct b3GJKFeaturePair
 	u32 indexB[3]; // vertices on proxy B
 };
 
-// Get the vertices of the features that the closest points between two 
+// Identify the vertices of the features that the closest points between two 
 // GJK proxies are contained on given a cached simplex.
 // The GJK must have been called using the pair of proxies and 
 // cache.count must be < 4, that is, the proxies must not be overlapping.

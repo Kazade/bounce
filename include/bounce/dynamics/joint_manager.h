@@ -16,15 +16,15 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_JOINT_MAN_H
-#define B3_JOINT_MAN_H
+#ifndef B3_JOINT_MANAGER_H
+#define B3_JOINT_MANAGER_H
 
-#include <bounce\common\template\list.h>
+#include <bounce/common/template/list.h>
 
 struct b3JointDef;
 class b3Joint;
 
-// This is used to avoid b3World pollution.
+// Joint delegator for b3World.
 class b3JointManager
 {
 public:

@@ -16,8 +16,8 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\joints\joint_solver.h>
-#include <bounce\dynamics\joints\joint.h>
+#include <bounce/dynamics/joints/joint_solver.h>
+#include <bounce/dynamics/joints/joint.h>
 
 b3JointSolver::b3JointSolver(const b3JointSolverDef* def) 
 {

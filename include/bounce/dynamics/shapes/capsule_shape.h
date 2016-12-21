@@ -19,7 +19,7 @@
 #ifndef B3_CAPSULE_SHAPE_H
 #define B3_CAPSULE_SHAPE_H
 
-#include <bounce\dynamics\shapes\shape.h>
+#include <bounce/dynamics/shapes/shape.h>
 
 // A capsule defined along the up-axis.
 class b3CapsuleShape : public b3Shape 

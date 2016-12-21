@@ -16,10 +16,14 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <glad\glad.h>
-#include <gl\GLU.h>
-#include <imgui\imgui.h>
-#include <testbed\framework\debug_draw.h> 
+#include <testbed/framework/debug_draw.h> 
+
+#include <glad/glad.h>
+#include <GL/glu.h>
+#include <stdio.h>
+#include <stdarg.h>
+
+#include <imgui/imgui.h>
 
 extern Camera g_camera;
 
@@ -594,7 +598,7 @@ struct DrawShapes
 			while (s)
 			{
 				DrawShape(s, xf);	
-				s = s->m_next;
+				s = s->GetNext();
 			}
 
 			glDisable(GL_COLOR_MATERIAL);

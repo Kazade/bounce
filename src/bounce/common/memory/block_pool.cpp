@@ -16,14 +16,14 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\common\memory\block_pool.h>
+#include <bounce/common/memory/block_pool.h>
 
 b3BlockPool::b3BlockPool(u32 blockSize)
 {
 	m_blockSize = blockSize;
 	m_chunkSize = b3_blockCount * m_blockSize;
 
-	m_chunks = nullptr;
+	m_chunks = NULL;
 	m_chunkCount = 0;
 
 	// Pre-allocate some chunks
@@ -42,7 +42,7 @@ b3BlockPool::b3BlockPool(u32 blockSize)
 		current->next = (b3Block*)((u8*)chunk->freeBlocks + (i + 1) * blockSize);
 	}
 	b3Block* last = (b3Block*)((u8*)chunk->freeBlocks + (b3_blockCount - 1) * blockSize);
-	last->next = nullptr;
+	last->next = NULL;
 
 	// Push back the new chunk of the singly-linked list of chunks.
 	chunk->next = m_chunks;
@@ -90,7 +90,7 @@ void* b3BlockPool::Allocate()
 		current->next = (b3Block*)((u8*)chunk->freeBlocks + (i + 1) * m_blockSize);
 	}
 	b3Block* last = (b3Block*)((u8*)chunk->freeBlocks + (b3_blockCount - 1) * m_blockSize);
-	last->next = nullptr;
+	last->next = NULL;
 
 	// Push back the new chunk of the singly-linked list of chunks.
 	chunk->next = m_chunks;

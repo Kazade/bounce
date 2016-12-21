@@ -19,7 +19,7 @@
 #ifndef QUADRIC_H
 #define QUADRIC_H
 
-#include <testbed\tests\quickhull_test.h>
+#include <testbed/tests/quickhull_test.h>
 
 extern DebugDraw* g_debugDraw;
 extern Camera g_camera;
@@ -113,6 +113,19 @@ public:
 
 	~Quadric()
 	{
+		{
+			b3Free(m_coneHull.vertices);
+			b3Free(m_coneHull.edges);
+			b3Free(m_coneHull.faces);
+			b3Free(m_coneHull.planes);
+		}
+
+		{
+			b3Free(m_cylinderHull.vertices);
+			b3Free(m_cylinderHull.edges);
+			b3Free(m_cylinderHull.faces);
+			b3Free(m_cylinderHull.planes);
+		}
 	}
 
 	static Test* Create()

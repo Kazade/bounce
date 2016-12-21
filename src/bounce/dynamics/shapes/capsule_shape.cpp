@@ -16,7 +16,7 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\shapes\capsule_shape.h>
+#include <bounce/dynamics/shapes/capsule_shape.h>
 
 b3CapsuleShape::b3CapsuleShape() 
 {

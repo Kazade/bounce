@@ -89,7 +89,7 @@ public:
 			sdef.density = 0.0f;
 			sdef.friction = 0.0f;
 			sdef.shape = &hs;
-			sdef.userData = nullptr;
+			sdef.userData = NULL;
 
 			b3Shape* shape = body->CreateShape(sdef);
 		}
@@ -109,7 +109,7 @@ public:
 			sdef.density = 0.0f;
 			sdef.friction = 0.0f;
 			sdef.shape = &hs;
-			sdef.userData = nullptr;
+			sdef.userData = NULL;
 
 			b3Shape* shape = body->CreateShape(sdef);
 		}
@@ -129,7 +129,7 @@ public:
 			sdef.density = 0.0f;
 			sdef.friction = 0.0f;
 			sdef.shape = &hs;
-			sdef.userData = nullptr;
+			sdef.userData = NULL;
 
 			b3Shape* shape = body->CreateShape(sdef);
 		}
@@ -149,7 +149,7 @@ public:
 			sdef.density = 0.0f;
 			sdef.friction = 0.0f;
 			sdef.shape = &hs;
-			sdef.userData = nullptr;
+			sdef.userData = NULL;
 
 			b3Shape* shape = body->CreateShape(sdef);
 		}
@@ -169,7 +169,7 @@ public:
 			sdef.density = 0.0f;
 			sdef.friction = 0.0f;
 			sdef.shape = &hs;
-			sdef.userData = nullptr;
+			sdef.userData = NULL;
 
 			b3Shape* shape = body->CreateShape(sdef);
 		}
@@ -190,7 +190,7 @@ public:
 			sdef.density = 0.0f;
 			sdef.friction = 0.0f;
 			sdef.shape = &hs;
-			sdef.userData = nullptr;
+			sdef.userData = NULL;
 
 			b3Shape* shape = body->CreateShape(sdef);
 		}
@@ -206,35 +206,16 @@ public:
 	{
 		// Perform the ray cast
 		RayCastListener listener;
-		m_world.CastRay(&listener, p1, p2);
+		m_world.RayCast(&listener, p1, p2);
 
-		int hitId = listener.FindClosestHit();
-
+		i32 hitId = listener.FindClosestHit();
 		if (hitId >= 0)
 		{
-			// Hit
 			// Replace current hit
-			RayCastHit rayHit = listener.m_hits[hitId];
-
-			b3Shape* shape = rayHit.m_shape;
-
-			b3Body* bodyA = m_groundBody;
-			b3Body* bodyB = shape->GetBody();
-
-			// Ray hit point in world space
-			b3Vec3 worldPointA = rayHit.m_point;
-
-			// xf from world space to the local space of the shape
-			b3Transform xf = shape->GetTransform();
-
-			// lp = xf^-1 * wp
-			b3Vec3 localPointA = b3MulT(xf, worldPointA);
-
-			extern DebugDraw* g_debugDraw;
-
-			g_debugDraw->DrawSegment(p1, worldPointA, b3Color(0.0f, 1.0f, 0.0f));
-			g_debugDraw->DrawPoint(worldPointA, b3Color(1.0f, 0.0f, 0.0f));
-			g_debugDraw->DrawSegment(worldPointA, worldPointA + rayHit.m_normal, b3Color(1.0f, 1.0f, 1.0f));
+			RayCastHit hit = listener.m_hits[hitId];
+			g_debugDraw->DrawSegment(p1, hit.m_point, b3Color(0.0f, 1.0f, 0.0f));
+			g_debugDraw->DrawPoint(hit.m_point, b3Color(1.0f, 0.0f, 0.0f));
+			g_debugDraw->DrawSegment(hit.m_point, hit.m_point + hit.m_normal, b3Color(1.0f, 1.0f, 1.0f));
 		}
 		else
 		{

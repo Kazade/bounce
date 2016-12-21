@@ -16,7 +16,7 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\contacts\manifold.h>
+#include <bounce/dynamics/contacts/manifold.h>
 
 void b3Manifold::GuessImpulses()
 {

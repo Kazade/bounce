@@ -19,9 +19,9 @@
 #ifndef B3_CONTACT_CLUSTER_H
 #define B3_CONTACT_CLUSTER_H
 
-#include <bounce\common\geometry.h>
-#include <bounce\common\template\array.h>
-#include <bounce\dynamics\contacts\manifold.h>
+#include <bounce/common/geometry.h>
+#include <bounce/common/template/array.h>
+#include <bounce/dynamics/contacts/manifold.h>
 
 #define B3_NULL_CLUSTER (-1)
 
@@ -40,7 +40,7 @@ struct b3Observation
 {
 	u32 manifold;
 	u32 manifoldPoint;
-	b3Vec3 point;
+	b3Vec3 point; // normal
 	i32 cluster; // normal
 };
 

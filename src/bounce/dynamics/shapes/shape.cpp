@@ -16,18 +16,18 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\shapes\shape.h>
-#include <bounce\dynamics\shapes\sphere_shape.h>
-#include <bounce\dynamics\shapes\capsule_shape.h>
-#include <bounce\dynamics\shapes\hull_shape.h>
-#include <bounce\dynamics\shapes\mesh_shape.h>
-#include <bounce\dynamics\body.h>
-#include <bounce\dynamics\world.h>
-#include <bounce\dynamics\contacts\contact.h>
-#include <bounce\collision\shapes\sphere.h>
-#include <bounce\collision\shapes\capsule.h>
-#include <bounce\collision\shapes\hull.h>
-#include <bounce\collision\shapes\mesh.h>
+#include <bounce/dynamics/shapes/shape.h>
+#include <bounce/dynamics/shapes/sphere_shape.h>
+#include <bounce/dynamics/shapes/capsule_shape.h>
+#include <bounce/dynamics/shapes/hull_shape.h>
+#include <bounce/dynamics/shapes/mesh_shape.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/dynamics/world.h>
+#include <bounce/dynamics/contacts/contact.h>
+#include <bounce/collision/shapes/sphere.h>
+#include <bounce/collision/shapes/capsule.h>
+#include <bounce/collision/shapes/hull.h>
+#include <bounce/collision/shapes/mesh.h>
 
 void b3Shape::SetSensor(bool flag)
 {
@@ -39,11 +39,6 @@ void b3Shape::SetSensor(bool flag)
 		}
 		m_isSensor = flag;
 	}
-}
-
-b3Transform b3Shape::GetTransform() const 
-{
-	return m_body->GetTransform();
 }
 
 void b3Shape::DestroyContacts()
@@ -195,7 +190,7 @@ void b3Shape::Dump(i32 bodyIndex) const
 
 b3Shape* b3Shape::Create(const b3ShapeDef& def)
 {
-	b3Shape* shape = nullptr;
+	b3Shape* shape = NULL;
 	switch (def.shape->GetType())
 	{
 	case e_sphereShape:

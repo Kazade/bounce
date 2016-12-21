@@ -19,11 +19,15 @@
 #ifndef B3_AABB_3_H
 #define B3_AABB_3_H
 
-#include <bounce\common\math\transform.h>
+#include <bounce/common/math/transform.h>
 
 // A min-max representation of a three-dimensional AABB.
 struct b3AABB3 
 {
+	b3Vec3 m_lower; // lower vertex
+	b3Vec3 m_upper; // upper vertex
+
+	// Get the support vertex in a given direction.
 	b3Vec3 GetSupportVertex(const b3Vec3& direction) const
 	{
 		b3Vec3 support;
@@ -128,7 +132,7 @@ struct b3AABB3
 	}
 
 	// Test if this AABB contains a point.
-	bool TestPoint(const b3Vec3& point) const
+	bool Contains(const b3Vec3& point) const
 	{
 		return	m_lower.x <= point.x && point.x <= m_upper.x &&
 				m_lower.y <= point.y && point.y <= m_upper.y &&
@@ -138,11 +142,11 @@ struct b3AABB3
 	// Test if this AABB contains another AABB.
 	bool Contains(const b3AABB3& aabb) const
 	{
-		return TestPoint(aabb.m_lower) && TestPoint(aabb.m_upper);
+		return Contains(aabb.m_lower) && Contains(aabb.m_upper);
 	}
 
-	// Test if a ray intersect this AABB.
-	// Output the minimum fraction to derive the intersection point.
+	// Test if a ray intersects this AABB.
+	// Output the minimum and maximum intersection fractions to derive the minimum and maximum intersection points.
 	bool TestRay(const b3Vec3& p1, const b3Vec3& p2, float32 maxFraction, float32& minFraction) const 
 	{
 		// Solve segment to slab plane.
@@ -159,9 +163,10 @@ struct b3AABB3
 		for (u32 i = 0; i < 3; ++i) 
 		{
 			float32 numerators[2], denominators[2];
-			//numerators[0] = (-m_lower[i]) - (-p1[i]);
+			
 			numerators[0] = p1[i] - m_lower[i];
 			numerators[1] = m_upper[i] - p1[i];
+			
 			denominators[0] = -d[i];
 			denominators[1] = d[i];
 
@@ -215,9 +220,6 @@ struct b3AABB3
 		minFraction = lower;
 		return true;
 	}
-
-	b3Vec3 m_lower; // lower vertex
-	b3Vec3 m_upper; // upper vertex
 };
 
 // Compute an AABB that encloses two AABBs.

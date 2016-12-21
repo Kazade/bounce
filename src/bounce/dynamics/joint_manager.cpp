@@ -16,9 +16,9 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\joint_manager.h>
-#include <bounce\dynamics\joints\joint.h>
-#include <bounce\dynamics\body.h>
+#include <bounce/dynamics/joint_manager.h>
+#include <bounce/dynamics/joints/joint.h>
+#include <bounce/dynamics/body.h>
 
 b3JointManager::b3JointManager() 
 {
@@ -33,7 +33,7 @@ b3Joint* b3JointManager::Create(const b3JointDef* def)
 	B3_ASSERT(bodyA != bodyB);
 	if (bodyA == bodyB)
 	{
-		return nullptr;
+		return NULL;
 	}
 
 	// Allocate the new joint.

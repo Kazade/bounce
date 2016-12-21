@@ -19,7 +19,7 @@
 #ifndef B3_TRIANGLE_HULL_H
 #define B3_TRIANGLE_HULL_H
 
-#include <bounce\collision\shapes\hull.h>
+#include <bounce/collision/shapes/hull.h>
 
 struct b3TriangleHull : public b3Hull
 {
@@ -37,9 +37,7 @@ struct b3TriangleHull : public b3Hull
 
 	void Set(const b3Vec3& A, const b3Vec3& B, const b3Vec3& C)
 	{
-		const float32 kInv3 = 1.0f / 3.0f;
-		
-		centroid = kInv3 * (A + B + C);
+		centroid = (A + B + C) / 3.0f;
 
 		triangleVertices[0] = A;
 		triangleVertices[1] = B;

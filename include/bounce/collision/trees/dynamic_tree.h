@@ -19,21 +19,21 @@
 #ifndef B3_DYNAMIC_TREE_H
 #define B3_DYNAMIC_TREE_H
 
-#include <bounce\common\draw.h>
-#include <bounce\common\template\stack.h>
-#include <bounce\collision\shapes\aabb3.h>
-#include <bounce\collision\distance.h>
+#include <bounce/common/draw.h>
+#include <bounce/common/template/stack.h>
+#include <bounce/collision/shapes/aabb3.h>
+#include <bounce/collision/distance.h>
 
 #define NULL_NODE (-1)
 
-// An AABB tree for dynamic AABBs.
+// AABB tree for dynamic AABBs.
 class b3DynamicTree 
 {
 public :
 	b3DynamicTree();
 	~b3DynamicTree();
 
-	// Insert a node to the tree and return its ID.
+	// Insert a node into the tree and return its ID.
 	i32 InsertNode(const b3AABB3& aabb, void* userData);
 	
 	// Remove a node from the tree.
@@ -48,7 +48,7 @@ public :
 	// Get the data associated with a given proxy.
 	void* GetUserData(i32 proxyId) const;
 
-	// Check if two aabbs of this tree are overlapping.
+	// Check if two aabbs in this tree are overlapping.
 	bool TestOverlap(i32 proxy1, i32 proxy2) const;
 
 	// Keep reporting the client callback the AABBs that are overlapping with
@@ -61,22 +61,24 @@ public :
 	// the given ray. The client callback must return the new intersection fraction.
 	// If the fraction == 0 then the query is cancelled immediately.
 	template<class T>
-	void QueryRay(T* callback, const b3RayCastInput& input) const;
+	void RayCast(T* callback, const b3RayCastInput& input) const;
 
 	// Validate a given node of this tree.
 	void Validate(i32 node) const;
 
 	// Draw this tree.
-	void Draw(b3Draw* b3Draw) const;
+	void Draw(b3Draw* draw) const;
 private :
 	struct b3Node 
 	{
+		// Is this node a leaf?
 		bool IsLeaf() const 
 		{
-			return child1 == NULL_NODE; //or child 2 == NULL_NODE, or height == 0.
+			//A node is a leaf if child 2 == NULL_NODE or height == 0.
+			return child1 == NULL_NODE;
 		}
 
-		// The (enlarged) AABB of this node.
+		// The fattened node AABB.
 		b3AABB3 aabb;
 
 		// The associated user data.
@@ -91,31 +93,30 @@ private :
 		i32 child1;
 		i32 child2;
 
-		// leaf = 0, free node = -1
+		// leaf if 0, free node if -1
 		i32 height;
 	};
 	
-	// Insert a allocated (leaf) node into the tree.
+	// Insert a node into the tree.
 	void InsertLeaf(i32 node);
 	
-	// Remove a allocated node from the tree.
+	// Remove a node from the tree.
 	void RemoveLeaf(i32 node);
 
-	// Rebuild the tree hierarchy starting from the given node.
+	// Rebuild the hierarchy starting from the given node.
 	void WalkBackNodeAndCombineVolumes(i32 node);
 	
-	// Perform a basic surface area heuristic search to find the best
-	// node that can be merged with a given AABB.
-	i32 HeuristicSearch(const b3AABB3& leafAABB) const;
+	// Find the best node that can be merged with a given AABB.
+	i32 FindBest(const b3AABB3& aabb) const;
 
 	// Peel a node from the free list and insert into the node array. 
 	// Allocate a new node if necessary. The function returns the new node index.
 	i32 AllocateNode();
 
-	// Free a node (not destroy) from the node pool and add it to the free list.
+	// Free a node from the node pool and add it to the free list.
 	void FreeNode(i32 node);
 
-	// Make a node available for the next allocation request.
+	// Make a node available for the next allocation.
 	void AddToFreeList(i32 node);
 
 	// The root of this tree.
@@ -128,23 +129,23 @@ private :
 	i32 m_freeList;
 };
 
-inline bool b3DynamicTree::TestOverlap(i32 proxy1, i32 proxy2) const 
-{
-	B3_ASSERT(proxy1 < m_nodeCount);
-	B3_ASSERT(proxy2 < m_nodeCount);
-	return b3TestOverlap(m_nodes[proxy1].aabb, m_nodes[proxy2].aabb);
-}
-
-inline const b3AABB3& b3DynamicTree::GetAABB(i32 proxyId) const 
+inline const b3AABB3& b3DynamicTree::GetAABB(i32 proxyId) const
 {
 	B3_ASSERT(proxyId < m_nodeCount);
 	return m_nodes[proxyId].aabb;
 }
 
-inline void* b3DynamicTree::GetUserData(i32 proxyId) const 
+inline void* b3DynamicTree::GetUserData(i32 proxyId) const
 {
 	B3_ASSERT(proxyId < m_nodeCount);
 	return m_nodes[proxyId].userData;
+}
+
+inline bool b3DynamicTree::TestOverlap(i32 proxy1, i32 proxy2) const 
+{
+	B3_ASSERT(proxy1 < m_nodeCount);
+	B3_ASSERT(proxy2 < m_nodeCount);
+	return b3TestOverlap(m_nodes[proxy1].aabb, m_nodes[proxy2].aabb);
 }
 
 template<class T>
@@ -184,14 +185,14 @@ inline void b3DynamicTree::QueryAABB(T* callback, const b3AABB3& aabb) const
 }
 
 template<class T>
-inline void b3DynamicTree::QueryRay(T* callback, const b3RayCastInput& input) const 
+inline void b3DynamicTree::RayCast(T* callback, const b3RayCastInput& input) const 
 {
 	b3Vec3 p1 = input.p1;
 	b3Vec3 p2 = input.p2;
 	b3Vec3 d = p2 - p1;
 	float32 maxFraction = input.maxFraction;
 
-	// Ensure non-degeneracy.
+	// Ensure non-degenerate segment.
 	B3_ASSERT(b3Dot(d, d) > B3_EPSILON * B3_EPSILON);
 
 	b3Stack<i32, 256> stack;

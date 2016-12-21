@@ -16,16 +16,16 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\contacts\mesh_contact.h>
-#include <bounce\dynamics\contacts\contact_cluster.h>
-#include <bounce\dynamics\shapes\shape.h>
-#include <bounce\dynamics\shapes\mesh_shape.h>
-#include <bounce\dynamics\world.h>
-#include <bounce\dynamics\body.h>
-#include <bounce\dynamics\shapes\hull_shape.h>
-#include <bounce\collision\shapes\mesh.h>
-#include <bounce\collision\shapes\triangle_hull.h>
-#include <bounce\common\memory\stack_allocator.h>
+#include <bounce/dynamics/contacts/mesh_contact.h>
+#include <bounce/dynamics/contacts/contact_cluster.h>
+#include <bounce/dynamics/shapes/shape.h>
+#include <bounce/dynamics/shapes/mesh_shape.h>
+#include <bounce/dynamics/world.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/dynamics/shapes/hull_shape.h>
+#include <bounce/collision/shapes/mesh.h>
+#include <bounce/collision/shapes/triangle_hull.h>
+#include <bounce/common/memory/stack_allocator.h>
 
 b3MeshContact::b3MeshContact(b3Shape* shapeA, b3Shape* shapeB)
 {
@@ -35,11 +35,12 @@ b3MeshContact::b3MeshContact(b3Shape* shapeA, b3Shape* shapeB)
 	m_manifolds = m_stackManifolds;
 	m_manifoldCount = 0;
 
-	b3Transform xfA = shapeA->GetTransform();
-	b3Transform xfB = shapeB->GetTransform();
+	b3Transform xfA = shapeA->GetBody()->GetTransform();
+	b3Transform xfB = shapeB->GetBody()->GetTransform();
 
 	b3Transform xf = b3MulT(xfB, xfA);
-
+	
+	// The fat aabb relative to shape B's frame.
 	b3AABB3 fatAABB;
 	shapeA->ComputeAABB(&fatAABB, xf);
 	fatAABB.Extend(B3_AABB_EXTENSION);
@@ -65,16 +66,16 @@ void b3MeshContact::SynchronizeShapes()
 	b3Transform xfA = bodyA->m_xf;
 
 	b3Shape* shapeB = GetShapeB();
-	b3Transform xfB = shapeB->GetTransform();
+	b3Body* bodyB = shapeB->GetBody();
+	b3Transform xfB = bodyB->GetTransform();
 
 	b3Sweep* sweepA = &bodyA->m_sweep;
 	b3Transform xfA0;
 	xfA0.position = sweepA->worldCenter0;
 	xfA0.rotation = b3ConvertQuatToRot(sweepA->orientation0);
 		
-	// Calculate the displacement of the body A. 
-	// using its position at the last time step and the current position.
-	// Could use displacement = velocity * dt.
+	// Calculate the displacement of body A using its position at the last 
+	// time step and the current position.
 	b3Vec3 displacement = xfA.position - xfA0.position;
 
 	// Compute the AABB in the reference frame of shape B.
@@ -83,8 +84,7 @@ void b3MeshContact::SynchronizeShapes()
 	b3AABB3 aabb;
 	shapeA->ComputeAABB(&aabb, xf);
 
-	// Update the AABB with the new (transformed) AABB and
-	// buffer move.
+	// Update the AABB with the new (transformed) AABB and buffer move.
 	m_aabbMoved = MoveAABB(aabb, displacement);
 }
 
@@ -191,11 +191,13 @@ bool b3MeshContact::Report(u32 proxyId)
 bool b3MeshContact::TestOverlap()
 {
 	b3Shape* shapeA = GetShapeA();
-	b3Transform xfA = shapeA->GetTransform();
+	b3Body* bodyA = shapeA->GetBody();
+	b3Transform xfA = bodyA->GetTransform();
 	u32 indexA = 0;
 
 	b3Shape* shapeB = GetShapeB();
-	b3Transform xfB = shapeB->GetTransform();
+	b3Body* bodyB = shapeB->GetBody();
+	b3Transform xfB = bodyB->GetTransform();
 
 	b3MeshShape* meshShapeB = (b3MeshShape*)shapeB;
 	const b3Mesh* meshB = meshShapeB->m_mesh;
@@ -222,15 +224,17 @@ void b3MeshContact::Collide()
 
 	b3Shape* shapeA = GetShapeA();
 	b3Body* bodyA = shapeA->GetBody();
-	b3Transform xfA = shapeA->GetTransform();
+	b3Transform xfA = bodyA->GetTransform();
 
 	b3Shape* shapeB = GetShapeB();
+	b3Body* bodyB = shapeB->GetBody();
 	b3MeshShape* meshShapeB = (b3MeshShape*)shapeB;
-	b3Transform xfB = shapeB->GetTransform();
+	b3Transform xfB = bodyB->GetTransform();
 
 	b3World* world = bodyA->GetWorld();
 	b3StackAllocator* allocator = &world->m_stackAllocator;
 
+	// Create one manifold per triangle.
 	b3Manifold* tempManifolds = (b3Manifold*)allocator->Allocate(m_triangleCount * sizeof(b3Manifold));
 	u32 tempCount = 0;
 
@@ -263,6 +267,7 @@ void b3MeshContact::Collide()
 		++tempCount;
 	}
 
+	// Send contact manifolds for clustering. This is an important optimization.
 	B3_ASSERT(m_manifoldCount == 0);
 	m_manifoldCount = b3Clusterize(m_stackManifolds, tempManifolds, tempCount, xfA, shapeA->m_radius, xfB, B3_HULL_RADIUS);
 	allocator->Free(tempManifolds);

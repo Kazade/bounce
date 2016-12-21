@@ -19,7 +19,7 @@
 #ifndef B3_WORLD_LISTENERS_H
 #define B3_WORLD_LISTENERS_H
 
-#include <bounce\common\math\math.h>
+#include <bounce/common/math/math.h>
 
 class b3Shape;
 class b3Contact;

@@ -16,10 +16,10 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\collision\distance.h>
-#include <bounce\common\math\vec2.h>
-#include <bounce\common\math\vec3.h>
-#include <bounce\common\math\mat22.h>
+#include <bounce/collision/distance.h>
+#include <bounce/common/math/vec2.h>
+#include <bounce/common/math/vec3.h>
+#include <bounce/common/math/mat22.h>
 
 b3Vec3 b3ClosestPointOnPlane(const b3Vec3& P, const b3Plane& plane)
 {

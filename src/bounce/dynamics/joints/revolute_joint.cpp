@@ -16,9 +16,9 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\joints\revolute_joint.h>
-#include <bounce\dynamics\body.h>
-#include <bounce\common\draw.h>
+#include <bounce/dynamics/joints/revolute_joint.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/common/draw.h>
 
 // C1 = p2 - p1
 // C2 = dot(u2, w1)
@@ -35,7 +35,7 @@
 //     [0   -n1     0  n1]
 //     [0   -n2     0  n2]
 
-// W = [i1  0      0]
+// W = [i1  0  0   0]
 //     [0   m1 0   0]
 //     [0   0  i2  0]
 //     [0   0  0  m2]
@@ -359,8 +359,7 @@ void b3RevoluteJoint::SolveVelocityConstraints(const b3SolverData* data)
 		Cdot[3] = Cdot2;
 		Cdot[4] = Cdot3;
 
-		// Copy the effective mass so it can be destroyed in the 
-		// linear solver.
+		// Copy the matrix so it can be destroyed in the linear solver.
 		b3Mat<5, 5> mass = m_mass;
 		b3Vec<5> impulse = -Cdot;
 		if (b3Solve(impulse.e, mass.e, 5))
@@ -566,24 +565,24 @@ bool b3RevoluteJoint::SolvePositionConstraints(const b3SolverData* data)
 		limitError <= B3_ANGULAR_SLOP;
 }
 
-const b3Transform& b3RevoluteJoint::GetFrameA() const
+b3Transform b3RevoluteJoint::GetFrameA() const
+{
+	return GetBodyA()->GetWorldFrame(m_localFrameA);
+}
+
+b3Transform b3RevoluteJoint::GetFrameB() const
+{
+	return GetBodyB()->GetWorldFrame(m_localFrameB);
+}
+
+const b3Transform& b3RevoluteJoint::GetLocalFrameA() const
 {
 	return m_localFrameA;
 }
 
-void b3RevoluteJoint::SetFrameA(const b3Transform& frame)
-{
-	m_localFrameA = frame;
-}
-
-const b3Transform& b3RevoluteJoint::GetFrameB() const
+const b3Transform& b3RevoluteJoint::GetLocalFrameB() const
 {
 	return m_localFrameB;
-}
-
-void b3RevoluteJoint::SetFrameB(const b3Transform& frame)
-{
-	m_localFrameB = frame;
 }
 
 bool b3RevoluteJoint::IsLimitEnabled() const
@@ -666,10 +665,10 @@ void b3RevoluteJoint::SetMaxMotorTorque(float32 torque)
 	m_maxMotorTorque = torque;
 }
 
-void b3RevoluteJoint::Draw(b3Draw* b3Draw) const
+void b3RevoluteJoint::Draw(b3Draw* draw) const
 {
-	b3Transform xfA = GetBodyA()->GetWorldFrame(m_localFrameA);
-	b3Draw->DrawTransform(xfA);
-	b3Transform xfB = GetBodyB()->GetWorldFrame(m_localFrameB);
-	b3Draw->DrawTransform(xfB);
+	b3Transform xfA = GetFrameA();
+	b3Transform xfB = GetFrameB();
+	draw->DrawTransform(xfA);
+	draw->DrawTransform(xfB);
 }

@@ -19,19 +19,23 @@
 #ifndef B3_MESH_CONTACT_H
 #define B3_MESH_CONTACT_H
 
-#include <bounce\collision\shapes\aabb3.h>
-#include <bounce\dynamics\contacts\contact.h>
-#include <bounce\dynamics\contacts\manifold.h>
-#include <bounce\dynamics\contacts\collide\collide.h>
+#include <bounce/dynamics/contacts/contact.h>
+#include <bounce/dynamics/contacts/manifold.h>
+#include <bounce/dynamics/contacts/collide/collide.h>
+#include <bounce/collision/shapes/aabb3.h>
 
+// This structure helps replicate the convex contact per convex-triangle pair scenario, 
+// but efficiently. There is no need to store a manifold here since they're reduced 
+// by the cluster algorithm.
 struct b3TriangleCache
 {
-	u32 index;
+	u32 index; // triangle index
 	b3ConvexCache cache;
 };
 
 class b3MeshContact;
 
+// Links for the world mesh contact link list.
 struct b3MeshContactLink
 {
 	b3MeshContact* m_c;
@@ -60,16 +64,16 @@ private:
 
 	void FindNewPairs();
 
+	// Static tree callback. There is no midphase. 
 	bool Report(u32 proxyId);
 
 	// Did the AABB move significantly?
 	bool m_aabbMoved;
 
-	// The first shape AABB in the frame of the other shape.
+	// The AABB A relative to shape B's origin.
 	b3AABB3 m_aabbA; 
 	
-	// Child shapes potentially overlapping with 
-	// the first shape.
+	// Triangles potentially overlapping with the first shape.
 	u32 m_triangleCapacity;
 	b3TriangleCache* m_triangles;
 	u32 m_triangleCount;
@@ -77,7 +81,7 @@ private:
 	// Contact manifolds.
 	b3Manifold m_stackManifolds[B3_MAX_MANIFOLDS];
 
-	// Links to the world mesh contact list.
+	// Link to the world mesh contact list.
 	b3MeshContactLink m_link;
 };
 

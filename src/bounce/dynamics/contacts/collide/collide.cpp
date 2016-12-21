@@ -16,16 +16,16 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\dynamics\contacts\collide\collide.h>
-#include <bounce\dynamics\shapes\sphere_shape.h>
-#include <bounce\dynamics\shapes\capsule_shape.h>
-#include <bounce\dynamics\shapes\hull_shape.h>
-#include <bounce\dynamics\shapes\mesh_shape.h>
-#include <bounce\collision\shapes\sphere.h>
-#include <bounce\collision\shapes\capsule.h>
-#include <bounce\collision\shapes\hull.h>
-#include <bounce\collision\shapes\mesh.h>
-#include <bounce\collision\distance.h>
+#include <bounce/dynamics/contacts/collide/collide.h>
+#include <bounce/dynamics/shapes/sphere_shape.h>
+#include <bounce/dynamics/shapes/capsule_shape.h>
+#include <bounce/dynamics/shapes/hull_shape.h>
+#include <bounce/dynamics/shapes/mesh_shape.h>
+#include <bounce/collision/shapes/sphere.h>
+#include <bounce/collision/shapes/capsule.h>
+#include <bounce/collision/shapes/hull.h>
+#include <bounce/collision/shapes/mesh.h>
+#include <bounce/collision/distance.h>
 
 void b3ShapeGJKProxy::Set(const b3Shape* shape, u32 index)
 {
@@ -171,8 +171,8 @@ void b3CollideShapeAndShape(b3Manifold& manifold,
 	static const b3CollideFunction s_CollideMatrix[e_maxShapes][e_maxShapes] =
 	{
 		{ &b3CollideSphereAndSphereShapes,	&b3CollideSphereAndCapsuleShapes,	&b3CollideSphereAndHullShapes  },
-		{ nullptr,							&b3CollideCapsuleAndCapsuleShapes,	&b3CollideCapsuleAndHullShapes },
-		{ nullptr,							nullptr,							&b3CollideHullAndHullShapes	   },
+		{ NULL,							&b3CollideCapsuleAndCapsuleShapes,	&b3CollideCapsuleAndHullShapes },
+		{ NULL,							NULL,							&b3CollideHullAndHullShapes	   },
 	};
 
 	b3ShapeType typeA = shapeA->GetType();

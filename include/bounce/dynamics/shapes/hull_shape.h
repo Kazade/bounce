@@ -19,7 +19,7 @@
 #ifndef B3_HULL_SHAPE_H
 #define B3_HULL_SHAPE_H
 
-#include <bounce\dynamics\shapes\shape.h>
+#include <bounce/dynamics/shapes/shape.h>
 
 struct b3Hull;
 

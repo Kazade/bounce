@@ -19,10 +19,10 @@
 #ifndef B3_DRAW_H
 #define B3_DRAW_H
 
-#include <bounce\common\math\math.h>
-#include <bounce\collision\shapes\aabb3.h>
+#include <bounce/common/math/math.h>
+#include <bounce/collision/shapes/aabb3.h>
 
-// Color channels used by the debug b3Draw interface.
+// Color channels used by the debug draw interface.
 struct b3Color 
 {
 	b3Color() { }
@@ -32,11 +32,11 @@ struct b3Color
 	float32 r, g, b, a;
 };
 
-// Implement this interface and set to a world so it can b3Draw the physics entities.
+// Implement this interface and set to a world so it can draw the physics entities.
 class b3Draw 
 {
 public :
-	// Bit flags to tell the world what needs to be b3Draw.
+	// Bit flags to tell the world what needs to be draw.
 	enum b3Flags
 	{
 		e_shapesFlag = 0x0001,
@@ -88,10 +88,10 @@ public :
 	// Draw a AABB.
 	virtual void DrawAABB(const b3AABB3& aabb, const b3Color& color) = 0;
 
-	// Draw a b3Transform.
+	// Draw a transform.
 	virtual void DrawTransform(const b3Transform& xf) = 0;
 
-	// Debug b3Draw flags.
+	// Debug draw flags.
 	u32 m_flags;
 };
 

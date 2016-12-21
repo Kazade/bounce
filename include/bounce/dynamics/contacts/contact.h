@@ -19,9 +19,9 @@
 #ifndef B3_CONTACT_H
 #define B3_CONTACT_H
 
-#include <bounce\common\math\math.h>
-#include <bounce\common\template\list.h>
-#include <bounce\common\template\array.h>
+#include <bounce/common/math/math.h>
+#include <bounce/common/template/list.h>
+#include <bounce/common/template/array.h>
 
 struct b3Manifold;
 struct b3WorldManifold;
@@ -58,7 +58,7 @@ struct b3OverlappingPair
 // todo
 struct b3TOIEvent
 {
-	//float32 t;
+	float32 t;
 };
 
 enum b3ContactType
