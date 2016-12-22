@@ -342,7 +342,7 @@ void Run()
 		
 		if (g_settings.drawGrid)
 		{
-			u32 n = 20;
+			int n = 20;
 
 			b3Vec3 t;
 			t.x = -0.5f * float32(n);

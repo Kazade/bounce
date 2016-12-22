@@ -49,9 +49,9 @@ struct b3ConeJointDef : public b3JointDef
 };
 
 // This joint constrains the bodies to share a common point (cone tip). 
-// The relative rotation about the shared axis is the joint angle. 
-// If the joint angle exceeds the half-cone angle then the axis is shared. 
-// You can limit the relative rotation with a lower angle limit. 
+// It also constrains the relative rotation about an axis perpendicular 
+// to the cone axis.
+// You can limit the relative rotation with a cone angle limit. 
 // This joint can be used to create structures such as ragdolls.
 class b3ConeJoint : public b3Joint
 {

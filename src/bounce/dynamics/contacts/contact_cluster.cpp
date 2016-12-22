@@ -29,7 +29,8 @@ inline void AddCluster(b3Array<b3Cluster>& clusters, const b3Vec3& centroid)
 		if (dd < kTol * kTol)
 		{
 			// Merge the clusters.
-			clusters[i].centroid = 0.5f * (clusters[i].centroid + centroid);
+			clusters[i].centroid += centroid;
+			clusters[i].centroid.Normalize();
 			return;
 		}
 	}
@@ -58,14 +59,15 @@ void b3InitializeClusters(b3Array<b3Cluster>& outClusters, const b3Array<b3Obser
 	B3_ASSERT(inObs.Count() > 3);
 
 	// This is used to skip observations that were 
-	// assigned to a cluster.
+	// used to initialize a cluster centroid.
 	b3StackArray<bool, 64> chosens;
 	chosens.Resize(inObs.Count());
 	for (u32 i = 0; i < inObs.Count(); ++i)
 	{
 		chosens[i] = false;
 	}
-
+	
+	// Choose the most opposing faces.
 	{
 		u32 index = 0;
 		const b3Observation& o = inObs[index];
@@ -195,10 +197,7 @@ inline u32 b3BestCluster(const b3Array<b3Cluster>& clusters, const b3Vec3& point
 void b3Clusterize(b3Array<b3Cluster>& outClusters, b3Array<b3Observation>& outObservations,
 	const b3Array<b3Cluster>& inClusters, const b3Array<b3Observation>& inObservations)
 {
-	//B3_ASSERT(!inObservations.IsEmpty());
 	B3_ASSERT(outObservations.IsEmpty());
-
-	//B3_ASSERT(!inClusters.IsEmpty());
 	B3_ASSERT(outClusters.IsEmpty());
 
 	// Temporary data
@@ -208,7 +207,7 @@ void b3Clusterize(b3Array<b3Cluster>& outClusters, b3Array<b3Observation>& outOb
 	b3StackArray<b3Observation, 32> observations;
 	observations.Swap(inObservations);
 
-	// Termination criteria for k-means clustering
+	// Termination criteria for k-means clustering 
 	const u32 kMaxIters = 10;
 
 	u32 iter = 0;
@@ -242,7 +241,7 @@ void b3Clusterize(b3Array<b3Cluster>& outClusters, b3Array<b3Observation>& outOb
 
 			if (pointCount > 0)
 			{
-				centroid *= 1.0f / float32(pointCount);
+				centroid /= float32(pointCount);
 				cluster.centroid = centroid;
 			}
 		}

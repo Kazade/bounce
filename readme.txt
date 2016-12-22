@@ -2,7 +2,7 @@ Welcome!
 
 Bounce is a 3D physics engine for games and interactive applications.
 
-See building.txt to read how to build Bounce. Bounce comes with a Visual Studio 2015 build by default.
+See building.txt to read how to build Bounce.
 
 See documenting.txt to read how to generate the documentation for Bounce.
 

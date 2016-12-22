@@ -1,3 +1,5 @@
+<h3>About</h3>
+
 Bounce is a 3D physics engine for games and interactive applications.
 
 To get started with Bounce see readme.txt.
@@ -13,8 +15,6 @@ Camera (as in Maya):
 </ul>
 
 Bounce is released under the <b>zlib</b> license.
-
-Irlan Robson
 
 <h3>Features</h3>
 

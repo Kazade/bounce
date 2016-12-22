@@ -86,8 +86,12 @@ void b3ContactManager::AddPair(void* dataA, void* dataB)
 		}
 	}
 
-	// Allocate a new contact.
+	// Create contact.
 	b3Contact* c = Create(shapeA, shapeB);
+	if (c == NULL)
+	{
+		return;
+	}
 
 	// Get the shapes from the contact again
 	// because contact creation will swap the shapes if typeA > typeB.
@@ -255,7 +259,7 @@ b3Contact* b3ContactManager::Create(b3Shape* shapeA, b3Shape* shapeB)
 		else 
 		{
 			// Collisions between meshes are not implemented.
-			//B3_ASSERT(false);
+			return NULL;
 		}
 	}
 
