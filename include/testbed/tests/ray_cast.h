@@ -206,16 +206,16 @@ public:
 	{
 		// Perform the ray cast
 		RayCastListener listener;
-		m_world.RayCast(&listener, p1, p2);
+		listener.hit.shape = NULL;
+		m_world.RayCastFirst(&listener, p1, p2);
 
-		i32 hitId = listener.FindClosestHit();
-		if (hitId >= 0)
+		RayCastHit hit = listener.hit;
+		if (hit.shape)
 		{
 			// Replace current hit
-			RayCastHit hit = listener.m_hits[hitId];
-			g_debugDraw->DrawSegment(p1, hit.m_point, b3Color(0.0f, 1.0f, 0.0f));
-			g_debugDraw->DrawPoint(hit.m_point, b3Color(1.0f, 0.0f, 0.0f));
-			g_debugDraw->DrawSegment(hit.m_point, hit.m_point + hit.m_normal, b3Color(1.0f, 1.0f, 1.0f));
+			g_debugDraw->DrawSegment(p1, hit.point, b3Color(0.0f, 1.0f, 0.0f));
+			g_debugDraw->DrawPoint(hit.point, b3Color(1.0f, 0.0f, 0.0f));
+			g_debugDraw->DrawSegment(hit.point, hit.point + hit.normal, b3Color(1.0f, 1.0f, 1.0f));
 		}
 		else
 		{

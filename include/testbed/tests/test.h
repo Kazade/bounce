@@ -19,10 +19,11 @@
 #ifndef TEST_H
 #define TEST_H
 
+#include <bounce/bounce.h>
+
 #include <glfw/glfw3.h>
 #include <imgui/imgui.h>
 #include "../framework/debug_draw.h"
-#include <bounce/bounce.h>
 
 struct Settings
 {
@@ -83,53 +84,14 @@ struct TestEntry
 	TestCreate create;
 };
 
-enum TestType
-{
-	// Collision
-	e_QHull,
-	e_Cluster,
-	e_Distance,
-	e_CapsuleDistance,
-	e_CapsuleAndCapsule,
-	e_CapsuleAndHull,
-	e_HullAndHull,
-	// Dynamics
-	// Joints
-	e_NewtonCradle,
-	e_Vehicle,
-	e_Door,
-	e_HingeChain,
-	e_Ragdoll,
-	// Contacts
-	e_Quadric,
-	e_MeshContact,
-	// World
-	e_SphereStack,
-	e_CapsuleStack,
-	e_BoxStack,
-	e_ShapeStack,
-	e_Jenga,
-	e_Thin,
-	e_Pyramid,
-	e_Pyramids,
-	// World Queries
-	e_RayCast,
-	e_SensorTest,
-	e_Character,
-	e_BodyTypes,
-	e_VaryingFriction,
-	e_VaryingRestitution,
-	e_testCount
-};
-
-extern TestEntry g_tests[e_testCount];
+extern TestEntry g_tests[];
 
 struct RayCastHit
 {
-	b3Shape* m_shape;
-	b3Vec3 m_point;
-	b3Vec3 m_normal;
-	float32 m_fraction;
+	b3Shape* shape;
+	b3Vec3 point;
+	b3Vec3 normal;
+	float32 fraction;
 };
 
 class RayCastListener : public b3RayCastListener
@@ -137,35 +99,14 @@ class RayCastListener : public b3RayCastListener
 public:
 	float32 ReportShape(b3Shape* shape, const b3Vec3& point, const b3Vec3& normal, float32 fraction)
 	{
-		RayCastHit hit;
-		hit.m_shape = shape;
-		hit.m_point = point;
-		hit.m_normal = normal;
-		hit.m_fraction = fraction;
-
-		m_hits.PushBack(hit);
-
-		// Continue.
+		hit.shape = shape;
+		hit.point = point;
+		hit.normal = normal;
+		hit.fraction = fraction;
 		return 1.0f;
 	}
 
-	int FindClosestHit() const
-	{
-		float32 minFraction = FLT_MAX;
-		int minIndex = -1;
-		for (u32 i = 0; i < m_hits.Count(); ++i)
-		{
-			const RayCastHit* hit = m_hits.Get(i);
-			if (hit->m_fraction < minFraction)
-			{
-				minFraction = hit->m_fraction;
-				minIndex = i;
-			}
-		}
-		return minIndex;
-	}
-
-	b3StackArray<RayCastHit, 256> m_hits;
+	RayCastHit hit;
 };
 
 class Test : public b3ContactListener

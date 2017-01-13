@@ -24,6 +24,7 @@
 #include <bounce/common/math/quat.h>
 #include <bounce/common/math/transform.h>
 #include <bounce/common/template/list.h>
+#include <bounce/dynamics/time_step.h>
 
 class b3World;
 class b3Shape;
@@ -328,32 +329,6 @@ inline b3BodyType b3Body::GetType() const
 	return m_type; 
 }
 
-inline void b3Body::SetType(b3BodyType type) 
-{
-	if (m_type == type) 
-	{
-		return;
-	}
-
-	m_type = type;
-
-	ResetMass();
-
-	if (m_type == e_staticBody) 
-	{
-		m_linearVelocity.SetZero();
-		m_angularVelocity.SetZero();
-		SynchronizeShapes();
-	}
-
-	SetAwake(true);
-
-	m_force.SetZero();
-	m_torque.SetZero();
-
-	DestroyContacts();
-}
-
 inline void* b3Body::GetUserData() const 
 { 
 	return m_userData; 
@@ -430,6 +405,11 @@ inline const b3Sweep& b3Body::GetSweep() const
 	return m_sweep;
 }
 
+inline bool b3Body::IsAwake() const
+{
+	return (m_flags & e_awakeFlag) != 0;
+}
+
 inline void b3Body::SetAwake(bool flag) 
 {
 	if (flag) 
@@ -449,11 +429,6 @@ inline void b3Body::SetAwake(bool flag)
 		m_linearVelocity.SetZero();
 		m_angularVelocity.SetZero();		
 	}
-}
-
-inline bool b3Body::IsAwake() const 
-{
-	return (m_flags & e_awakeFlag) != 0;
 }
 
 inline float32 b3Body::GetGravityScale() const

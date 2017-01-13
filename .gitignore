@@ -1,4 +1,5 @@
 *.sln
+*.VC
 *.vcxproj
 *.vcxproj.user
 *.vcxproj.filters
@@ -8,6 +9,7 @@
 *.opendb
 *.ilk
 *.pdb
+*.ini
 *.idb
 *.pch
 *.ipch
@@ -26,5 +28,6 @@
 *.o
 *.a
 *.i
+*.DS_Store
 build/
 doc/

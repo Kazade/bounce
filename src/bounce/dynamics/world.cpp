@@ -377,6 +377,68 @@ void b3World::RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec
 	m_contactMan.m_broadPhase.RayCast(&callback, input);
 }
 
+struct b3RayCastFirstCallback
+{
+	float32 Report(const b3RayCastInput& input, i32 proxyId)
+	{
+		// Get shape associated with the proxy.
+		void* userData = broadPhase->GetUserData(proxyId);
+		b3Shape* shape = (b3Shape*)userData;
+
+		// Get map from shape local space to world space.
+		b3Transform xf = shape->GetBody()->GetTransform();
+
+		b3RayCastOutput output;
+		bool hit = shape->RayCast(&output, input, xf);
+		if (hit)
+		{
+			// Track minimum time of impact to require less memory.
+			if (output.fraction < output0.fraction)
+			{
+				shape0 = shape;
+				output0 = output;
+			}
+		}
+
+		// Continue the search from where we stopped.
+		return input.maxFraction;
+	}
+
+	b3Shape* shape0;
+	b3RayCastOutput output0; 
+	const b3BroadPhase* broadPhase;
+};
+
+void b3World::RayCastFirst(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const
+{
+	b3RayCastInput input;
+	input.p1 = p1;
+	input.p2 = p2;
+	input.maxFraction = 1.0f;
+
+	b3RayCastFirstCallback callback;
+	callback.shape0 = NULL;
+	callback.output0.fraction = B3_MAX_FLOAT;
+	callback.broadPhase = &m_contactMan.m_broadPhase;
+	
+	// Perform the ray cast.
+	m_contactMan.m_broadPhase.RayCast(&callback, input);
+
+	if (callback.shape0)
+	{
+		// Ray hits closest shape.
+		float32 fraction = callback.output0.fraction;
+		float32 w1 = 1.0f - fraction;
+		float32 w2 = fraction;
+
+		b3Vec3 point = w1 * input.p1 + w2 * input.p2;
+		b3Vec3 normal = callback.output0.normal;
+
+		// Report the intersection to the user.
+		listener->ReportShape(callback.shape0, point, normal, fraction);
+	}
+}
+
 struct b3QueryAABBCallback
 {
 	bool Report(i32 proxyID)

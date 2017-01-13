@@ -61,9 +61,9 @@ public:
 
 	void RayHit()
 	{
-		if (m_rayHit.m_shape)
+		if (m_rayHit.shape)
 		{
-			if (m_rayHit.m_shape->GetBody() != m_character)
+			if (m_rayHit.shape->GetBody() != m_character)
 			{
 				Test::RayHit();
 			}
@@ -72,12 +72,12 @@ public:
 
 	void Step()
 	{
-		if (m_rayHit.m_shape)
+		if (m_rayHit.shape)
 		{
-			if (m_rayHit.m_shape->GetBody() != m_character)
+			if (m_rayHit.shape->GetBody() != m_character)
 			{
-				b3Vec3 point = m_rayHit.m_point;
-				b3Vec3 normal = m_rayHit.m_normal;
+				b3Vec3 point = m_rayHit.point;
+				b3Vec3 normal = m_rayHit.normal;
 
 				const b3Transform& xf = m_character->GetTransform();
 				b3Vec3 n = point - xf.position;

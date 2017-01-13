@@ -49,7 +49,7 @@ Test::Test()
 	g_camera.m_center.SetZero();
 	g_settings.drawGrid = false;
 
-	m_rayHit.m_shape = NULL;
+	m_rayHit.shape = NULL;
 	m_mouseJoint = NULL;
 
 	{
@@ -358,7 +358,7 @@ void Test::MouseMove(const Ray3& pw)
 {
 	if (m_mouseJoint)
 	{
-		float32 hitFraction = m_rayHit.m_fraction;
+		float32 hitFraction = m_rayHit.fraction;
 		float32 w1 = 1.0f - hitFraction;
 		float32 w2 = hitFraction;
 
@@ -370,7 +370,7 @@ void Test::MouseMove(const Ray3& pw)
 void Test::MouseLeftDown(const Ray3& pw)
 {
 	// Clear the current hit
-	m_rayHit.m_shape = NULL;
+	m_rayHit.shape = NULL;
 	if (m_mouseJoint)
 	{
 		b3Body* groundBody = m_mouseJoint->GetBodyA();
@@ -384,25 +384,23 @@ void Test::MouseLeftDown(const Ray3& pw)
 	b3Vec3 p1 = pw.Start();
 	b3Vec3 p2 = pw.End();
 
-	// Perform the ray cast
 	RayCastListener listener;
-	m_world.RayCast(&listener, p1, p2);
+	listener.hit.shape = NULL;
 
-	int hitId = listener.FindClosestHit();
+	// Perform the ray cast
+	m_world.RayCastFirst(&listener, p1, p2);
 
-	if (hitId >= 0)
+	if (listener.hit.shape)
 	{
-		// Hit
-		// Replace current hit
-		m_rayHit = listener.m_hits[hitId];
-
+		m_rayHit = listener.hit;
+		
 		RayHit();
 	}
 }
 
 void Test::MouseLeftUp(const Ray3& pw)
 {
-	m_rayHit.m_shape = NULL;
+	m_rayHit.shape = NULL;
 	if (m_mouseJoint)
 	{
 		b3Body* groundBody = m_mouseJoint->GetBodyA();		
@@ -418,12 +416,12 @@ void Test::RayHit()
 {
 	b3BodyDef bdef;
 	b3Body* bodyA = m_world.CreateBody(bdef);
-	b3Body* bodyB = m_rayHit.m_shape->GetBody();
+	b3Body* bodyB = m_rayHit.shape->GetBody();
 	
 	b3MouseJointDef def;
 	def.bodyA = bodyA;
 	def.bodyB = bodyB;
-	def.target = m_rayHit.m_point;
+	def.target = m_rayHit.point;
 	def.maxForce = 2000.0f * bodyB->GetMass();
 
 	m_mouseJoint = (b3MouseJoint*)m_world.CreateJoint(def);

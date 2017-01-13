@@ -17,6 +17,7 @@
 */
 
 #include <bounce/dynamics/shapes/capsule_shape.h>
+#include <bounce/dynamics/time_step.h>
 
 b3CapsuleShape::b3CapsuleShape() 
 {

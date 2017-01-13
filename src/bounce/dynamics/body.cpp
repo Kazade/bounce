@@ -335,6 +335,41 @@ bool b3Body::ShouldCollide(const b3Body* other) const
 	return true;
 }
 
+void b3Body::SetType(b3BodyType type)
+{
+	if (m_type == type)
+	{
+		return;
+	}
+
+	m_type = type;
+
+	ResetMass();
+
+	m_force.SetZero();
+	m_torque.SetZero();
+
+	if (m_type == e_staticBody)
+	{
+		m_linearVelocity.SetZero();
+		m_angularVelocity.SetZero();
+		m_sweep.worldCenter0 = m_sweep.worldCenter;
+		m_sweep.orientation0 = m_sweep.orientation;
+		SynchronizeShapes();
+	}
+
+	SetAwake(true);
+
+	DestroyContacts();
+
+	// Move the shape proxies so new contacts can be created.
+	b3BroadPhase* phase = &m_world->m_contactMan.m_broadPhase;
+	for (b3Shape* s = m_shapeList.m_head; s; s = s->m_next)
+	{
+		phase->BufferMove(s->m_broadPhaseID);
+	}
+}
+
 void b3Body::Dump() const
 {
 	i32 bodyIndex = m_islandID;

@@ -195,7 +195,7 @@ if os.is "windows" then
     newaction
     {
         trigger = "solution",
-        description = "Build solution",
+        description = "Generate solution",
         execute = function ()
 	    os.execute ( "premake5 clean" )
             os.execute ( "premake5 vs2015" )
@@ -205,7 +205,7 @@ if os.is "windows" then
     newaction
     {
         trigger = "doc",
-        description = "Build documentation",
+        description = "Generate documentation",
         execute = function ()
 	    os.execute ( "doxygen doxyfile" )
 	    os.execute ( "start doc\\api\\html\\index.html" )

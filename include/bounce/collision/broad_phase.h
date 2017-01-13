@@ -49,6 +49,10 @@ public:
 	// Return true if the proxy has moved.
 	bool MoveProxy(i32 proxyId, const b3AABB3& aabb, const b3Vec3& displacement);
 
+	// Add a proxy to the list of moved proxies.
+	// Only moved proxies will be used internally as an AABB query reference object.
+	void BufferMove(i32 proxyId);
+
 	// Get the AABB of a given proxy.
 	const b3AABB3& GetAABB(i32 proxyId) const;
 
@@ -77,10 +81,6 @@ public:
 private :
 	friend class b3DynamicTree;
 	
-	// Add a proxy to the list of moved proxies.
-	// Only moved proxies will be used as an AABB query reference object.
-	void BufferMove(i32 proxyId);
-
 	// The client callback used to add an overlapping pair
 	// to the overlapping pair buffer.
 	bool Report(i32 proxyId);

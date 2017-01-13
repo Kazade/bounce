@@ -47,7 +47,7 @@
 #include <testbed/tests/varying_friction.h>
 #include <testbed/tests/varying_restitution.h>
 
-TestEntry g_tests[e_testCount] =
+TestEntry g_tests[] =
 {
 	{ "Quickhull Test", &QuickhullTest::Create },
 	{ "Cluster Test", &Cluster::Create },

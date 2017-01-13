@@ -79,7 +79,7 @@ void b3CollideCapsuleAndCapsule(b3Manifold& manifold,
 			float32 d1 = b3Distance(clipEdgeA[0].position, cp1);
 			float32 d2 = b3Distance(clipEdgeA[1].position, cp2);
 
-			if (d1 <= totalRadius && d2 <= totalRadius)
+			if (d1 > B3_EPSILON && d1 <= totalRadius && d2 > B3_EPSILON && d2 <= totalRadius)
 			{
 				b3Vec3 n1 = (cp1 - clipEdgeA[0].position) / d1;
 				b3Vec3 n2 = (cp2 - clipEdgeA[1].position) / d2;
@@ -123,7 +123,7 @@ void b3CollideCapsuleAndCapsule(b3Manifold& manifold,
 
 	float32 distance = b3Distance(pointA, pointB);
 
-	if (distance > 0.0f)
+	if (distance > B3_EPSILON)
 	{
 		b3Vec3 normal = (pointB - pointA) / distance;
 		b3Vec3 center = 0.5f * (pointA + hullA.radius * normal + pointB - hullB.radius * normal);

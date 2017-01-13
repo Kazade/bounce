@@ -25,6 +25,7 @@
 GLFWwindow* g_window;
 Settings g_settings;
 Test* g_test;
+u32 g_testCount;
 Camera g_camera;
 DebugDraw* g_debugDraw;
 bool g_leftDown;
@@ -234,7 +235,7 @@ void Interface()
 	ImGui::PushItemWidth(-1.0f);
 
 	ImGui::Text("Test");
-	if (ImGui::Combo("##Test", &g_settings.testID, GetTestName, NULL, e_testCount, e_testCount))
+	if (ImGui::Combo("##Test", &g_settings.testID, GetTestName, NULL, g_testCount, g_testCount))
 	{
 		delete g_test;
 		g_test = g_tests[g_settings.testID].create();
@@ -248,12 +249,12 @@ void Interface()
 	}
 	if (ImGui::Button("Previous", buttonSize))
 	{
-		g_settings.testID = b3Clamp(g_settings.testID - 1, 0, int(e_testCount) - 1);
+		g_settings.testID = b3Clamp(g_settings.testID - 1, 0, int(g_testCount) - 1);
 		g_settings.lastTestID = -1;
 	}
 	if (ImGui::Button("Next", buttonSize))
 	{
-		g_settings.testID = b3Clamp(g_settings.testID + 1, 0, int(e_testCount) - 1);
+		g_settings.testID = b3Clamp(g_settings.testID + 1, 0, int(g_testCount) - 1);
 		g_settings.lastTestID = -1;
 	}
 	if (ImGui::Button("Exit", buttonSize))
@@ -419,12 +420,12 @@ int main(int argc, char** args)
 	sprintf(title, "Bounce Testbed Version %d.%d.%d", b3_version.major, b3_version.minor, b3_version.revision);
 	
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     	
 	g_window = glfwCreateWindow(1024, 768, title, NULL, NULL);
 	if (g_window == NULL)
 	{		
-		fprintf(stderr, "Failed to opengl GLFW window\n");
+		fprintf(stderr, "Failed to open GLFW window\n");
 		glfwTerminate();
 		return -1;
 	}
@@ -436,11 +437,13 @@ int main(int argc, char** args)
 	glfwSetKeyCallback(g_window, KeyButton);
 	glfwSetCharCallback(g_window, Char);
 	glfwSwapInterval(1);
+	
 	if (gladLoadGL() == 0)
 	{
+		fprintf(stderr, "Failed to load OpenGL extensions\n");
 		fprintf(stderr, "Error: %d\n", glad_glGetError());
 		glfwTerminate();
-		exit(EXIT_FAILURE);
+		return -1;
 	}
 
 	printf("OpenGL %s, GLSL %s\n", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
@@ -457,7 +460,13 @@ int main(int argc, char** args)
 	g_debugDraw = new DebugDraw();
 
 	// Run the testbed
+	g_testCount = 0;
+	while (g_tests[g_testCount].create != NULL)
+	{
+		++g_testCount;
+	}
 	g_test = NULL;
+
 	Run();
 
 	// Destroy the last test
@@ -475,4 +484,5 @@ int main(int argc, char** args)
 
 	// Destroy g_window
 	glfwTerminate();
+	return 0;
 }

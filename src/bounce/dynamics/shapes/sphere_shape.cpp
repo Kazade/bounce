@@ -17,6 +17,7 @@
 */
 
 #include <bounce/dynamics/shapes/sphere_shape.h>
+#include <bounce/dynamics/time_step.h>
 
 b3SphereShape::b3SphereShape() 
 {

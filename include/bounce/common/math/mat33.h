@@ -208,34 +208,6 @@ inline b3Mat33 b3Outer(const b3Vec3& a, const b3Vec3& b)
 	return b3Mat33(b.x * a, b.y * a, b.z * a);
 }
 
-// Move an inertia tensor from the its current center
-// to another.
-inline b3Mat33 b3MoveToCOM(const b3Mat33& inertia, float32 mass, const b3Vec3& center)
-{
-	// Paralell Axis Theorem
-	// J = I + m * dot(r, r) * E - outer(r, r)
-	// where
-	// I - inertia about the center of mass
-	// m - mass
-	// E - identity 3x3
-	// r - displacement vector from the current com to the new com
-	// J - inertia tensor at the new center of rotation
-	float32 dd = b3Dot(center, center);
-	b3Mat33 A = b3Diagonal(mass * dd);
-	b3Mat33 B = b3Outer(center, center);
-	return inertia + A - B;
-}
-
-// Compute the inertia matrix of a body measured in 
-// inertial frame (variable over time) given the 
-// inertia matrix in body-fixed frame (constant) 
-// and a rotation matrix representing the orientation 
-// of the body frame relative to the inertial frame.
-inline b3Mat33 b3RotateToFrame(const b3Mat33& inertia, const b3Mat33& rotation)
-{
-	return rotation * inertia * b3Transpose(rotation);
-}
-
 // Compute an orthogonal basis given one of its vectors.
 // The vector must be normalized.
 inline b3Mat33 b3Basis(const b3Vec3& a)
@@ -250,6 +222,7 @@ inline b3Mat33 b3Basis(const b3Vec3& a)
 	{
 		A.y.Set(0.0f, a.z, -a.y);
 	}
+	A.x = a;
 	A.y = b3Normalize(A.y);
 	A.z = b3Cross(a, A.y);
 	return A;

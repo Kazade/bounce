@@ -51,6 +51,34 @@ enum b3LimitState
 	e_equalLimits
 };
 
+// Move an inertia tensor from the its current center
+// to another.
+inline b3Mat33 b3MoveToCOM(const b3Mat33& inertia, float32 mass, const b3Vec3& center)
+{
+	// Paralell Axis Theorem
+	// J = I + m * dot(r, r) * E - outer(r, r)
+	// where
+	// I - inertia about the center of mass
+	// m - mass
+	// E - identity 3x3
+	// r - displacement vector from the current com to the new com
+	// J - inertia tensor at the new center of rotation
+	float32 dd = b3Dot(center, center);
+	b3Mat33 A = b3Diagonal(mass * dd);
+	b3Mat33 B = b3Outer(center, center);
+	return inertia + A - B;
+}
+
+// Compute the inertia matrix of a body measured in 
+// inertial frame (variable over time) given the 
+// inertia matrix in body-fixed frame (constant) 
+// and a rotation matrix representing the orientation 
+// of the body frame relative to the inertial frame.
+inline b3Mat33 b3RotateToFrame(const b3Mat33& inertia, const b3Mat33& rotation)
+{
+	return rotation * inertia * b3Transpose(rotation);
+}
+
 // Compute the time derivative of an orientation given
 // the angular velocity of the rotating frame represented by the orientation.
 inline b3Quat b3Derivative(const b3Quat& orientation, const b3Vec3& velocity)
