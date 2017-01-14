@@ -24,6 +24,18 @@ void b3Hull::Validate() const
 	{
 		Validate(faces + i);
 	}
+
+	for (u32 i = 0; i < edgeCount; i += 2)
+	{
+		const b3HalfEdge* edge = edges + i;
+		const b3HalfEdge* twin = edges + i + 1;
+
+		b3Vec3 A = vertices[edge->origin];
+		b3Vec3 B = vertices[twin->origin];
+
+		// Ensure each edge has non-zero length.
+		B3_ASSERT(b3DistanceSquared(A, B) > B3_EPSILON * B3_EPSILON);
+	}
 }
 
 void b3Hull::Validate(const b3Face* face) const 

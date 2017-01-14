@@ -104,6 +104,7 @@ void b3RebuildFaceContact(b3Manifold& manifold,
 	b3FaceQuery query;
 	query.index = indexA;
 	
+	// @todo Use heuristic (relative orientation) to increase performance.
 	b3BuildFaceContact(manifold, xfA, hullA, xfB, hullB, query, flipNormal);
 }
 

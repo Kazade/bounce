@@ -58,7 +58,8 @@ void b3World::DebugDraw() const
 	{
 		for (b3Body* b = m_bodyList.m_head; b; b = b->m_next)
 		{
-			const b3Transform& xf = b->GetTransform();
+			b3Transform xf = b->m_xf;
+			xf.position = b->m_sweep.worldCenter;
 			m_debugDraw->DrawTransform(xf);
 		}
 	}

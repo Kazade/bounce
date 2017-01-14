@@ -319,11 +319,11 @@ void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
 			b->SynchronizeShapes();
 		}
 
-		// Notify the contacts the shapes may have moved.
+		// Notify the contacts the shapes may have been moved.
 		m_contactMan.SynchronizeShapes();
 
-		time.Update();
 		m_contactMan.FindNewContacts();
+		
 		time.Update();
 		m_profile.collide.broadphase = time.GetElapsedMilis();
 	}

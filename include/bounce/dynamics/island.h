@@ -29,27 +29,6 @@ struct b3Velocity;
 struct b3Position;
 struct b3Profile;
 
-struct b3IslandBody
-{
-	b3Body* b;
-	u32 id;
-	bool visited;
-};
-
-struct b3IslandJoint
-{
-	b3Joint* j;
-	u32 id;
-	bool visited;
-};
-
-struct b3IslandContact
-{
-	b3Contact* c;
-	u32 id;
-	bool visited;
-};
-
 class b3Island 
 {
 public :

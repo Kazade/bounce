@@ -358,9 +358,9 @@ void Test::MouseMove(const Ray3& pw)
 {
 	if (m_mouseJoint)
 	{
-		float32 hitFraction = m_rayHit.fraction;
-		float32 w1 = 1.0f - hitFraction;
-		float32 w2 = hitFraction;
+		float32 t = m_rayHit.fraction;
+		float32 w1 = 1.0f - t;
+		float32 w2 = t;
 
 		b3Vec3 target = w1 * pw.Start() + w2 * pw.End();
 		m_mouseJoint->SetTarget(target);

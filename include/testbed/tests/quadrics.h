@@ -103,7 +103,7 @@ public:
 			hull.m_hull = &m_cylinderHull;
 
 			b3ShapeDef sdef;
-			sdef.density = 0.2f;
+			sdef.density = 1.0f;
 			sdef.friction = 0.3f;
 			sdef.shape = &hull;
 

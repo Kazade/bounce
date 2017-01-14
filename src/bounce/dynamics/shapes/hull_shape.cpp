@@ -135,11 +135,7 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 	{
 		invVolume = 1.0f / volume;
 	}
-	else
-	{
-		invVolume = 0.0f;
-	}
-
+	
 	diag = invVolume * diag;
 	offDiag = invVolume * offDiag;
 

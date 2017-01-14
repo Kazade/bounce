@@ -207,12 +207,6 @@ void CreateInterface()
 	ImGui_ImplGlfwGL3_Init(g_window, false);
 	ImGuiIO& io = ImGui::GetIO();
 	io.Fonts[0].AddFontDefault();
-
-	ImGuiStyle& style = ImGui::GetStyle();
-	style.FrameRounding = style.GrabRounding = style.ScrollbarRounding = 2.0f;
-	style.FramePadding = ImVec2(4, 2);
-	style.DisplayWindowPadding = ImVec2(0, 0);
-	style.DisplaySafeAreaPadding = ImVec2(0, 0);
 }
 
 void DestroyInterface()

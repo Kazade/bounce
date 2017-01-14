@@ -80,6 +80,7 @@ private:
 	u32 m_indexB;
 	float32 m_mB;
 	b3Mat33 m_iB;
+	b3Vec3 m_localCenterB;
 	b3Mat33 m_mass;
 	b3Vec3 m_rB;
 	b3Vec3 m_impulse;

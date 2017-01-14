@@ -36,19 +36,19 @@ void b3MouseJoint::InitializeConstraints(const b3SolverData* data)
 	m_indexB = m_bodyB->m_islandID;
 	m_mB = m_bodyB->m_invMass;
 	m_iB = m_bodyB->m_worldInvI;
+	m_localCenterB = m_bodyB->m_sweep.localCenter;
 
 	b3Vec3 xB = data->positions[m_indexB].x;
 	b3Quat qB = data->positions[m_indexB].q;
 
-	b3Vec3 worldAnchorB = b3Mul(qB, m_localAnchorB) + xB;
-	
-	m_C = worldAnchorB - m_worldTargetA;	
-	m_rB = worldAnchorB - xB;
-
+	// Compute the effective mass matrix.
+	m_rB = b3Mul(qB, m_localAnchorB - m_localCenterB);
 	b3Mat33 M = b3Diagonal(m_mB);
 	b3Mat33 RB = b3Skew(m_rB);
 	b3Mat33 RBT = b3Transpose(RB);
 	m_mass = M + RB * m_iB * RBT;
+	
+	m_C = xB + m_rB - m_worldTargetA;
 }
 
 void b3MouseJoint::WarmStart(const b3SolverData* data) 
@@ -64,19 +64,14 @@ void b3MouseJoint::SolveVelocityConstraints(const b3SolverData* data)
 
 	b3Vec3 Cdot = vB + b3Cross(wB, m_rB);
 
-	b3Vec3 impulse = m_mass.Solve(-(Cdot + data->invdt * B3_BAUMGARTE * m_C));
+	b3Vec3 impulse = m_mass.Solve(-(Cdot + B3_BAUMGARTE * data->invdt * m_C));
 	b3Vec3 oldImpulse = m_impulse;
 	m_impulse += impulse;
-
-	// Prevent large reaction impulses.
 	float32 maxImpulse = data->dt * m_maxForce;
-	float32 sqrImpulse = b3Dot(m_impulse, m_impulse);
-	if (sqrImpulse > maxImpulse * maxImpulse)
+	if (b3Dot(m_impulse, m_impulse) > maxImpulse * maxImpulse)
 	{
-		float32 ratio = maxImpulse / b3Sqrt(sqrImpulse);
-		m_impulse *= ratio;
-	}
-	
+		m_impulse *= maxImpulse / b3Length(m_impulse);
+	}	
 	impulse = m_impulse - oldImpulse;
 
 	vB += m_mB * impulse;

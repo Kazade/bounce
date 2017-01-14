@@ -179,35 +179,44 @@ void b3Body::SynchronizeTransform()
 
 void b3Body::SynchronizeShapes() 
 {
-	b3Transform xf0;
-	xf0.position = m_sweep.worldCenter0;
-	xf0.rotation = b3ConvertQuatToRot(m_sweep.orientation0);
+	b3Transform xf1;
+	xf1.position = m_sweep.worldCenter0;
+	xf1.rotation = b3ConvertQuatToRot(m_sweep.orientation0);
 	
-	b3Transform xf1 = m_xf;
+	b3Transform xf2 = m_xf;
 	
-	b3Vec3 displacement = xf1.position - xf0.position;
+	b3Vec3 displacement = xf2.position - xf1.position;
 
-	// Update the AABBs of all shapes.
+	// Update all shape AABBs.
+	b3BroadPhase* broadPhase = &m_world->m_contactMan.m_broadPhase;
 	for (b3Shape* s = m_shapeList.m_head; s; s = s->m_next)
 	{
-		b3AABB3 aabb;
-		s->ComputeAABB(&aabb, xf1);		
-		m_world->m_contactMan.m_broadPhase.MoveProxy(s->m_broadPhaseID, aabb, displacement);
+		// Compute an AABB that encloses the swept shape AABB.
+		b3AABB3 aabb1, aabb2;
+		s->ComputeAABB(&aabb1, xf1);
+		s->ComputeAABB(&aabb2, xf2);
+		
+		b3AABB3 aabb = b3Combine(aabb1, aabb2);
+
+		broadPhase->MoveProxy(s->m_broadPhaseID, aabb, displacement);
 	}
 }
 
 void b3Body::ResetMass() 
 {
-	// Set mass and inertia tensor to zero.
 	m_mass = 0.0f;
 	m_invMass = 0.0f;
 	m_I.SetZero();
 	m_invI.SetZero();
 	m_worldInvI.SetZero();
+	m_sweep.localCenter.SetZero();
 
 	// Static and kinematic bodies have zero mass.
 	if (m_type == e_staticBody || m_type == e_kinematicBody)
 	{
+		m_sweep.worldCenter0 = m_xf.position;
+		m_sweep.worldCenter = m_xf.position;
+		m_sweep.orientation0 = m_sweep.orientation;
 		return;
 	}
 
@@ -238,7 +247,7 @@ void b3Body::ResetMass()
 	}
 	else 
 	{
-		// Dynamic bodies have positive mass.
+		// Force all dynamic bodies to have positive mass.
 		m_mass = 1.0f;
 		m_invMass = 1.0f;
 	}
@@ -298,15 +307,14 @@ void b3Body::ResetMass()
 		m_worldInvI.y.y = 0.0f;
 	}
 
-	// Update center of mass.
+	// Move center of mass.
+	b3Vec3 oldCenter = m_sweep.worldCenter;
 	m_sweep.localCenter = localCenter;
-	
-	b3Vec3 worldCenter0 = m_sweep.worldCenter;
-	m_sweep.worldCenter = b3Mul(m_xf, localCenter);
+	m_sweep.worldCenter = b3Mul(m_xf, m_sweep.localCenter);
 	m_sweep.worldCenter0 = m_sweep.worldCenter;
 
 	// Update center of mass velocity.
-	m_linearVelocity += b3Cross(m_angularVelocity, m_sweep.worldCenter - worldCenter0);
+	m_linearVelocity += b3Cross(m_angularVelocity, m_sweep.worldCenter - oldCenter);
 }
 
 bool b3Body::ShouldCollide(const b3Body* other) const
