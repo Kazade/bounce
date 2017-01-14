@@ -84,7 +84,6 @@ void b3MouseJoint::SolveVelocityConstraints(const b3SolverData* data)
 bool b3MouseJoint::SolvePositionConstraints(const b3SolverData* data) 
 {
 	// There is no position correction for this constraint.
-	// todo Implement Buda spring?
 	return true;
 }
 

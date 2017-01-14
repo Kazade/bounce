@@ -116,21 +116,31 @@ void b3SpringJoint::InitializeConstraints(const b3SolverData* data)
 	b3Vec3 xB = data->positions[m_indexB].x;
 	b3Quat qB = data->positions[m_indexB].q;
 
+	m_rA = b3Mul(qA, m_localAnchorA - m_localCenterA);
+	m_rB = b3Mul(qB, m_localAnchorB - m_localCenterB);
+
 	// Singularity check.
 	m_n = xB + m_rB - xA - m_rA;
 	float32 length = b3Length(m_n);
 	if (length > B3_LINEAR_SLOP)
 	{
-		m_n = 1.0f / length * m_n;
+		m_n /= length;
 	}
 	else
 	{
 		m_n.SetZero();
 	}
+	
+	// Compute the effective mass matrix
+	b3Vec3 rnA = b3Cross(m_rA, m_n);
+	b3Vec3 rnB = b3Cross(m_rB, m_n);
+
+	float32 mass = m_mA + m_mB + b3Dot(m_iA * rnA, rnA) + b3Dot(m_iB * rnB, rnB);
+	
+	m_mass = mass > 0.0f ? 1.0f / mass : 0.0f;
 
 	if (m_frequencyHz > 0.0f)
 	{
-		// Compute spring parameters
 		float32 C = length - m_length;
 		
 		// Angular frequency
@@ -140,29 +150,22 @@ void b3SpringJoint::InitializeConstraints(const b3SolverData* data)
 		float32 d = 2.0f * m_mass * m_dampingRatio * omega;
 
 		// Spring stiffness
-		float32 s = m_mass * omega * omega;
+		float32 k = m_mass * omega * omega;
 
 		// Box2D's Soft Constraints talk
 		float32 h = data->dt;
-		m_gamma = h * (d + h * s);
-		m_bias = h * C * s * m_gamma;
+		m_gamma = h * (d + h * k);
+		m_gamma = m_gamma != 0.0f ? 1.0f / m_gamma : 0.0f;
+		m_bias = h * C * k * m_gamma;
 
+		mass += m_gamma;
+		m_mass = mass != 0.0f ? 1.0f / mass : 0.0f;
 	}
 	else
 	{
 		m_bias = 0.0f;
 		m_gamma = 0.0f;
 	}
-
-	// Compute effective mass
-	m_rA = b3Mul(qA, m_localAnchorA - m_localCenterA);
-	m_rB = b3Mul(qB, m_localAnchorB - m_localCenterB);
-
-	b3Vec3 rnA = b3Cross(m_rA, m_n);
-	b3Vec3 rnB = b3Cross(m_rB, m_n);
-
-	float32 mass = m_mA + m_mB + b3Dot(m_iA * rnA, rnA) + b3Dot(m_iB * rnB, rnB) + m_gamma;
-	m_mass = mass > 0.0f ? 1.0f / mass : 0.0f;
 }
 
 void b3SpringJoint::WarmStart(const b3SolverData* data) 

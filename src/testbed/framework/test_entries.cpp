@@ -77,4 +77,5 @@ TestEntry g_tests[] =
 	{ "Body Types", &BodyTypes::Create },
 	{ "Varying Friction", &VaryingFriction::Create },
 	{ "Varying Restitution", &VaryingRestitution::Create },
+	{ NULL, NULL }
 };

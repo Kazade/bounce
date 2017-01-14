@@ -402,6 +402,11 @@ void Run()
 
 int main(int argc, char** args)
 {
+#if defined(_WIN32)
+	// Report memory leaks
+	_CrtSetDbgFlag(_CRTDBG_LEAK_CHECK_DF | _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG));
+#endif
+
 	if (glfwInit() == 0)
 	{
 		fprintf(stderr, "Failed to initialize GLFW\n");
