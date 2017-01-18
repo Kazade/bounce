@@ -87,6 +87,15 @@ void b3Island::Solve(b3Profile* profile, const b3Vec3& gravity, float32 dt, u32 
 {
 	float32 h = dt;
 
+	// Measure coefficient of damping.
+	// Box2D.
+	// ODE: dv/dt + c * v = 0
+	// Solution: v(t) = v0 * exp(-c * t)
+	// Step: v(t + dt) = v0 * exp(-c * (t + dt)) = v0 * exp(-c * t) * exp(-c * dt) = v * exp(-c * dt)
+	// v2 = exp(-c * dt) * v1
+	const float32 k_d = 0.1f;
+	float32 d = exp(-h * k_d);
+
 	// 1. Integrate velocities
 	for (u32 i = 0; i < m_bodyCount; ++i) 
 	{
@@ -116,16 +125,9 @@ void b3Island::Solve(b3Profile* profile, const b3Vec3& gravity, float32 dt, u32 
 			// Clear torques
 			b->m_torque.SetZero();
 			
-			// Apply some damping
-			// Box2D.
-			// ODE: dv/dt + c * v = 0
-			// Solution: v(t) = v0 * exp(-c * t)
-			// Time step: v(t + dt) = v0 * exp(-c * (t + dt)) = v0 * exp(-c * t) * exp(-c * dt) = v * exp(-c * dt)
-			// v2 = exp(-c * dt) * v1
-			// Pade approximation:
-			// v2 = v1 * 1 / (1 + c * dt)
-			v *= 1.0f / (1.0f + h * 0.1f);
-			w *= 1.0f / (1.0f + h * 0.1f);
+			// Apply damping
+			v *= d;
+			w *= d;
 		}
 
 		m_velocities[i].v = v;

@@ -57,4 +57,6 @@
 #include <bounce/dynamics/world.h>
 #include <bounce/dynamics/world_listeners.h>
 
+#include <bounce/cloth/cloth.h>
+
 #endif

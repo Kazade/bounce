@@ -46,6 +46,7 @@
 #include <testbed/tests/body_types.h>
 #include <testbed/tests/varying_friction.h>
 #include <testbed/tests/varying_restitution.h>
+#include <testbed/tests/cloth_test.h>
 
 TestEntry g_tests[] =
 {
@@ -77,5 +78,6 @@ TestEntry g_tests[] =
 	{ "Body Types", &BodyTypes::Create },
 	{ "Varying Friction", &VaryingFriction::Create },
 	{ "Varying Restitution", &VaryingRestitution::Create },
+	{ "Cloth", &Cloth::Create },
 	{ NULL, NULL }
 };

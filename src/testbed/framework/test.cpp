@@ -110,7 +110,7 @@ Test::Test()
 		t.y = 0.0f;
 		t.z = -0.5f * float32(h);
 
-		b3Mesh* mesh = m_meshes + 0;
+		b3Mesh* mesh = m_meshes + e_gridMesh;
 
 		mesh->vertexCount = w * h;
 		mesh->vertices = (b3Vec3*)b3Alloc(mesh->vertexCount * sizeof(b3Vec3));
@@ -168,7 +168,90 @@ Test::Test()
 
 		mesh->BuildTree();
 	}
-	
+
+	{
+		const u32 w = 5;
+		const u32 h = 5;
+
+		b3Vec3 t;
+		t.x = -0.5f * float32(w);
+		t.y = 0.0f;
+		t.z = -0.5f * float32(h);
+
+		b3Mesh* mesh = m_meshes + e_clothMesh;
+
+		mesh->vertexCount = w * h;
+		mesh->vertices = (b3Vec3*)b3Alloc(mesh->vertexCount * sizeof(b3Vec3));
+
+		for (u32 i = 0; i < w; ++i)
+		{
+			for (u32 j = 0; j < h; ++j)
+			{
+				u32 v1 = i * w + j;
+
+				b3Vec3 v;
+				v.x = float32(i);
+				v.y = 0.0f;
+				v.z = float32(j);
+
+				v += t;
+
+				mesh->vertices[v1] = v;
+			}
+		}
+
+		mesh->triangleCount = 2 * 2 * (w - 1) * (h - 1);
+		mesh->triangles = (b3Triangle*)b3Alloc(mesh->triangleCount * sizeof(b3Triangle));
+
+		u32 triangleCount = 0;
+		for (u32 i = 0; i < w - 1; ++i)
+		{
+			for (u32 j = 0; j < h - 1; ++j)
+			{
+				u32 v1 = i * w + j;
+				u32 v2 = (i + 1) * w + j;
+				u32 v3 = (i + 1) * w + (j + 1);
+				u32 v4 = i * w + (j + 1);
+
+				B3_ASSERT(triangleCount < mesh->triangleCount);
+				b3Triangle* t1 = mesh->triangles + triangleCount;
+				++triangleCount;
+
+				t1->v1 = v3;
+				t1->v2 = v2;
+				t1->v3 = v1;
+
+				B3_ASSERT(triangleCount < mesh->triangleCount);
+				b3Triangle* t2 = mesh->triangles + triangleCount;
+				++triangleCount;
+
+				t2->v1 = v1;
+				t2->v2 = v4;
+				t2->v3 = v3;
+
+				B3_ASSERT(triangleCount < mesh->triangleCount);
+				b3Triangle* t3 = mesh->triangles + triangleCount;
+				++triangleCount;
+
+				t3->v1 = v1;
+				t3->v2 = v2;
+				t3->v3 = v3;
+
+				B3_ASSERT(triangleCount < mesh->triangleCount);
+				b3Triangle* t4 = mesh->triangles + triangleCount;
+				++triangleCount;
+
+				t4->v1 = v3;
+				t4->v2 = v4;
+				t4->v3 = v1;
+			}
+		}
+
+		B3_ASSERT(triangleCount == mesh->triangleCount);
+
+		mesh->BuildTree();
+	}
+
 	{
 		const u32 w = 100;
 		const u32 h = 100;
@@ -178,7 +261,7 @@ Test::Test()
 		t.y = 0.0f;
 		t.z = -0.5f * float32(h);
 
-		b3Mesh* mesh = m_meshes + 1;
+		b3Mesh* mesh = m_meshes + e_terrainMesh;
 		
 		mesh->vertexCount = w * h;
 		mesh->vertices = (b3Vec3*)b3Alloc(mesh->vertexCount * sizeof(b3Vec3));

@@ -116,6 +116,7 @@ public:
 	{
 		e_gridMesh,
 		e_terrainMesh,
+		e_clothMesh,
 		e_maxMeshes,
 	};
 
