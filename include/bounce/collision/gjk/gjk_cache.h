@@ -46,18 +46,10 @@ b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA,
 // with the closest points.
 struct b3GJKFeaturePair
 {
-	enum Type
-	{
-		e_unknown = 0,
-		e_vertex = 1,
-		e_edge = 2,
-		e_face = 3
-	};
-
-	Type typeA; // number of vertices on proxy A
-	Type typeB; // number of vertices on proxy B
 	u32 indexA[3]; // vertices on proxy A
+	u32 countA; // number of vertices on proxy A
 	u32 indexB[3]; // vertices on proxy B
+	u32 countB; // number of vertices on proxy B
 };
 
 // Identify the vertices of the features that the closest points between two 

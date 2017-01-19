@@ -30,8 +30,8 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 	{
 		// VV 
 		b3GJKFeaturePair pair;
-		pair.typeA = b3GJKFeaturePair::e_vertex;
-		pair.typeB = b3GJKFeaturePair::e_vertex;
+		pair.countA = 1;
+		pair.countB = 1;
 		pair.indexA[0] = cache.indexA[0];
 		pair.indexB[0] = cache.indexB[0];
 		return pair;
@@ -43,8 +43,8 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// EE
 			b3GJKFeaturePair pair;
-			pair.typeA = b3GJKFeaturePair::e_edge;
-			pair.typeB = b3GJKFeaturePair::e_edge;
+			pair.countA = 2;
+			pair.countB = 2;
 			pair.indexA[0] = cache.indexA[0];
 			pair.indexA[1] = cache.indexA[1];
 			pair.indexB[0] = cache.indexB[0];
@@ -58,8 +58,8 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// VE
 			b3GJKFeaturePair pair;
-			pair.typeA = b3GJKFeaturePair::e_vertex;
-			pair.typeB = b3GJKFeaturePair::e_edge;
+			pair.countA = 1;
+			pair.countB = 2;
 			pair.indexA[0] = cache.indexA[0];
 			pair.indexB[0] = cache.indexB[0];
 			pair.indexB[1] = cache.indexB[1];
@@ -71,8 +71,8 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// EV
 			b3GJKFeaturePair pair;
-			pair.typeA = b3GJKFeaturePair::e_edge;
-			pair.typeB = b3GJKFeaturePair::e_vertex;
+			pair.countA = 2;
+			pair.countB = 1;
 			pair.indexA[0] = cache.indexA[0];
 			pair.indexA[1] = cache.indexA[1];
 			pair.indexB[0] = cache.indexB[0];
@@ -88,8 +88,8 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// VF
 			b3GJKFeaturePair pair;
-			pair.typeA = b3GJKFeaturePair::e_vertex;
-			pair.typeB = b3GJKFeaturePair::e_face;
+			pair.countA = 1;
+			pair.countB = 3;
 			pair.indexA[0] = cache.indexA[0];
 			pair.indexB[0] = cache.indexB[0];
 			pair.indexB[1] = cache.indexB[1];
@@ -104,8 +104,8 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// FV
 			b3GJKFeaturePair pair;
-			pair.typeA = b3GJKFeaturePair::e_face;
-			pair.typeB = b3GJKFeaturePair::e_vertex;
+			pair.countA = 3;
+			pair.countB = 1;
 			pair.indexA[0] = cache.indexA[0];
 			pair.indexA[1] = cache.indexA[1];
 			pair.indexA[2] = cache.indexA[2];
@@ -120,8 +120,8 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// EE
 			b3GJKFeaturePair pair;
-			pair.typeA = b3GJKFeaturePair::e_edge;
-			pair.typeB = b3GJKFeaturePair::e_edge;
+			pair.countA = 2;
+			pair.countB = 2;
 			pair.indexA[0] = cache.indexA[0];
 			pair.indexB[0] = cache.indexB[0];
 
@@ -151,8 +151,8 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// EF
 			b3GJKFeaturePair pair;
-			pair.typeA = b3GJKFeaturePair::e_edge;
-			pair.typeB = b3GJKFeaturePair::e_face;
+			pair.countA = 2;
+			pair.countB = 3;
 
 			pair.indexA[0] = cache.indexA[0];
 			if (cache.indexA[0] == cache.indexA[1])
@@ -179,8 +179,8 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// FE
 			b3GJKFeaturePair pair;
-			pair.typeA = b3GJKFeaturePair::e_face;
-			pair.typeB = b3GJKFeaturePair::e_edge;
+			pair.countA = 3;
+			pair.countB = 2;
 			pair.indexA[0] = cache.indexA[0];
 			pair.indexA[1] = cache.indexA[1];
 			pair.indexA[2] = cache.indexA[2];
@@ -208,7 +208,7 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 	B3_ASSERT(false);
 
 	b3GJKFeaturePair pair;
-	pair.typeA = b3GJKFeaturePair::e_unknown;
-	pair.typeB = b3GJKFeaturePair::e_unknown;
+	pair.countA = 0;
+	pair.countB = 0;
 	return pair;
 }

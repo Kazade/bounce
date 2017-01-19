@@ -58,6 +58,8 @@ private:
 
 	void Collide();
 	
+	void CollideSphere();
+
 	void SynchronizeShapes();
 
 	bool MoveAABB(const b3AABB3& aabb, const b3Vec3& displacement);

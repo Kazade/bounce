@@ -54,13 +54,13 @@ public:
 		{
 			b3GJKFeaturePair featurePair = b3GetFeaturePair(m_cache);
 
-			for (u32 i = 0; i < (u32)featurePair.typeA; ++i)
+			for (u32 i = 0; i < featurePair.countA; ++i)
 			{
 				u32 index = featurePair.indexA[i];
 				g_debugDraw->DrawPoint(m_xfA * m_proxyA.GetVertex(index), b3Color(1.0f, 1.0f, 0.0f));
 			}
 
-			for (u32 i = 0; i < (u32)featurePair.typeB; ++i)
+			for (u32 i = 0; i < featurePair.countB; ++i)
 			{
 				u32 index = featurePair.indexB[i];
 				g_debugDraw->DrawPoint(m_xfB * m_proxyB.GetVertex(index), b3Color(1.0f, 1.0f, 0.0f));

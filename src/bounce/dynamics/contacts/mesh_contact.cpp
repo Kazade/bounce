@@ -231,6 +231,17 @@ void b3MeshContact::Collide()
 	b3MeshShape* meshShapeB = (b3MeshShape*)shapeB;
 	b3Transform xfB = bodyB->GetTransform();
 
+	// Remove this conditional inclusion if collisions 
+	// between spheres and the internal features of meshes 
+	// should be avoided.
+#if 0
+	if (shapeA->GetType() == e_sphereShape)
+	{
+		CollideSphere();
+		return;
+	}
+#endif
+
 	b3World* world = bodyA->GetWorld();
 	b3StackAllocator* allocator = &world->m_stackAllocator;
 
