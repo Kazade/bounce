@@ -233,7 +233,7 @@ void b3MeshContact::Collide()
 
 	// Remove this conditional inclusion if collisions 
 	// between spheres and the internal features of meshes 
-	// should be avoided.
+	// should be filtered.
 #if 0
 	if (shapeA->GetType() == e_sphereShape)
 	{

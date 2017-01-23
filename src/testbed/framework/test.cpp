@@ -123,7 +123,7 @@ Test::Test()
 
 				b3Vec3 v;
 				v.x = float32(i);
-				v.y = 0.0f;
+				v.y = RandomFloat(0.0f, 0.5f);
 				v.z = float32(j);
 
 				v += t;
@@ -132,7 +132,7 @@ Test::Test()
 			}
 		}
 
-		mesh->triangleCount = 2 * 2 * (w - 1) * (h - 1);
+		mesh->triangleCount = 2 * (w - 1) * (h - 1);
 		mesh->triangles = (b3Triangle*)b3Alloc(mesh->triangleCount * sizeof(b3Triangle));
 
 		u32 triangleCount = 0;
@@ -160,22 +160,6 @@ Test::Test()
 				t2->v1 = v1;
 				t2->v2 = v4;
 				t2->v3 = v3;
-
-				B3_ASSERT(triangleCount < mesh->triangleCount);
-				b3Triangle* t3 = mesh->triangles + triangleCount;
-				++triangleCount;
-
-				t3->v1 = v1;
-				t3->v2 = v2;
-				t3->v3 = v3;
-
-				B3_ASSERT(triangleCount < mesh->triangleCount);
-				b3Triangle* t4 = mesh->triangles + triangleCount;
-				++triangleCount;
-
-				t4->v1 = v3;
-				t4->v2 = v4;
-				t4->v3 = v1;
 			}
 		}
 

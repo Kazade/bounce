@@ -75,15 +75,15 @@ void b3Cloth::Initialize(const b3ClothDef& def)
 		{
 			u32 k = j + 1 < 3 ? j + 1 : 0;
 
-			u32 i1 = is[j];
-			u32 i2 = is[k];
+			u32 v1 = is[j];
+			u32 v2 = is[k];
 
-			b3Vec3 p1 = m->vertices[i1];
-			b3Vec3 p2 = m->vertices[i2];
+			b3Vec3 p1 = m->vertices[v1];
+			b3Vec3 p2 = m->vertices[v2];
 
 			b3C1* C = m_c1s + m_c1Count;
-			C->i1 = i1;
-			C->i2 = i2;
+			C->i1 = v1;
+			C->i2 = v2;
 			C->L = b3Distance(p1, p2);
 			++m_c1Count;
 		}
@@ -105,6 +105,108 @@ void b3Cloth::Initialize(const b3ClothDef& def)
 	for (u32 i = 0; i < m_pCount; ++i)
 	{
 		m_ps[i].im = m_ps[i].im > 0.0f ? 1.0f / m_ps[i].im : 0.0f;
+	}
+
+	u32 c2Capacity = 0;
+
+	for (u32 i = 0; i < m->triangleCount; ++i)
+	{
+		b3Triangle* t1 = m->triangles + i;
+		u32 i1s[3] = { t1->v1, t1->v2, t1->v3 };
+
+		for (u32 j1 = 0; j1 < 3; ++j1)
+		{
+			u32 k1 = j1 + 1 < 3 ? j1 + 1 : 0;
+
+			u32 t1v1 = i1s[j1];
+			u32 t1v2 = i1s[k1];
+
+			for (u32 j = i + 1; j < m->triangleCount; ++j)
+			{
+				b3Triangle* t2 = m->triangles + j;
+				u32 i2s[3] = { t2->v1, t2->v2, t2->v3 };
+
+				for (u32 j2 = 0; j2 < 3; ++j2)
+				{
+					u32 k2 = j2 + 1 < 3 ? j2 + 1 : 0;
+
+					u32 t2v1 = i2s[j2];
+					u32 t2v2 = i2s[k2];
+
+					if (t1v1 == t2v2 && t1v2 == t2v1)
+					{
+						++c2Capacity;
+					}
+				}
+			}
+		}
+	}
+
+	m_c2Count = 0;
+	m_c2s = (b3C2*)b3Alloc(c2Capacity * sizeof(b3C2));
+
+	for (u32 i = 0; i < m->triangleCount; ++i)
+	{
+		b3Triangle* t1 = m->triangles + i;
+		u32 i1s[3] = { t1->v1, t1->v2, t1->v3 };
+
+		for (u32 j1 = 0; j1 < 3; ++j1)
+		{
+			u32 k1 = j1 + 1 < 3 ? j1 + 1 : 0;
+
+			u32 t1v1 = i1s[j1];
+			u32 t1v2 = i1s[k1];
+
+			for (u32 j = i + 1; j < m->triangleCount; ++j)
+			{
+				b3Triangle* t2 = m->triangles + j;
+				u32 i2s[3] = { t2->v1, t2->v2, t2->v3 };
+
+				for (u32 j2 = 0; j2 < 3; ++j2)
+				{
+					u32 k2 = j2 + 1 < 3 ? j2 + 1 : 0;
+
+					u32 t2v1 = i2s[j2];
+					u32 t2v2 = i2s[k2];
+
+					if (t1v1 == t2v2 && t1v2 == t2v1)
+					{
+						u32 k3 = k1 + 1 < 3 ? k1 + 1 : 0;
+						u32 t1v3 = i1s[k3];
+
+						u32 k4 = k2 + 1 < 3 ? k2 + 1 : 0;
+						u32 t2v3 = i2s[k4];
+
+						b3Vec3 p1 = m->vertices[t1v1];
+						b3Vec3 p2 = m->vertices[t1v2];
+						b3Vec3 p3 = m->vertices[t1v3];
+						b3Vec3 p4 = m->vertices[t2v3];
+
+						b3Vec3 n1 = b3Cross(p2 - p1, p3 - p1);
+						n1.Normalize();
+						
+						b3Vec3 n2 = b3Cross(p2 - p1, p4 - p1);
+						n2.Normalize();
+						
+						float32 x = b3Dot(n1, n2);
+
+						b3Vec3 n3 = b3Cross(n1, n2);
+						float32 y = b3Length(n3);
+
+						b3C2* c = m_c2s + m_c2Count;
+						c->i1 = t1v1;
+						c->i2 = t1v2;
+						c->i3 = t1v3;
+						c->i4 = t2v3;
+						c->angle = atan2(y, x);
+						
+						++m_c2Count;
+
+						break;
+					}
+				}
+			}
+		}
 	}
 
 	m_k1 = def.k1;
@@ -136,6 +238,7 @@ void b3Cloth::Step(float32 h, u32 iterations)
 
 	for (u32 i = 0; i < iterations; ++i)
 	{
+		SolveC2();
 		SolveC1();
 	}
 
@@ -149,8 +252,6 @@ void b3Cloth::Step(float32 h, u32 iterations)
 
 void b3Cloth::SolveC1()
 {
-	float32 k = m_k1;
-
 	for (u32 i = 0; i < m_c1Count; ++i)
 	{
 		b3C1* c = m_c1s + i;
@@ -158,52 +259,170 @@ void b3Cloth::SolveC1()
 		b3Particle* p1 = m_ps + c->i1;
 		b3Particle* p2 = m_ps + c->i2;
 
-		b3Vec3 d = p2->p - p1->p;
-		float32 L = b3Length(d);
-		if (L > B3_EPSILON)
-		{
-			d /= L;
-		}
+		float32 m1 = p1->im;
+		float32 m2 = p2->im;
 
-		float32 C = L - c->L;
-		
-		float32 im1 = p1->im;
-		float32 im2 = p2->im;
-
-		if (im1 + im2 == 0.0f)
+		float32 mass = m1 + m2;
+		if (mass == 0.0f)
 		{
 			continue;
 		}
 
-		float32 s1 = im1 / (im1 + im2);
-		float32 s2 = im2 / (im1 + im2);
+		mass = 1.0f / mass;
 
-		p1->p -= k * s1 * -C * d;
-		p2->p += k * s2 * -C * d;
+		b3Vec3 J2 = p2->p - p1->p;
+		float32 L = b3Length(J2);
+		if (L > B3_EPSILON)
+		{
+			J2 /= L;
+		}
+
+		b3Vec3 J1 = -J2;
+
+		float32 C = L - c->L;
+		float32 impulse = -m_k1 * mass * C;
+
+		p1->p += (m1 * impulse) * J1;
+		p2->p += (m2 * impulse) * J2;
+	}
+}
+
+void b3Cloth::SolveC2()
+{
+	for (u32 i = 0; i < m_c2Count; ++i)
+	{
+		b3C2* c = m_c2s + i;
+
+		b3Particle* p1 = m_ps + c->i1;
+		b3Particle* p2 = m_ps + c->i2;
+		b3Particle* p3 = m_ps + c->i3;
+		b3Particle* p4 = m_ps + c->i4;
+
+		float32 m1 = p1->im;
+		float32 m2 = p2->im;
+		float32 m3 = p3->im;
+		float32 m4 = p4->im;
+
+		b3Vec3 v2 = p2->p - p1->p;
+		b3Vec3 v3 = p3->p - p1->p;
+		b3Vec3 v4 = p4->p - p1->p;
+		
+		b3Vec3 n1 = b3Cross(v2, v3);
+		n1.Normalize();
+
+		b3Vec3 n2 = b3Cross(v2, v4);
+		n2.Normalize();
+
+		float32 x = b3Dot(n1, n2);
+
+		b3Vec3 J3 = b3Cross(v2, n2) + x * b3Cross(n1, v2);
+		float32 L3 = b3Length(b3Cross(v2, v3));
+		if (L3 > B3_EPSILON)
+		{
+			J3 /= L3;
+		}
+		
+		b3Vec3 J4 = b3Cross(v2, n1) + x * b3Cross(n2, v2);
+		float32 L4 = b3Length(b3Cross(v2, v4));
+		if (L4 > B3_EPSILON)
+		{
+			J4 /= L4;
+		}
+
+		b3Vec3 J2_1 = b3Cross(v3, n2) + x * b3Cross(n1, v3);
+		if (L3 > B3_EPSILON)
+		{
+			J2_1 /= L3;
+		}
+
+		b3Vec3 J2_2 = b3Cross(v4, n1) + x * b3Cross(n2, v4);
+		if (L4 > B3_EPSILON)
+		{
+			J2_2 /= L4;
+		}
+		
+		b3Vec3 J2 = -J2_1 - J2_2;
+		
+		b3Vec3 J1 = -J2 - J3 - J4;
+
+		float32 mass = m1 * b3Dot(J1, J1) + m2 * b3Dot(J2, J2) + m3 * b3Dot(J3, J3) + m4 * b3Dot(J4, J4);
+		if (mass == 0.0f)
+		{
+			continue;
+		}
+
+		mass = 1.0f / mass;
+		
+		b3Vec3 n3 = b3Cross(n1, n2);
+		float32 y = b3Length(n3);
+
+		float32 angle = atan2(y, x);
+		float32 C = angle - c->angle;
+
+		float32 impulse = -m_k2 * mass * y * C;
+
+		p1->p += (m1 * impulse) * J1;
+		p2->p += (m2 * impulse) * J2;
+		p3->p += (m3 * impulse) * J3;
+		p4->p += (m4 * impulse) * J4;
 	}
 }
 
 void b3Cloth::Draw(b3Draw* draw) const
 {
-	const b3Color color1(1.0f, 0.0f, 0.0f);
-	const b3Color color2(0.0f, 1.0f, 0.0f);
-	const b3Color color3(0.0f, 0.0f, 1.0f);
-	const b3Color color4(0.0f, 0.0f, 0.0f);
+	b3Color color1(1.0f, 0.0f, 0.0f);
+	b3Color color2(0.0f, 1.0f, 0.0f);
+	b3Color color3(0.0f, 0.0f, 1.0f);
+	b3Color color4(0.0f, 0.0f, 0.0f);
 
-	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
+	const b3Mesh* m = m_mesh;
+
+	for (u32 i = 0; i < m->triangleCount; ++i)
 	{
-		b3Triangle* t = m_mesh->triangles + i;
+		b3Triangle* t = m->triangles + i;
 
 		b3Particle* p1 = m_ps + t->v1;
 		b3Particle* p2 = m_ps + t->v2;
 		b3Particle* p3 = m_ps + t->v3;
 
-		b3Vec3 ps[3];
-		ps[0] = p1->p;
-		ps[1] = p2->p;
-		ps[2] = p3->p;
+		b3Vec3 vs1[3];
+		vs1[0] = p1->p;
+		vs1[1] = p2->p;
+		vs1[2] = p3->p;
 
-		draw->DrawPolygon(ps, 3, color4);
-		draw->DrawSolidPolygon(ps, 3, color3);
+		draw->DrawPolygon(vs1, 3, color4);
+		draw->DrawSolidPolygon(vs1, 3, color3);
+
+		b3Vec3 vs2[3];
+		vs2[0] = p1->p;
+		vs2[1] = p3->p;
+		vs2[2] = p2->p;
+
+		draw->DrawPolygon(vs2, 3, color4);
+		draw->DrawSolidPolygon(vs2, 3, color3);
 	}
+
+#if 0
+	for (u32 i = 0; i < m_c2Count; ++i)
+	{
+		b3C2* c = m_c2s + i;
+
+		b3Particle* p1 = m_ps + c->i1;
+		b3Particle* p2 = m_ps + c->i2;
+		b3Particle* p3 = m_ps + c->i3;
+		b3Particle* p4 = m_ps + c->i4;
+
+		b3Vec3 c1 = (p1->p + p2->p + p3->p) / 3.0f;
+		b3Vec3 n1 = b3Cross(p2->p - p1->p, p3->p - p1->p);
+		n1.Normalize();
+
+		draw->DrawSegment(c1, c1 + n1, color1);
+
+		b3Vec3 c2 = (p1->p + p4->p + p2->p) / 3.0f;
+		b3Vec3 n2 = b3Cross(p2->p - p1->p, p4->p - p1->p);
+		n2.Normalize();
+
+		draw->DrawSegment(c2, c2 + n2, color1);
+	}
+#endif
 }

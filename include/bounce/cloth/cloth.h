@@ -113,6 +113,7 @@ public:
 	void Draw(b3Draw* draw) const;
 private:
 	void SolveC1();
+	void SolveC2();
 
 	b3Particle* m_ps;
 	u32 m_pCount;

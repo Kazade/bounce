@@ -102,7 +102,7 @@ struct b3SMCollider
 	b3Triangle* m_removeds;
 	u32 m_removedCount;
 
-	// Vertex or edge contact points that can collide.
+	// Vertex or edge contact points that might collide.
 	b3FeaturePoint* m_delayeds;
 	b3SortKey* m_keys;
 	u32 m_delayedCount;
@@ -166,7 +166,6 @@ void b3SMCollider::CollideTriangle(u32 i)
 {
 	b3TriangleCache* t = m_triangles + i;
 	
-	// GJK
 	b3ShapeGJKProxy proxyB(m_meshB, t->index);
 	b3GJKOutput output = b3GJK(m_xfA, m_proxyA, m_xfB, proxyB, false, &t->cache.simplexCache);
 
@@ -182,7 +181,6 @@ void b3SMCollider::CollideTriangle(u32 i)
 		return;
 	}
 
-	// SAT
 	b3Triangle* triangle = m_meshB->m_mesh->triangles + t->index;
 	b3Vec3 A = b3Mul(m_xfB, m_meshB->m_mesh->vertices[triangle->v1]);
 	b3Vec3 B = b3Mul(m_xfB, m_meshB->m_mesh->vertices[triangle->v2]);
