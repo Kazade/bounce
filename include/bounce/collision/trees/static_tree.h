@@ -57,6 +57,8 @@ public:
 
 	// Draw this tree.
 	void Draw(b3Draw* draw) const;
+
+	u32 GetSize() const;
 private :
 	// A node in a static tree.
 	struct b3Node
@@ -196,6 +198,14 @@ inline void b3StaticTree::RayCast(T* callback, const b3RayCastInput& input) cons
 			}
 		}
 	}
+}
+
+inline u32 b3StaticTree::GetSize() const
+{
+	u32 size = 0;
+	size += sizeof(b3StaticTree);
+	size += m_nodeCount * sizeof(b3Node);
+	return size;
 }
 
 #endif

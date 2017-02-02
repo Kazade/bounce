@@ -32,7 +32,7 @@ Mat44 Camera::BuildProjectionMatrix() const
 	// Tangent of the half cone angle along the y-axis
 	float32 t = tan(0.5f * m_fovy);
 	float32 sy = 1.0f / t;
-	
+
 	// Set the x-scale equals to the y-scale and 
 	// proportional to the aspect ratio
 	float32 aspect = m_width / m_height;
@@ -104,7 +104,7 @@ Ray3 Camera::ConvertScreenToWorld(const b3Vec2& ps) const
 	// Essential Math, page 250.
 	float32 t = tan(0.5f * m_fovy);
 	float32 aspect = m_width / m_height;
-	
+
 	b3Vec3 pv;
 	pv.x = 2.0f * aspect * ps.x / m_width - aspect;
 	pv.y = -2.0f * ps.y / m_height + 1.0f;
@@ -112,7 +112,7 @@ Ray3 Camera::ConvertScreenToWorld(const b3Vec2& ps) const
 
 	b3Transform xf = BuildWorldTransform();
 	b3Vec3 pw = xf * pv;
-		
+
 	Ray3 rw;
 	rw.direction = b3Normalize(pw - xf.position);
 	rw.origin = xf.position;
@@ -155,7 +155,7 @@ struct DrawPoints
 		m_quads[m_count].color = color;
 		++m_count;
 	}
-	
+
 	void Submit()
 	{
 		// Build local quads
@@ -207,7 +207,7 @@ struct DrawPoints
 
 		m_count = 0;
 	}
-	
+
 	struct Quad
 	{
 		b3Vec3 center;
@@ -260,7 +260,7 @@ struct DrawLines
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 		glMultMatrixf(&xf1.x.x);
-				
+
 		for (u32 i = 0; i < m_count; ++i)
 		{
 			b3Vec3 p = m_lines[i].p;
@@ -272,7 +272,7 @@ struct DrawLines
 			glVertex3f(p.x, p.y, p.z);
 			glVertex3f(q.x, q.y, q.z);
 			glEnd();
-		}		
+		}
 
 		m_count = 0;
 	}
@@ -338,7 +338,7 @@ struct DrawTriangles
 			b3Vec3 b = m_triangles[i].b;
 			b3Vec3 c = m_triangles[i].c;
 			b3Color col = m_triangles[i].col;
-			
+
 			glBegin(GL_TRIANGLES);
 			glColor4f(col.r, col.g, col.b, col.a);
 			glVertex3f(a.x, a.y, a.z);
@@ -384,14 +384,14 @@ struct DrawShapes
 	{
 		float32 radius = s->m_radius;
 		Mat44 xf4 = GetMat44(xf);
-		
+
 		glMatrixMode(GL_MODELVIEW);
 		glPushMatrix();
 		glMultMatrixf(&xf4.x.x);
 		gluSphere(m_sphere, radius, 10, 10);
 		glPopMatrix();
 	}
-	
+
 	void DrawCapsule(const b3CapsuleShape* s, const b3Transform& xf)
 	{
 		b3Vec3 c1 = s->m_centers[0];
@@ -405,11 +405,11 @@ struct DrawShapes
 			b3Transform xfc;
 			xfc.rotation = xf.rotation;
 			xfc.position = xf * c1;
-			
+
 			Mat44 m = GetMat44(xfc);
 
 			glMatrixMode(GL_MODELVIEW);
-			glPushMatrix();			
+			glPushMatrix();
 			glMultMatrixf(&m.x.x);
 
 			GLdouble plane[4];
@@ -422,7 +422,7 @@ struct DrawShapes
 			glEnable(GL_CLIP_PLANE0);
 			gluSphere(m_sphere, radius, 10, 10);
 			glDisable(GL_CLIP_PLANE0);
-			
+
 			glPopMatrix();
 		}
 
@@ -430,9 +430,9 @@ struct DrawShapes
 			b3Transform xfc;
 			xfc.rotation = xf.rotation;
 			xfc.position = xf * c2;
-			
+
 			Mat44 m = GetMat44(xfc);
-			
+
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix();
 			glMultMatrixf(&m.x.x);
@@ -467,52 +467,65 @@ struct DrawShapes
 	void DrawHull(const b3HullShape* s, const b3Transform& xf)
 	{
 		const b3Hull* hull = s->m_hull;
+
 		for (u32 i = 0; i < hull->faceCount; ++i)
 		{
-			b3Vec3 n = xf.rotation * hull->planes[i].normal;
-			
-			glBegin(GL_POLYGON);
-			glNormal3f(n.x, n.y, n.z);
-
 			const b3Face* face = hull->GetFace(i);
 			const b3HalfEdge* begin = hull->GetEdge(face->edge);
-			const b3HalfEdge* edge = begin;
+
+			b3Vec3 n = xf.rotation * hull->planes[i].normal;
+
+			const b3HalfEdge* edge = hull->GetEdge(begin->next);
 			do
 			{
-				b3Vec3 v = xf * hull->GetVertex(edge->origin);
-				
-				glVertex3f(v.x, v.y, v.z);
-				
-				edge = hull->GetEdge(edge->next);
-			} while (edge != begin);
-			
-			glEnd();
+				u32 i1 = begin->origin;
+				u32 i2 = edge->origin;
+				const b3HalfEdge* next = hull->GetEdge(edge->next);
+				u32 i3 = next->origin;
+
+				b3Vec3 v1 = xf * hull->vertices[i1];
+				b3Vec3 v2 = xf * hull->vertices[i2];
+				b3Vec3 v3 = xf * hull->vertices[i3];
+
+				glBegin(GL_TRIANGLES);
+				glNormal3f(n.x, n.y, n.z);
+
+				glVertex3f(v1.x, v1.y, v1.z);
+				glVertex3f(v2.x, v2.y, v2.z);
+				glVertex3f(v3.x, v3.y, v3.z);
+
+				glEnd();
+
+				edge = next;
+			} while (hull->GetEdge(edge->next) != begin);
+
 		}
 	}
 
 	void DrawMesh(const b3MeshShape* s, const b3Transform& xf)
 	{
 		const b3Mesh* mesh = s->m_mesh;
+		
 		for (u32 i = 0; i < mesh->triangleCount; ++i)
 		{
-			const b3Triangle* triangle = mesh->triangles + i;
+			const b3Triangle* t = mesh->triangles + i;
 
-			b3Vec3 v1 = xf * mesh->vertices[triangle->v1];
-			b3Vec3 v2 = xf * mesh->vertices[triangle->v2];
-			b3Vec3 v3 = xf * mesh->vertices[triangle->v3];
-			
+			b3Vec3 v1 = xf * mesh->vertices[t->v1];
+			b3Vec3 v2 = xf * mesh->vertices[t->v2];
+			b3Vec3 v3 = xf * mesh->vertices[t->v3];
+
 			b3Vec3 n = b3Cross(v2 - v1, v3 - v1);
 			n.Normalize();
 
 			glBegin(GL_TRIANGLES);
 			glNormal3f(n.x, n.y, n.z);
 
-			glVertex3f(v1.x, v1.y, v1.z);			
+			glVertex3f(v1.x, v1.y, v1.z);
 			glVertex3f(v2.x, v2.y, v2.z);
 			glVertex3f(v3.x, v3.y, v3.z);
-			
+
 			glEnd();
-		}		
+		}
 	}
 
 	void DrawShape(const b3Shape* s, const b3Transform& xf)
@@ -592,12 +605,12 @@ struct DrawShapes
 			glEnable(GL_COLOR_MATERIAL);
 			glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 			glColor4fv(&fillColor.r);
-			
+
 			const b3Transform& xf = b->GetTransform();
 			b3Shape* s = b->GetShapeList().m_head;
 			while (s)
 			{
-				DrawShape(s, xf);	
+				DrawShape(s, xf);
 				s = s->GetNext();
 			}
 
@@ -605,7 +618,7 @@ struct DrawShapes
 
 			b = b->GetNext();
 		}
-		
+
 		glDisable(GL_LIGHT0);
 		glDisable(GL_LIGHTING);
 	}
@@ -672,7 +685,7 @@ void DebugDraw::DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 r
 	float32 cosInc = cos(kAngleInc);
 	float32 sinInc = sin(kAngleInc);
 	float32 tInc = 1.0f - cosInc;
-	
+
 	b3Vec3 n1 = b3Perp(normal);
 	b3Vec3 v1 = center + radius * n1;
 	for (u32 i = 0; i < kEdgeCount; ++i)
@@ -748,13 +761,13 @@ void DebugDraw::DrawAABB(const b3AABB3& aabb, const b3Color& color)
 	b3Vec3 upper = aabb.m_upper;
 
 	b3Vec3 vs[8];
-	
+
 	// Face 1
 	vs[0] = lower;
 	vs[1] = b3Vec3(lower.x, upper.y, lower.z);
 	vs[2] = b3Vec3(upper.x, upper.y, lower.z);
 	vs[3] = b3Vec3(upper.x, lower.y, lower.z);
-	
+
 	// Face 2
 	vs[4] = upper;
 	vs[5] = b3Vec3(upper.x, lower.y, upper.z);
@@ -766,17 +779,17 @@ void DebugDraw::DrawAABB(const b3AABB3& aabb, const b3Color& color)
 	DrawSegment(vs[1], vs[2], color);
 	DrawSegment(vs[2], vs[3], color);
 	DrawSegment(vs[3], vs[0], color);
-	
+
 	// Face 2 edges
 	DrawSegment(vs[4], vs[5], color);
 	DrawSegment(vs[5], vs[6], color);
 	DrawSegment(vs[6], vs[7], color);
 	DrawSegment(vs[7], vs[4], color);
-	
+
 	// Face 3 edges
 	DrawSegment(vs[2], vs[4], color);
 	DrawSegment(vs[5], vs[3], color);
-	
+
 	// Face 4 edges
 	DrawSegment(vs[6], vs[0], color);
 	DrawSegment(vs[1], vs[7], color);

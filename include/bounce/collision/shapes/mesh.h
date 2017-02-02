@@ -22,6 +22,43 @@
 #include <bounce/common/geometry.h>
 #include <bounce/collision/trees/static_tree.h>
 
+// A triangle in indexed form.
+struct b3Triangle
+{
+	// Does nothing for performance.
+	b3Triangle() { }
+
+	// Set this triangle from three vertices.
+	b3Triangle(u32 _v1, u32 _v2, u32 _v3)
+	{
+		v1 = _v1;
+		v2 = _v2;
+		v3 = _v3;
+	}
+
+	// Set this triangle from three vertices.
+	void Set(u32 _v1, u32 _v2, u32 _v3)
+	{
+		v1 = _v1;
+		v2 = _v2;
+		v3 = _v3;
+	}
+
+	// Test if this triangle contains a given vertex.
+	bool TestVertex(u32 v) const
+	{
+		return v == v1 || v == v2 || v == v3;
+	}
+
+	// Test if this triangle contains two vertices.
+	bool TestEdge(u32 _v1, u32 _v2) const
+	{
+		return TestVertex(_v1) && TestVertex(_v2);
+	}
+
+	u32 v1, v2, v3;
+};
+
 struct b3Mesh 
 {
 	u32 vertexCount;
@@ -102,13 +139,12 @@ inline b3AABB3 b3Mesh::GetTriangleAABB(u32 index) const
 
 inline u32 b3Mesh::GetSize() const
 {
-	u32 memory = 0;
-	memory += sizeof(b3Mesh);
-	memory += sizeof(b3Vec3) * vertexCount;
-	memory += sizeof(b3Triangle) * triangleCount;
-	memory += sizeof(b3Plane) * triangleCount;
-	memory += sizeof(b3StaticTree);
-	return memory;
+	u32 size = 0;
+	size += sizeof(b3Mesh);
+	size += sizeof(b3Vec3) * vertexCount;
+	size += sizeof(b3Triangle) * triangleCount;
+	size += tree.GetSize();
+	return size;
 }
 
 #endif

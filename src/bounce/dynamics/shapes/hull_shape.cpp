@@ -39,41 +39,6 @@ void b3HullShape::Swap(const b3HullShape& other)
 
 void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 {
-	// Build triangles for hull
-	b3StackArray<b3Triangle, 256> triangles;
-	
-	// Use a small buffer for polygons.
-	u32 polygon[B3_MAX_HULL_FEATURES];
-	u32 vCount = 0;
-
-	// Convert polygons to triangles
-	for (u32 i = 0; i < m_hull->faceCount; ++i)
-	{
-		// Build convex polygon for loop
-		const b3Face* face = m_hull->GetFace(i);
-		const b3HalfEdge* begin = m_hull->GetEdge(face->edge);
-		const b3HalfEdge* edge = begin;
-		do
-		{
-			polygon[vCount++] = u32(edge->origin);
-			edge = m_hull->GetEdge(edge->next);
-		} while (edge != begin);
-		
-		// Triangulate convex polygon
-		B3_ASSERT(vCount > 2);
-		for (u32 j = 1; j < vCount - 1; ++j)
-		{
-			b3Triangle triangle;
-			triangle.v1 = polygon[0];
-			triangle.v2 = polygon[j];
-			triangle.v3 = polygon[j + 1];
-			triangles.PushBack(triangle);
-		}
-
-		vCount = 0;
-	}
-	vCount = 0;
-
 	// Compute mass data
 	b3Vec3 center(0.0f, 0.0f, 0.0f);
 	float32 volume = 0.0f;
@@ -92,41 +57,56 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 	b3Vec3 diag(0.0f, 0.0f, 0.0f);
 	b3Vec3 offDiag(0.0f, 0.0f, 0.0f);
 
-	for (u32 i = 0; i < triangles.Count(); ++i)
+	// Triangulate convex polygons
+	for (u32 i = 0; i < m_hull->faceCount; ++i)
 	{
-		const b3Triangle* triangle = triangles.Get(i);
-
-		b3Vec3 v2 = m_hull->GetVertex(triangle->v1);
-		b3Vec3 v3 = m_hull->GetVertex(triangle->v2);
-		b3Vec3 v4 = m_hull->GetVertex(triangle->v3);
-		b3Vec3 tetraCenter = inv4 * (v1 + v2 + v3 + v4);
-
-		b3Vec3 e1 = v2 - v1;
-		b3Vec3 e2 = v3 - v1;
-		b3Vec3 e3 = v4 - v1;
-		float32 det = b3Det(e1, e2, e3);
-		float32 tetraVolume = inv6 * det;
-
-		// Volume weighted center of mass
-		center += tetraVolume * tetraCenter;
-		volume += tetraVolume;
-
-		// Volume weighted inertia tensor
-		// https://github.com/melax/sandbox
-		for (u32 j = 0; j < 3; ++j)
+		const b3Face* face = m_hull->GetFace(i);
+		const b3HalfEdge* begin = m_hull->GetEdge(face->edge);
+		
+		const b3HalfEdge* edge = m_hull->GetEdge(begin->next);
+		do
 		{
-			u32 j1 = (j + 1) % 3;
-			u32 j2 = (j + 2) % 3;
+			u32 i1 = begin->origin;
+			u32 i2 = edge->origin;
+			const b3HalfEdge* next = m_hull->GetEdge(edge->next);
+			u32 i3 = next->origin;
 
-			diag[j] += inv60 * det *
-				(e1[j] * e2[j] + e2[j] * e3[j] + e3[j] * e1[j] +
-				 e1[j] * e1[j] + e2[j] * e2[j] + e3[j] * e3[j]);
+			b3Vec3 v2 = m_hull->vertices[i1];
+			b3Vec3 v3 = m_hull->vertices[i2];
+			b3Vec3 v4 = m_hull->vertices[i3];
+			
+			//
+			b3Vec3 tetraCenter = inv4 * (v1 + v2 + v3 + v4);
 
-			offDiag[j] += inv120 * det  *
-				(e1[j1] * e2[j2] + e2[j1] * e3[j2] + e3[j1] * e1[j2] +
-				 e1[j1] * e3[j2] + e2[j1] * e1[j2] + e3[j1] * e2[j2] +
-				 e1[j1] * e1[j2] * 2.0f + e2[j1] * e2[j2] * 2.0f + e3[j1] * e3[j2] * 2.0f);
-		}
+			b3Vec3 e1 = v2 - v1;
+			b3Vec3 e2 = v3 - v1;
+			b3Vec3 e3 = v4 - v1;
+			float32 det = b3Det(e1, e2, e3);
+			float32 tetraVolume = inv6 * det;
+
+			// Volume weighted center of mass
+			center += tetraVolume * tetraCenter;
+			volume += tetraVolume;
+
+			// Volume weighted inertia tensor
+			// https://github.com/melax/sandbox
+			for (u32 j = 0; j < 3; ++j)
+			{
+				u32 j1 = (j + 1) % 3;
+				u32 j2 = (j + 2) % 3;
+
+				diag[j] += inv60 * det *
+					(e1[j] * e2[j] + e2[j] * e3[j] + e3[j] * e1[j] +
+						e1[j] * e1[j] + e2[j] * e2[j] + e3[j] * e3[j]);
+
+				offDiag[j] += inv120 * det  *
+					(e1[j1] * e2[j2] + e2[j1] * e3[j2] + e3[j1] * e1[j2] +
+						e1[j1] * e3[j2] + e2[j1] * e1[j2] + e3[j1] * e2[j2] +
+						e1[j1] * e1[j2] * 2.0f + e2[j1] * e2[j2] * 2.0f + e3[j1] * e3[j2] * 2.0f);
+			}
+			
+			edge = next;
+		} while (m_hull->GetEdge(edge->next) != begin);
 	}
 
 	B3_ASSERT(volume > 0.0f);
