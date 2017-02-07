@@ -214,7 +214,7 @@ public:
 		{
 			// Replace current hit
 			g_debugDraw->DrawSegment(p1, hit.point, b3Color(0.0f, 1.0f, 0.0f));
-			g_debugDraw->DrawPoint(hit.point, b3Color(1.0f, 0.0f, 0.0f));
+			g_debugDraw->DrawPoint(hit.point, 4.0f, b3Color(1.0f, 0.0f, 0.0f));
 			g_debugDraw->DrawSegment(hit.point, hit.point + hit.normal, b3Color(1.0f, 1.0f, 1.0f));
 		}
 		else

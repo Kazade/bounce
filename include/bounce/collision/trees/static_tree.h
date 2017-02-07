@@ -33,9 +33,8 @@ public:
 	b3StaticTree();
 	~b3StaticTree();
 
-	// Build this tree from a list of AABBs and the list 
-	// of indices to the AABBs.
-	void Build(u32* indices, const b3AABB3* aabbs, u32 count);
+	// Build this tree from a list of AABBs.
+	void Build(const b3AABB3* aabbs, u32 count);
 
 	// Get the AABB of a given proxy.
 	const b3AABB3& GetAABB(u32 proxyId) const;

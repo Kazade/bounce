@@ -60,9 +60,15 @@ struct b3SortPredicate
 	}
 };
 
-void b3StaticTree::Build(u32* ids, const b3AABB3* set, u32 n)
+void b3StaticTree::Build(const b3AABB3* set, u32 n)
 {
 	B3_ASSERT(n > 0);
+
+	u32* ids = (u32*)b3Alloc(n * sizeof(u32));
+	for (u32 i = 0; i < n; ++i)
+	{
+		ids[i] = i;
+	}
 
 	// Leafs = n, Internals = n - 1, Total = 2n - 1, if we assume
 	// each leaf node contains exactly 1 object.
@@ -184,6 +190,8 @@ void b3StaticTree::Build(u32* ids, const b3AABB3* set, u32 n)
 		}
 	}
 	
+	b3Free(ids);
+
 	B3_ASSERT(leafCount == leafCapacity);
 	B3_ASSERT(internalCount == internalCapacity);
 	B3_ASSERT(m_nodeCount == nodeCapacity);

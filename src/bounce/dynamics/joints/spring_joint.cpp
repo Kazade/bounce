@@ -261,7 +261,7 @@ void b3SpringJoint::Draw(b3Draw* draw) const
 	b3Vec3 a = GetBodyA()->GetWorldPoint(m_localAnchorA);
 	b3Vec3 b = GetBodyB()->GetWorldPoint(m_localAnchorB);
 	
-	draw->DrawPoint(a, green);
-	draw->DrawPoint(b, green);
+	draw->DrawPoint(a, 4.0f, red);
+	draw->DrawPoint(b, 4.0f, green);
 	draw->DrawSegment(a, b, blue);
 }

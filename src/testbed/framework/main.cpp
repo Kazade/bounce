@@ -255,19 +255,19 @@ void Interface()
 	{
 		glfwSetWindowShouldClose(g_window, true);
 	}
-	
+
 	ImGui::Separator();
 
 	ImGui::Text("Step");
-	
+
 	ImGui::Text("Hertz");
-	ImGui::SliderFloat("##Hertz", &g_settings.hertz, 0.0f, 240.0f, "%.4f");
+	ImGui::SliderFloat("##Hertz", &g_settings.hertz, 0.0f, 240.0f, "%.1f");
 	ImGui::Text("Velocity Iterations");
 	ImGui::SliderInt("##Velocity Iterations", &g_settings.velocityIterations, 0, 50);
 	ImGui::Text("Position Iterations");
 	ImGui::SliderInt("#Position Iterations", &g_settings.positionIterations, 0, 50);
-	ImGui::Checkbox("Warm Start", &g_settings.warmStart);
 	ImGui::Checkbox("Sleep", &g_settings.sleep);
+	ImGui::Checkbox("Warm Start", &g_settings.warmStart);
 	//ImGui::Checkbox("Convex Cache", &g_settings.convexCache);
 
 	if (ImGui::Button("Play/Pause", buttonSize))
@@ -280,13 +280,12 @@ void Interface()
 		g_settings.singleStep = true;
 	}
 
-	ImGui::PopItemWidth();
-
 	ImGui::Separator();
 
 	ImGui::Text("View");
 	ImGui::Checkbox("Grid", &g_settings.drawGrid);
-	ImGui::Checkbox("Polygons", &g_settings.drawShapes);
+	ImGui::Checkbox("Vertices and Edges", &g_settings.drawVerticesEdges);
+	ImGui::Checkbox("Faces", &g_settings.drawFaces);
 	ImGui::Checkbox("Center of Masses", &g_settings.drawCenterOfMasses);
 	ImGui::Checkbox("Bounding Boxes", &g_settings.drawBounds);
 	ImGui::Checkbox("Joints", &g_settings.drawJoints);
@@ -295,12 +294,42 @@ void Interface()
 	ImGui::Checkbox("Contact Tangents", &g_settings.drawContactTangents);
 	ImGui::Checkbox("Statistics", &g_settings.drawStats);
 	ImGui::Checkbox("Profile", &g_settings.drawProfile);
-	
+
 	ImGui::End();
 }
 
 void Step()
 {
+	if (g_settings.drawGrid)
+	{
+		int n = 20;
+
+		b3Vec3 t;
+		t.x = -0.5f * float32(n);
+		t.y = 0.0f;
+		t.z = -0.5f * float32(n);
+
+		b3Color color(0.5f, 0.5f, 0.5f, 1.0f);
+		for (int i = 0; i < n; i += 1)
+		{
+			for (int j = 0; j < n; j += 1)
+			{
+				b3Vec3 vs[4];
+				vs[0] = b3Vec3((float)i, 0.0f, (float)j);
+				vs[1] = b3Vec3((float)i, 0.0f, (float)j + 1);
+				vs[2] = b3Vec3((float)i + 1, 0.0f, (float)j + 1);
+				vs[3] = b3Vec3((float)i + 1, 0.0f, (float)j);
+
+				for (u32 k = 0; k < 4; ++k)
+				{
+					vs[k] += t;
+				}
+
+				g_debugDraw->DrawPolygon(vs, 4, color);
+			}
+		}
+	}
+
 	if (g_settings.testID != g_settings.lastTestID)
 	{
 		delete g_test;
@@ -308,7 +337,9 @@ void Step()
 		g_test = g_tests[g_settings.testID].create();
 		g_settings.pause = true;
 	}
-	g_test->Step();
+	
+	g_test->Step();	
+	g_debugDraw->Draw();
 }
 
 void Run()
@@ -320,8 +351,11 @@ void Run()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 
-	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+	glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 	glClearDepth(1.0f);
+
+	double t1 = glfwGetTime();
+	double frameTime = 0.0;
 
 	while (glfwWindowShouldClose(g_window) == 0)
 	{
@@ -335,62 +369,19 @@ void Run()
 		
 		ImGui_ImplGlfwGL3_NewFrame();
 		
-		if (g_settings.drawGrid)
-		{
-			int n = 20;
+		ImGui::SetNextWindowPos(ImVec2(0, 0));
+		ImGui::SetNextWindowSize(ImVec2((float)g_camera.m_width, (float)g_camera.m_height));
+		ImGui::Begin("Overlay", NULL, ImVec2(0, 0), 0.0f, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
+		ImGui::SetCursorPos(ImVec2(5, (float)g_camera.m_height - 20));
+		ImGui::Text("%.1f ms", 1000.0 * frameTime);
+		ImGui::End();
 
-			b3Vec3 t;
-			t.x = -0.5f * float32(n);
-			t.y = 0.0f;
-			t.z = -0.5f * float32(n);
-
-			b3Color color(1.0f, 1.0f, 1.0f, 1.0f);
-			for (int i = 0; i < n; i += 1)
-			{
-				for (int j = 0; j < n; j += 1)
-				{
-					b3Vec3 vs[4];
-					vs[0] = b3Vec3((float)i, 0.0f, (float)j);
-					vs[1] = b3Vec3((float)i, 0.0f, (float)j + 1);
-					vs[2] = b3Vec3((float)i + 1, 0.0f, (float)j + 1);
-					vs[3] = b3Vec3((float)i + 1, 0.0f, (float)j);
-
-					for (u32 k = 0; k < 4; ++k)
-					{
-						vs[k] += t;
-					}
-
-					g_debugDraw->DrawPolygon(vs, 4, color);
-				}
-			}
-
-			b3Color color2(0.0f, 0.0f, 0.0f);
-
-			{
-				b3Vec3 p1(t.x, 0.005f, 0.0f);
-				b3Vec3 p2(-t.x, 0.005f, 0.0f);
-
-				g_debugDraw->DrawSegment(p1, p2, color2);
-			}
-
-			{
-				b3Vec3 p1(0.0f, 0.005f, t.x);
-				b3Vec3 p2(0.0f, 0.005f, -t.x);
-
-				g_debugDraw->DrawSegment(p1, p2, color2);
-			}
-		}
-		
-		Step();
-		
-		g_debugDraw->Submit();
-
-		if (g_settings.drawShapes)
-		{
-			g_debugDraw->Submit(g_test->m_world);
-		}
-		
 		Interface();
+		Step();
+
+		double t = glfwGetTime();
+		frameTime = t - t1;
+		t1 = t;
 
 		ImGui::Render();
 
@@ -413,14 +404,18 @@ int main(int argc, char** args)
 		return -1;
 	}
 	
-	// Create g_window
+	// Create window
 	extern b3Version b3_version;
 	char title[256];
 	sprintf(title, "Bounce Testbed Version %d.%d.%d", b3_version.major, b3_version.minor, b3_version.revision);
-	
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    	
+
+#if defined(__APPLE__)
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#endif
+		
 	g_window = glfwCreateWindow(1024, 768, title, NULL, NULL);
 	if (g_window == NULL)
 	{		

@@ -51,13 +51,13 @@ public:
 			b3Vec3 pw = wmp->point;
 			b3Vec2 ps = g_camera.ConvertWorldToScreen(pw);
 			
-			g_debugDraw->DrawPoint(pw, b3Color(0.0f, 1.0f, 0.0f));
+			g_debugDraw->DrawPoint(pw, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
 			g_debugDraw->DrawSegment(pw, pw + wmp->normal, b3Color(1.0f, 1.0f, 1.0f));
 		}
 
 		if (wm.pointCount > 0)
 		{
-			g_debugDraw->DrawPoint(wm.center, b3Color(1.0f, 1.0f, 0.0f));
+			g_debugDraw->DrawPoint(wm.center, 4.0f, b3Color(1.0f, 1.0f, 0.0f));
 			g_debugDraw->DrawSegment(wm.center, wm.center + wm.normal, b3Color(1.0f, 1.0f, 0.0f));
 			g_debugDraw->DrawSegment(wm.center, wm.center + wm.tangent1, b3Color(1.0f, 1.0f, 0.0f));
 			g_debugDraw->DrawSegment(wm.center, wm.center + wm.tangent2, b3Color(1.0f, 1.0f, 0.0f));

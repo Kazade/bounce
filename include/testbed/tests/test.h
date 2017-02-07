@@ -36,7 +36,8 @@ struct Settings
 		warmStart = true;
 		convexCache = true;
 		drawCenterOfMasses = false;
-		drawShapes = true;
+		drawVerticesEdges = true;
+		drawFaces = true;
 		drawBounds = false;
 		drawJoints = true;
 		drawContactPoints = true;
@@ -62,7 +63,8 @@ struct Settings
 	bool convexCache;
 	bool drawCenterOfMasses;
 	bool drawBounds;
-	bool drawShapes;
+	bool drawVerticesEdges;
+	bool drawFaces;
 	bool drawSolidShapes;
 	bool drawJoints;
 	bool drawContactPoints;

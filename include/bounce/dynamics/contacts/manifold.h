@@ -33,6 +33,7 @@ struct b3ManifoldPoint
 	b3Vec3 localPoint; // local point on the first shape	
 	b3Vec3 localPoint2; // local point on the other shape
 	float32 normalImpulse; // normal impulse
+	b3Vec2 tangentImpulse; // tangent impulses 
 	u8 persisting; // indicates that the point is persisting
 };
 
@@ -65,8 +66,9 @@ struct b3WorldManifoldPoint
 		const b3Transform& xfA, float32 radiusA,
 		const b3Transform& xfB, float32 radiusB);
 
-	b3Vec3 normal;
 	b3Vec3 point;
+	b3Vec3 normal;
+	b3Vec2 tangents[2];
 	float32 separation;
 };
 

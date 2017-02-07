@@ -22,6 +22,9 @@
 #include <bounce/dynamics/body.h>
 #include <bounce/common/memory/stack_allocator.h>
 
+// Turn on or off central friction. This is an important optimization for old hardwares. 
+#define B3_CENTRAL_FRICTION 0
+
 // This solver implements PGS for solving velocity constraints and 
 // NGS for solving position constraints.
 
@@ -138,6 +141,7 @@ void b3ContactSolver::InitializeConstraints()
 				pcp->localPointB = cp->localPoint2;
 
 				vcp->normalImpulse = cp->normalImpulse;
+				vcp->tangentImpulse = cp->tangentImpulse;
 			}
 		}
 	}
@@ -225,8 +229,43 @@ void b3ContactSolver::InitializeConstraints()
 						vcp->velocityBias = -vc->restitution * vn;
 					}
 				}
+
+#if B3_CENTRAL_FRICTION == 0
+				// Add friction constraints.
+				{
+					vcp->tangent1 = vcm->tangent1;
+					vcp->tangent2 = vcm->tangent2;
+
+					b3Vec3 t1 = vcp->tangent1;
+					b3Vec3 t2 = vcp->tangent2;
+
+					// Compute effective mass.
+					// Identities used:
+					// I = I^T because I is symmetric. Its inverse is also symmetric.
+					// dot(a * u, b * v) = a * b * dot(u, v)
+					// dot(t1, t2) = 0
+					b3Vec3 rt1A = b3Cross(rA, t1);
+					b3Vec3 rt1B = b3Cross(rB, t1);
+					b3Vec3 rt2A = b3Cross(rA, t2);
+					b3Vec3 rt2B = b3Cross(rB, t2);
+
+					float32 kTan11 = mA + mB + b3Dot(iA * rt1A, rt1A) + b3Dot(iB * rt2B, rt2B);
+					float32 kTan12 = b3Dot(iA * rt1A, rt2A) + b3Dot(iB * rt1B, rt2B);
+					float32 kTan21 = kTan12;
+					float32 kTan22 = mA + mB + b3Dot(iA * rt2A, rt2A) + b3Dot(iB * rt2B, rt2B);
+
+					b3Mat22 K;
+					K.x.x = kTan11;
+					K.x.y = kTan12;
+					K.y.x = kTan21;
+					K.y.y = kTan22;
+
+					vcp->tangentMass = K;
+				}
+#endif
 			}
 
+#if B3_CENTRAL_FRICTION == 1
 			if (pointCount > 0)
 			{
 				b3Vec3 rA = vcm->center - xA;
@@ -235,7 +274,7 @@ void b3ContactSolver::InitializeConstraints()
 				vcm->rA = rA;
 				vcm->rB = rB;
 
-				// Add friction constraint.
+				// Add friction constraints.
 				{
 					b3Vec3 t1 = vcm->tangent1;
 					b3Vec3 t2 = vcm->tangent2;
@@ -270,6 +309,7 @@ void b3ContactSolver::InitializeConstraints()
 					vcm->motorMass = mass > 0.0f ? 1.0f / mass : 0.0f;
 				}
 			}
+#endif
 		}
 	}
 }
@@ -304,7 +344,10 @@ void b3ContactSolver::WarmStart()
 			{
 				b3VelocityConstraintPoint* vcp = vcm->points + k;
 
-				b3Vec3 P = vcp->normalImpulse * vcp->normal;
+				b3Vec3 P1 = vcp->normalImpulse * vcp->normal;
+				b3Vec3 P2 = vcp->tangentImpulse.x * vcp->tangent1;
+				b3Vec3 P3 = vcp->tangentImpulse.y * vcp->tangent2;
+				b3Vec3 P = P1 + P2 + P3;
 
 				vA -= mA * P;
 				wA -= iA * b3Cross(vcp->rA, P);
@@ -313,18 +356,20 @@ void b3ContactSolver::WarmStart()
 				wB += iB * b3Cross(vcp->rB, P);
 			}
 
+#if B3_CENTRAL_FRICTION == 1
 			if (pointCount > 0)
 			{
 				b3Vec3 P1 = vcm->tangentImpulse.x * vcm->tangent1;
 				b3Vec3 P2 = vcm->tangentImpulse.y * vcm->tangent2;
 				b3Vec3 P3 = vcm->motorImpulse * vcm->normal;
-
+				
 				vA -= mA * (P1 + P2);
 				wA -= iA * (b3Cross(vcm->rA, P1 + P2) + P3);
 
 				vB += mB * (P1 + P2);
 				wB += iB * (b3Cross(vcm->rB, P1 + P2) + P3);
 			}
+#endif
 		}
 
 		m_velocities[indexA].v = vA;
@@ -387,8 +432,43 @@ void b3ContactSolver::SolveVelocityConstraints()
 
 					normalImpulse += vcp->normalImpulse;
 				}
+
+#if B3_CENTRAL_FRICTION == 0
+				// Solve tangent constraints.
+				{
+					b3Vec3 dv = vB + b3Cross(wB, vcp->rB) - vA - b3Cross(wA, vcp->rA);
+
+					b3Vec2 Cdot;
+					Cdot.x = b3Dot(dv, vcp->tangent1);
+					Cdot.y = b3Dot(dv, vcp->tangent2);
+
+					b3Vec2 impulse = vcp->tangentMass.Solve(-Cdot);
+					b3Vec2 oldImpulse = vcp->tangentImpulse;
+					vcp->tangentImpulse += impulse;
+
+					float32 maxImpulse = vc->friction * vcp->normalImpulse;
+					if (b3Dot(vcp->tangentImpulse, vcp->tangentImpulse) > maxImpulse * maxImpulse)
+					{
+						vcp->tangentImpulse.Normalize();
+						vcp->tangentImpulse *= maxImpulse;
+					}
+
+					impulse = vcp->tangentImpulse - oldImpulse;
+
+					b3Vec3 P1 = impulse.x * vcp->tangent1;
+					b3Vec3 P2 = impulse.y * vcp->tangent2;
+					b3Vec3 P = P1 + P2;
+
+					vA -= mA * P;
+					wA -= iA * b3Cross(vcp->rA, P);
+
+					vB += mB * P;
+					wB += iB * b3Cross(vcp->rB, P);
+				}
+#endif
 			}
 			
+#if B3_CENTRAL_FRICTION == 1
 			if (pointCount > 0)
 			{
 				// Solve tangent constraints.
@@ -438,6 +518,7 @@ void b3ContactSolver::SolveVelocityConstraints()
 					wB += iB * P;
 				}
 			}
+#endif
 		}
 
 		m_velocities[indexA].v = vA;
@@ -471,6 +552,7 @@ void b3ContactSolver::StoreImpulses()
 				b3ManifoldPoint* cp = m->points + k;
 				b3VelocityConstraintPoint* vcp = vcm->points + k;
 				cp->normalImpulse = vcp->normalImpulse;
+				cp->tangentImpulse = vcp->tangentImpulse;
 			}
 		}
 	}

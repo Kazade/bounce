@@ -76,8 +76,8 @@ void b3CapsuleShape::ComputeMass(b3MassData* massData, float32 density) const
 		float32 volume = (2.0f / 3.0f) * B3_PI * r3;
 		float32 mass = density * volume;
 		
-		// Ic = Io + m * d^2
-		// Io = Ic - m * d^2
+		// I = Ic + m * d^2
+		// Ic = I - m * d^2
 
 		// Hemisphere inertia about the origin
 		float32 Io = (2.0f / 5.0f) * mass * r2;
@@ -126,6 +126,8 @@ void b3CapsuleShape::ComputeMass(b3MassData* massData, float32 density) const
 	massData->center = Ic_Capsule.center;
 	massData->mass = Ic_Capsule.mass;
 	massData->I = Ic;
+
+
 }
 
 void b3CapsuleShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const 
@@ -205,6 +207,33 @@ bool b3CapsuleShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& inpu
 	// Check for short segment.
 	if (dd < B3_EPSILON * B3_EPSILON)
 	{
+		float32 a = nn;
+		
+		b3Vec3 m = A - P;
+		float32 b = b3Dot(m, n);
+		float32 c = b3Dot(m, m) - m_radius * m_radius;
+
+		float32 disc = b * b - a * c;
+
+		// Check for negative discriminant.
+		if (disc < 0.0f)
+		{
+			return false;
+		}
+
+		// Find the minimum time of impact of the line with the sphere.
+		float32 t = -b - b3Sqrt(disc);
+
+		// Is the intersection point on the segment?
+		if (t > 0.0f && t <= input.maxFraction * a)
+		{
+			// Finish solution.
+			t /= a;
+			output->fraction = t;
+			output->normal = b3Normalize(m + t * n);
+			return true;
+		}
+
 		return false;
 	}
 

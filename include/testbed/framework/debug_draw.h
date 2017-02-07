@@ -25,7 +25,8 @@
 struct DrawPoints;
 struct DrawLines;
 struct DrawTriangles;
-struct DrawShapes;
+struct DrawWire;
+struct DrawSolid;
 
 class Camera
 {
@@ -66,13 +67,17 @@ public:
 	DebugDraw();
 	~DebugDraw();
 
-	void DrawPoint(const b3Vec3& point, const b3Color& color);
+	void DrawPoint(const b3Vec3& p, float32 size, const b3Color& color);
 
-	void DrawSegment(const b3Vec3& a, const b3Vec3& b, const b3Color& color);
+	void DrawSegment(const b3Vec3& p1, const b3Vec3& p2, const b3Color& color);
+	
+	void DrawTriangle(const b3Vec3& p1, const b3Vec3& p2, const b3Vec3& p3, const b3Color& color);
+
+	void DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const b3Vec3& p2, const b3Vec3& p3, const b3Color& color);
 
 	void DrawPolygon(const b3Vec3* vertices, u32 count, const b3Color& color);
 	
-	void DrawSolidPolygon(const b3Vec3* vertices, u32 count, const b3Color& color);
+	void DrawSolidPolygon(const b3Vec3& normal, const b3Vec3* vertices, u32 count, const b3Color& color);
 
 	void DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color);
 
@@ -86,15 +91,30 @@ public:
 
 	void DrawTransform(const b3Transform& xf);
 
+	//
 	void DrawString(const char* string, const b3Color& color, ...);
 
-	void Submit();
-	void Submit(const b3World& world);
+	void DrawSphere(const b3SphereShape* s, const b3Color& c, const b3Transform& xf);
+
+	void DrawCapsule(const b3CapsuleShape* s, const b3Color& c, const b3Transform& xf);
+	
+	void DrawHull(const b3HullShape* s, const b3Color& c, const b3Transform& xf);
+	
+	void DrawMesh(const b3MeshShape* s, const b3Color& c, const b3Transform& xf);
+
+	void DrawShape(const b3Shape* s, const b3Color& c, const b3Transform& xf);
+
+	void Draw(const b3World& world);
+
+	void Draw();
 private:
+	friend struct DrawShapes;
+
 	DrawPoints* m_points;
 	DrawLines* m_lines;
 	DrawTriangles* m_triangles;
-	DrawShapes* m_shapes;
+	DrawWire* m_wire;
+	DrawSolid* m_solid;
 };
 
 #endif

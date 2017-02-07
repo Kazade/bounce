@@ -62,16 +62,22 @@ public :
 	void AppendFlags(u32 flags);
 	
 	// Draw a point.
-	virtual void DrawPoint(const b3Vec3& point, const b3Color& color) = 0;
+	virtual void DrawPoint(const b3Vec3& p, float32 size, const b3Color& color) = 0;
 
 	// Draw a line segment.
-	virtual void DrawSegment(const b3Vec3& a, const b3Vec3& b, const b3Color& color) = 0;
-	
+	virtual void DrawSegment(const b3Vec3& p1, const b3Vec3& p2, const b3Color& color) = 0;
+
+	// Draw a triangle with vertices ordered CCW.
+	virtual void DrawTriangle(const b3Vec3& p1, const b3Vec3& p2, const b3Vec3& p3, const b3Color& color) = 0;
+
+	// Draw a solid triangle with vertices ordered CCW.
+	virtual void DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const b3Vec3& p2, const b3Vec3& p3, const b3Color& color) = 0;
+
 	// Draw a polygon with vertices ordered CCW.
 	virtual void DrawPolygon(const b3Vec3* vertices, u32 count, const b3Color& color) = 0;
 	
 	// Draw a solid polygon with vertices ordered CCW.
-	virtual void DrawSolidPolygon(const b3Vec3* vertices, u32 count, const b3Color& color) = 0;
+	virtual void DrawSolidPolygon(const b3Vec3& normal, const b3Vec3* vertices, u32 count, const b3Color& color) = 0;
 
 	// Draw a circle with center, normal, and radius.
 	virtual void DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color) = 0;

@@ -116,7 +116,7 @@ void b3MouseJoint::Draw(b3Draw* draw) const
 	b3Vec3 a = GetAnchorA();
 	b3Vec3 b = GetAnchorB();
 
-	draw->DrawPoint(a, green);
-	draw->DrawPoint(b, red);
+	draw->DrawPoint(a, 4.0f, green);
+	draw->DrawPoint(b, 4.0f, red);
 	draw->DrawSegment(a, b, yellow);
 }

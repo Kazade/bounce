@@ -27,6 +27,7 @@ void b3Manifold::GuessImpulses()
 	{
 		b3ManifoldPoint* p = points + i;
 		p->normalImpulse = 0.0f;
+		p->tangentImpulse.SetZero();
 		p->persisting = 0;
 	}
 }
@@ -45,6 +46,7 @@ void b3Manifold::FindImpulses(const b3Manifold& oldManifold)
 			if (p2->triangleKey == p1->triangleKey && p2->key == p1->key)
 			{
 				p2->normalImpulse = p1->normalImpulse;
+				p2->tangentImpulse = p1->tangentImpulse;
 				p2->persisting = 1;
 				break;
 			}
@@ -81,6 +83,7 @@ void b3WorldManifold::Initialize(const b3Manifold* manifold,
 	{
 		const b3ManifoldPoint* mp = manifold->points + i;
 		b3WorldManifoldPoint* wmp = points + i;
+		
 		wmp->Initialize(mp, xfA, radiusA, xfB, radiusB);
 	}
 }

@@ -385,44 +385,16 @@ void b3Cloth::Draw(b3Draw* draw) const
 		b3Particle* p2 = m_ps + t->v2;
 		b3Particle* p3 = m_ps + t->v3;
 
-		b3Vec3 vs1[3];
-		vs1[0] = p1->p;
-		vs1[1] = p2->p;
-		vs1[2] = p3->p;
+		b3Vec3 v1 = p1->p;
+		b3Vec3 v2 = p2->p;
+		b3Vec3 v3 = p3->p;
 
-		draw->DrawPolygon(vs1, 3, color4);
-		draw->DrawSolidPolygon(vs1, 3, color3);
-
-		b3Vec3 vs2[3];
-		vs2[0] = p1->p;
-		vs2[1] = p3->p;
-		vs2[2] = p2->p;
-
-		draw->DrawPolygon(vs2, 3, color4);
-		draw->DrawSolidPolygon(vs2, 3, color3);
-	}
-
-#if 0
-	for (u32 i = 0; i < m_c2Count; ++i)
-	{
-		b3C2* c = m_c2s + i;
-
-		b3Particle* p1 = m_ps + c->i1;
-		b3Particle* p2 = m_ps + c->i2;
-		b3Particle* p3 = m_ps + c->i3;
-		b3Particle* p4 = m_ps + c->i4;
-
-		b3Vec3 c1 = (p1->p + p2->p + p3->p) / 3.0f;
-		b3Vec3 n1 = b3Cross(p2->p - p1->p, p3->p - p1->p);
+		b3Vec3 n1 = b3Cross(v2 - v1, v3 - v1);
 		n1.Normalize();
 
-		draw->DrawSegment(c1, c1 + n1, color1);
+		b3Vec3 n2 = -n1;
 
-		b3Vec3 c2 = (p1->p + p4->p + p2->p) / 3.0f;
-		b3Vec3 n2 = b3Cross(p2->p - p1->p, p4->p - p1->p);
-		n2.Normalize();
-
-		draw->DrawSegment(c2, c2 + n2, color1);
+		draw->DrawSolidTriangle(n1, v1, v2, v3, color3);
+		draw->DrawSolidTriangle(n2, v1, v3, v2, color3);
 	}
-#endif
 }

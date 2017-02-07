@@ -61,10 +61,10 @@ public:
 		
 		if (b3Distance(pointA, pointB) > 0.0f)
 		{
-			g_debugDraw->DrawPoint(pointA, b3Color(1.0f, 0.0f, 0.0f));
-			g_debugDraw->DrawPoint(pointB, b3Color(1.0f, 0.0f, 0.0f));
+			g_debugDraw->DrawPoint(pointA, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
+			g_debugDraw->DrawPoint(pointB, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
 			
-			g_debugDraw->DrawSegment(pointA, pointB, b3Color(1.0f, 1.0f, 0.0f));
+			g_debugDraw->DrawSegment(pointA, pointB, b3Color(1.0f, 1.0f, 1.0f));
 		}
 
 		g_debugDraw->DrawTransform(m_xfA);

@@ -166,7 +166,7 @@ solution (solution_name)
 		location ( solution_dir .. action )
 		includedirs { external_dir, inc_dir }
 		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.cpp" }
-		buildoptions { "-std=c++11" } -- require C++11
+		buildoptions { "-std=c++11" } -- GNU/GCC C++11
 
 		--common
 		files 
@@ -179,11 +179,11 @@ solution (solution_name)
 
 		configuration { "windows" }
 			links { "glu32", "opengl32", "winmm" }
-
+			
 		configuration { "not windows", "not macosx" }
 			links 
 			{ 		
-				"GL", "GLU", "rt", "Xrandr", "Xinerama", "Xi", "Xcursor", 
+				"GL", "rt", "Xrandr", "Xinerama", "Xi", "Xcursor", 
 				"m", "dl", "Xrender", "drm", "Xdamage", "X11-xcb", "xcb-glx", 
 				"xcb-dri2", "xcb-dri3", "xcb-present", "xcb-sync", "xshmfence", 
 				"Xxf86vm", "Xfixes", "Xext", "X11", "pthread", "xcb", "Xau", "Xdmcp" 

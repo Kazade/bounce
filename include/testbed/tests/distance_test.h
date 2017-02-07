@@ -57,18 +57,18 @@ public:
 			for (u32 i = 0; i < featurePair.countA; ++i)
 			{
 				u32 index = featurePair.indexA[i];
-				g_debugDraw->DrawPoint(m_xfA * m_proxyA.GetVertex(index), b3Color(1.0f, 1.0f, 0.0f));
+				g_debugDraw->DrawPoint(m_xfA * m_proxyA.GetVertex(index), 4.0f, b3Color(1.0f, 1.0f, 0.0f));
 			}
 
 			for (u32 i = 0; i < featurePair.countB; ++i)
 			{
 				u32 index = featurePair.indexB[i];
-				g_debugDraw->DrawPoint(m_xfB * m_proxyB.GetVertex(index), b3Color(1.0f, 1.0f, 0.0f));
+				g_debugDraw->DrawPoint(m_xfB * m_proxyB.GetVertex(index), 4.0f, b3Color(1.0f, 1.0f, 0.0f));
 			}
 		}
 		
-		g_debugDraw->DrawPoint(out.pointA, b3Color(0.0f, 1.0f, 0.0f));
-		g_debugDraw->DrawPoint(out.pointB, b3Color(0.0f, 1.0f, 0.0f));
+		g_debugDraw->DrawPoint(out.pointA, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
+		g_debugDraw->DrawPoint(out.pointB, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
 		g_debugDraw->DrawSegment(out.pointA, out.pointB, b3Color(1.0f, 1.0f, 1.0f));
 
 		g_debugDraw->DrawTransform(m_xfA);

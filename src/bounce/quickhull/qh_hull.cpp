@@ -747,26 +747,28 @@ void qhHull::Draw(b3Draw* draw) const
 		b3Vec3 c = face->center;
 		b3Vec3 n = face->plane.normal;
 
+		b3StackArray<b3Vec3, 32> vs;
+		
+		const qhHalfEdge* begin = face->edge;
+		const qhHalfEdge* edge = begin;
+		do
+		{
+			vs.PushBack(edge->tail->position);
+			edge = edge->next;
+		} while (edge != begin);
+
+		draw->DrawSolidPolygon(n, vs.Elements(), vs.Count(), b3Color(1.0f, 1.0f, 1.0f, 0.5f));
+
 		qhVertex* v = face->conflictList.head;
 		while (v)
 		{
-			draw->DrawPoint(v->position, b3Color(1.0f, 1.0f, 0.0f));
+			draw->DrawPoint(v->position, 4.0f, b3Color(1.0f, 1.0f, 0.0f));
 			draw->DrawSegment(c, v->position, b3Color(1.0f, 1.0f, 0.0f));
 			v = v->next;
 		}
 
 		draw->DrawSegment(c, c + n, b3Color(1.0f, 1.0f, 1.0f));
 
-		b3StackArray<b3Vec3, 32> polygon;
-		qhHalfEdge* edge = face->edge;
-		do
-		{
-			polygon.PushBack(edge->tail->position);
-			edge = edge->next;
-		} while (edge != face->edge);
-
-		draw->DrawSolidPolygon(polygon.Elements(), polygon.Count(), b3Color(0.0f, 0.0f, 1.0f, 1.0f));
-		
 		face = face->next;
 	}
 }

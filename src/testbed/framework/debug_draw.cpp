@@ -19,22 +19,19 @@
 #include <testbed/framework/debug_draw.h> 
 
 #include <glad/glad.h>
-#include <GL/glu.h>
+#include <imgui/imgui.h>
+
 #include <stdio.h>
 #include <stdarg.h>
 
-#include <imgui/imgui.h>
-
 extern Camera g_camera;
+extern DebugDraw* g_debugDraw;
 
 Mat44 Camera::BuildProjectionMatrix() const
 {
-	// Tangent of the half cone angle along the y-axis
 	float32 t = tan(0.5f * m_fovy);
 	float32 sy = 1.0f / t;
 
-	// Set the x-scale equals to the y-scale and 
-	// proportional to the aspect ratio
 	float32 aspect = m_width / m_height;
 	float32 sx = 1.0f / (aspect * t);
 
@@ -42,13 +39,12 @@ Mat44 Camera::BuildProjectionMatrix() const
 	float32 sz = invRange * (m_zNear + m_zFar);
 	float32 tz = invRange *  m_zNear * m_zFar;
 
-	Mat44 xf;
-	xf.x.Set(sx, 0.0f, 0.0f, 0.0f);
-	xf.y.Set(0.0f, sy, 0.0f, 0.0f);
-	xf.z.Set(0.0f, 0.0f, sz, -1.0f);
-	xf.w.Set(0.0f, 0.0f, tz, 0.0f);
-
-	return xf;
+	Mat44 m;
+	m.x.Set(sx, 0.0f, 0.0f, 0.0f);
+	m.y.Set(0.0f, sy, 0.0f, 0.0f);
+	m.z.Set(0.0f, 0.0f, sz, -1.0f);
+	m.w.Set(0.0f, 0.0f, tz, 0.0f);
+	return m;
 }
 
 b3Transform Camera::BuildWorldTransform() const
@@ -81,21 +77,8 @@ Mat44 Camera::BuildViewMatrix() const
 
 b3Vec2 Camera::ConvertWorldToScreen(const b3Vec3& pw) const
 {
-	Mat44 xf1 = BuildWorldMatrix();
-	Mat44 xf2 = BuildProjectionMatrix();
-	Mat44 viewProj = xf2 * xf1;
-
-	Vec4 ph(pw.x, pw.y, pw.z, 1.0f);
-	Vec4 ppj = viewProj * ph;
-
-	b3Vec3 pn;
-	pn.x = ppj.x / ppj.w;
-	pn.y = ppj.y / ppj.w;
-	pn.z = ppj.z / ppj.w;
-
 	b3Vec2 ps;
-	ps.x = 0.5f * m_width * pn.x + (0.5f * m_width);
-	ps.y = -0.5f * m_height * pn.y + (0.5f * m_height);
+	ps.SetZero();
 	return ps;
 }
 
@@ -132,499 +115,963 @@ static void AssertGL()
 	}
 }
 
+static void PrintLog(GLuint id)
+{
+	GLint log_length = 0;
+	if (glIsShader(id))
+	{
+		glGetShaderiv(id, GL_INFO_LOG_LENGTH, &log_length);
+	}
+	else if (glIsProgram(id))
+	{
+		glGetProgramiv(id, GL_INFO_LOG_LENGTH, &log_length);
+	}
+	else
+	{
+		fprintf(stderr, "Not a shader or a program\n");
+		return;
+	}
+
+	char* log = (char*)malloc(log_length);
+
+	if (glIsShader(id))
+	{
+		glGetShaderInfoLog(id, log_length, NULL, log);
+	}
+	else if (glIsProgram(id))
+	{
+		glGetProgramInfoLog(id, log_length, NULL, log);
+	}
+
+	fprintf(stderr, "%s", log);
+	free(log);
+}
+
+static GLuint CreateShader(const char* source, GLenum type)
+{
+	GLuint shaderId = glCreateShader(type);
+	
+	const char* sources[] = { source };
+	glShaderSource(shaderId, 1, sources, NULL);
+	glCompileShader(shaderId);
+	
+	GLint status = GL_FALSE;
+	glGetShaderiv(shaderId, GL_COMPILE_STATUS, &status);
+	if (status == GL_FALSE)
+	{
+		fprintf(stderr, "Error compiling %d shader.\n", type);
+		PrintLog(shaderId);
+		glDeleteShader(shaderId);
+		return 0;
+	}
+	
+	return shaderId;
+}
+
+// 
+static GLuint CreateShaderProgram(const char* vs, const char* fs)
+{
+	GLuint vsId = CreateShader(vs, GL_VERTEX_SHADER);
+	GLuint fsId = CreateShader(fs, GL_FRAGMENT_SHADER);
+	assert(vsId != 0 && fsId != 0);
+
+	GLuint programId = glCreateProgram();
+	glAttachShader(programId, vsId);
+	glAttachShader(programId, fsId);
+	glBindFragDataLocation(programId, 0, "color");
+	glLinkProgram(programId);
+
+	glDeleteShader(vsId);
+	glDeleteShader(fsId);
+
+	GLint status = GL_FALSE;
+	glGetProgramiv(programId, GL_LINK_STATUS, &status);
+	assert(status != GL_FALSE);
+
+	return programId;
+}
+
 struct DrawPoints
 {
 	DrawPoints()
 	{
+		const char* vs = \
+			"#version 400\n"
+			"uniform mat4 projectionMatrix;\n"
+			"layout(location = 0) in vec3 v_position;\n"
+			"layout(location = 1) in vec4 v_color;\n"
+			"layout(location = 2) in float v_size;\n"
+			"out vec4 f_color;\n"
+			"void main()\n"
+			"{\n"
+			"	f_color = v_color;\n"
+			"	gl_Position = projectionMatrix * vec4(v_position, 1.0f);\n"
+			"   gl_PointSize = v_size;\n"
+			"}\n";
+
+		const char* fs = \
+			"#version 400\n"
+			"in vec4 f_color;\n"
+			"out vec4 color;\n"
+			"void main(void)\n"
+			"{\n"
+			"	color = f_color;\n"
+			"}\n";
+
+		m_programId = CreateShaderProgram(vs, fs);
+		m_projectionUniform = glGetUniformLocation(m_programId, "projectionMatrix");
+		m_vertexAttribute = 0;
+		m_colorAttribute = 1;
+		m_sizeAttribute = 2;
+
+		glGenBuffers(3, m_vboIds);
+		
+		glGenVertexArrays(1, &m_vaoId);
+
+		glBindVertexArray(m_vaoId);
+		glEnableVertexAttribArray(m_vertexAttribute);
+		glEnableVertexAttribArray(m_colorAttribute);
+		glEnableVertexAttribArray(m_sizeAttribute);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
+		glVertexAttribPointer(m_vertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Vec3), m_vertices, GL_DYNAMIC_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
+		glVertexAttribPointer(m_colorAttribute, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Color), m_colors, GL_DYNAMIC_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[2]);
+		glVertexAttribPointer(m_sizeAttribute, 1, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(float32), m_sizes, GL_DYNAMIC_DRAW);
+
+		AssertGL();
+
+		glBindVertexArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 		m_count = 0;
 	}
 
 	~DrawPoints()
 	{
+		glDeleteVertexArrays(1, &m_vaoId);
+		glDeleteProgram(m_programId);
+		glDeleteBuffers(3, m_vboIds);
 	}
 
-	void Add(const b3Vec3& center, float32 radius, const b3Color& color)
+	void Vertex(const b3Vec3& v, float32 size, const b3Color& color)
 	{
-		if (m_count == e_quadCapacity)
+		if (m_count == e_vertexCapacity)
 		{
 			Submit();
 		}
 
-		m_quads[m_count].center = center;
-		m_quads[m_count].radius = radius;
-		m_quads[m_count].color = color;
+		m_vertices[m_count] = v;
+		m_colors[m_count] = color;
+		m_sizes[m_count] = size;
 		++m_count;
 	}
 
 	void Submit()
 	{
-		// Build local quads
-		b3Vec3 kVertices[6];
-		kVertices[0].Set(-1.0f, 1.0f, 0.0f);
-		kVertices[1].Set(-1.0f, -1.0f, 0.0f);
-		kVertices[2].Set(1.0f, 1.0f, 0.0f);
-		kVertices[3].Set(1.0f, 1.0f, 0.0f);
-		kVertices[4].Set(-1.0f, -1.0f, 0.0f);
-		kVertices[5].Set(1.0f, -1.0f, 0.0f);
-
-		Mat44 xf2 = g_camera.BuildProjectionMatrix();
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glMultMatrixf(&xf2.x.x);
-
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-		b3Transform xf1 = g_camera.BuildViewTransform();
-		for (u32 i = 0; i < m_count; ++i)
+		if (m_count == 0)
 		{
-			const Quad* c = m_quads + i;
-			b3Color color = c->color;
-
-			// Put the center of the quads
-			// into the reference frame of the camera
-			// so they are rendered in the xy plane
-			b3Vec3 v1 = c->radius * kVertices[0] + xf1 * c->center;
-			b3Vec3 v2 = c->radius * kVertices[1] + xf1 * c->center;
-			b3Vec3 v3 = c->radius * kVertices[2] + xf1 * c->center;
-			b3Vec3 v4 = c->radius * kVertices[3] + xf1 * c->center;
-			b3Vec3 v5 = c->radius * kVertices[4] + xf1 * c->center;
-			b3Vec3 v6 = c->radius * kVertices[5] + xf1 * c->center;
-
-			glBegin(GL_TRIANGLES);
-			glColor4f(color.r, color.g, color.b, color.a);
-			glVertex3f(v1.x, v1.y, v1.z);
-			glVertex3f(v2.x, v2.y, v2.z);
-			glVertex3f(v3.x, v3.y, v3.z);
-			glEnd();
-
-			glBegin(GL_TRIANGLES);
-			glColor4f(color.r, color.g, color.b, color.a);
-			glVertex3f(v4.x, v4.y, v4.z);
-			glVertex3f(v5.x, v5.y, v5.z);
-			glVertex3f(v6.x, v6.y, v6.z);
-			glEnd();
+			return;
 		}
+
+		glUseProgram(m_programId);
+
+		Mat44 m1 = g_camera.BuildViewMatrix();
+		Mat44 m2 = g_camera.BuildProjectionMatrix();
+		Mat44 m = m2 * m1;
+		
+		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
+
+		glBindVertexArray(m_vaoId);
+		
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Vec3), m_vertices);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Color), m_colors);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[2]);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(float32), m_sizes);
+
+		glEnable(GL_PROGRAM_POINT_SIZE);
+		glDrawArrays(GL_POINTS, 0, m_count);
+		glDisable(GL_PROGRAM_POINT_SIZE);
+
+		AssertGL();
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+		glUseProgram(0);
 
 		m_count = 0;
 	}
 
-	struct Quad
-	{
-		b3Vec3 center;
-		float32 radius;
-		b3Color color;
-	};
-
 	enum
 	{
-		e_quadCapacity = 512,
-		e_vertexCapacity = 6 * e_quadCapacity
+		e_vertexCapacity = 1024
 	};
 
-	Quad m_quads[e_quadCapacity];
+	b3Vec3 m_vertices[e_vertexCapacity];
+	b3Color m_colors[e_vertexCapacity];
+	float32 m_sizes[e_vertexCapacity];
 	u32 m_count;
+	
+	GLuint m_programId;
+	GLuint m_projectionUniform;
+	GLuint m_vertexAttribute;
+	GLuint m_colorAttribute;
+	GLuint m_sizeAttribute;
+	
+	GLuint m_vboIds[3];
+	GLuint m_vaoId;
 };
 
 struct DrawLines
 {
 	DrawLines()
 	{
+		const char* vs = \
+			"#version 400\n"
+			"uniform mat4 projectionMatrix;\n"
+			"layout(location = 0) in vec3 v_position;\n"
+			"layout(location = 1) in vec4 v_color;\n"
+			"out vec4 f_color;\n"
+			"void main(void)\n"
+			"{\n"
+			"	f_color = v_color;\n"
+			"	gl_Position = projectionMatrix * vec4(v_position, 1.0f);\n"
+			"}\n";
+
+		const char* fs = \
+			"#version 400\n"
+			"in vec4 f_color;\n"
+			"out vec4 color;\n"
+			"void main(void)\n"
+			"{\n"
+			"	color = f_color;\n"
+			"}\n";
+
+		m_programId = CreateShaderProgram(vs, fs);
+		m_projectionUniform = glGetUniformLocation(m_programId, "projectionMatrix");
+		m_vertexAttribute = 0;
+		m_colorAttribute = 1;
+		
+		glGenVertexArrays(1, &m_vaoId); 
+		glGenBuffers(2, m_vboIds);
+
+		glBindVertexArray(m_vaoId);
+		glEnableVertexAttribArray(m_vertexAttribute);
+		glEnableVertexAttribArray(m_colorAttribute);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
+		glVertexAttribPointer(m_vertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Vec3), m_vertices, GL_DYNAMIC_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
+		glVertexAttribPointer(m_colorAttribute, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Color), m_colors, GL_DYNAMIC_DRAW);
+		
+		AssertGL();
+
+		glBindVertexArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 		m_count = 0;
 	}
 
 	~DrawLines()
 	{
+		glDeleteProgram(m_programId);
+		glDeleteVertexArrays(1, &m_vaoId);
+		glDeleteBuffers(2, m_vboIds);
 	}
 
-	void Add(const b3Vec3& A, const b3Vec3& B, const b3Color& color)
+	void Vertex(const b3Vec3& v, const b3Color& c)
 	{
-		if (m_count == e_lineCapacity)
+		if (m_count == e_vertexCapacity)
 		{
 			Submit();
 		}
 
-		m_lines[m_count].p = A;
-		m_lines[m_count].q = B;
-		m_lines[m_count].c = color;
+		m_vertices[m_count] = v;
+		m_colors[m_count] = c;
 		++m_count;
 	}
 
 	void Submit()
 	{
-		Mat44 xf2 = g_camera.BuildProjectionMatrix();
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glMultMatrixf(&xf2.x.x);
-
-		Mat44 xf1 = g_camera.BuildViewMatrix();
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-		glMultMatrixf(&xf1.x.x);
-
-		for (u32 i = 0; i < m_count; ++i)
+		if (m_count == 0)
 		{
-			b3Vec3 p = m_lines[i].p;
-			b3Vec3 q = m_lines[i].q;
-			b3Color c = m_lines[i].c;
-
-			glBegin(GL_LINES);
-			glColor4f(c.r, c.g, c.b, c.a);
-			glVertex3f(p.x, p.y, p.z);
-			glVertex3f(q.x, q.y, q.z);
-			glEnd();
+			return;
 		}
+
+		glUseProgram(m_programId);
+
+		Mat44 m1 = g_camera.BuildViewMatrix();
+		Mat44 m2 = g_camera.BuildProjectionMatrix();
+		Mat44 m = m2 * m1;
+		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
+
+		glBindVertexArray(m_vaoId);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Vec3), m_vertices);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Color), m_colors);
+
+		glDrawArrays(GL_LINES, 0, m_count);
+		
+		AssertGL();
+
+		glBindVertexArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glUseProgram(0);
 
 		m_count = 0;
 	}
 
 	enum
 	{
-		e_lineCapacity = 512,
-		e_vertexCapacity = 2 * e_lineCapacity
+		e_vertexCapacity = 2 * 1024
 	};
 
-	struct Line
-	{
-		b3Vec3 p;
-		b3Vec3 q;
-		b3Color c;
-	};
-
-	Line m_lines[e_vertexCapacity];
+	b3Vec3 m_vertices[e_vertexCapacity];
+	b3Color m_colors[e_vertexCapacity];
 	u32 m_count;
+
+	GLuint m_programId;
+	GLuint m_projectionUniform;
+	GLuint m_vertexAttribute;
+	GLuint m_colorAttribute;
+	
+	GLuint m_vboIds[2];
+	GLuint m_vaoId;
 };
 
 struct DrawTriangles
 {
 	DrawTriangles()
 	{
+		const char* vs = \
+			"#version 400\n"
+			"uniform mat4 projectionMatrix;\n"
+			"layout(location = 0) in vec3 v_position;\n"
+			"layout(location = 1) in vec4 v_color;\n"
+			"layout(location = 2) in vec3 v_normal;\n"
+			"out vec4 f_color;\n"
+			"void main(void)\n"
+			"{\n"
+			"	vec3 La = vec3(0.5f, 0.5f, 0.5f);\n"
+			"	vec3 Ld = vec3(0.5f, 0.5f, 0.5f);\n"
+			"	vec3 L = vec3(0.0f, 0.0f, 1.0f);\n"
+			"	vec3 Ma = v_color.xyz;\n"
+			"	vec3 Md = v_color.xyz;\n"
+			"	vec3 a = La * Ma;\n"
+			"	vec3 d = max(dot(v_normal, L), 0.0f) * Ld * Md;\n"
+			"	f_color = vec4(a + d, v_color.w);\n"
+			"	gl_Position = projectionMatrix * vec4(v_position, 1.0f);\n"
+			"}\n";
+
+		const char* fs = \
+			"#version 400\n"
+			"in vec4 f_color;\n"
+			"out vec4 color;\n"
+			"void main(void)\n"
+			"{\n"
+			"	color = f_color;\n"
+			"}\n";
+
+		m_programId = CreateShaderProgram(vs, fs);
+		m_projectionUniform = glGetUniformLocation(m_programId, "projectionMatrix");
+		m_vertexAttribute = 0;
+		m_colorAttribute = 1;
+		m_normalAttribute = 2;
+
+		glGenVertexArrays(1, &m_vaoId);
+		glGenBuffers(3, m_vboIds);
+
+		glBindVertexArray(m_vaoId);
+		
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
+		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Vec3), m_vertices, GL_DYNAMIC_DRAW);
+		glVertexAttribPointer(m_vertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glEnableVertexAttribArray(m_vertexAttribute);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
+		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Color), m_colors, GL_DYNAMIC_DRAW);
+		glVertexAttribPointer(m_colorAttribute, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glEnableVertexAttribArray(m_colorAttribute);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[2]);
+		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Vec3), m_normals, GL_DYNAMIC_DRAW);
+		glVertexAttribPointer(m_normalAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glEnableVertexAttribArray(m_normalAttribute);
+
+		AssertGL();
+
+		glBindVertexArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		
 		m_count = 0;
 	}
 
 	~DrawTriangles()
 	{
+		glDeleteProgram(m_programId);
+		glDeleteVertexArrays(1, &m_vaoId);
+		glDeleteBuffers(3, m_vboIds);
 	}
 
-	void Add(const b3Vec3& A, const b3Vec3& B, const b3Vec3& C, const b3Color& color)
+	void Vertex(const b3Vec3& v, const b3Color& c, const b3Vec3& n)
 	{
-		if (m_count == e_triangleCapacity)
+		if (m_count == e_vertexCapacity)
 		{
 			Submit();
 		}
 
-		m_triangles[m_count].col = color;
-		m_triangles[m_count].a = A;
-		m_triangles[m_count].b = B;
-		m_triangles[m_count].c = C;
-
+		m_vertices[m_count] = v;
+		m_colors[m_count] = c;
+		m_normals[m_count] = n;
 		++m_count;
 	}
 
 	void Submit()
 	{
-		Mat44 xf2 = g_camera.BuildProjectionMatrix();
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glMultMatrixf(&xf2.x.x);
-
-		Mat44 xf1 = g_camera.BuildViewMatrix();
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-		glMultMatrixf(&xf1.x.x);
-
-		for (u32 i = 0; i < m_count; ++i)
+		if (m_count == 0)
 		{
-			b3Vec3 a = m_triangles[i].a;
-			b3Vec3 b = m_triangles[i].b;
-			b3Vec3 c = m_triangles[i].c;
-			b3Color col = m_triangles[i].col;
-
-			glBegin(GL_TRIANGLES);
-			glColor4f(col.r, col.g, col.b, col.a);
-			glVertex3f(a.x, a.y, a.z);
-			glVertex3f(b.x, b.y, b.z);
-			glVertex3f(c.x, c.y, c.z);
-			glEnd();
+			return;
 		}
+
+		glUseProgram(m_programId);
+
+		Mat44 m1 = g_camera.BuildViewMatrix();
+		Mat44 m2 = g_camera.BuildProjectionMatrix();
+		Mat44 m = m2 * m1;
+
+		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
+
+		glBindVertexArray(m_vaoId);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Vec3), m_vertices);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Color), m_colors);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[2]);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Vec3), m_normals);
+		
+		glDrawArrays(GL_TRIANGLES, 0, m_count);
+
+		AssertGL();
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+		glUseProgram(0);
 
 		m_count = 0;
 	}
-
-	struct Triangle
-	{
-		b3Color col;
-		b3Vec3 a, b, c;
-	};
-
+	
 	enum
 	{
-		e_triangleCapacity = 512,
-		e_vertexCapacity = 3 * e_triangleCapacity
+		e_vertexCapacity = 3 * 512
 	};
 
-	Triangle m_triangles[e_triangleCapacity];
+	b3Vec3 m_vertices[e_vertexCapacity];
+	b3Color m_colors[e_vertexCapacity];
+	b3Vec3 m_normals[e_vertexCapacity];
 	u32 m_count;
+
+	GLuint m_programId;
+	GLuint m_projectionUniform;
+	GLuint m_vertexAttribute;
+	GLuint m_colorAttribute;
+	GLuint m_normalAttribute;
+
+	GLuint m_vboIds[3];
+	GLuint m_vaoId;
 };
 
-struct DrawShapes
+struct DrawWireSphere
 {
-	DrawShapes()
+	enum
 	{
-		m_sphere = gluNewQuadric();
-		m_cylinder = gluNewQuadric();
-	}
+		e_rings = 12,
+		e_sectors = 12,
+		e_vertexCount = e_rings * e_sectors,
+		e_indexCount = (e_rings - 1) * (e_sectors - 1) * 8
+	};
 
-	~DrawShapes()
+	DrawWireSphere()
 	{
-		gluDeleteQuadric(m_sphere);
-		gluDeleteQuadric(m_cylinder);
-	}
+		float32 R = 1.0f / float32(e_rings - 1);
+		float32 S = 1.0f / float32(e_sectors - 1);
 
-	void DrawSphere(const b3SphereShape* s, const b3Transform& xf)
-	{
-		float32 radius = s->m_radius;
-		Mat44 xf4 = GetMat44(xf);
+		b3Vec3 vs[e_vertexCount];
+		b3Vec3 ns[e_vertexCount];
+		b3Color cs[e_vertexCount];
 
-		glMatrixMode(GL_MODELVIEW);
-		glPushMatrix();
-		glMultMatrixf(&xf4.x.x);
-		gluSphere(m_sphere, radius, 10, 10);
-		glPopMatrix();
-	}
-
-	void DrawCapsule(const b3CapsuleShape* s, const b3Transform& xf)
-	{
-		b3Vec3 c1 = s->m_centers[0];
-		b3Vec3 c2 = s->m_centers[1];
-		float32 radius = s->m_radius;
-		float32 height = b3Length(c1 - c2);
-		b3Vec3 n1 = (1.0f / height) * (c1 - c2);
-		b3Vec3 n2 = -n1;
-
+		u32 vc = 0;
+		for (u32 r = 0; r < e_rings; r++)
 		{
-			b3Transform xfc;
-			xfc.rotation = xf.rotation;
-			xfc.position = xf * c1;
-
-			Mat44 m = GetMat44(xfc);
-
-			glMatrixMode(GL_MODELVIEW);
-			glPushMatrix();
-			glMultMatrixf(&m.x.x);
-
-			GLdouble plane[4];
-			plane[0] = n1.x;
-			plane[1] = n1.y;
-			plane[2] = n1.z;
-			plane[3] = 0.05f;
-			glClipPlane(GL_CLIP_PLANE0, plane);
-
-			glEnable(GL_CLIP_PLANE0);
-			gluSphere(m_sphere, radius, 10, 10);
-			glDisable(GL_CLIP_PLANE0);
-
-			glPopMatrix();
-		}
-
-		{
-			b3Transform xfc;
-			xfc.rotation = xf.rotation;
-			xfc.position = xf * c2;
-
-			Mat44 m = GetMat44(xfc);
-
-			glMatrixMode(GL_MODELVIEW);
-			glPushMatrix();
-			glMultMatrixf(&m.x.x);
-
-			GLdouble plane[4];
-			plane[0] = n2.x;
-			plane[1] = n2.y;
-			plane[2] = n2.z;
-			plane[3] = 0.05f;
-			glClipPlane(GL_CLIP_PLANE0, plane);
-
-			glEnable(GL_CLIP_PLANE0);
-			gluSphere(m_sphere, radius, 10, 10);
-			glDisable(GL_CLIP_PLANE0);
-
-			glPopMatrix();
-		}
-
-		{
-			Mat44 m = GetMat44(xf);
-
-			glMatrixMode(GL_MODELVIEW);
-			glPushMatrix();
-			glMultMatrixf(&m.x.x);
-			glTranslatef(0.0f, 0.5f * height, 0.0f);
-			glRotatef(90.0f, 1.0f, 0.0f, 0.0f);
-			gluCylinder(m_cylinder, 0.96f * radius, 0.96f * radius, height, 20, 10);
-			glPopMatrix();
-		}
-	}
-
-	void DrawHull(const b3HullShape* s, const b3Transform& xf)
-	{
-		const b3Hull* hull = s->m_hull;
-
-		for (u32 i = 0; i < hull->faceCount; ++i)
-		{
-			const b3Face* face = hull->GetFace(i);
-			const b3HalfEdge* begin = hull->GetEdge(face->edge);
-
-			b3Vec3 n = xf.rotation * hull->planes[i].normal;
-
-			const b3HalfEdge* edge = hull->GetEdge(begin->next);
-			do
+			for (u32 s = 0; s < e_sectors; s++)
 			{
-				u32 i1 = begin->origin;
-				u32 i2 = edge->origin;
-				const b3HalfEdge* next = hull->GetEdge(edge->next);
-				u32 i3 = next->origin;
+				float32 y = sin(-0.5f * B3_PI + B3_PI * r * R);
+				float32 x = cos(2.0f * B3_PI * s * S) * sin(B3_PI * r * R);
+				float32 z = sin(2.0f * B3_PI * s * S) * sin(B3_PI * r * R);
 
-				b3Vec3 v1 = xf * hull->vertices[i1];
-				b3Vec3 v2 = xf * hull->vertices[i2];
-				b3Vec3 v3 = xf * hull->vertices[i3];
-
-				glBegin(GL_TRIANGLES);
-				glNormal3f(n.x, n.y, n.z);
-
-				glVertex3f(v1.x, v1.y, v1.z);
-				glVertex3f(v2.x, v2.y, v2.z);
-				glVertex3f(v3.x, v3.y, v3.z);
-
-				glEnd();
-
-				edge = next;
-			} while (hull->GetEdge(edge->next) != begin);
-
+				vs[vc].Set(x, y, z);
+				cs[vc] = b3Color(1.0f, 1.0f, 1.0f, 1.0f);
+				++vc;
+			}
 		}
+
+		u32 is[e_indexCount];
+
+		u32 ic = 0;
+		for (u32 r = 0; r < e_rings - 1; r++)
+		{
+			for (u32 s = 0; s < e_sectors - 1; s++)
+			{
+				u32 i1 = r * e_sectors + s;
+				u32 i2 = (r + 1) * e_sectors + s;
+				u32 i3 = (r + 1) * e_sectors + (s + 1);
+				u32 i4 = r * e_sectors + (s + 1);
+
+				is[ic++] = i1;
+				is[ic++] = i2;
+
+				is[ic++] = i2;
+				is[ic++] = i3;
+
+				is[ic++] = i3;
+				is[ic++] = i4;
+
+				is[ic++] = i4;
+				is[ic++] = i1;
+			}
+		}
+
+		glGenBuffers(1, &m_vboId);
+		glGenBuffers(1, &m_iboId);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboId);
+		glBufferData(GL_ARRAY_BUFFER, vc * sizeof(b3Vec3), vs, GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_iboId);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, ic * sizeof(u32), is, GL_STATIC_DRAW);
+
+		AssertGL();
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
-	void DrawMesh(const b3MeshShape* s, const b3Transform& xf)
+	~DrawWireSphere()
 	{
-		const b3Mesh* mesh = s->m_mesh;
-		
-		for (u32 i = 0; i < mesh->triangleCount; ++i)
-		{
-			const b3Triangle* t = mesh->triangles + i;
+		glDeleteBuffers(1, &m_vboId);
+		glDeleteBuffers(1, &m_iboId);
+	}
 
-			b3Vec3 v1 = xf * mesh->vertices[t->v1];
-			b3Vec3 v2 = xf * mesh->vertices[t->v2];
-			b3Vec3 v3 = xf * mesh->vertices[t->v3];
+	GLuint m_vboId;
+	GLuint m_iboId;
+};
+
+struct DrawWire
+{
+	DrawWire()
+	{
+		const char* vs = \
+			"#version 400\n"
+			"uniform vec4 color;\n"
+			"uniform mat4 projectionMatrix;\n"
+			"layout(location = 0) in vec3 v_position;\n"
+			"out vec4 f_color;\n"
+			"void main(void)\n"
+			"{\n"
+			"	f_color = color;\n"
+			"	gl_Position = projectionMatrix * vec4(v_position, 1.0f);\n"
+			"}\n";
+
+		const char* fs = \
+			"#version 400\n"
+			"in vec4 f_color;\n"
+			"out vec4 color;\n"
+			"void main(void)\n"
+			"{\n"
+			"	color = f_color;\n"
+			"}\n";
+
+		m_programId = CreateShaderProgram(vs, fs);
+		m_colorUniform = glGetUniformLocation(m_programId, "color");
+		m_projectionUniform = glGetUniformLocation(m_programId, "projectionMatrix");
+		m_vertexAttribute = 0;
+	}
+
+	~DrawWire()
+	{
+		glDeleteProgram(m_programId);
+	}
+
+	void DrawSphere(float32 radius, const b3Color& c, const b3Transform& xf)
+	{
+		glUseProgram(m_programId);
+
+		Mat44 m1 = GetMat44(xf);
+		m1.x = radius * m1.x;
+		m1.y = radius * m1.y;
+		m1.z = radius * m1.z;
+		Mat44 m2 = g_camera.BuildViewMatrix();
+		Mat44 m3 = g_camera.BuildProjectionMatrix();
+		Mat44 m = m3 * m2 * m1;
+
+		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_sphere.m_vboId);
+		glVertexAttribPointer(m_vertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glEnableVertexAttribArray(m_vertexAttribute);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_sphere.m_iboId);
+		glDrawElements(GL_LINES, m_sphere.e_indexCount, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		glUseProgram(0);
+	}
+
+	GLuint m_programId;
+	GLuint m_colorUniform;
+	GLuint m_projectionUniform;
+	GLuint m_vertexAttribute;
+
+	DrawWireSphere m_sphere;
+};
+
+struct DrawSolidSphere
+{
+	enum
+	{
+		e_rings = 12,
+		e_sectors = 12,
+		e_vertexCount = e_rings * e_sectors,
+		e_indexCount = (e_rings - 1) * (e_sectors - 1) * 6,
+		e_faceCount = e_indexCount / 3
+	};
+
+	DrawSolidSphere()
+	{
+		float32 R = 1.0f / float32(e_rings - 1);
+		float32 S = 1.0f / float32(e_sectors - 1);
+
+		b3Vec3 vs[e_vertexCount];
+		b3Vec3 ns[e_vertexCount];
+		
+		u32 vc = 0;
+		for (u32 r = 0; r < e_rings; r++)
+		{
+			for (u32 s = 0; s < e_sectors; s++)
+			{
+				float32 y = sin(-0.5f * B3_PI + B3_PI * r * R);
+				float32 x = cos(2.0f * B3_PI * s * S) * sin(B3_PI * r * R);
+				float32 z = sin(2.0f * B3_PI * s * S) * sin(B3_PI * r * R);
+
+				vs[vc].Set(x, y, z);
+				ns[vc].Set(x, y, z);
+				++vc;
+			}
+		}
+
+		u32 is[e_indexCount];
+
+		u32 ic = 0;
+		for (u32 r = 0; r < e_rings - 1; r++)
+		{
+			for (u32 s = 0; s < e_sectors - 1; s++)
+			{
+				u32 i1 = r * e_sectors + s;
+				u32 i2 = (r + 1) * e_sectors + s;
+				u32 i3 = (r + 1) * e_sectors + (s + 1);
+				u32 i4 = r * e_sectors + (s + 1);
+
+				is[ic++] = i1;
+				is[ic++] = i2;
+				is[ic++] = i3;
+
+				is[ic++] = i1;
+				is[ic++] = i3;
+				is[ic++] = i4;
+			}
+		}
+
+		glGenBuffers(3, m_vboIds);
+		glGenBuffers(1, &m_iboId);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
+		glBufferData(GL_ARRAY_BUFFER, vc * sizeof(b3Vec3), vs, GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
+		glBufferData(GL_ARRAY_BUFFER, vc * sizeof(b3Vec3), ns, GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_iboId);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, ic * sizeof(u32), is, GL_STATIC_DRAW);
+
+		AssertGL();
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	}
+
+	~DrawSolidSphere()
+	{
+		glDeleteBuffers(2, m_vboIds);
+		glDeleteBuffers(1, &m_iboId);
+	}
+
+	GLuint m_vboIds[2];
+	GLuint m_iboId;
+};
+
+struct DrawSolidCylinder
+{
+	enum
+	{
+		e_segments = 24,
+		e_vertexCount = e_segments * 6,
+	};
+
+	DrawSolidCylinder()
+	{
+		b3Vec3 vs[e_vertexCount];
+		b3Vec3 ns[e_vertexCount];
+		
+		u32 vc = 0;
+		for (u32 i = 0; i < e_segments; ++i)
+		{
+			float32 t0 = 2.0f * B3_PI * (float32)i / (float32)e_segments;
+			float32 t1 = 2.0f * B3_PI * (float32)(i + 1) / (float32)e_segments;
+
+			float32 c0 = cos(t0);
+			float32 s0 = sin(t0);
+
+			float32 c1 = cos(t1);
+			float32 s1 = sin(t1);
+
+			b3Vec3 v1;
+			v1.x = s0;
+			v1.y = -0.5f;
+			v1.z = c0;
+
+			b3Vec3 v2;
+			v2.x = s1;
+			v2.y = -0.5f;
+			v2.z = c1;
+
+			b3Vec3 v3;
+			v3.x = s1;
+			v3.y = 0.5f;
+			v3.z = c1;
+
+			b3Vec3 v4;
+			v4.x = s0;
+			v4.y = 0.5f;
+			v4.z = c0;
 
 			b3Vec3 n = b3Cross(v2 - v1, v3 - v1);
 			n.Normalize();
 
-			glBegin(GL_TRIANGLES);
-			glNormal3f(n.x, n.y, n.z);
+			vs[vc] = v1;
+			ns[vc] = n;
+			++vc;
 
-			glVertex3f(v1.x, v1.y, v1.z);
-			glVertex3f(v2.x, v2.y, v2.z);
-			glVertex3f(v3.x, v3.y, v3.z);
+			vs[vc] = v2;
+			ns[vc] = n;
+			++vc;
 
-			glEnd();
+			vs[vc] = v3;
+			ns[vc] = n;
+			++vc;
+
+			vs[vc] = v1;
+			ns[vc] = n;
+			++vc;
+
+			vs[vc] = v3;
+			ns[vc] = n;
+			++vc;
+
+			vs[vc] = v4;
+			ns[vc] = n;
+			++vc;
 		}
+
+		u32 is[e_vertexCount];
+
+		u32 ic = vc;
+		for (u32 i = 0; i < vc; ++i)
+		{
+			is[i] = i;
+		}
+
+		glGenBuffers(2, m_vboIds);
+		glGenBuffers(1, &m_iboId);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
+		glBufferData(GL_ARRAY_BUFFER, vc * sizeof(b3Vec3), vs, GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
+		glBufferData(GL_ARRAY_BUFFER, vc * sizeof(b3Vec3), ns, GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_iboId);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, ic * sizeof(u32), is, GL_STATIC_DRAW);
+
+		AssertGL();
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
-	void DrawShape(const b3Shape* s, const b3Transform& xf)
+	~DrawSolidCylinder()
 	{
-		switch (s->GetType())
-		{
-		case e_sphereShape:
-		{
-			DrawSphere((b3SphereShape*)s, xf);
-			break;
-		}
-		case e_capsuleShape:
-		{
-			DrawCapsule((b3CapsuleShape*)s, xf);
-			break;
-		}
-		case e_hullShape:
-		{
-			DrawHull((b3HullShape*)s, xf);
-			break;
-		}
-		case e_meshShape:
-		{
-			DrawMesh((b3MeshShape*)s, xf);
-			break;
-		}
-		default:
-		{
-			break;
-		}
-		}
+		glDeleteBuffers(2, m_vboIds);
+		glDeleteBuffers(1, &m_iboId);
 	}
 
-	void Draw(const b3World& world)
+	GLuint m_vboIds[2];
+	GLuint m_iboId;
+};
+
+struct DrawSolid
+{
+	DrawSolid()
 	{
-		Mat44 xf1 = g_camera.BuildViewMatrix();
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
-		glMultMatrixf(&xf1.x.x);
+		const char* vs = \
+			"#version 400\n"
+			"uniform vec4 color;\n"
+			"uniform mat4 modelMatrix;\n"
+			"uniform mat4 projectionMatrix;\n"
+			"layout(location = 0) in vec3 v_position;\n"
+			"layout(location = 1) in vec3 v_normal;\n"
+			"out vec4 f_color;\n"
+			"void main(void)\n"
+			"{\n"
+			"	vec3 f_normal = normalize( ( modelMatrix * vec4(v_normal, 0.0f) ).xyz );\n"
+			"	gl_Position = projectionMatrix * vec4(v_position, 1.0f);\n"
+			"	vec3 La = vec3(0.5f, 0.5f, 0.5f);\n"
+			"	vec3 Ld = vec3(0.5f, 0.5f, 0.5f);\n"
+			"	vec3 L = vec3(0.0f, 0.0f, 1.0f);\n"
+			"	vec3 Ma = color.xyz;\n"
+			"	vec3 Md = color.xyz;\n"
+			"	vec3 a = La * Ma;\n"
+			"	vec3 d = max(dot(f_normal, L), 0.0f) * Ld * Md;\n"
+			"	f_color = vec4(a + d, color.w);\n"
+			"}\n";
 
-		Mat44 xf2 = g_camera.BuildProjectionMatrix();
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glMultMatrixf(&xf2.x.x);
+		const char* fs = \
+			"#version 400\n"
+			"in vec4 f_color;\n"
+			"out vec4 color;\n"
+			"void main(void)\n"
+			"{\n"
+			"	color = f_color;\n"
+			"}\n";
 
-		glEnable(GL_LIGHTING);
-		glEnable(GL_LIGHT0);
-
-		float light_ambient[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
-		glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
-		float light_diffuse[4] = { 0.5f, 0.5f, 0.5f, 1.0f };
-		glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
-		float light_position[4] = { 0.0f, 0.0f, 1.0f, 0.0f };
-		glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-
-		b3Body* b = world.GetBodyList().m_head;
-		while (b)
-		{
-			b3Color fillColor;
-			if (b->IsAwake() == false)
-			{
-				fillColor = b3Color(0.5f, 0.25f, 0.25f, 1.0f);
-			}
-			else if (b->GetType() == e_staticBody)
-			{
-				fillColor = b3Color(0.5f, 0.5f, 0.5f, 1.0f);
-			}
-			else if (b->GetType() == e_dynamicBody)
-			{
-				fillColor = b3Color(1.0f, 0.5f, 0.5f, 1.0f);
-			}
-			else
-			{
-				fillColor = b3Color(0.5f, 0.5f, 1.0f, 1.0f);
-			}
-
-			glEnable(GL_COLOR_MATERIAL);
-			glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-			glColor4fv(&fillColor.r);
-
-			const b3Transform& xf = b->GetTransform();
-			b3Shape* s = b->GetShapeList().m_head;
-			while (s)
-			{
-				DrawShape(s, xf);
-				s = s->GetNext();
-			}
-
-			glDisable(GL_COLOR_MATERIAL);
-
-			b = b->GetNext();
-		}
-
-		glDisable(GL_LIGHT0);
-		glDisable(GL_LIGHTING);
+		m_programId = CreateShaderProgram(vs, fs);
+		m_colorUniform = glGetUniformLocation(m_programId, "color");
+		m_modelUniform = glGetUniformLocation(m_programId, "modelMatrix");
+		m_projectionUniform = glGetUniformLocation(m_programId, "projectionMatrix");
+		m_vertexAttribute = 0;
+		m_normalAttribute = 1;
 	}
 
-	GLUquadricObj* m_sphere;
-	GLUquadricObj* m_cylinder;
+	~DrawSolid()
+	{
+	}
+
+	void DrawCylinder(float32 radius, float32 height, const b3Color& c, const b3Transform& xf)
+	{
+		glUseProgram(m_programId);
+
+		Mat44 m1 = GetMat44(xf);
+		m1.x = radius * m1.x;
+		m1.y = height * m1.y;
+		m1.z = radius * m1.z;
+
+		Mat44 m2 = g_camera.BuildViewMatrix();
+		Mat44 m3 = g_camera.BuildProjectionMatrix();
+		Mat44 m = m3 * m2 * m1;
+
+		glUniform4fv(m_colorUniform, 1, &c.r);
+		glUniformMatrix4fv(m_modelUniform, 1, GL_FALSE, &m1.x.x);
+		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_cylinder.m_vboIds[0]);
+		glVertexAttribPointer(m_vertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glEnableVertexAttribArray(m_vertexAttribute);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_cylinder.m_vboIds[1]);
+		glVertexAttribPointer(m_normalAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glEnableVertexAttribArray(m_normalAttribute);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_cylinder.m_iboId);
+		glDrawElements(GL_TRIANGLES, m_cylinder.e_vertexCount, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		glUseProgram(0);
+	}
+
+	void DrawSphere(float32 radius, const b3Color& c, const b3Transform& xf)
+	{
+		glUseProgram(m_programId);
+
+		Mat44 m1 = GetMat44(xf);
+		m1.x = radius * m1.x;
+		m1.y = radius * m1.y;
+		m1.z = radius * m1.z;
+
+		Mat44 m2 = g_camera.BuildViewMatrix();
+		Mat44 m3 = g_camera.BuildProjectionMatrix();
+		Mat44 m = m3 * m2 * m1;
+
+		glUniform4fv(m_colorUniform, 1, &c.r);
+		glUniformMatrix4fv(m_modelUniform, 1, GL_FALSE, &m1.x.x);
+		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_sphere.m_vboIds[0]);
+		glVertexAttribPointer(m_vertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glEnableVertexAttribArray(m_vertexAttribute);
+
+		glBindBuffer(GL_ARRAY_BUFFER, m_sphere.m_vboIds[1]);
+		glVertexAttribPointer(m_normalAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glEnableVertexAttribArray(m_normalAttribute);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_sphere.m_iboId);
+		glDrawElements(GL_TRIANGLES, m_sphere.e_indexCount, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		glUseProgram(0);
+	}
+
+	GLuint m_programId;
+	GLuint m_colorUniform;
+	GLuint m_modelUniform;
+	GLuint m_projectionUniform;
+	GLuint m_vertexAttribute;
+	GLuint m_normalAttribute;
+
+	DrawSolidSphere m_sphere;
+	DrawSolidCylinder m_cylinder; 
 };
 
 DebugDraw::DebugDraw()
@@ -632,7 +1079,8 @@ DebugDraw::DebugDraw()
 	m_points = new DrawPoints();
 	m_lines = new DrawLines();
 	m_triangles = new DrawTriangles();
-	m_shapes = new DrawShapes();
+	m_wire = new DrawWire();
+	m_solid = new DrawSolid();
 }
 
 DebugDraw::~DebugDraw()
@@ -640,17 +1088,33 @@ DebugDraw::~DebugDraw()
 	delete m_points;
 	delete m_lines;
 	delete m_triangles;
-	delete m_shapes;
+	delete m_wire;
+	delete m_solid;
 }
 
-void DebugDraw::DrawPoint(const b3Vec3& p, const b3Color& color)
+void DebugDraw::DrawPoint(const b3Vec3& p, float32 size, const b3Color& color)
 {
-	m_points->Add(p, 0.05f, color);
+	m_points->Vertex(p, size, color);
 }
 
-void DebugDraw::DrawSegment(const b3Vec3& a, const b3Vec3& b, const b3Color& color)
+void DebugDraw::DrawSegment(const b3Vec3& p1, const b3Vec3& p2, const b3Color& color)
 {
-	m_lines->Add(a, b, color);
+	m_lines->Vertex(p1, color);
+	m_lines->Vertex(p2, color);
+}
+
+void DebugDraw::DrawTriangle(const b3Vec3& p1, const b3Vec3& p2, const b3Vec3& p3, const b3Color& color)
+{
+	DrawSegment(p1, p2, color);
+	DrawSegment(p2, p3, color);
+	DrawSegment(p3, p1, color);
+}
+
+void DebugDraw::DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const b3Vec3& p2, const b3Vec3& p3, const b3Color& color)
+{
+	m_triangles->Vertex(p1, color, normal);
+	m_triangles->Vertex(p2, color, normal);
+	m_triangles->Vertex(p3, color, normal);
 }
 
 void DebugDraw::DrawPolygon(const b3Vec3* vertices, u32 count, const b3Color& color)
@@ -659,23 +1123,30 @@ void DebugDraw::DrawPolygon(const b3Vec3* vertices, u32 count, const b3Color& co
 	for (u32 i = 0; i < count; ++i)
 	{
 		b3Vec3 p2 = vertices[i];
-		m_lines->Add(p1, p2, color);
+		
+		DrawSegment(p1, p2, color);
+
 		p1 = p2;
 	}
 }
 
-void DebugDraw::DrawSolidPolygon(const b3Vec3* vertices, u32 count, const b3Color& color)
+void DebugDraw::DrawSolidPolygon(const b3Vec3& normal, const b3Vec3* vertices, u32 count, const b3Color& color)
 {
+	b3Color fillColor(color.r, color.g, color.b, 0.5f);
+	
 	b3Vec3 p1 = vertices[0];
 	for (u32 i = 1; i < count - 1; ++i)
 	{
 		b3Vec3 p2 = vertices[i];
 		b3Vec3 p3 = vertices[i + 1];
-		m_triangles->Add(p1, p2, p3, color);
+		
+		m_triangles->Vertex(p1, fillColor, normal);
+		m_triangles->Vertex(p2, fillColor, normal);
+		m_triangles->Vertex(p3, fillColor, normal);
 	}
 
-	b3Color frameColor(0.0f, 0.0f, 0.0f, 1.0f);
-	DrawPolygon(vertices, count, frameColor);
+	b3Color edgeColor(0.0f, 0.0f, 0.0f, 1.0f);
+	DrawPolygon(vertices, count, edgeColor);
 }
 
 void DebugDraw::DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
@@ -694,7 +1165,7 @@ void DebugDraw::DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 r
 		b3Vec3 n2 = cosInc * n1 + sinInc * b3Cross(normal, n1) + tInc * b3Dot(normal, n1) * normal;
 		b3Vec3 v2 = center + radius * n2;
 
-		m_lines->Add(v1, v2, color);
+		DrawSegment(v1, v2, color);
 
 		n1 = n2;
 		v1 = v2;
@@ -717,22 +1188,34 @@ void DebugDraw::DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, floa
 		b3Vec3 n2 = cosInc * n1 + sinInc * b3Cross(normal, n1) + tInc * b3Dot(normal, n1) * normal;
 		b3Vec3 v2 = center + radius * n2;
 
-		m_triangles->Add(center, v1, v2, color);
+		m_triangles->Vertex(center, color, normal);
+		m_triangles->Vertex(v1, color, normal);
+		m_triangles->Vertex(v2, color, normal);
 
 		n1 = n2;
 		v1 = v2;
 	}
 
-	b3Color frameColor(0.0f, 0.0f, 0.0f);
+	b3Color frameColor(0.5f * color.r, 0.5f * color.g, 0.5f * color.b, 1.0f);
 	DrawCircle(normal, center, radius, frameColor);
 }
 
 void DebugDraw::DrawSphere(const b3Vec3& center, float32 radius, const b3Color& color)
 {
+	b3Transform xf;
+	xf.SetIdentity();
+	xf.position = center;
+
+	m_wire->DrawSphere(radius, color, xf);
 }
 
 void DebugDraw::DrawSolidSphere(const b3Vec3& center, float32 radius, const b3Color& color)
 {
+	b3Transform xf;
+	xf.SetIdentity();
+	xf.position = center;
+
+	m_solid->DrawSphere(radius, color, xf);
 }
 
 void DebugDraw::DrawTransform(const b3Transform& xf)
@@ -805,12 +1288,158 @@ void DebugDraw::DrawString(const char* text, const b3Color& color, ...)
 	va_end(arg);
 }
 
-void DebugDraw::Submit(const b3World& world)
+void DebugDraw::DrawSphere(const b3SphereShape* s, const b3Color& c, const b3Transform& xf)
 {
-	m_shapes->Draw(world);
+	m_solid->DrawSphere(s->m_radius, c, xf);
 }
 
-void DebugDraw::Submit()
+void DebugDraw::DrawCapsule(const b3CapsuleShape* s, const b3Color& c, const b3Transform& xf)
+{
+	b3Vec3 c1 = s->m_centers[0];
+	b3Vec3 c2 = s->m_centers[1];
+	float32 height = b3Length(c1 - c2);
+	float32 radius = s->m_radius;
+
+	{
+		b3Transform xfc;
+		xfc.rotation = xf.rotation;
+		xfc.position = xf * c1;
+		m_solid->DrawSphere(radius, c, xfc);
+	}
+
+	if (height > 0.0f)
+	{
+		{
+			b3Transform xfc;
+			xfc.rotation = xf.rotation;
+			xfc.position = xf * c2;
+			m_solid->DrawSphere(radius, c, xfc);
+		}
+
+		{
+			const float32 z_bias = 0.0002f;
+			radius += z_bias;
+			m_solid->DrawCylinder(radius, height, c, xf);
+		}
+	}
+}
+
+void DebugDraw::DrawHull(const b3HullShape* s, const b3Color& c, const b3Transform& xf)
+{
+	const b3Hull* hull = s->m_hull;
+
+	for (u32 i = 0; i < hull->faceCount; ++i)
+	{
+		const b3Face* face = hull->GetFace(i);
+		const b3HalfEdge* begin = hull->GetEdge(face->edge);
+
+		b3Vec3 n = xf.rotation * hull->planes[i].normal;
+
+		const b3HalfEdge* edge = hull->GetEdge(begin->next);
+		do
+		{
+			u32 i1 = begin->origin;
+			u32 i2 = edge->origin;
+			const b3HalfEdge* next = hull->GetEdge(edge->next);
+			u32 i3 = next->origin;
+
+			b3Vec3 p1 = xf * hull->vertices[i1];
+			b3Vec3 p2 = xf * hull->vertices[i2];
+			b3Vec3 p3 = xf * hull->vertices[i3];
+
+			m_triangles->Vertex(p1, c, n);
+			m_triangles->Vertex(p2, c, n);
+			m_triangles->Vertex(p3, c, n);
+
+			edge = next;
+		} while (hull->GetEdge(edge->next) != begin);
+	}
+}
+
+void DebugDraw::DrawMesh(const b3MeshShape* s, const b3Color& c, const b3Transform& xf)
+{
+	const b3Mesh* mesh = s->m_mesh;
+	for (u32 i = 0; i < mesh->triangleCount; ++i)
+	{
+		const b3Triangle* t = mesh->triangles + i;
+
+		b3Vec3 p1 = xf * mesh->vertices[t->v1];
+		b3Vec3 p2 = xf * mesh->vertices[t->v2];
+		b3Vec3 p3 = xf * mesh->vertices[t->v3];
+
+		b3Vec3 n = b3Cross(p2 - p1, p3 - p1);
+		n.Normalize();
+		
+		m_triangles->Vertex(p1, c, n);
+		m_triangles->Vertex(p2, c, n);
+		m_triangles->Vertex(p3, c, n);
+	}
+}
+
+void DebugDraw::DrawShape(const b3Shape* s, const b3Color& c, const b3Transform& xf)
+{
+	switch (s->GetType())
+	{
+	case e_sphereShape:
+	{
+		DrawSphere((b3SphereShape*)s, c, xf);
+		break;
+	}
+	case e_capsuleShape:
+	{
+		DrawCapsule((b3CapsuleShape*)s, c, xf);
+		break;
+	}
+	case e_hullShape:
+	{
+		DrawHull((b3HullShape*)s, c, xf);
+		break;
+	}
+	case e_meshShape:
+	{
+		DrawMesh((b3MeshShape*)s, c, xf);
+		break;
+	}
+	default:
+	{
+		break;
+	}
+	}
+}
+
+void DebugDraw::Draw(const b3World& world)
+{
+	for (b3Body* b = world.GetBodyList().m_head; b; b = b->GetNext())
+	{
+		b3Color c;
+		if (b->IsAwake() == false)
+		{
+			c = b3Color(0.5f, 0.25f, 0.25f, 1.0f);
+		}
+		else if (b->GetType() == e_staticBody)
+		{
+			c = b3Color(0.5f, 0.5f, 0.5f, 1.0f);
+		}
+		else if (b->GetType() == e_dynamicBody)
+		{
+			c = b3Color(1.0f, 0.5f, 0.5f, 1.0f);
+		}
+		else
+		{
+			c = b3Color(0.5f, 0.5f, 1.0f, 1.0f);
+		}
+
+		b3Transform xf = b->GetTransform();
+		for (b3Shape* s = b->GetShapeList().m_head; s; s = s->GetNext())
+		{
+			DrawShape(s, c, xf);
+		}
+	}
+	
+	g_debugDraw->Draw();
+}
+
+void DebugDraw::Draw()
 {
 	m_triangles->Submit();
 	m_lines->Submit();

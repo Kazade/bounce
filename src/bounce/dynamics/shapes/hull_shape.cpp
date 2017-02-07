@@ -18,7 +18,6 @@
 
 #include <bounce/dynamics/shapes/hull_shape.h>
 #include <bounce/collision/shapes/hull.h>
-#include <bounce/common/template/array.h>
 
 b3HullShape::b3HullShape()
 {

@@ -63,14 +63,14 @@ public:
 		for (u32 i = 0; i < m_clusters.Count(); ++i)
 		{
 			g_debugDraw->DrawSegment(b3Vec3(0, 0, 0), m_clusters[i].centroid, b3Color(1, 1, 1));
-			g_debugDraw->DrawPoint(m_clusters[i].centroid, m_colors[i]);
+			g_debugDraw->DrawPoint(m_clusters[i].centroid, 4.0f, m_colors[i]);
 
 			for (u32 j = 0; j < m_observs.Count(); ++j)
 			{
 				b3Observation obs = m_observs[j];
 				if (obs.cluster == i)
 				{
-					g_debugDraw->DrawPoint(obs.point, m_colors[i]);
+					g_debugDraw->DrawPoint(obs.point, 4.0f, m_colors[i]);
 				}
 			}
 		}

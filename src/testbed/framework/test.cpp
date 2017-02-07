@@ -364,9 +364,27 @@ void Test::Step()
 	m_maxProfile.solver.solveVelocity = b3Max(m_maxProfile.solver.solveVelocity, m_profile.solver.solveVelocity);
 	m_maxProfile.solver.solvePosition = b3Max(m_maxProfile.solver.solvePosition, m_profile.solver.solvePosition);
 
+	// Draw World
+	u32 drawFlags = 0;
+	drawFlags += g_settings.drawBounds * b3Draw::e_aabbsFlag;
+	drawFlags += g_settings.drawVerticesEdges * b3Draw::e_shapesFlag;
+	drawFlags += g_settings.drawCenterOfMasses * b3Draw::e_centerOfMassesFlag;
+	drawFlags += g_settings.drawJoints * b3Draw::e_jointsFlag;
+	drawFlags += g_settings.drawContactPoints * b3Draw::e_contactPointsFlag;
+	drawFlags += g_settings.drawContactNormals * b3Draw::e_contactNormalsFlag;
+	drawFlags += g_settings.drawContactTangents * b3Draw::e_contactTangentsFlag;
+
+	g_debugDraw->SetFlags(drawFlags);
+	m_world.DebugDraw();
+	g_debugDraw->Draw();
+	
+	if (g_settings.drawFaces)
+	{
+		g_debugDraw->Draw(m_world);
+	}
+
 	// Draw Statistics
 	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-	//ImGui::SetNextWindowSize(ImVec2(250.0f, g_camera.m_height));
 	ImGui::Begin("Log", NULL, ImVec2(0, 0), 0.0f, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
 
 	if (g_settings.drawStats)
@@ -383,7 +401,7 @@ void Test::Step()
 
 		ImGui::Text("GJK Calls %d", b3_gjkCalls);
 		ImGui::Text("GJK Iterations %d (%d) (%f)", b3_gjkIters, b3_gjkMaxIters, avgGjkIters);
-		
+
 		float32 convexCacheHitRatio = 0.0f;
 		if (b3_convexCalls > 0)
 		{
@@ -403,21 +421,8 @@ void Test::Step()
 		ImGui::Text(" Velocity Solver %.4f (%.4f)", m_profile.solver.solveVelocity, m_maxProfile.solver.solveVelocity);
 		ImGui::Text(" Position Solver %.4f (%.4f)", m_profile.solver.solvePosition, m_maxProfile.solver.solvePosition);
 	}
-	
+
 	ImGui::End();
-
-	u32 drawFlags = 0;
-	drawFlags += g_settings.drawBounds * b3Draw::e_aabbsFlag;
-	drawFlags += g_settings.drawShapes * b3Draw::e_shapesFlag;
-	drawFlags += g_settings.drawCenterOfMasses * b3Draw::e_centerOfMassesFlag;
-	drawFlags += g_settings.drawJoints * b3Draw::e_jointsFlag;
-	drawFlags += g_settings.drawContactPoints * b3Draw::e_contactPointsFlag;
-	drawFlags += g_settings.drawContactNormals * b3Draw::e_contactNormalsFlag;
-	drawFlags += g_settings.drawContactTangents * b3Draw::e_contactTangentsFlag;
-
-	g_debugDraw->SetFlags(drawFlags);
-
-	m_world.DebugDraw();
 }
 
 void Test::MouseMove(const Ray3& pw)

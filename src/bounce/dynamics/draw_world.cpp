@@ -122,7 +122,7 @@ void b3World::DebugDraw() const
 				
 				if (flags & b3Draw::e_contactPointsFlag)
 				{
-					m_debugDraw->DrawPoint(p, yellow);
+					m_debugDraw->DrawPoint(p, 4.0f, yellow);
 				}
 
 				if (flags & b3Draw::e_contactNormalsFlag)
@@ -143,17 +143,27 @@ void b3World::DebugDraw() const
 				const b3WorldManifoldPoint* wmp = wm.points + j;
 
 				b3Vec3 n = wmp->normal;
+				b3Vec3 t1 = wm.tangent1;
+				b3Vec3 t2 = wm.tangent2;
 				b3Vec3 p = wmp->point;
 				float32 Pn = mp->normalImpulse;
-				
+				float32 Pt1 = mp->tangentImpulse.x;
+				float32 Pt2 = mp->tangentImpulse.y;
+
 				if (flags & b3Draw::e_contactPointsFlag)
 				{
-					m_debugDraw->DrawPoint(p, mp->persisting ? green : red);
+					m_debugDraw->DrawPoint(p, 4.0f, mp->persisting ? green : red);
 				}
 				
 				if (flags & b3Draw::e_contactNormalsFlag)
 				{
 					m_debugDraw->DrawSegment(p, p + n, white);
+				}
+				
+				if (flags & b3Draw::e_contactTangentsFlag)
+				{
+					m_debugDraw->DrawSegment(p, p + t1, yellow);
+					m_debugDraw->DrawSegment(p, p + t2, yellow);
 				}
 			}
 		}
@@ -168,44 +178,34 @@ void b3World::DrawShape(const b3Transform& xf, const b3Shape* shape) const
 	case e_sphereShape:
 	{
 		const b3SphereShape* sphere = (b3SphereShape*)shape;
-		b3Vec3 c = xf * sphere->m_center;
-		m_debugDraw->DrawPoint(c, wireColor);
+		b3Vec3 p = xf * sphere->m_center;
+		m_debugDraw->DrawPoint(p, 4.0f, wireColor);
 		break;
 	}
 	case e_capsuleShape:
 	{
 		const b3CapsuleShape* capsule = (b3CapsuleShape*)shape;
-		b3Vec3 c1 = xf * capsule->m_centers[0];
-		b3Vec3 c2 = xf * capsule->m_centers[1];
-		
-		m_debugDraw->DrawPoint(c1, wireColor);
-		m_debugDraw->DrawPoint(c2, wireColor);
-		m_debugDraw->DrawSegment(c1, c2, wireColor);
+		b3Vec3 p1 = xf * capsule->m_centers[0];
+		b3Vec3 p2 = xf * capsule->m_centers[1];
+		m_debugDraw->DrawPoint(p1, 4.0f, wireColor);
+		m_debugDraw->DrawPoint(p2, 4.0f, wireColor);
+		m_debugDraw->DrawSegment(p1, p2, wireColor);
 		break;
 	}
 	case e_hullShape:
 	{
 		const b3HullShape* hs = (b3HullShape*)shape;
 		const b3Hull* hull = hs->m_hull;
-
-		for (u32 i = 0; i < hull->faceCount; ++i)
+		for (u32 i = 0; i < hull->edgeCount; i += 2)
 		{
-			b3Vec3 polygon[B3_MAX_HULL_FEATURES];
-			u32 vCount = 0;
+			const b3HalfEdge* edge = hull->GetEdge(i);
+			const b3HalfEdge* twin = hull->GetEdge(i + 1);
+			
+			b3Vec3 p1 = xf * hull->vertices[edge->origin];
+			b3Vec3 p2 = xf * hull->vertices[twin->origin];
 
-			// Build convex polygon for loop
-			const b3Face* face = hull->GetFace(i);
-			const b3HalfEdge* begin = hull->GetEdge(face->edge);
-			const b3HalfEdge* edge = begin;
-			do
-			{
-				polygon[vCount++] = xf * hull->GetVertex(edge->origin);
-				edge = hull->GetEdge(edge->next);
-			} while (edge != begin);
-
-			m_debugDraw->DrawPolygon(polygon, vCount, wireColor);
+			m_debugDraw->DrawSegment(p1, p2, wireColor);
 		}
-
 		break;
 	}
 	case e_meshShape:
@@ -214,14 +214,13 @@ void b3World::DrawShape(const b3Transform& xf, const b3Shape* shape) const
 		const b3Mesh* mesh = ms->m_mesh;
 		for (u32 i = 0; i < mesh->triangleCount; ++i)
 		{
-			const b3Triangle* triangle = mesh->triangles + i;
+			const b3Triangle* t = mesh->triangles + i;
 
-			b3Vec3 vs[3];
-			vs[0] = xf * mesh->vertices[triangle->v1];
-			vs[1] = xf * mesh->vertices[triangle->v2];
-			vs[2] = xf * mesh->vertices[triangle->v3];
+			b3Vec3 p1 = xf * mesh->vertices[t->v1];
+			b3Vec3 p2 = xf * mesh->vertices[t->v2];
+			b3Vec3 p3 = xf * mesh->vertices[t->v3];
 
-			m_debugDraw->DrawPolygon(vs, 3, wireColor);
+			m_debugDraw->DrawTriangle(p1, p2, p3, wireColor);
 		}
 		break;
 	}

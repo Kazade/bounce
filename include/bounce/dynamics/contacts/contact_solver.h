@@ -62,9 +62,16 @@ struct b3VelocityConstraintPoint
 {
 	b3Vec3 rA;
 	b3Vec3 rB;
+	
 	b3Vec3 normal;
 	float32 normalMass;
 	float32 normalImpulse;
+	
+	b3Vec3 tangent1;
+	b3Vec3 tangent2;
+	b3Mat22 tangentMass;
+	b3Vec2 tangentImpulse;
+
 	float32 velocityBias;
 };
 
@@ -80,9 +87,7 @@ struct b3VelocityConstraintManifold
 	b3Vec2 tangentImpulse;	
 	float32 motorImpulse;
 	float32 motorMass;
-	//float32 maxTangentImpulse;
-	//float32 area;
-
+	
 	b3VelocityConstraintPoint* points;
 	u32 pointCount;
 };
