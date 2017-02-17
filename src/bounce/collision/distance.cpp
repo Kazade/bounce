@@ -157,13 +157,10 @@ void b3ClosestPointsOnNormalizedLines(b3Vec3* C1, b3Vec3* C2,
 	const b3Vec3& P1, const b3Vec3& N1,
 	const b3Vec3& P2, const b3Vec3& N2)
 {
-	// sin^2 = 1 - cos^2
-	// or
-	// sin = norm( cross(n1, n2) )
-	const float32 kTol = 0.0f;
+	const float32 kTol = 0.001f;
 
-	float32 c = b3Dot(N1, N2);
-	float32 den = 1.0f - c * c;
+	float32 b = b3Dot(N1, N2);
+	float32 den = 1.0f - b * b;
 	if (den < kTol * kTol)
 	{
 		*C1 = P1;
@@ -171,24 +168,15 @@ void b3ClosestPointsOnNormalizedLines(b3Vec3* C1, b3Vec3* C2,
 		return;
 	}
 
-	den = 1.0f / den;
-
-	// a = dot(n1, e3)
-	// b = dot(n2, e3)
-	// c = dot(n1, n2)
-
-	// s - c * t = -dot(n1, e3)
-	// c * s - t = -dot(n2, e3)
-
-	// s = ( c * dot(n2, e3) - dot(n1, e3) ) / den 
-	// t = ( dot(n2, e3) - c * dot(n1, e3) ) / den 
+	float32 inv_den = 1.0f / den;
+	
 	b3Vec3 E3 = P1 - P2;
 
-	float32 a = b3Dot(N2, E3);
-	float32 b = b3Dot(N1, E3);
-	
-	float32 s = den * (c * a - b);
-	float32 t = den * (a - c - b);
+	float32 d = b3Dot(N1, E3);
+	float32 e = b3Dot(N2, E3);
+
+	float32 s = inv_den * (b * e - d);
+	float32 t = inv_den * (e - b * d);
 
 	*C1 = P1 + s * N1;
 	*C2 = P2 + t * N2;
@@ -234,11 +222,11 @@ void b3ClosestPointsOnSegments(b3Vec3* C1, b3Vec3* C2,
 	// or
 	// sin^2 = 1 - cos^2
 
-	// Zero parallelism tolerance used because the colinearity tolerance above is also zero.
-	const float32 kTol = 0.0f;
+	// Use small parallelism tolerance used because the coincidence tolerance above is also small/zero.
+	const float32 kTol = 0.001f;
 
-	float32 c = b3Dot(N1, N2);
-	float32 den = 1.0f - c * c;
+	float32 b = b3Dot(N1, N2);
+	float32 den = 1.0f - b * b;
 	if (den < kTol * kTol)
 	{
 		*C1 = P1;
@@ -246,23 +234,23 @@ void b3ClosestPointsOnSegments(b3Vec3* C1, b3Vec3* C2,
 	}
 	else
 	{
-		// a = dot(n1, e3)
-		// b = dot(n2, e3)
-		// c = dot(n1, n2)
+		// b = dot(n1, n2)
+		// d = dot(n1, e3)
+		// e = dot(n2, e3)
 
-		// s - c * t = -dot(n1, e3)
-		// c * s - t = -dot(n2, e3)
+		// s - b * t = -d
+		// b * s - t = -e
 
-		// s = ( c * dot(n2, e3) - dot(n1, e3) ) / den 
-		// t = ( dot(n2, e3) - c * dot(n1, e3) ) / den 
+		// s = ( b * e - d ) / den 
+		// t = ( e - b * d ) / den 
 		b3Vec3 E3 = P1 - P2;
 
-		float32 a = b3Dot(N2, E3);
-		float32 b = b3Dot(N1, E3);
+		float32 d = b3Dot(N1, E3);
+		float32 e = b3Dot(N2, E3);
 		float32 inv_den = 1.0f / den;
 
-		float32 s = inv_den * (c * a - b);
-		float32 t = inv_den * (a - c - b);
+		float32 s = inv_den * (b * e - d);
+		float32 t = inv_den * (e - b * d);
 
 		*C1 = P1 + s * N1;
 		*C2 = P2 + t * N2;
