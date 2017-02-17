@@ -1115,6 +1115,9 @@ void DebugDraw::DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const 
 	m_triangles->Vertex(p1, color, normal);
 	m_triangles->Vertex(p2, color, normal);
 	m_triangles->Vertex(p3, color, normal);
+	
+	b3Color edgeColor(0.0f, 0.0f, 0.0f, 1.0f);
+	DrawTriangle(p2, p3, p3, edgeColor);
 }
 
 void DebugDraw::DrawPolygon(const b3Vec3* vertices, u32 count, const b3Color& color)
@@ -1124,7 +1127,8 @@ void DebugDraw::DrawPolygon(const b3Vec3* vertices, u32 count, const b3Color& co
 	{
 		b3Vec3 p2 = vertices[i];
 		
-		DrawSegment(p1, p2, color);
+		m_lines->Vertex(p1, color);
+		m_lines->Vertex(p2, color);
 
 		p1 = p2;
 	}
@@ -1132,7 +1136,7 @@ void DebugDraw::DrawPolygon(const b3Vec3* vertices, u32 count, const b3Color& co
 
 void DebugDraw::DrawSolidPolygon(const b3Vec3& normal, const b3Vec3* vertices, u32 count, const b3Color& color)
 {
-	b3Color fillColor(color.r, color.g, color.b, 0.5f);
+	b3Color fillColor(color.r, color.g, color.b, color.a);
 	
 	b3Vec3 p1 = vertices[0];
 	for (u32 i = 1; i < count - 1; ++i)
@@ -1165,8 +1169,9 @@ void DebugDraw::DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 r
 		b3Vec3 n2 = cosInc * n1 + sinInc * b3Cross(normal, n1) + tInc * b3Dot(normal, n1) * normal;
 		b3Vec3 v2 = center + radius * n2;
 
-		DrawSegment(v1, v2, color);
-
+		m_lines->Vertex(v1, color);
+		m_lines->Vertex(v2, color);
+		
 		n1 = n2;
 		v1 = v2;
 	}
@@ -1367,12 +1372,18 @@ void DebugDraw::DrawMesh(const b3MeshShape* s, const b3Color& c, const b3Transfo
 		b3Vec3 p2 = xf * mesh->vertices[t->v2];
 		b3Vec3 p3 = xf * mesh->vertices[t->v3];
 
-		b3Vec3 n = b3Cross(p2 - p1, p3 - p1);
-		n.Normalize();
+		b3Vec3 n1 = b3Cross(p2 - p1, p3 - p1);
+		n1.Normalize();
 		
-		m_triangles->Vertex(p1, c, n);
-		m_triangles->Vertex(p2, c, n);
-		m_triangles->Vertex(p3, c, n);
+		m_triangles->Vertex(p1, c, n1);
+		m_triangles->Vertex(p2, c, n1);
+		m_triangles->Vertex(p3, c, n1);
+
+		b3Vec3 n2 = -n1;
+		
+		m_triangles->Vertex(p1, c, n2);
+		m_triangles->Vertex(p3, c, n2);
+		m_triangles->Vertex(p2, c, n2);
 	}
 }
 
@@ -1436,10 +1447,10 @@ void DebugDraw::Draw(const b3World& world)
 		}
 	}
 	
-	g_debugDraw->Draw();
+	g_debugDraw->Submit();
 }
 
-void DebugDraw::Draw()
+void DebugDraw::Submit()
 {
 	m_triangles->Submit();
 	m_lines->Submit();

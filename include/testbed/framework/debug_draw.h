@@ -106,7 +106,7 @@ public:
 
 	void Draw(const b3World& world);
 
-	void Draw();
+	void Submit();
 private:
 	friend struct DrawShapes;
 

@@ -162,7 +162,7 @@ void b3SphereJoint::Draw(b3Draw* draw) const
 	b3Vec3 a = GetAnchorA();
 	b3Vec3 b = GetAnchorB();
 	
-	draw->DrawPoint(a, 4.0f, b3Color(1.0f, 0.0f, 0.0f));
-	draw->DrawPoint(b, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
-	draw->DrawSegment(a, b, b3Color(1.0f, 1.0f, 0.0f));
+	draw->DrawPoint(a, 4.0f, b3Color_red);
+	draw->DrawPoint(b, 4.0f, b3Color_green);
+	draw->DrawSegment(a, b, b3Color_yellow);
 }

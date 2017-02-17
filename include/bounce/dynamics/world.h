@@ -34,6 +34,14 @@ class b3ContactListener;
 class b3ContactFilter;
 class b3Draw;
 
+struct b3RayCastSingleOutput
+{
+	b3Shape* shape; // shape
+	b3Vec3 point; // intersection point on surface
+	b3Vec3 normal; // surface normal of intersection
+	float32 fraction; // time of intersection on segment
+};
+
 // Use a physics world to create/destroy rigid bodies, execute ray cast and volume queries.
 class b3World
 {
@@ -84,19 +92,19 @@ public:
 	void Step(float32 dt, u32 velocityIterations, u32 positionIterations);
 	
 	// Perform a ray cast with the world.
+	// If the ray doesn't intersect with a shape in the world then return false.
+	// The ray cast output is the intercepted shape, the intersection 
+	// point in world space, the face normal on the shape associated with the point, 
+	// and the intersection fraction.
+	bool RayCastSingle(b3RayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
+
+	// Perform a ray cast with the world.
 	// The given ray cast listener will be notified when a ray intersects a shape 
 	// in the world. 
 	// The ray cast output is the intercepted shape, the intersection 
 	// point in world space, the face normal on the shape associated with the point, 
 	// and the intersection fraction.
 	void RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const;
-
-	// Convenience function.
-	// Perform a ray cast with the world.
-	// If there is an intersection then the given ray cast listener will be notified once with 
-	// the shape closest to the ray origin and the associated ray cast output. 
-	// @todo Centralize all queries to a common scene query class?
-	void RayCastFirst(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const;
 
 	// Perform a AABB cast with the world.
 	// The query listener will be notified when two shape AABBs are overlapping.

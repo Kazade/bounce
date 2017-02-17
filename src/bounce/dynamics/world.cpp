@@ -377,7 +377,7 @@ void b3World::RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec
 	m_contactMan.m_broadPhase.RayCast(&callback, input);
 }
 
-struct b3RayCastFirstCallback
+struct b3RayCastSingleCallback
 {
 	float32 Report(const b3RayCastInput& input, i32 proxyId)
 	{
@@ -409,14 +409,14 @@ struct b3RayCastFirstCallback
 	const b3BroadPhase* broadPhase;
 };
 
-void b3World::RayCastFirst(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const
+bool b3World::RayCastSingle(b3RayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
 {
 	b3RayCastInput input;
 	input.p1 = p1;
 	input.p2 = p2;
 	input.maxFraction = 1.0f;
 
-	b3RayCastFirstCallback callback;
+	b3RayCastSingleCallback callback;
 	callback.shape0 = NULL;
 	callback.output0.fraction = B3_MAX_FLOAT;
 	callback.broadPhase = &m_contactMan.m_broadPhase;
@@ -428,15 +428,18 @@ void b3World::RayCastFirst(b3RayCastListener* listener, const b3Vec3& p1, const 
 	{
 		// Ray hits closest shape.
 		float32 fraction = callback.output0.fraction;
-		float32 w1 = 1.0f - fraction;
-		float32 w2 = fraction;
-
-		b3Vec3 point = w1 * input.p1 + w2 * input.p2;
+		b3Vec3 point = (1.0f - fraction) * input.p1 + fraction * input.p2;
 		b3Vec3 normal = callback.output0.normal;
 
-		// Report the intersection to the user.
-		listener->ReportShape(callback.shape0, point, normal, fraction);
+		output->shape = callback.shape0;
+		output->point = point;
+		output->normal = normal;
+		output->fraction = fraction;
+		
+		return true;
 	}
+	
+	return false;
 }
 
 struct b3QueryAABBCallback

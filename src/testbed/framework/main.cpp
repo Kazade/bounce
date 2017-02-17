@@ -339,7 +339,7 @@ void Step()
 	}
 	
 	g_test->Step();	
-	g_debugDraw->Draw();
+	g_debugDraw->Submit();
 }
 
 void Run()

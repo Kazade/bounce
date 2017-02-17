@@ -109,14 +109,10 @@ void b3MouseJoint::SetTarget(const b3Vec3& target)
 
 void b3MouseJoint::Draw(b3Draw* draw) const 
 {
-	b3Color red(1.0f, 0.0f, 0.0f);
-	b3Color green(0.0f, 1.0f, 0.0f);
-	b3Color yellow(1.0f, 1.0f, 0.0f);
-	
 	b3Vec3 a = GetAnchorA();
 	b3Vec3 b = GetAnchorB();
 
-	draw->DrawPoint(a, 4.0f, green);
-	draw->DrawPoint(b, 4.0f, red);
-	draw->DrawSegment(a, b, yellow);
+	draw->DrawPoint(a, 4.0f, b3Color_green);
+	draw->DrawPoint(b, 4.0f, b3Color_red);
+	draw->DrawSegment(a, b, b3Color_yellow);
 }

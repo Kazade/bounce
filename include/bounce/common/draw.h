@@ -32,6 +32,15 @@ struct b3Color
 	float32 r, g, b, a;
 };
 
+// Color pallete commonly used by the debug draw interface.
+extern const b3Color b3Color_black;
+extern const b3Color b3Color_white;
+extern const b3Color b3Color_red;
+extern const b3Color b3Color_green;
+extern const b3Color b3Color_blue;
+extern const b3Color b3Color_yellow;
+extern const b3Color b3Color_pink;
+
 // Implement this interface and set to a world so it can draw the physics entities.
 class b3Draw 
 {

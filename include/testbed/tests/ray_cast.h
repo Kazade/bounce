@@ -204,18 +204,12 @@ public:
 
 	void CastRay(const b3Vec3 p1, const b3Vec3 p2) const
 	{
-		// Perform the ray cast
-		RayCastListener listener;
-		listener.hit.shape = NULL;
-		m_world.RayCastFirst(&listener, p1, p2);
-
-		RayCastHit hit = listener.hit;
-		if (hit.shape)
+		b3RayCastSingleOutput out;
+		if (m_world.RayCastSingle(&out, p1, p2))
 		{
-			// Replace current hit
-			g_debugDraw->DrawSegment(p1, hit.point, b3Color(0.0f, 1.0f, 0.0f));
-			g_debugDraw->DrawPoint(hit.point, 4.0f, b3Color(1.0f, 0.0f, 0.0f));
-			g_debugDraw->DrawSegment(hit.point, hit.point + hit.normal, b3Color(1.0f, 1.0f, 1.0f));
+			g_debugDraw->DrawSegment(p1, out.point, b3Color(0.0f, 1.0f, 0.0f));
+			g_debugDraw->DrawPoint(out.point, 4.0f, b3Color(1.0f, 0.0f, 0.0f));
+			g_debugDraw->DrawSegment(out.point, out.point + out.normal, b3Color(1.0f, 1.0f, 1.0f));
 		}
 		else
 		{

@@ -157,32 +157,41 @@ void b3ClosestPointsOnNormalizedLines(b3Vec3* C1, b3Vec3* C2,
 	const b3Vec3& P1, const b3Vec3& N1,
 	const b3Vec3& P2, const b3Vec3& N2)
 {
-	float32 a12 = -b3Dot(N1, N2);
-	float32 a21 = -a12;
+	// sin^2 = 1 - cos^2
+	// or
+	// sin = norm( cross(n1, n2) )
+	const float32 kTol = 0.0f;
 
-	float32 det = -1.0f - a12 * a21;
-	if (det == 0.0f)
+	float32 c = b3Dot(N1, N2);
+	float32 den = 1.0f - c * c;
+	if (den < kTol * kTol)
 	{
-		// Nearly paralell lines.
 		*C1 = P1;
 		*C2 = P2;
 		return;
 	}
 
-	det = 1.0f / det;
+	den = 1.0f / den;
 
+	// a = dot(n1, e3)
+	// b = dot(n2, e3)
+	// c = dot(n1, n2)
+
+	// s - c * t = -dot(n1, e3)
+	// c * s - t = -dot(n2, e3)
+
+	// s = ( c * dot(n2, e3) - dot(n1, e3) ) / den 
+	// t = ( dot(n2, e3) - c * dot(n1, e3) ) / den 
 	b3Vec3 E3 = P1 - P2;
 
-	b3Vec2 b;
-	b.x = -b3Dot(N1, E3);
-	b.y = -b3Dot(N2, E3);
+	float32 a = b3Dot(N2, E3);
+	float32 b = b3Dot(N1, E3);
+	
+	float32 s = den * (c * a - b);
+	float32 t = den * (a - c - b);
 
-	b3Vec2 x;
-	x.x = det * (-b.x - a12 * b.y);
-	x.y = det * (b.y - a21 * b.x);
-
-	*C1 = P1 + x.x * N1;
-	*C2 = P2 + x.y * N2;
+	*C1 = P1 + s * N1;
+	*C2 = P2 + t * N2;
 }
 
 void b3ClosestPointsOnSegments(b3Vec3* C1, b3Vec3* C2,
@@ -191,45 +200,72 @@ void b3ClosestPointsOnSegments(b3Vec3* C1, b3Vec3* C2,
 {
 	b3Vec3 E1 = Q1 - P1;
 	float32 L1 = b3Length(E1);
-	
+
 	b3Vec3 E2 = Q2 - P2;
 	float32 L2 = b3Length(E2);
 
-	if (L1 < B3_LINEAR_SLOP && L2 < B3_LINEAR_SLOP)
+	if (L1 < 0.0f && L2 < 0.0f)
 	{
 		*C1 = P1;
 		*C2 = P2;
 		return;
 	}
 
-	if (L1 < B3_LINEAR_SLOP)
+	if (L1 < 0.0f)
 	{
 		*C1 = P1;
 		*C2 = b3ClosestPointOnSegment(P1, P2, Q2);
 		return;
 	}
 
-	if (L2 < B3_LINEAR_SLOP)
+	if (L2 < 0.0f)
 	{
 		*C1 = b3ClosestPointOnSegment(P2, P1, Q1);
 		*C2 = P2;
 		return;
 	}
 
-	// |e1xe2| = sin(theta) * |e1| * |e2|
-	b3Vec3 E1_x_E2 = b3Cross(E1, E2);
-	float32 L = b3Length(E1_x_E2);
-	const float32 kTolerance = 0.005f;
-	if (L < kTolerance * L1 * L2)
+	// Here and in 3D we need to start "GJK" with the closest points between the two edges 
+	// since the cross product between their direction is a possible separating axis.
+	b3Vec3 N1 = (1.0f / L1) * E1;
+	b3Vec3 N2 = (1.0f / L2) * E2;
+
+	// sin = norm( cross(n1, n2) )
+	// or
+	// sin^2 = 1 - cos^2
+
+	// Zero parallelism tolerance used because the colinearity tolerance above is also zero.
+	const float32 kTol = 0.0f;
+
+	float32 c = b3Dot(N1, N2);
+	float32 den = 1.0f - c * c;
+	if (den < kTol * kTol)
 	{
 		*C1 = P1;
 		*C2 = P2;
 	}
 	else
 	{
-		b3Vec3 N1 = (1.0f / L1) * E1;
-		b3Vec3 N2 = (1.0f / L2) * E2;
-		b3ClosestPointsOnNormalizedLines(C1, C2, P1, N1, P2, N2);
+		// a = dot(n1, e3)
+		// b = dot(n2, e3)
+		// c = dot(n1, n2)
+
+		// s - c * t = -dot(n1, e3)
+		// c * s - t = -dot(n2, e3)
+
+		// s = ( c * dot(n2, e3) - dot(n1, e3) ) / den 
+		// t = ( dot(n2, e3) - c * dot(n1, e3) ) / den 
+		b3Vec3 E3 = P1 - P2;
+
+		float32 a = b3Dot(N2, E3);
+		float32 b = b3Dot(N1, E3);
+		float32 inv_den = 1.0f / den;
+
+		float32 s = inv_den * (c * a - b);
+		float32 t = inv_den * (a - c - b);
+
+		*C1 = P1 + s * N1;
+		*C2 = P2 + t * N2;
 	}
 
 	*C1 = b3ClosestPointOnSegment(*C1, P1, Q1);

@@ -88,14 +88,6 @@ struct TestEntry
 
 extern TestEntry g_tests[];
 
-struct RayCastHit
-{
-	b3Shape* shape;
-	b3Vec3 point;
-	b3Vec3 normal;
-	float32 fraction;
-};
-
 class RayCastListener : public b3RayCastListener
 {
 public:
@@ -108,7 +100,7 @@ public:
 		return 1.0f;
 	}
 
-	RayCastHit hit;
+	b3RayCastSingleOutput hit;
 };
 
 class Test : public b3ContactListener
@@ -142,7 +134,7 @@ public:
 	b3Profile m_profile;
 	b3Profile m_maxProfile;
 
-	RayCastHit m_rayHit;
+	b3RayCastSingleOutput m_rayHit;
 	b3BoxHull m_groundHull;
 	b3BoxHull m_boxHull;
 	b3BoxHull m_tallHull;

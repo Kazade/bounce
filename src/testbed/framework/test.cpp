@@ -376,7 +376,7 @@ void Test::Step()
 
 	g_debugDraw->SetFlags(drawFlags);
 	m_world.DebugDraw();
-	g_debugDraw->Draw();
+	g_debugDraw->Submit();
 	
 	if (g_settings.drawFaces)
 	{
@@ -459,12 +459,10 @@ void Test::MouseLeftDown(const Ray3& pw)
 	listener.hit.shape = NULL;
 
 	// Perform the ray cast
-	m_world.RayCastFirst(&listener, p1, p2);
-
-	if (listener.hit.shape)
+	b3RayCastSingleOutput out;
+	if (m_world.RayCastSingle(&out, p1, p2))
 	{
-		m_rayHit = listener.hit;
-		
+		m_rayHit = out;		
 		RayHit();
 	}
 }

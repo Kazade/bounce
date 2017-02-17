@@ -178,7 +178,7 @@ solution (solution_name)
 		links { "glfw", "glad", "imgui", "bounce" }
 
 		configuration { "windows" }
-			links { "glu32", "opengl32", "winmm" }
+			links { "opengl32", "winmm" }
 			
 		configuration { "not windows", "not macosx" }
 			links 

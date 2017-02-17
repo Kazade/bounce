@@ -42,47 +42,29 @@ void b3BuildEdgeContact(b3Manifold& manifold,
 	b3Vec3 E2 = Q2 - P2;
 	b3Vec3 N2 = b3Normalize(E2);
 
-	b3Vec3 E3 = P1 - P2;
-
-	b3Vec2 b;
-	b.x = -b3Dot(N1, E3);
-	b.y = -b3Dot(N2, E3);
-
-	float32 a12 = -b3Dot(N1, N2), a21 = -a12;
-
-	float32 det = -1.0f - a12 * a21;
-	if (det != 0.0f)
+	b3Vec3 N = b3Cross(E1, E2);
+	N.Normalize();
+	if (b3Dot(N, P2 - C2) > 0.0f)
 	{
-		det = 1.0f / det;
+		N = -N;
 	}
 
-	b3Vec2 x;
-	x.x = det * (-b.x - a12 * b.y);
-	x.y = det * (b.y - a21 * b.x);
-
-	b3Vec3 point1 = P1 + x.x * N1;
-	b3Vec3 point2 = P2 + x.y * N2;
-
-	b3Vec3 axis = b3Cross(E1, E2);
-	b3Vec3 normal = b3Normalize(axis);
-	if (b3Dot(normal, P2 - C2) > 0.0f)
-	{
-		normal = -normal;
-	}
+	b3Vec3 PA, PB;
+	b3ClosestPointsOnNormalizedLines(&PA, &PB, P1, E1, P2, E2);
 
 	b3FeaturePair pair = b3MakePair(0, 1, index2, index2 + 1);
 	
 	manifold.pointCount = 1;
 	manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
 	manifold.points[0].key = b3MakeKey(pair);
-	manifold.points[0].localNormal = b3MulT(xf1.rotation, normal);
-	manifold.points[0].localPoint = b3MulT(xf1, point1);
-	manifold.points[0].localPoint2 = b3MulT(xf2, point2);
+	manifold.points[0].localNormal = b3MulT(xf1.rotation, N);
+	manifold.points[0].localPoint = b3MulT(xf1, PA);
+	manifold.points[0].localPoint2 = b3MulT(xf2, PB);
 
-	manifold.center = 0.5f * (point1 + hull1->radius * normal + point2 - B3_HULL_RADIUS * normal);
-	manifold.normal = normal;
-	manifold.tangent1 = b3Perp(normal);
-	manifold.tangent2 = b3Cross(manifold.tangent1, normal);
+	manifold.center = 0.5f * (PA + hull1->radius * N + PB - B3_HULL_RADIUS * N);
+	manifold.normal = N;
+	manifold.tangent1 = b3Perp(N);
+	manifold.tangent2 = b3Cross(manifold.tangent1, N);
 }
 
 void b3BuildFaceContact(b3Manifold& manifold,
@@ -207,7 +189,7 @@ void b3CollideCapsuleAndHull(b3Manifold& manifold,
 
 		return;
 	}
-	
+
 	b3FaceQuery faceQueryB = b3QueryFaceSeparation(xfA, &hullA, xfB, hullB);
 	if (faceQueryB.separation > totalRadius)
 	{

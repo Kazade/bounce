@@ -40,19 +40,19 @@
 #include <bounce/collision/shapes/hull.h>
 #include <bounce/collision/shapes/mesh.h>
 
+const b3Color b3Color_black(0.0f, 0.0f, 0.0f);
+const b3Color b3Color_white(1.0f, 1.0f, 1.0f);
+const b3Color b3Color_red(1.0f, 0.0f, 0.0f);
+const b3Color b3Color_green(0.0f, 1.0f, 0.0f);
+const b3Color b3Color_blue(0.0f, 0.0f, 1.0f);
+const b3Color b3Color_yellow(1.0f, 1.0f, 0.0f);
+const b3Color b3Color_pink(1.0f, 0.0f, 1.0f);
+
 void b3World::DebugDraw() const
 {
 	B3_ASSERT(m_debugDraw);
 
 	u32 flags = m_debugDraw->m_flags;
-
-	b3Color black(0.0f, 0.0f, 0.0f, 1.0f);
-	b3Color white(1.0f, 1.0f, 1.0f, 1.0f);
-	b3Color red(1.0f, 0.0f, 0.0f, 1.0f);
-	b3Color green(0.0f, 1.0f, 0.0f, 1.0f);
-	b3Color blue(0.0f, 0.0f, 1.0f, 1.0f);
-	b3Color yellow(1.0f, 1.0f, 0.0f, 1.0f);
-	b3Color purple(1.0f, 0.0f, 1.0f, 1.0f);
 
 	if (flags & b3Draw::e_centerOfMassesFlag)
 	{
@@ -83,7 +83,7 @@ void b3World::DebugDraw() const
 			for (b3Shape* s = b->m_shapeList.m_head; s; s = s->m_next)
 			{
 				const b3AABB3& aabb = m_contactMan.m_broadPhase.GetAABB(s->m_broadPhaseID);
-				m_debugDraw->DrawAABB(aabb, purple);
+				m_debugDraw->DrawAABB(aabb, b3Color_pink);
 			}
 		}
 	}
@@ -122,18 +122,18 @@ void b3World::DebugDraw() const
 				
 				if (flags & b3Draw::e_contactPointsFlag)
 				{
-					m_debugDraw->DrawPoint(p, 4.0f, yellow);
+					m_debugDraw->DrawPoint(p, 4.0f, b3Color_yellow);
 				}
 
 				if (flags & b3Draw::e_contactNormalsFlag)
 				{
-					m_debugDraw->DrawSegment(p, p + n, yellow);
+					m_debugDraw->DrawSegment(p, p + n, b3Color_yellow);
 				}
 
 				if (flags & b3Draw::e_contactTangentsFlag)
 				{
-					m_debugDraw->DrawSegment(p, p + t1, yellow);
-					m_debugDraw->DrawSegment(p, p + t2, yellow);
+					m_debugDraw->DrawSegment(p, p + t1, b3Color_yellow);
+					m_debugDraw->DrawSegment(p, p + t2, b3Color_yellow);
 				}
 			}
 
@@ -152,18 +152,18 @@ void b3World::DebugDraw() const
 
 				if (flags & b3Draw::e_contactPointsFlag)
 				{
-					m_debugDraw->DrawPoint(p, 4.0f, mp->persisting ? green : red);
+					m_debugDraw->DrawPoint(p, 4.0f, mp->persisting ? b3Color_green : b3Color_red);
 				}
 				
 				if (flags & b3Draw::e_contactNormalsFlag)
 				{
-					m_debugDraw->DrawSegment(p, p + n, white);
+					m_debugDraw->DrawSegment(p, p + n, b3Color_white);
 				}
 				
 				if (flags & b3Draw::e_contactTangentsFlag)
 				{
-					m_debugDraw->DrawSegment(p, p + t1, yellow);
-					m_debugDraw->DrawSegment(p, p + t2, yellow);
+					m_debugDraw->DrawSegment(p, p + t1, b3Color_yellow);
+					m_debugDraw->DrawSegment(p, p + t2, b3Color_yellow);
 				}
 			}
 		}
