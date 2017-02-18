@@ -192,23 +192,23 @@ void b3ClosestPointsOnSegments(b3Vec3* C1, b3Vec3* C2,
 	b3Vec3 E2 = Q2 - P2;
 	float32 L2 = b3Length(E2);
 
-	if (L1 < 0.0f && L2 < 0.0f)
+	if (L1 < B3_LINEAR_SLOP && L2 < B3_LINEAR_SLOP)
 	{
 		*C1 = P1;
 		*C2 = P2;
 		return;
 	}
 
-	if (L1 < 0.0f)
+	if (L1 < B3_LINEAR_SLOP)
 	{
 		*C1 = P1;
-		*C2 = b3ClosestPointOnSegment(P1, P2, Q2);
+		*C2 = L2 < B3_LINEAR_SLOP ? P2 : b3ClosestPointOnSegment(P1, P2, Q2);
 		return;
 	}
 
-	if (L2 < 0.0f)
+	if (L2 < B3_LINEAR_SLOP)
 	{
-		*C1 = b3ClosestPointOnSegment(P2, P1, Q1);
+		*C1 = L1 < B3_LINEAR_SLOP ? P1 : b3ClosestPointOnSegment(P2, P1, Q1);
 		*C2 = P2;
 		return;
 	}
@@ -222,8 +222,8 @@ void b3ClosestPointsOnSegments(b3Vec3* C1, b3Vec3* C2,
 	// or
 	// sin^2 = 1 - cos^2
 
-	// Use small parallelism tolerance used because the coincidence tolerance above is also small/zero.
-	const float32 kTol = 0.001f;
+	// Use small parallelism tolerance because the coincidence tolerance above is also smal.
+	const float32 kTol = 0.005f;
 
 	float32 b = b3Dot(N1, N2);
 	float32 den = 1.0f - b * b;
