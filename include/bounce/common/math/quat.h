@@ -77,18 +77,6 @@ struct b3Quat
 		w = _w;
 	}
 	
-	// Set this quaternion from an axis and an angle 
-	// of rotation about the axis.
-	void Set(const b3Vec3& axis, float32 angle)
-	{
-		float32 theta = 0.5f * angle;
-		float32 s = sin(theta);
-		x = s * axis.x;
-		y = s * axis.y;
-		z = s * axis.z;
-		w = cos(theta);
-	}
-
 	// Normalize this quaternion.
 	void Normalize()
 	{
@@ -100,6 +88,54 @@ struct b3Quat
 			z /= s;
 			w /= s;
 		}
+	}
+
+	// Set this quaternion from an axis and full angle 
+	// of rotation about the axis.
+	void Set(const b3Vec3& axis, float32 angle)
+	{
+		// half angle
+		float32 theta = 0.5f * angle;
+		
+		float32 sine = sin(theta);
+		x = sine * axis.x;
+		y = sine * axis.y;
+		z = sine * axis.z;
+
+		w = cos(theta);
+	}
+
+	// If this quaternion represents an orientation return 
+	// the axis of rotation.
+	b3Vec3 GetAxis() const
+	{
+		// sin^2 = 1 - cos^2
+		// sin = sqrt( sin^2 ) = ||v||
+		// axis = v / sin
+		b3Vec3 v(x, y, z);
+		float32 sine = b3Length(v);
+		if (sine > B3_EPSILON)
+		{
+			float32 s = 1.0f / sine;
+			return s * v;
+		}
+		return v;
+	}
+
+	// If this quaternion represents an orientation return 
+	// the full angle of rotation.
+	float32 GetAngle() const
+	{
+		// cosine check
+		if (w >= -1.0f && w <= 1.0f)
+		{
+			// half angle
+			float32 theta = acos(w);
+			// full angle
+			return 2.0f * theta;
+		}
+
+		return 0.0f;
 	}
 
 	float32 x, y, z, w;

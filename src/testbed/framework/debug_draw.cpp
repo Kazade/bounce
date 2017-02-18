@@ -1295,7 +1295,10 @@ void DebugDraw::DrawString(const char* text, const b3Color& color, ...)
 
 void DebugDraw::DrawSphere(const b3SphereShape* s, const b3Color& c, const b3Transform& xf)
 {
-	m_solid->DrawSphere(s->m_radius, c, xf);
+	b3Transform xfc;
+	xfc.rotation = xf.rotation;
+	xfc.position = xf * s->m_center;
+	m_solid->DrawSphere(s->m_radius, c, xfc);
 }
 
 void DebugDraw::DrawCapsule(const b3CapsuleShape* s, const b3Color& c, const b3Transform& xf)
@@ -1317,14 +1320,15 @@ void DebugDraw::DrawCapsule(const b3CapsuleShape* s, const b3Color& c, const b3T
 		{
 			b3Transform xfc;
 			xfc.rotation = xf.rotation;
-			xfc.position = xf * c2;
-			m_solid->DrawSphere(radius, c, xfc);
+			xfc.position = xf * ( 0.5f * (c1 + c2) );
+			m_solid->DrawCylinder(radius, height, c, xfc);
 		}
 
 		{
-			const float32 z_bias = 0.0002f;
-			radius += z_bias;
-			m_solid->DrawCylinder(radius, height, c, xf);
+			b3Transform xfc;
+			xfc.rotation = xf.rotation;
+			xfc.position = xf * c2;
+			m_solid->DrawSphere(radius, c, xfc);
 		}
 	}
 }

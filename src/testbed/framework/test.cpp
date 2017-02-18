@@ -387,6 +387,11 @@ void Test::Step()
 	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
 	ImGui::Begin("Log", NULL, ImVec2(0, 0), 0.0f, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
 
+	if (g_settings.pause)
+	{
+		ImGui::Text("*PAUSED*");
+	}
+
 	if (g_settings.drawStats)
 	{
 		ImGui::Text("Bodies %d", m_world.GetBodyList().m_count);

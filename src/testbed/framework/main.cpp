@@ -222,8 +222,10 @@ bool GetTestName(void*, int idx, const char** name)
 
 void Interface()
 {
-	ImGui::SetNextWindowPos(ImVec2(g_camera.m_width - 250.0f, 0.0f));
+	ImGui::SetNextWindowPos(ImVec2(g_camera.m_width, 0.0f));
 	ImGui::SetNextWindowSize(ImVec2(250.0f, g_camera.m_height));
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+	
 	ImGui::Begin("Controls", NULL, ImVec2(0.0f, 0.0f), 0.25f, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
 	ImGui::PushItemWidth(-1.0f);
@@ -296,6 +298,7 @@ void Interface()
 	ImGui::Checkbox("Profile", &g_settings.drawProfile);
 
 	ImGui::End();
+	ImGui::PopStyleVar();
 }
 
 void Step()
@@ -361,10 +364,10 @@ void Run()
 	{
 		int width, height;
 		glfwGetWindowSize(g_window, &width, &height);
-		g_camera.m_width = float32(width);
+		g_camera.m_width = float32(width) - 250.0f;
 		g_camera.m_height = float32(height);
 
-		glViewport(0, 0, width, height);
+		glViewport(0, 0, width - 250, height);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		ImGui_ImplGlfwGL3_NewFrame();
