@@ -177,10 +177,16 @@ public:
 
 	// Get the rotational inertia of the body about the center of mass. Typically in kg/m^3.
 	const b3Mat33& GetInertia() const;
-	
-	// Get the total kinetic energy of the body in Joules (kilogram-meters squared per second squared).
-	float32 GetKineticEnergy() const;
 
+	// Get the linear kinetic energy of the body in Joules (kilogram-meters squared per second squared).
+	float32 GetLinearEnergy() const;
+
+	// Get the angular kinetic energy of the body in Joules (kilogram-meters squared per second squared).
+	float32 GetAngularEnergy() const;
+
+	// Get the total kinetic energy of the body in Joules (kilogram-meters squared per second squared).
+	float32 GetEnergy() const;
+	
 	// Transform a vector to the local space of this body.
 	b3Vec3 GetLocalVector(const b3Vec3& vector) const;
 
@@ -494,16 +500,24 @@ inline const b3Mat33& b3Body::GetInertia() const
 	return m_I;
 }
 
-inline float32 b3Body::GetKineticEnergy() const
+inline float32 b3Body::GetLinearEnergy() const
 {
 	b3Vec3 P = m_mass * m_linearVelocity;
-	float32 linearEnergy = b3Dot(P, m_linearVelocity);
-	
+	return b3Dot(P, m_linearVelocity);
+}
+
+inline float32 b3Body::GetAngularEnergy() const
+{
 	b3Mat33 I = b3RotateToFrame(m_I, m_xf.rotation);
 	b3Vec3 L = I * m_angularVelocity;
-	float32 angularEnergy = b3Dot(L, m_angularVelocity);
-	
-	return 0.5f * (linearEnergy + angularEnergy);
+	return b3Dot(L, m_angularVelocity);
+}
+
+inline float32 b3Body::GetEnergy() const
+{
+	float32 e1 = GetLinearEnergy();
+	float32 e2 = GetAngularEnergy();
+	return 0.5f * (e1 + e2);
 }
 
 inline void b3Body::ApplyForce(const b3Vec3& force, const b3Vec3& point, bool wake) 

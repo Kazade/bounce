@@ -67,11 +67,12 @@ struct b3Vec3
 	}
 	
 	// Scale this vector.
-	void operator/=(float32 s)
+	void operator/=(float32 a)
 	{
-		x /= s;
-		y /= s;
-		z /= s;
+		float32 s = 1.0f / a;
+		x *= s;
+		y *= s;
+		z *= s;
 	}
 
 	// Set this vector to the zero vector.
@@ -79,25 +80,27 @@ struct b3Vec3
 	{
 		x = y = z = 0.0f;
 	}
-	
-	// Normalize this vector.
-	void Normalize()
-	{
-		float32 lenght = b3Sqrt(x * x + y * y + z * z);
-		if (lenght > B3_EPSILON)
-		{
-			x /= lenght;
-			y /= lenght;
-			z /= lenght;
-		}
-	}
 
 	// Set this vector from three coordinates.
-	void Set(float32 _x, float32 _y, float32 _z) 
+	void Set(float32 _x, float32 _y, float32 _z)
 	{
 		x = _x;
 		y = _y;
 		z = _z;
+	}
+
+	// Convert this vector to the unit vector. Return the length.
+	float32 Normalize()
+	{
+		float32 length = b3Sqrt(x * x + y * y + z * z);
+		if (length > B3_EPSILON)
+		{
+			float32 s = 1.0f / length;
+			x *= s;
+			y *= s;
+			z *= s;
+		}
+		return length;
 	}
 
 	float32 x, y, z;

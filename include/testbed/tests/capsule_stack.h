@@ -111,7 +111,10 @@ public:
 			position.y += 0.5f * aabb.Height() + radius;
 
 			// maintain orientation
-			b->SetTransform(position, q.GetAxis(), q.GetAngle());
+			b3Vec3 axis;
+			float32 angle;
+			q.GetAxisAngle(&axis, &angle);
+			b->SetTransform(position, axis, angle);
 		}
 	}
 

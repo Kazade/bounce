@@ -35,12 +35,7 @@ struct b3Quat
 	// of rotation about the axis.
 	b3Quat(const b3Vec3& axis, float32 angle)
 	{
-		float32 theta = 0.5f * angle;
-		float32 s = sin(theta);
-		x = s * axis.x;
-		y = s * axis.y;
-		z = s * axis.z;
-		w = cos(theta);
+		Set(axis, angle);
 	}
 
 	// Add a quaternion to this quaternion.
@@ -77,17 +72,19 @@ struct b3Quat
 		w = _w;
 	}
 	
-	// Normalize this quaternion.
-	void Normalize()
+	// Convert this quaternion to the unit quaternion. Return the length.
+	float32 Normalize()
 	{
-		float32 s = b3Sqrt(x * x + y * y + z * z + w * w);
-		if (s != 0.0f)
+		float32 length = b3Sqrt(x * x + y * y + z * z + w * w);
+		if (length > B3_EPSILON)
 		{
-			x /= s;
-			y /= s;
-			z /= s;
-			w /= s;
+			float32 s = 1.0f / length;
+			x *= s;
+			y *= s;
+			z *= s;
+			w *= s;
 		}
+		return length;
 	}
 
 	// Set this quaternion from an axis and full angle 
@@ -105,37 +102,31 @@ struct b3Quat
 		w = cos(theta);
 	}
 
-	// If this quaternion represents an orientation return 
-	// the axis of rotation.
-	b3Vec3 GetAxis() const
+	// If this quaternion represents an orientation output 
+	// the axis and angle of rotation about the axis.
+	void GetAxisAngle(b3Vec3* axis, float32* angle) const
 	{
 		// sin^2 = 1 - cos^2
 		// sin = sqrt( sin^2 ) = ||v||
 		// axis = v / sin
 		b3Vec3 v(x, y, z);
 		float32 sine = b3Length(v);
+		axis->SetZero();
 		if (sine > B3_EPSILON)
 		{
 			float32 s = 1.0f / sine;
-			return s * v;
+			*axis = s * v;
 		}
-		return v;
-	}
-
-	// If this quaternion represents an orientation return 
-	// the full angle of rotation.
-	float32 GetAngle() const
-	{
+		
+		*angle = 0.0f;
 		// cosine check
 		if (w >= -1.0f && w <= 1.0f)
 		{
 			// half angle
 			float32 theta = acos(w);
 			// full angle
-			return 2.0f * theta;
+			*angle = 2.0f * theta;
 		}
-
-		return 0.0f;
 	}
 
 	float32 x, y, z, w;
@@ -181,11 +172,11 @@ inline float32 b3Length(const b3Quat& q)
 	return b3Sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
 }
 
-// Normalize a quarternion.
+// Convert a quaternion to the unit quaternion.
 inline b3Quat b3Normalize(const b3Quat& q)
 {
 	float32 s = b3Length(q);
-	if (s != 0.0f)
+	if (s > B3_EPSILON)
 	{
 		s = 1.0f / s;
 		return s * q;
@@ -215,7 +206,7 @@ inline b3Vec3 b3Mul(const b3Quat& q, const b3Vec3& v)
 	return v + qs * t + b3Cross(qv, t);
 }
 
-// Convert a quaternion to a 3-by-3 rotation matrix.
+// Convert an orientation quaternion to a 3-by-3 rotation matrix.
 inline b3Mat33 b3ConvertQuatToRot(const b3Quat& q)
 {
 	float32 x = q.x, y = q.y, z = q.z, w = q.w;
