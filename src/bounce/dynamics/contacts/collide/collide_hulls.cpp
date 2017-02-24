@@ -241,7 +241,7 @@ void b3CollideHulls(b3Manifold& manifold,
 
 //
 bool b3_enableConvexCache = true;
-u32 b3_convexCalls, b3_convexCacheHits;
+u32 b3_convexCalls = 0, b3_convexCacheHits = 0;
 
 void b3CollideHullAndHull(b3Manifold& manifold,
 	const b3Transform& xfA, const b3HullShape* sA,

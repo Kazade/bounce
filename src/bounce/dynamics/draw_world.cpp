@@ -48,11 +48,13 @@ const b3Color b3Color_blue(0.0f, 0.0f, 1.0f);
 const b3Color b3Color_yellow(1.0f, 1.0f, 0.0f);
 const b3Color b3Color_pink(1.0f, 0.0f, 1.0f);
 
+b3Draw* b3_debugDraw = NULL;
+
 void b3World::DebugDraw() const
 {
-	B3_ASSERT(m_debugDraw);
+	B3_ASSERT(b3_debugDraw);
 
-	u32 flags = m_debugDraw->m_flags;
+	u32 flags = b3_debugDraw->m_flags;
 
 	if (flags & b3Draw::e_centerOfMassesFlag)
 	{
@@ -60,7 +62,7 @@ void b3World::DebugDraw() const
 		{
 			b3Transform xf = b->m_xf;
 			xf.position = b->m_sweep.worldCenter;
-			m_debugDraw->DrawTransform(xf);
+			b3_debugDraw->DrawTransform(xf);
 		}
 	}
 
@@ -83,7 +85,7 @@ void b3World::DebugDraw() const
 			for (b3Shape* s = b->m_shapeList.m_head; s; s = s->m_next)
 			{
 				const b3AABB3& aabb = m_contactMan.m_broadPhase.GetAABB(s->m_broadPhaseID);
-				m_debugDraw->DrawAABB(aabb, b3Color_pink);
+				b3_debugDraw->DrawAABB(aabb, b3Color_pink);
 			}
 		}
 	}
@@ -122,18 +124,18 @@ void b3World::DebugDraw() const
 				
 				if (flags & b3Draw::e_contactPointsFlag)
 				{
-					m_debugDraw->DrawPoint(p, 4.0f, b3Color_yellow);
+					b3_debugDraw->DrawPoint(p, 4.0f, b3Color_yellow);
 				}
 
 				if (flags & b3Draw::e_contactNormalsFlag)
 				{
-					m_debugDraw->DrawSegment(p, p + n, b3Color_yellow);
+					b3_debugDraw->DrawSegment(p, p + n, b3Color_yellow);
 				}
 
 				if (flags & b3Draw::e_contactTangentsFlag)
 				{
-					m_debugDraw->DrawSegment(p, p + t1, b3Color_yellow);
-					m_debugDraw->DrawSegment(p, p + t2, b3Color_yellow);
+					b3_debugDraw->DrawSegment(p, p + t1, b3Color_yellow);
+					b3_debugDraw->DrawSegment(p, p + t2, b3Color_yellow);
 				}
 			}
 
@@ -152,18 +154,18 @@ void b3World::DebugDraw() const
 
 				if (flags & b3Draw::e_contactPointsFlag)
 				{
-					m_debugDraw->DrawPoint(p, 4.0f, mp->persisting ? b3Color_green : b3Color_red);
+					b3_debugDraw->DrawPoint(p, 4.0f, mp->persisting ? b3Color_green : b3Color_red);
 				}
 				
 				if (flags & b3Draw::e_contactNormalsFlag)
 				{
-					m_debugDraw->DrawSegment(p, p + n, b3Color_white);
+					b3_debugDraw->DrawSegment(p, p + n, b3Color_white);
 				}
 				
 				if (flags & b3Draw::e_contactTangentsFlag)
 				{
-					m_debugDraw->DrawSegment(p, p + t1, b3Color_yellow);
-					m_debugDraw->DrawSegment(p, p + t2, b3Color_yellow);
+					b3_debugDraw->DrawSegment(p, p + t1, b3Color_yellow);
+					b3_debugDraw->DrawSegment(p, p + t2, b3Color_yellow);
 				}
 			}
 		}
@@ -179,7 +181,7 @@ void b3World::DrawShape(const b3Transform& xf, const b3Shape* shape) const
 	{
 		const b3SphereShape* sphere = (b3SphereShape*)shape;
 		b3Vec3 p = xf * sphere->m_center;
-		m_debugDraw->DrawPoint(p, 4.0f, wireColor);
+		b3_debugDraw->DrawPoint(p, 4.0f, wireColor);
 		break;
 	}
 	case e_capsuleShape:
@@ -187,9 +189,9 @@ void b3World::DrawShape(const b3Transform& xf, const b3Shape* shape) const
 		const b3CapsuleShape* capsule = (b3CapsuleShape*)shape;
 		b3Vec3 p1 = xf * capsule->m_centers[0];
 		b3Vec3 p2 = xf * capsule->m_centers[1];
-		m_debugDraw->DrawPoint(p1, 4.0f, wireColor);
-		m_debugDraw->DrawPoint(p2, 4.0f, wireColor);
-		m_debugDraw->DrawSegment(p1, p2, wireColor);
+		b3_debugDraw->DrawPoint(p1, 4.0f, wireColor);
+		b3_debugDraw->DrawPoint(p2, 4.0f, wireColor);
+		b3_debugDraw->DrawSegment(p1, p2, wireColor);
 		break;
 	}
 	case e_hullShape:
@@ -204,7 +206,7 @@ void b3World::DrawShape(const b3Transform& xf, const b3Shape* shape) const
 			b3Vec3 p1 = xf * hull->vertices[edge->origin];
 			b3Vec3 p2 = xf * hull->vertices[twin->origin];
 
-			m_debugDraw->DrawSegment(p1, p2, wireColor);
+			b3_debugDraw->DrawSegment(p1, p2, wireColor);
 		}
 		break;
 	}
@@ -220,7 +222,7 @@ void b3World::DrawShape(const b3Transform& xf, const b3Shape* shape) const
 			b3Vec3 p2 = xf * mesh->vertices[t->v2];
 			b3Vec3 p3 = xf * mesh->vertices[t->v3];
 
-			m_debugDraw->DrawTriangle(p1, p2, p3, wireColor);
+			b3_debugDraw->DrawTriangle(p1, p2, p3, wireColor);
 		}
 		break;
 	}
@@ -240,31 +242,31 @@ void b3World::DrawJoint(const b3Joint* joint) const
 	case e_mouseJoint:
 	{
 		b3MouseJoint* o = (b3MouseJoint*)joint;
-		o->Draw(m_debugDraw);
+		o->Draw(b3_debugDraw);
 		break;
 	}
 	case e_springJoint:
 	{
 		b3SpringJoint* o = (b3SpringJoint*)joint;
-		o->Draw(m_debugDraw);
+		o->Draw(b3_debugDraw);
 		break;
 	}
 	case e_revoluteJoint:
 	{
 		b3RevoluteJoint* o = (b3RevoluteJoint*)joint;
-		o->Draw(m_debugDraw);
+		o->Draw(b3_debugDraw);
 		break;
 	}
 	case e_sphereJoint:
 	{
 		b3SphereJoint* o = (b3SphereJoint*)joint;
-		o->Draw(m_debugDraw);
+		o->Draw(b3_debugDraw);
 		break;
 	}
 	case e_coneJoint:
 	{
 		b3ConeJoint* o = (b3ConeJoint*)joint;
-		o->Draw(m_debugDraw);
+		o->Draw(b3_debugDraw);
 		break;
 	}
 	default:

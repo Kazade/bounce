@@ -160,6 +160,20 @@ solution (solution_name)
 			external_dir .. "/imgui/**.h", 
 			external_dir .. "/imgui/**.cpp" 
 		}
+
+	project "rapidjson"
+		kind "StaticLib"
+		language "C++"
+		location ( solution_dir .. action )
+		includedirs { external_dir } 
+		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.cpp" }		
+		buildoptions { "-std=c++11" } -- require C++11
+
+		files 
+		{ 
+			external_dir .. "/rapidjson/**.h", 
+			external_dir .. "/rapidjson/**.cpp" 
+		}
 	project "testbed"
 		kind "ConsoleApp"
 		language "C++"
@@ -168,7 +182,6 @@ solution (solution_name)
 		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.cpp" }
 		buildoptions { "-std=c++11" } -- GNU/GCC C++11
 
-		--common
 		files 
 		{ 
 			inc_dir .. "/testbed/**.h", 

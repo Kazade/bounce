@@ -16,68 +16,83 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_STACK_H
-#define B3_STACK_H
+#ifndef B3_QUEUE_H
+#define B3_QUEUE_H
 
 #include <bounce/common/settings.h>
 
-// A growable LIFO stack with an initial capacity of N.
-// If the stack capacity exceeds the initial capacity, the heap 
-// is used to increase the capacity of the stack.
+// A bounded FIFO queue with a fixed capacity of N.
+// The capacity must be greater than one.
+// The elements are allocated on the stack.
 template <typename T, u32 N>
-class b3Stack
+class b3BoundedQueue
 {
 public:
-	b3Stack()
+	b3BoundedQueue()
 	{
-		m_capacity = N;
-		m_elements = m_stackElements;
+		B3_ASSERT(N > 1);
 		m_count = 0;
+		m_back = 0;
+		m_front = 0;
 	}
 
-	~b3Stack()
+	~b3BoundedQueue()
 	{
-		if (m_elements != m_stackElements)
+	}
+
+	T* Push(const T& ele)
+	{
+		if ((m_count + 1) == N)
 		{
-			b3Free(m_elements);
+			return NULL;
 		}
-		m_elements = NULL;
-	}
 
-	const T& Top() const
-	{
-		B3_ASSERT(m_count);
-		return m_elements[m_count - 1];
-	}
+		B3_ASSERT(m_back < N);
+		T* e = m_elements + m_back;
+		*e = ele;
 
-	T& Top()
-	{
-		B3_ASSERT(m_count);
-		return m_elements[m_count - 1];
-	}
-
-	void Push(const T& ele)
-	{
-		if (m_count == m_capacity)
-		{
-			T* oldElements = m_elements;
-			m_capacity *= 2;
-			m_elements = (T*)b3Alloc(m_capacity * sizeof(T));
-			memcpy(m_elements, oldElements, m_count * sizeof(T));
-			if (oldElements != m_stackElements)
-			{
-				b3Free(oldElements);
-			}
-		}
-		B3_ASSERT(m_count < m_capacity);
-		m_elements[m_count] = ele;
+		m_back = (m_back + 1) % N;
+		B3_ASSERT(m_back != m_front);
 		++m_count;
+		return e;
 	}
 
-	void Pop()
+	bool Pop()
 	{
-		B3_ASSERT(m_count);
+		if (m_front == m_back)
+		{
+			return false;
+		}
+
+		B3_ASSERT(m_front != m_back);
+		m_front = (m_front + 1) % N;
+		B3_ASSERT(m_count > 0);
 		--m_count;
+		return true;
+	}
+
+	const T& Front() const
+	{
+		B3_ASSERT(m_count > 0);
+		return m_elements[m_front];
+	}
+
+	T& Front()
+	{
+		B3_ASSERT(m_count > 0);
+		return m_elements[m_front];
+	}
+
+	const T& Back() const
+	{
+		B3_ASSERT(m_count > 0);
+		return m_elements[m_back > 0 ? m_back - 1 : N - 1];
+	}
+
+	T& Back()
+	{
+		B3_ASSERT(m_count > 0);
+		return m_elements[m_back > 0 ? m_back - 1 : N - 1];
 	}
 
 	u32 Count() const
@@ -87,13 +102,13 @@ public:
 
 	bool IsEmpty() const
 	{
-		return m_count == 0;
+		return m_back == m_front;
 	}
 private:
-	u32 m_capacity;
-	T* m_elements;
+	T m_elements[N];
 	u32 m_count;
-	T m_stackElements[N];
+	u32 m_back;
+	u32 m_front;
 };
 
 #endif

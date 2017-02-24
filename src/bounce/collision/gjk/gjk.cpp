@@ -22,7 +22,7 @@
 // Implementation of the GJK (Gilbert-Johnson-Keerthi) algorithm 
 // using Voronoi regions and Barycentric coordinates.
 
-u32 b3_gjkCalls, b3_gjkIters, b3_gjkMaxIters;
+u32 b3_gjkCalls = 0, b3_gjkIters = 0, b3_gjkMaxIters = 0;
 
 b3Vec3 b3Simplex::GetSearchDirection(const b3Vec3& Q) const
 {

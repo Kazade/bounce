@@ -20,6 +20,7 @@
 #include <glfw/glfw3.h>
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw_gl3.h>
+
 #include <testbed/tests/test.h>
 
 GLFWwindow* g_window;
@@ -28,6 +29,7 @@ Test* g_test;
 u32 g_testCount;
 Camera g_camera;
 DebugDraw* g_debugDraw;
+Profiler* g_profiler;
 bool g_leftDown;
 bool g_rightDown;
 bool g_shiftDown;
@@ -41,13 +43,13 @@ void WindowSize(int w, int h)
 
 void MouseMove(GLFWwindow* w, double x, double y)
 {
-	b3Vec2 p;
-	p.Set(float32(x), float32(y));
+	b3Vec2 ps;
+	ps.Set(float32(x), float32(y));
 
-	b3Vec2 dp = p - g_ps0;
-	g_ps0 = p;
+	b3Vec2 dp = ps - g_ps0;
+	g_ps0 = ps;
 
-	Ray3 pw = g_camera.ConvertScreenToWorld(p);
+	Ray3 pw = g_camera.ConvertScreenToWorld(ps);
 
 	float32 nx = b3Clamp(dp.x, -1.0f, 1.0f);
 	float32 ny = b3Clamp(dp.y, -1.0f, 1.0f);
@@ -453,6 +455,9 @@ int main(int argc, char** args)
 	// Create UI
 	CreateInterface();
 
+	// Create profiler
+	g_profiler = new Profiler();
+
 	// Create renderer
 	g_debugDraw = new DebugDraw();
 
@@ -475,6 +480,9 @@ int main(int argc, char** args)
 
 	// Destroy renderer
 	delete g_debugDraw;
+
+	// Destroy profiler
+	delete g_profiler;
 
 	// Destroy UI
 	DestroyInterface();

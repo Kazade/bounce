@@ -22,6 +22,7 @@
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/body.h>
 #include <bounce/dynamics/world_listeners.h>
+#include <bounce/common/profiler.h>
 
 b3ContactManager::b3ContactManager() : 
 	m_convexBlocks(sizeof(b3ConvexContact)),
@@ -166,6 +167,8 @@ void b3ContactManager::FindNewContacts()
 
 void b3ContactManager::UpdateContacts() 
 {	
+	B3_PROFILE("Update Contacts");
+	
 	// Update the state of all contacts.
 	b3Contact* c = m_contactList.m_head;
 	while (c)

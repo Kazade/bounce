@@ -24,7 +24,7 @@
 #include <bounce/dynamics/contacts/contact.h>
 #include <bounce/dynamics/contacts/contact_solver.h>
 #include <bounce/common/memory/stack_allocator.h>
-#include <bounce/common/time.h>
+#include <bounce/common/profiler.h>
 
 b3Island::b3Island(b3StackAllocator* allocator, u32 bodyCapacity, u32 contactCapacity, u32 jointCapacity) 
 {
@@ -83,7 +83,7 @@ void b3Island::Add(b3Joint* j)
 	++m_jointCount;
 }
 
-void b3Island::Solve(b3Profile* profile, const b3Vec3& gravity, float32 dt, u32 velocityIterations, u32 positionIterations, u32 flags)
+void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, u32 positionIterations, u32 flags)
 {
 	float32 h = dt;
 
@@ -155,8 +155,8 @@ void b3Island::Solve(b3Profile* profile, const b3Vec3& gravity, float32 dt, u32 
 
 	// 2. Initialize constraints
 	{
-		b3Time time;
-
+		B3_PROFILE("Initialize Constraints");
+		
 		contactSolver.InitializeConstraints();
 
 		if (flags & e_warmStartBit)
@@ -170,14 +170,11 @@ void b3Island::Solve(b3Profile* profile, const b3Vec3& gravity, float32 dt, u32 
 		{
 			jointSolver.WarmStart();
 		}
-
-		time.Update();
-		profile->solver.initializeContacts = time.GetElapsedMilis();
 	}
 
 	// 3. Solve velocity constraints
 	{
-		b3Time time;
+		B3_PROFILE("Solve Velocity Constraints");
 
 		for (u32 i = 0; i < velocityIterations; ++i)
 		{
@@ -189,9 +186,6 @@ void b3Island::Solve(b3Profile* profile, const b3Vec3& gravity, float32 dt, u32 
 		{
 			contactSolver.StoreImpulses();
 		}
-
-		time.Update();
-		profile->solver.solveVelocity = time.GetElapsedMilis();
 	}
 
 	// 4. Integrate positions
@@ -230,7 +224,7 @@ void b3Island::Solve(b3Profile* profile, const b3Vec3& gravity, float32 dt, u32 
 
 	// 5. Solve position constraints
 	{
-		b3Time time;
+		B3_PROFILE("Solve Position Constraints");
 		
 		bool positionsSolved = false;
 		for (u32 i = 0; i < positionIterations; ++i) 
@@ -244,9 +238,6 @@ void b3Island::Solve(b3Profile* profile, const b3Vec3& gravity, float32 dt, u32 
 				break;
 			}
 		}
-		
-		time.Update();
-		profile->solver.solvePosition = time.GetElapsedMilis();
 	}
 
 	// 6. Copy state buffers back to the bodies

@@ -22,10 +22,12 @@ extern u32 b3_allocCalls, b3_maxAllocCalls;
 extern u32 b3_gjkCalls, b3_gjkIters, b3_gjkMaxIters;
 extern u32 b3_convexCalls, b3_convexCacheHits;
 extern bool b3_enableConvexCache;
+extern b3Draw* b3_debugDraw;
 
 extern Settings g_settings;
 extern DebugDraw* g_debugDraw;
 extern Camera g_camera;
+extern Profiler* g_profiler;
 
 Test::Test()
 {
@@ -36,19 +38,15 @@ Test::Test()
 	b3_convexCalls = 0;
 	b3_convexCacheHits = 0;
 	b3_enableConvexCache = g_settings.convexCache;
+	b3_debugDraw = g_debugDraw;
 
-	m_world.SetDebugDraw(g_debugDraw);
 	m_world.SetContactListener(this);
-
-	memset(&m_profile, 0, sizeof(b3Profile));
-	memset(&m_maxProfile, 0, sizeof(b3Profile));
 
 	g_camera.m_q = b3Quat(b3Vec3(0.0f, 1.0f, 0.0f), 0.15f * B3_PI);
 	g_camera.m_q = g_camera.m_q * b3Quat(b3Vec3(1.0f, 0.0f, 0.0f), -0.15f * B3_PI);
 	g_camera.m_zoom = 50.0f;
 	g_camera.m_center.SetZero();
-	g_settings.drawGrid = false;
-
+	
 	m_rayHit.shape = NULL;
 	m_mouseJoint = NULL;
 
@@ -350,19 +348,15 @@ void Test::Step()
 	b3_convexCalls = 0;
 	b3_convexCacheHits = 0;
 	b3_enableConvexCache = g_settings.convexCache;
-
+	
 	// Step
+	ProfileBegin();
+
 	m_world.SetSleeping(g_settings.sleep);
 	m_world.SetWarmStart(g_settings.warmStart);
 	m_world.Step(dt, g_settings.velocityIterations, g_settings.positionIterations);
 
-	m_profile = m_world.GetProfile();
-
-	m_maxProfile.total = b3Max(m_maxProfile.total, m_profile.total);
-	m_maxProfile.collide.broadphase = b3Max(m_maxProfile.collide.broadphase, m_profile.collide.broadphase);
-	m_maxProfile.collide.narrowphase = b3Max(m_maxProfile.collide.narrowphase, m_profile.collide.narrowphase);
-	m_maxProfile.solver.solveVelocity = b3Max(m_maxProfile.solver.solveVelocity, m_profile.solver.solveVelocity);
-	m_maxProfile.solver.solvePosition = b3Max(m_maxProfile.solver.solvePosition, m_profile.solver.solvePosition);
+	ProfileEnd();
 
 	// Draw World
 	u32 drawFlags = 0;
@@ -420,12 +414,14 @@ void Test::Step()
 
 	if (g_settings.drawProfile)
 	{
-		ImGui::Text("Step %.4f (%.4f) [ms]", m_profile.total, m_maxProfile.total);
-		ImGui::Text(" Insert Pairs %.4f (%.4f)", m_profile.collide.broadphase, m_maxProfile.collide.broadphase);
-		ImGui::Text(" Update Pairs %.4f (%.4f)", m_profile.collide.narrowphase, m_maxProfile.collide.narrowphase);
-		ImGui::Text(" Velocity Solver %.4f (%.4f)", m_profile.solver.solveVelocity, m_maxProfile.solver.solveVelocity);
-		ImGui::Text(" Position Solver %.4f (%.4f)", m_profile.solver.solvePosition, m_maxProfile.solver.solvePosition);
+		for (u32 i = 0; i < g_profiler->m_records.Count(); ++i)
+		{
+			const ProfileRecord& r = g_profiler->m_records[i];
+			ImGui::Text("%s %.4f (%.4f) [ms]", r.name, r.elapsed, r.maxElapsed);
+		}
 	}
+	
+	g_profiler->Clear();
 
 	ImGui::End();
 }

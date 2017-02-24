@@ -41,7 +41,7 @@ public :
 	void Add(b3Contact* contact);
 	void Add(b3Joint* joint);
 	
-	void Solve(b3Profile* profile, const b3Vec3& gravity, float32 dt, u32 velocityIterations, u32 positionIterations, u32 flags);
+	void Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, u32 positionIterations, u32 flags);
 private :
 	enum b3IslandFlags
 	{

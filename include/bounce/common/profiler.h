@@ -16,33 +16,35 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
+#ifndef B3_PROFILER_H
+#define B3_PROFILER_H
+
 #include <bounce/common/settings.h>
-#include <bounce/common/math/math.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
 
-u32 b3_allocCalls = 0;
-u32 b3_maxAllocCalls = 0;
+#define B3_PROFILE(name) b3ProfileScope scope(name)
 
-b3Version b3_version = { 1, 0, 0 };
+// You should implement this function to use your own profiler.
+bool b3PushProfileScope(const char* name);
 
-void* b3Alloc(u32 size) 
+// You should implement this function to use your own profiler.
+void b3PopProfileScope();
+
+struct b3ProfileScope
 {
-	++b3_allocCalls;
-	b3_maxAllocCalls = b3Max(b3_maxAllocCalls, b3_allocCalls);
-	return malloc(size);
-}
+	b3ProfileScope(const char* name)
+	{
+		b = b3PushProfileScope(name);
+	}
 
-void b3Free(void* block) 
-{
-	return free(block);
-}
+	~b3ProfileScope()
+	{
+		if (b)
+		{
+			b3PopProfileScope();
+		}
+	}
+private:
+	bool b;
+};
 
-void b3Log(const char* text, ...) 
-{
-	va_list args;
-	va_start(args, text);
-	vprintf(text, args);
-	va_end(args);
-}
+#endif

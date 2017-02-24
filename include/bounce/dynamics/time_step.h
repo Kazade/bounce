@@ -122,27 +122,4 @@ inline b3Mat33 b3Integrate(const b3Mat33& orientation, const b3Vec3& velocity, f
 	return orientation + integral;
 }
 
-// These structures contain the elapsed time it took 
-// to run particular method.
-struct b3CollideProfile
-{
-	float64 broadphase;
-	float64 narrowphase;
-};
-
-struct b3SolverProfile
-{
-	float64 initializeContacts;
-	float64 initializeJoints;
-	float64 solveVelocity;
-	float64 solvePosition;
-};
-
-struct b3Profile
-{
-	float64 total;
-	b3CollideProfile collide;
-	b3SolverProfile solver;
-};
-
 #endif

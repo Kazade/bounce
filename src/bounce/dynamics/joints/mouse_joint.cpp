@@ -105,6 +105,7 @@ const b3Vec3& b3MouseJoint::GetTarget() const
 void b3MouseJoint::SetTarget(const b3Vec3& target)
 {
 	m_worldTargetA = target;
+	GetBodyB()->SetAwake(true);
 }
 
 void b3MouseJoint::Draw(b3Draw* draw) const 

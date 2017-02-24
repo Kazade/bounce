@@ -242,69 +242,56 @@ void b3Body::ResetMass()
 	{
 		m_invMass = 1.0f / m_mass;
 		localCenter *= m_invMass;
+		// Center inertia about the center of mass.
+		m_I = b3MoveToCOM(m_I, m_mass, localCenter);
 		m_invI = b3Inverse(m_I);
 		m_worldInvI = b3RotateToFrame(m_invI, m_xf.rotation);
+
+		// Fix rotation.
+		if (m_flags & e_fixedRotationX)
+		{
+			m_invI.y.y = 0.0f;
+			m_invI.z.y = 0.0f;
+			m_invI.y.z = 0.0f;
+			m_invI.z.z = 0.0f;
+
+			m_worldInvI.y.y = 0.0f;
+			m_worldInvI.z.y = 0.0f;
+			m_worldInvI.y.z = 0.0f;
+			m_worldInvI.z.z = 0.0f;
+		}
+
+		if (m_flags & e_fixedRotationY)
+		{
+			m_invI.x.x = 0.0f;
+			m_invI.x.z = 0.0f;
+			m_invI.z.x = 0.0f;
+			m_invI.z.z = 0.0f;
+
+			m_worldInvI.x.x = 0.0f;
+			m_worldInvI.x.z = 0.0f;
+			m_worldInvI.z.x = 0.0f;
+			m_worldInvI.z.z = 0.0f;
+		}
+
+		if (m_flags & e_fixedRotationZ)
+		{
+			m_invI.x.x = 0.0f;
+			m_invI.x.y = 0.0f;
+			m_invI.y.x = 0.0f;
+			m_invI.y.y = 0.0f;
+
+			m_worldInvI.x.x = 0.0f;
+			m_worldInvI.x.y = 0.0f;
+			m_worldInvI.y.x = 0.0f;
+			m_worldInvI.y.y = 0.0f;
+		}
 	}
 	else 
 	{
 		// Force all dynamic bodies to have positive mass.
 		m_mass = 1.0f;
 		m_invMass = 1.0f;
-	}
-
-	// Fix rotation.
-	if (m_flags & e_fixedRotationX)
-	{
-		m_I.y.y = 0.0f;
-		m_I.z.y = 0.0f;
-		m_I.y.z = 0.0f;
-		m_I.z.z = 0.0f;
-
-		m_invI.y.y = 0.0f;
-		m_invI.z.y = 0.0f;
-		m_invI.y.z = 0.0f;
-		m_invI.z.z = 0.0f;
-
-		m_worldInvI.y.y = 0.0f;
-		m_worldInvI.z.y = 0.0f;
-		m_worldInvI.y.z = 0.0f;
-		m_worldInvI.z.z = 0.0f;
-	}
-	
-	if (m_flags & e_fixedRotationY)
-	{
-		m_I.x.x = 0.0f;
-		m_I.x.z = 0.0f;
-		m_I.z.x = 0.0f;
-		m_I.z.z = 0.0f;
-
-		m_invI.x.x = 0.0f;
-		m_invI.x.z = 0.0f;
-		m_invI.z.x = 0.0f;
-		m_invI.z.z = 0.0f;
-		
-		m_worldInvI.x.x = 0.0f;
-		m_worldInvI.x.z = 0.0f;
-		m_worldInvI.z.x = 0.0f;
-		m_worldInvI.z.z = 0.0f;
-	}
-	
-	if (m_flags & e_fixedRotationZ)
-	{
-		m_I.x.x = 0.0f;
-		m_I.x.y = 0.0f;
-		m_I.y.x = 0.0f;
-		m_I.y.y = 0.0f;
-
-		m_invI.x.x = 0.0f;
-		m_invI.x.y = 0.0f;
-		m_invI.y.x = 0.0f;
-		m_invI.y.y = 0.0f;
-
-		m_worldInvI.x.x = 0.0f;
-		m_worldInvI.x.y = 0.0f;
-		m_worldInvI.y.x = 0.0f;
-		m_worldInvI.y.y = 0.0f;
 	}
 
 	// Move center of mass.
@@ -341,6 +328,88 @@ bool b3Body::ShouldCollide(const b3Body* other) const
 	}
 
 	return true;
+}
+
+void b3Body::GetMassData(b3MassData* data) const
+{
+	data->mass = m_mass;
+	data->I = m_I;
+	data->center = m_sweep.localCenter;
+}
+
+void b3Body::SetMassData(const b3MassData* massData)
+{
+	if (m_type != e_dynamicBody)
+	{
+		return;
+	}
+
+	m_invMass = 0.0f;
+	m_I.SetZero();
+	m_invI.SetZero();
+	m_worldInvI.SetZero();
+
+	m_mass = massData->mass;
+	if (m_mass > 0.0f)
+	{
+		m_invMass = 1.0f / m_mass;
+
+		m_I = b3MoveToCOM(massData->I, m_mass, massData->center);
+		m_invI = b3Inverse(m_I);
+		m_worldInvI = b3RotateToFrame(m_invI, m_xf.rotation);
+
+		if (m_flags & e_fixedRotationX)
+		{
+			m_invI.y.y = 0.0f;
+			m_invI.z.y = 0.0f;
+			m_invI.y.z = 0.0f;
+			m_invI.z.z = 0.0f;
+
+			m_worldInvI.y.y = 0.0f;
+			m_worldInvI.z.y = 0.0f;
+			m_worldInvI.y.z = 0.0f;
+			m_worldInvI.z.z = 0.0f;
+		}
+
+		if (m_flags & e_fixedRotationY)
+		{
+			m_invI.x.x = 0.0f;
+			m_invI.x.z = 0.0f;
+			m_invI.z.x = 0.0f;
+			m_invI.z.z = 0.0f;
+
+			m_worldInvI.x.x = 0.0f;
+			m_worldInvI.x.z = 0.0f;
+			m_worldInvI.z.x = 0.0f;
+			m_worldInvI.z.z = 0.0f;
+		}
+
+		if (m_flags & e_fixedRotationZ)
+		{
+			m_invI.x.x = 0.0f;
+			m_invI.x.y = 0.0f;
+			m_invI.y.x = 0.0f;
+			m_invI.y.y = 0.0f;
+
+			m_worldInvI.x.x = 0.0f;
+			m_worldInvI.x.y = 0.0f;
+			m_worldInvI.y.x = 0.0f;
+			m_worldInvI.y.y = 0.0f;
+		}
+	}
+	else
+	{
+		m_mass = 1.0f;
+		m_invMass = 1.0f;
+	}
+
+	// Move center of mass.
+	b3Vec3 oldCenter = m_sweep.worldCenter;
+	m_sweep.localCenter = massData->center;
+	m_sweep.worldCenter0 = m_sweep.worldCenter = b3Mul(m_xf, m_sweep.localCenter);
+
+	// Update center of mass velocity.
+	m_linearVelocity += b3Cross(m_angularVelocity, m_sweep.worldCenter - oldCenter);
 }
 
 void b3Body::SetType(b3BodyType type)

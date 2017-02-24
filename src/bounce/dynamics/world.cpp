@@ -24,7 +24,7 @@
 #include <bounce/dynamics/contacts/contact.h>
 #include <bounce/dynamics/joints/joint.h>
 #include <bounce/dynamics/time_step.h>
-#include <bounce/common/time.h>
+#include <bounce/common/profiler.h>
 
 extern u32 b3_allocCalls;
 extern u32 b3_maxAllocCalls;
@@ -34,7 +34,6 @@ b3World::b3World() : m_bodyBlocks(sizeof(b3Body))
 	b3_allocCalls = 0;
 	b3_maxAllocCalls = 0;
 	m_debugDraw = NULL;
-	memset(&m_profile, 0, sizeof(b3Profile));
 
 	m_flags = e_clearForcesFlag;
 	m_sleeping = false;
@@ -68,11 +67,6 @@ void b3World::SetSleeping(bool flag)
 	}
 }
 
-void b3World::SetDebugDraw(b3Draw* debugDraw)
-{
-	m_debugDraw = debugDraw;
-}
-
 b3Body* b3World::CreateBody(const b3BodyDef& def)
 {
 	void* mem = m_bodyBlocks.Allocate();
@@ -104,9 +98,7 @@ void b3World::DestroyJoint(b3Joint* j)
 
 void b3World::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 {
-	memset(&m_profile, 0, sizeof(b3Profile));
-
-	b3Time stepTime;
+	B3_PROFILE("Step");
 
 	if (m_flags & e_shapeAddedFlag)
 	{
@@ -115,34 +107,22 @@ void b3World::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 		m_flags &= ~e_shapeAddedFlag;
 	}
 
+	// Update contacts. This is where some contacts might be destroyed.
+	m_contactMan.UpdateContacts();
+
+	// Integrate velocities, clear forces and torques, solve constraints, integrate positions.
+	if (dt > 0.0f)
 	{
-		// Update contacts. This is where some contacts might be destroyed.
-		b3Time time;
-		m_contactMan.UpdateContacts();
-		time.Update();
-		m_profile.collide.narrowphase = time.GetElapsedMilis();
+		Solve(dt, velocityIterations, positionIterations);
 	}
 
-	{
-		b3Time time;
-		if (dt > 0.0f)
-		{
-			Solve(dt, velocityIterations, positionIterations);
-		}
-		time.Update();
-	}
-
-	{
-		//todo
-		//SolveTOI
-	}
-
-	stepTime.Update();
-	m_profile.total = stepTime.GetElapsedMilis();
+	//SolveTOI
 }
 
 void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
 {
+	B3_PROFILE("Solve");
+	
 	// Clear all visited flags for the depth first search.
 	for (b3Body* b = m_bodyList.m_head; b; b = b->m_next)
 	{
@@ -289,7 +269,7 @@ void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
 		}
 
 		// Integrate velocities, clear forces and torques, solve constraints, integrate positions.
-		island.Solve(&m_profile, externalForce, dt, velocityIterations, positionIterations, islandFlags);
+		island.Solve(externalForce, dt, velocityIterations, positionIterations, islandFlags);
 		
 		// Allow static bodies to participate in other islands.
 		for (u32 i = 0; i < island.m_bodyCount; ++i)
@@ -305,7 +285,8 @@ void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
 	m_stackAllocator.Free(stack);
 
 	{
-		b3Time time;
+		B3_PROFILE("Find New Pairs");
+
 		for (b3Body* b = m_bodyList.m_head; b; b = b->m_next)
 		{
 			// If a body didn't participate on a island then it didn't move
@@ -319,13 +300,10 @@ void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
 			b->SynchronizeShapes();
 		}
 
-		// Notify the contacts the shapes may have been moved.
+		// Notify the contacts the AABBs may have been moved.
 		m_contactMan.SynchronizeShapes();
 
 		m_contactMan.FindNewContacts();
-		
-		time.Update();
-		m_profile.collide.broadphase = time.GetElapsedMilis();
 	}
 }
 

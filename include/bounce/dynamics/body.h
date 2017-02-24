@@ -30,6 +30,7 @@ class b3World;
 class b3Shape;
 
 struct b3ShapeDef;
+struct b3MassData;
 struct b3JointEdge;
 
 // Static bodies have zero mass and velocity, and therefore they can't move.
@@ -177,6 +178,12 @@ public:
 
 	// Get the rotational inertia of the body about the center of mass. Typically in kg/m^3.
 	const b3Mat33& GetInertia() const;
+
+	// Get this body mass data.
+	void GetMassData(b3MassData* data) const;
+
+	// Set this body mass data.
+	void SetMassData(const b3MassData* data);
 
 	// Get the linear kinetic energy of the body in Joules (kilogram-meters squared per second squared).
 	float32 GetLinearEnergy() const;

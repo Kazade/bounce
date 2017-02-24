@@ -25,6 +25,8 @@
 #include <testbed/tests/capsule_collision.h>
 #include <testbed/tests/capsule_and_hull_collision.h>
 #include <testbed/tests/hull_collision.h>
+#include <testbed/tests/linear_motion.h>
+#include <testbed/tests/angular_motion.h>
 #include <testbed/tests/spring.h>
 #include <testbed/tests/newton_cradle.h>
 #include <testbed/tests/hinge_motor.h>
@@ -57,6 +59,8 @@ TestEntry g_tests[] =
 	{ "Capsule Collision", &CapsuleCollision::Create },
 	{ "Capsule and Hull Collision", &CapsuleAndHull::Create },
 	{ "Hull Collision", &HullAndHull::Create },
+	{ "Linear Motion", &LinearMotion::Create },
+	{ "Angular Motion", &AngularMotion::Create },
 	{ "Springs", &Spring::Create },
 	{ "Newton's Cradle", &NewtonCradle::Create },
 	{ "Hinge Motor", &HingeMotor::Create },

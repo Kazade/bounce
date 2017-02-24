@@ -32,7 +32,6 @@ class b3QueryListener;
 class b3RayCastListener;
 class b3ContactListener;
 class b3ContactFilter;
-class b3Draw;
 
 struct b3RayCastSingleOutput
 {
@@ -48,14 +47,6 @@ class b3World
 public:
 	b3World();
 	~b3World();
-
-	// Set the debug draw interface.
-	// The user must implement this interface to tell the world to 
-	// draw the physics entities.
-	void SetDebugDraw(b3Draw* draw);
-
-	// Get the debug draw interface.
-	b3Draw* GetDebugDraw();
 
 	// The filter passed can tell the world to disallow the contact creation between 
 	// two shapes.
@@ -124,10 +115,9 @@ public:
 	const b3List2<b3Contact>& GetContactList() const;
 	b3List2<b3Contact>& GetContactList();
 
-	// Get the time spent to finish executing each simulation module of the last physics step.
-	const b3Profile& GetProfile() const;
-
-	// Tell the world to draw the entities that belong to this world.
+	// Debug draw the physics entities that belong to this world.
+	// The user must implement the debug draw interface b3Draw and b3_debugDraw must have been 
+	// set to the user implementation.
 	void DebugDraw() const;
 	void DrawShape(const b3Transform& xf, const b3Shape* shape) const;
 	void DrawJoint(const b3Joint* joint) const;
@@ -153,7 +143,6 @@ private :
 	u32 m_flags;
 	b3Vec3 m_gravity;
 	b3Draw* m_debugDraw;
-	b3Profile m_profile;
 
 	b3StackAllocator m_stackAllocator;
 	b3BlockPool m_bodyBlocks;
@@ -167,11 +156,6 @@ private :
 	// List of contacts
 	b3ContactManager m_contactMan;
 };
-
-inline b3Draw* b3World::GetDebugDraw()
-{
-	return m_debugDraw;
-}
 
 inline void b3World::SetContactListener(b3ContactListener* listener)
 {
@@ -191,11 +175,6 @@ inline void b3World::SetGravity(const b3Vec3& gravity)
 inline void b3World::SetWarmStart(bool flag)
 {
 	m_warmStarting = flag;
-}
-
-inline const b3Profile& b3World::GetProfile() const 
-{
-	return m_profile;
 }
 
 inline const b3List2<b3Body>& b3World::GetBodyList() const

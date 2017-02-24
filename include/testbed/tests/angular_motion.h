@@ -16,64 +16,64 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef CLOTH_H
-#define CLOTH_H
+#ifndef ANGULAR_MOTION_H
+#define ANGULAR_MOTION_H
 
-extern DebugDraw* g_debugDraw;
-extern Camera g_camera;
-extern Settings g_settings;
-
-class Cloth : public Test
+class AngularMotion : public Test
 {
 public:
-	Cloth()
+	AngularMotion()
 	{
-		g_camera.m_zoom = 25.0f;
+		b3BodyDef bdef;
+		bdef.type = e_dynamicBody;
+		bdef.position.Set(0.0f, 0.0f, 0.0f);
 
-		b3ClothDef def;
-		def.mesh = m_meshes + e_clothMesh;
-		def.density = 0.2f;
-		def.gravity.Set(-10.0f, 1.0f, 0.0f);
-		def.k1 = 0.5f;
-		def.k2 = 0.05f;
-		def.kd = 0.1f;
-		def.r = 1.0f;
+		m_body = m_world.CreateBody(bdef);
 
-		m_cloth.Initialize(def);
+		b3CapsuleShape shape;
+		shape.m_centers[0].Set(0.0f, 1.0f, 0.0f);
+		shape.m_centers[1].Set(0.0f, -1.0f, 0.0f);
+		shape.m_radius = 1.0f;
 
-		b3Particle* vs = m_cloth.GetVertices();
-		for (u32 i = 0; i < 5; ++i)
-		{
-			vs[i].im = 0.0f;
-		}
+		b3ShapeDef sdef;
+		sdef.shape = &shape;
+		sdef.density = 1.0f;
+
+		m_body->CreateShape(sdef);
+
+		b3MassData data;
+		m_body->GetMassData(&data);
+
+		m_body->SetMassData(&data);
+
+		b3Vec3 g(0.0f, 0.0f, 0.0f);
+		m_world.SetGravity(g);
 	}
 
 	void Step()
 	{
-		float32 dt = g_settings.hertz > 0.0f ? 1.0f / g_settings.hertz : 0.0f;
-		
-		if (g_settings.pause)
-		{
-			if (g_settings.singleStep)
-				{
-				g_settings.singleStep = false;
-			}
-			else
-			{
-				dt = 0.0f;
-			}
-		}
+		Test::Step();
 
-		m_cloth.Step(dt, g_settings.positionIterations);
-		m_cloth.Draw(g_debugDraw);
+		b3Vec3 v(0.0f, 0.0f, 0.0f);
+		m_body->SetLinearVelocity(v);
+
+		b3Vec3 p = m_body->GetSweep().worldCenter;
+		b3Quat quat = m_body->GetSweep().orientation;
+
+		b3Vec3 axis;
+		float32 angle;
+		quat.GetAxisAngle(&axis, &angle);
+		
+		b3Vec3 q(0.0f, 0.0f, 0.0f);
+		m_body->SetTransform(q, axis, angle);
 	}
 
 	static Test* Create()
 	{
-		return new Cloth();
+		return new AngularMotion();
 	}
 
-	b3Cloth m_cloth;
+	b3Body* m_body;
 };
 
 #endif

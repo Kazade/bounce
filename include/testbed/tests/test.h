@@ -19,11 +19,13 @@
 #ifndef TEST_H
 #define TEST_H
 
-#include <bounce/bounce.h>
-
 #include <glfw/glfw3.h>
 #include <imgui/imgui.h>
-#include "../framework/debug_draw.h"
+
+#include <bounce/bounce.h>
+
+#include <testbed/framework/debug_draw.h>
+#include <testbed/framework/profiler.h>
 
 struct Settings
 {
@@ -45,7 +47,7 @@ struct Settings
 		drawContactTangents = false;
 		drawStats = true;
 		drawProfile = true;
-		drawGrid = false;;
+		drawGrid = true;
 		pause = false;
 		singleStep = false;
 		lastTestID = -1;
@@ -131,8 +133,6 @@ public:
 	virtual void KeyUp(int button) { }
 
 	b3World m_world;
-	b3Profile m_profile;
-	b3Profile m_maxProfile;
 
 	b3RayCastSingleOutput m_rayHit;
 	b3BoxHull m_groundHull;
