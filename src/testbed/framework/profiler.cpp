@@ -81,9 +81,9 @@ void ProfileEnd()
 		const Event& e = events.Front();
 		events.Pop();
 
-		ProfileEvent(-1, -1, e.name, e.t0, e_begin);
-		ProfileEvent(-1, -1, e.name, e.t1, e_end);
-		ProfileEvent(-1, -1, e.name, e.t1 - e.t0);
+		ProfileEvent(e.tid, e.pid, e.name, e.t0, e_begin);
+		ProfileEvent(e.tid, e.pid, e.name, e.t1, e_end);
+		ProfileEvent(e.tid, e.pid, e.name, e.t1 - e.t0);
 	}
 
 	B3_ASSERT(events.IsEmpty());
