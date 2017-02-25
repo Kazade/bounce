@@ -173,7 +173,7 @@ void ProfileEvent(i32 tid, i32 pid, const char* name, float64 time, ProfileType 
 	default: B3_ASSERT(false);
 	}
 
-	float64 scale = 1000000;
+	float64 scale = 1000.0;
 
 	writer->StartObject();
 	writer->STRING("pid");  writer->Int(pid);
