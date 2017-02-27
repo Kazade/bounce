@@ -18,6 +18,7 @@
 
 #include <bounce/dynamics/shapes/hull_shape.h>
 #include <bounce/collision/shapes/hull.h>
+#include <bounce/dynamics/time_step.h>
 
 b3HullShape::b3HullShape()
 {
@@ -46,7 +47,14 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 
 	// Pick reference point not too away from the origin 
 	// to minimize floating point rounding errors.
-	b3Vec3 v1(0.0f, 0.0f, 0.0f);
+	b3Vec3 p1(0.0f, 0.0f, 0.0f);
+	
+	// Put it inside the hull.
+	for (u32 i = 0; i < m_hull->vertexCount; ++i)
+	{
+		p1 += m_hull->vertices[i];
+	}
+	p1 *= 1.0f / float32(m_hull->vertexCount);
 
 	const float32 inv4 = 0.25f;
 	const float32 inv6 = 1.0f / 6.0f;
@@ -54,7 +62,7 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 	const float32 inv120 = 1.0f / 120.0f;
 
 	b3Vec3 diag(0.0f, 0.0f, 0.0f);
-	b3Vec3 offDiag(0.0f, 0.0f, 0.0f);
+	b3Vec3 off_diag(0.0f, 0.0f, 0.0f);
 
 	// Triangulate convex polygons
 	for (u32 i = 0; i < m_hull->faceCount; ++i)
@@ -70,22 +78,21 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 			const b3HalfEdge* next = m_hull->GetEdge(edge->next);
 			u32 i3 = next->origin;
 
-			b3Vec3 v2 = m_hull->vertices[i1];
-			b3Vec3 v3 = m_hull->vertices[i2];
-			b3Vec3 v4 = m_hull->vertices[i3];
+			b3Vec3 p2 = m_hull->vertices[i1];
+			b3Vec3 p3 = m_hull->vertices[i2];
+			b3Vec3 p4 = m_hull->vertices[i3];
 			
-			//
-			b3Vec3 tetraCenter = inv4 * (v1 + v2 + v3 + v4);
+			b3Vec3 e1 = p2 - p1;
+			b3Vec3 e2 = p3 - p1;
+			b3Vec3 e3 = p4 - p1;
+			
+			float32 D = b3Det(e1, e2, e3);
 
-			b3Vec3 e1 = v2 - v1;
-			b3Vec3 e2 = v3 - v1;
-			b3Vec3 e3 = v4 - v1;
-			float32 det = b3Det(e1, e2, e3);
-			float32 tetraVolume = inv6 * det;
-
-			// Volume weighted center of mass
-			center += tetraVolume * tetraCenter;
+			float32 tetraVolume = inv6 * D;
 			volume += tetraVolume;
+			
+			// Volume weighted centroid
+			center += tetraVolume * inv4 * (e1 + e2 + e3);
 
 			// Volume weighted inertia tensor
 			// https://github.com/melax/sandbox
@@ -94,37 +101,39 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 				u32 j1 = (j + 1) % 3;
 				u32 j2 = (j + 2) % 3;
 
-				diag[j] += inv60 * det *
+				diag[j] += inv60 * D *
 					(e1[j] * e2[j] + e2[j] * e3[j] + e3[j] * e1[j] +
-						e1[j] * e1[j] + e2[j] * e2[j] + e3[j] * e3[j]);
+					 e1[j] * e1[j] + e2[j] * e2[j] + e3[j] * e3[j]);
 
-				offDiag[j] += inv120 * det  *
+				off_diag[j] += inv120 * D  *
 					(e1[j1] * e2[j2] + e2[j1] * e3[j2] + e3[j1] * e1[j2] +
-						e1[j1] * e3[j2] + e2[j1] * e1[j2] + e3[j1] * e2[j2] +
-						e1[j1] * e1[j2] * 2.0f + e2[j1] * e2[j2] * 2.0f + e3[j1] * e3[j2] * 2.0f);
+					 e1[j1] * e3[j2] + e2[j1] * e1[j2] + e3[j1] * e2[j2] +
+					 e1[j1] * e1[j2] * 2.0f + e2[j1] * e2[j2] * 2.0f + e3[j1] * e3[j2] * 2.0f);
 			}
 			
 			edge = next;
 		} while (m_hull->GetEdge(edge->next) != begin);
 	}
 
-	B3_ASSERT(volume > 0.0f);
-	float32 invVolume = 0.0f;
-	if (volume != 0.0f)
-	{
-		invVolume = 1.0f / volume;
-	}
-	
-	diag = invVolume * diag;
-	offDiag = invVolume * offDiag;
-
-	I.x.Set(diag.y + diag.z, -offDiag.z, -offDiag.y);
-	I.y.Set(-offDiag.z, diag.x + diag.z, -offDiag.x);
-	I.z.Set(-offDiag.y, -offDiag.x, diag.x + diag.y);
-
-	massData->center = invVolume * center;
+	// Total mass
 	massData->mass = density * volume;
+	
+	// Center of mass
+	B3_ASSERT(volume > B3_EPSILON);
+	float32 inv_volume = 1.0f / volume;
+	center *= inv_volume;
+	massData->center = center + p1;
+
+	// Inertia tensor relative to the local origin (p1)
+	diag = inv_volume * diag;
+	off_diag = inv_volume * off_diag;
+	
+	I.x.Set(diag.y + diag.z, -off_diag.z, -off_diag.y);
+	I.y.Set(-off_diag.z, diag.x + diag.z, -off_diag.x);
+	I.z.Set(-off_diag.y, -off_diag.x, diag.x + diag.y);
+
 	massData->I = massData->mass * I;
+	massData->I = massData->I + massData->mass * b3Steiner(p1);
 }
 
 void b3HullShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const

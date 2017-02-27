@@ -96,7 +96,7 @@ public:
 				b3ShapeDef sd;
 				sd.shape = &hs;
 				sd.density = 0.1f;
-				sd.friction = 0.1f;
+				sd.friction = 0.3f;
 
 				body->CreateShape(sd);
 			}

@@ -51,22 +51,42 @@ enum b3LimitState
 	e_equalLimits
 };
 
-// Move an inertia tensor from the its current center
-// to another.
-inline b3Mat33 b3MoveToCOM(const b3Mat33& inertia, float32 mass, const b3Vec3& center)
+// Return the Steiner's matrix given the displacement vector from the old 
+// center of rotation to the new center of rotation.
+// The result equals to transpose( skew(v) ) * skew(v) or diagonal(v^2) - outer(v)
+inline b3Mat33 b3Steiner(const b3Vec3& v)
 {
-	// Paralell Axis Theorem
-	// J = I + m * dot(r, r) * E - outer(r, r)
-	// where
-	// I - inertia about the center of mass
-	// m - mass
-	// E - identity 3x3
-	// r - displacement vector from the current com to the new com
-	// J - inertia tensor at the new center of rotation
-	float32 dd = b3Dot(center, center);
-	b3Mat33 A = b3Diagonal(mass * dd);
-	b3Mat33 B = b3Outer(center, center);
-	return inertia + A - B;
+	float32 xx = v.x * v.x;
+	float32 yy = v.y * v.y;
+	float32 zz = v.z * v.z;
+
+	b3Mat33 S;
+	
+	S.x.x = yy + zz;
+	S.x.y = -v.x * v.y;
+	S.x.z = -v.x * v.z;
+
+	S.y.x = S.x.y;
+	S.y.y = xx + zz;
+	S.y.z = -v.y * v.z;
+
+	S.z.x = S.x.z;
+	S.z.y = S.y.z;
+	S.z.z = xx + yy;
+
+	return S;
+}
+
+// Move an inertia tensor given the displacement vector from the center of mass to the translated origin.
+inline b3Mat33 b3MoveToOrigin(const b3Mat33& I, const b3Vec3& v)
+{
+	return I + b3Steiner(v);
+}
+
+// Move an inertia tensor given the displacement vector from the origin to the translated center of mass.
+inline b3Mat33 b3MoveToCOM(const b3Mat33& I, const b3Vec3& v)
+{
+	return I - b3Steiner(v);
 }
 
 // Compute the inertia matrix of a body measured in 

@@ -38,14 +38,16 @@ void b3SphereShape::Swap(const b3SphereShape& other)
 
 void b3SphereShape::ComputeMass(b3MassData* massData, float32 density) const 
 {
-	// Compute inertia about the origin
 	float32 volume = (4.0f / 3.0f) * B3_PI * m_radius * m_radius * m_radius;
 	float32 mass = density * volume;
-	b3Mat33 Io = b3Diagonal(mass * (2.0f / 5.0f) * m_radius * m_radius);
-	// Move inertia to the sphere center
+	
+	// Inertia about the local shape center of mass 
+	// Then shift to the local body origin
+	float32 I = mass * (0.4f * m_radius * m_radius + b3Dot(m_center, m_center));
+	
 	massData->center = m_center;
 	massData->mass = mass;
-	massData->I = b3MoveToCOM(Io, mass, m_center);
+	massData->I = b3Diagonal(I);
 }
 
 void b3SphereShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const 

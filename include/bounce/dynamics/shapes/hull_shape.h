@@ -30,8 +30,8 @@ public :
 	~b3HullShape();
 
 	void Swap(const b3HullShape& other);
-
-	void ComputeMass(b3MassData* data, float32 density) const;	
+	
+	void ComputeMass(b3MassData* data, float32 density) const;
 
 	void ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const;	
 

@@ -87,14 +87,13 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 {
 	float32 h = dt;
 
-	// Measure coefficient of damping.
-	// Box2D.
+	// Apply some damping.
 	// ODE: dv/dt + c * v = 0
 	// Solution: v(t) = v0 * exp(-c * t)
 	// Step: v(t + dt) = v0 * exp(-c * (t + dt)) = v0 * exp(-c * t) * exp(-c * dt) = v * exp(-c * dt)
 	// v2 = exp(-c * dt) * v1
 	const float32 k_d = 0.1f;
-	float32 d = exp(-h * k_d);
+	float32 d = exp(-k_d * h);
 
 	// 1. Integrate velocities
 	for (u32 i = 0; i < m_bodyCount; ++i) 
@@ -121,7 +120,7 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 			
 			// Integrate torques
 			// @todo add gyroscopic term
-			w += h * b3Mul(b->m_worldInvI, b->m_torque);
+			w += h * b->m_worldInvI * b->m_torque;
 			// Clear torques
 			b->m_torque.SetZero();
 			
@@ -211,9 +210,9 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 			w *= ratio;
 		}
 
-		// Integrate position 
+		// Integrate linear velocity
 		x += h * v;
-		// Integrate orientation
+		// Integrate angular velocity
 		q = b3Integrate(q, w, h);
 
 		m_positions[i].x = x;

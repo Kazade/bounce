@@ -27,12 +27,13 @@
 #include <testbed/tests/hull_collision.h>
 #include <testbed/tests/linear_motion.h>
 #include <testbed/tests/angular_motion.h>
+#include <testbed/tests/multiple_shapes.h>
+#include <testbed/tests/quadric_shapes.h>
 #include <testbed/tests/spring.h>
 #include <testbed/tests/newton_cradle.h>
 #include <testbed/tests/hinge_motor.h>
 #include <testbed/tests/hinge_chain.h>
 #include <testbed/tests/ragdoll.h>
-#include <testbed/tests/quadrics.h>
 #include <testbed/tests/mesh_contact_test.h>
 #include <testbed/tests/sphere_stack.h>
 #include <testbed/tests/capsule_stack.h>
@@ -61,21 +62,22 @@ TestEntry g_tests[] =
 	{ "Hull Collision", &HullAndHull::Create },
 	{ "Linear Motion", &LinearMotion::Create },
 	{ "Angular Motion", &AngularMotion::Create },
+	{ "Multiple Shapes", &MultipleShapes::Create },
+	{ "Quadric Shapes", &QuadricShapes::Create },
 	{ "Springs", &Spring::Create },
 	{ "Newton's Cradle", &NewtonCradle::Create },
 	{ "Hinge Motor", &HingeMotor::Create },
 	{ "Hinge Chain", &HingeChain::Create },
 	{ "Ragdoll", &Ragdoll::Create },
-	{ "Quadrics", &Quadric::Create },
+	{ "Thin Boxes", &Thin::Create },
 	{ "Mesh Contact Test", &MeshContactTest::Create },
 	{ "Sphere Stack", &SphereStack::Create },
 	{ "Capsule Stack", &CapsuleStack::Create },
 	{ "Box Stack", &BoxStack::Create },
 	{ "Shape Stack", &ShapeStack::Create },
 	{ "Jenga", &Jenga::Create },
-	{ "Thin Plates", &Thin::Create },
-	{ "Pyramid", &Pyramid::Create },
-	{ "Pyramid Rows", &Pyramids::Create },
+	{ "Box Pyramid", &Pyramid::Create },
+	{ "Box Pyramid Rows", &Pyramids::Create },
 	{ "Ray Cast", &RayCast::Create },
 	{ "Sensor Test", &SensorTest::Create },
 	{ "Character Test", &Character::Create },

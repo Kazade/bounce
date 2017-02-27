@@ -118,15 +118,12 @@ struct b3Quat
 			*axis = s * v;
 		}
 		
-		*angle = 0.0f;
 		// cosine check
-		if (w >= -1.0f && w <= 1.0f)
-		{
-			// half angle
-			float32 theta = acos(w);
-			// full angle
-			*angle = 2.0f * theta;
-		}
+		float32 cosine = b3Clamp(w, -1.0f, 1.0f);
+		// half angle
+		float32 theta = acos(cosine);
+		// full angle
+		*angle = 2.0f * theta;
 	}
 
 	float32 x, y, z, w;

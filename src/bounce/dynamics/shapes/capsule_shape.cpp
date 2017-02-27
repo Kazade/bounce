@@ -126,8 +126,6 @@ void b3CapsuleShape::ComputeMass(b3MassData* massData, float32 density) const
 	massData->center = Ic_Capsule.center;
 	massData->mass = Ic_Capsule.mass;
 	massData->I = Ic;
-
-
 }
 
 void b3CapsuleShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const 

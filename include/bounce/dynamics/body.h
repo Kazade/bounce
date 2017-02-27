@@ -112,6 +112,7 @@ public:
 	
 	// Set the body world transform from a position, axis of rotation and an angle 
 	// of rotation about the axis.
+	// The transform defines a reference frame for this body world center of mass.
 	// However, manipulating a body transform during the simulation may cause non-physical behaviour.
 	void SetTransform(const b3Vec3& position, const b3Vec3& axis, float32 angle);
 	
@@ -185,13 +186,16 @@ public:
 	// Set this body mass data.
 	void SetMassData(const b3MassData* data);
 
-	// Get the linear kinetic energy of the body in Joules (kilogram-meters squared per second squared).
+	// Recalculate this body mass data based on all of its shapes.
+	void ResetMass();
+
+	// Get the linear kinetic energy of the body in Joules (kg m^2/s^2).
 	float32 GetLinearEnergy() const;
 
-	// Get the angular kinetic energy of the body in Joules (kilogram-meters squared per second squared).
+	// Get the angular kinetic energy of the body in Joules (kg m^2/s^2).
 	float32 GetAngularEnergy() const;
 
-	// Get the total kinetic energy of the body in Joules (kilogram-meters squared per second squared).
+	// Get the total kinetic energy of the body in Joules (kg m^2/s^2).
 	float32 GetEnergy() const;
 	
 	// Transform a vector to the local space of this body.
@@ -257,16 +261,8 @@ private:
 	// Destroy all joints connected to the body.
 	void DestroyJoints();
 
-	// Recalculate the mass of the body based on the shapes associated
-	// with it.
-	void ResetMass();
-
-	// Synchronize this body transform with its world 
-	// center of mass and orientation.
-	void SynchronizeTransform();
-
-	// Synchronize this body shape AABBs with the synchronized transform. 	
 	void SynchronizeShapes();
+	void SynchronizeTransform();
 
 	// Check if this body should collide with another.
 	bool ShouldCollide(const b3Body* other) const;
@@ -306,7 +302,10 @@ private:
 	b3Vec3 m_linearVelocity;
 	b3Vec3 m_angularVelocity;
 	
+	// Motion proxy for CCD.
 	b3Sweep m_sweep;
+
+	// The body origin transform. 
 	b3Transform m_xf;
 		
 	// The parent world of this body.

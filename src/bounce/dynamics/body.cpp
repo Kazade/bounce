@@ -220,8 +220,7 @@ void b3Body::ResetMass()
 		return;
 	}
 
-	// Compute mass data for each shape. Each shape contributes to 
-	// this body mass data.
+	// Accumulate the mass about the body origin of all shapes.
 	b3Vec3 localCenter;
 	localCenter.SetZero();
 	for (b3Shape* s = m_shapeList.m_head; s; s = s->m_next)
@@ -233,6 +232,7 @@ void b3Body::ResetMass()
 		
 		b3MassData massData;
 		s->ComputeMass(&massData, s->m_density);
+		
 		localCenter += massData.mass * massData.center;
 		m_mass += massData.mass;
 		m_I += massData.I;
@@ -240,11 +240,17 @@ void b3Body::ResetMass()
 
 	if (m_mass > 0.0f) 
 	{
+		// Compute local center of mass.
 		m_invMass = 1.0f / m_mass;
 		localCenter *= m_invMass;
-		// Center inertia about the center of mass.
-		m_I = b3MoveToCOM(m_I, m_mass, localCenter);
+
+		// Shift inertia about the body origin into the body local center of mass.
+		m_I = m_I - m_mass * b3Steiner(localCenter);
+		
+		// Compute inverse inertia about the body local center of mass.
 		m_invI = b3Inverse(m_I);
+
+		// Align the inverse inertia with the world frame of the body.
 		m_worldInvI = b3RotateToFrame(m_invI, m_xf.rotation);
 
 		// Fix rotation.
@@ -353,8 +359,7 @@ void b3Body::SetMassData(const b3MassData* massData)
 	if (m_mass > 0.0f)
 	{
 		m_invMass = 1.0f / m_mass;
-
-		m_I = b3MoveToCOM(massData->I, m_mass, massData->center);
+		m_I = massData->I - m_mass * b3Steiner(massData->center);
 		m_invI = b3Inverse(m_I);
 		m_worldInvI = b3RotateToFrame(m_invI, m_xf.rotation);
 

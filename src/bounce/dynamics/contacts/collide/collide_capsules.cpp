@@ -60,34 +60,6 @@ void b3CollideCapsuleAndCapsule(b3Manifold& manifold,
 
 	float32 totalRadius = hullA.radius + hullB.radius;
 	
-	// todo return small distance output struct?
-	b3Vec3 pointA, pointB;
-	b3ClosestPointsOnSegments(&pointA, &pointB, hullA.vertices[0], hullA.vertices[1], hullB.vertices[0], hullB.vertices[1]);
-	float32 distance = b3Distance(pointA, pointB);
-	if (distance > totalRadius)
-	{
-		return;
-	}
-
-	if (distance > B3_EPSILON)
-	{
-		b3Vec3 normal = (pointB - pointA) / distance;
-		b3Vec3 center = 0.5f * (pointA + hullA.radius * normal + pointB - hullB.radius * normal);
-
-		manifold.pointCount = 1;
-		manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
-		manifold.points[0].key = 0;
-		manifold.points[0].localNormal = b3MulT(xfA.rotation, normal);
-		manifold.points[0].localPoint = b3MulT(xfA, pointA);
-		manifold.points[0].localPoint2 = b3MulT(xfB, pointB);
-
-		manifold.center = center;
-		manifold.normal = normal;
-		manifold.tangent1 = b3Perp(normal);
-		manifold.tangent2 = b3Cross(manifold.tangent1, normal);
-		return;
-	}
-
 	if (b3AreParalell(hullA, hullB))
 	{
 		// Clip edge A against the side planes of edge B.
@@ -96,8 +68,6 @@ void b3CollideCapsuleAndCapsule(b3Manifold& manifold,
 
 		b3ClipVertex clipEdgeA[2];
 		u32 clipCount = b3ClipEdgeToFace(clipEdgeA, edgeA, &hullB);
-
-		float32 totalRadius = hullA.radius + hullB.radius;
 
 		if (clipCount == 2)
 		{
@@ -136,7 +106,35 @@ void b3CollideCapsuleAndCapsule(b3Manifold& manifold,
 				manifold.normal = normal;
 				manifold.tangent1 = b3Perp(normal);
 				manifold.tangent2 = b3Cross(manifold.tangent1, normal);
+
+				return;
 			}
 		}
+	}
+
+	b3Vec3 pointA, pointB;
+	b3ClosestPointsOnSegments(&pointA, &pointB, hullA.vertices[0], hullA.vertices[1], hullB.vertices[0], hullB.vertices[1]);
+	float32 distance = b3Distance(pointA, pointB);
+	if (distance > totalRadius)
+	{
+		return;
+	}
+
+	if (distance > B3_EPSILON)
+	{
+		b3Vec3 normal = (pointB - pointA) / distance;
+		b3Vec3 center = 0.5f * (pointA + hullA.radius * normal + pointB - hullB.radius * normal);
+
+		manifold.pointCount = 1;
+		manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
+		manifold.points[0].key = 0;
+		manifold.points[0].localNormal = b3MulT(xfA.rotation, normal);
+		manifold.points[0].localPoint = b3MulT(xfA, pointA);
+		manifold.points[0].localPoint2 = b3MulT(xfB, pointB);
+
+		manifold.center = center;
+		manifold.normal = normal;
+		manifold.tangent1 = b3Perp(normal);
+		manifold.tangent2 = b3Cross(manifold.tangent1, normal);
 	}
 }

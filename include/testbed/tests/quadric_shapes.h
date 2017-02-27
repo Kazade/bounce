@@ -16,8 +16,8 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef QUADRIC_H
-#define QUADRIC_H
+#ifndef QUADRIC_SHAPES_H
+#define QUADRIC_SHAPES_H
 
 #include <testbed/tests/quickhull_test.h>
 
@@ -25,39 +25,41 @@ extern DebugDraw* g_debugDraw;
 extern Camera g_camera;
 extern Settings g_settings;
 
-class Quadric : public Test
+class QuadricShapes : public Test
 {
 public:
-	Quadric()
+	QuadricShapes()
 	{
+		g_camera.m_center.Set(2.0f, -2.0f, 0.0f);
 		g_camera.m_zoom = 20.0f;
-		g_camera.m_q = b3Quat(b3Vec3(0.0f, 1.0f, 0.0f), 0.15f * B3_PI);
-		g_camera.m_q = g_camera.m_q * b3Quat(b3Vec3(1.0f, 0.0f, 0.0f), -0.15f * B3_PI);
-		g_camera.m_center.SetZero();
+		g_settings.drawCenterOfMasses = true;
 
 		{
-			qhHull hull;
-
 			b3StackArray<b3Vec3, 32> points;
 			ConstructCone(points);
 
 			u32 size = qhGetMemorySize(points.Count());
 			void* p = b3Alloc(size);
+			
+			qhHull hull;
 			hull.Construct(p, points);
 			m_coneHull = ConvertHull(hull);
+			
 			b3Free(p);
 		}
 		
 		{
-			qhHull hull;
 
 			b3StackArray<b3Vec3, 32> points;
 			ConstructCylinder(points);
 
-			u32 size = qhGetMemorySize(points.Count());
+			const u32 size = qhGetMemorySize(points.Count());
 			void* p = b3Alloc(size);
+			
+			qhHull hull;
 			hull.Construct(p, points);
 			m_cylinderHull = ConvertHull(hull);
+			
 			b3Free(p);
 		}
 
@@ -85,7 +87,7 @@ public:
 			hull.m_hull = &m_coneHull;
 
 			b3ShapeDef sdef;
-			sdef.density = 0.2f;
+			sdef.density = 0.1f;
 			sdef.friction = 0.3f;
 			sdef.shape = &hull;
 
@@ -103,7 +105,7 @@ public:
 			hull.m_hull = &m_cylinderHull;
 
 			b3ShapeDef sdef;
-			sdef.density = 1.0f;
+			sdef.density = 0.1f;
 			sdef.friction = 0.3f;
 			sdef.shape = &hull;
 
@@ -111,7 +113,7 @@ public:
 		}
 	}
 
-	~Quadric()
+	~QuadricShapes()
 	{
 		{
 			b3Free(m_coneHull.vertices);
@@ -130,7 +132,7 @@ public:
 
 	static Test* Create()
 	{
-		return new Quadric();
+		return new QuadricShapes();
 	}
 
 	b3Hull m_coneHull;
