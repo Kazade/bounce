@@ -77,18 +77,6 @@ inline b3Mat33 b3Steiner(const b3Vec3& v)
 	return S;
 }
 
-// Move an inertia tensor given the displacement vector from the center of mass to the translated origin.
-inline b3Mat33 b3MoveToOrigin(const b3Mat33& I, const b3Vec3& v)
-{
-	return I + b3Steiner(v);
-}
-
-// Move an inertia tensor given the displacement vector from the origin to the translated center of mass.
-inline b3Mat33 b3MoveToCOM(const b3Mat33& I, const b3Vec3& v)
-{
-	return I - b3Steiner(v);
-}
-
 // Compute the inertia matrix of a body measured in 
 // inertial frame (variable over time) given the 
 // inertia matrix in body-fixed frame (constant) 
@@ -115,30 +103,6 @@ inline b3Quat b3Integrate(const b3Quat& orientation, const b3Vec3& velocity, flo
 	// Integrate from [t0, t0 + h] using the explicit Euler method
 	b3Quat qdot = b3Derivative(orientation, velocity);
 	b3Quat integral = dt * qdot;
-	return orientation + integral;
-}
-
-// Compute the time derivative of an orientation given
-// the angular velocity of the rotating frame represented by the orientation.
-inline b3Mat33 b3Derivative(const b3Mat33& orientation, const b3Vec3& velocity)
-{
-	// Rate of change of a basis in a rotating frame:
-	// xdot = cross(w, ex)
-	// ydot = cross(w, ey)
-	// zdot = cross(w, ez)
-	// This should yield in:
-	// qdot = skew(velocity) * q
-	b3Mat33 xf = b3Skew(velocity);
-	return xf * orientation;
-}
-
-// Integrate an orientation over a time step given
-// the current orientation, angular velocity of the rotating frame
-// represented by the orientation, and the time step dt.
-inline b3Mat33 b3Integrate(const b3Mat33& orientation, const b3Vec3& velocity, float32 dt)
-{
-	b3Mat33 qdot = b3Derivative(orientation, velocity);
-	b3Mat33 integral = dt * qdot;
 	return orientation + integral;
 }
 
