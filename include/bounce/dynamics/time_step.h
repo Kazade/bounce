@@ -53,7 +53,7 @@ enum b3LimitState
 
 // Return the Steiner's matrix given the displacement vector from the old 
 // center of rotation to the new center of rotation.
-// The result equals to transpose( skew(v) ) * skew(v) or diagonal(v^2) - outer(v)
+// The result equals to transpose( skew(v) ) * skew(v) or diagonal(v^2) - outer(v, v)
 inline b3Mat33 b3Steiner(const b3Vec3& v)
 {
 	float32 xx = v.x * v.x;

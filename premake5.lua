@@ -7,8 +7,12 @@ solution_name = "bounce"
 working_dir = "."
 solution_dir = "build/"
 external_dir = "external/"
-inc_dir = "include/"
-src_dir = "src/"
+bounce_inc_dir = "include/"
+bounce_src_dir = "src/"
+examples_inc_dir = "examples/"
+examples_src_dir = "examples/"
+tests_inc_dir = "tests/"
+tests_src_dir = "tests/"
 obj_dir = "/obj/"
 bin_dir = "/bin/"
 
@@ -48,15 +52,15 @@ solution (solution_name)
 		kind "StaticLib"
 		language "C++"
 		location ( solution_dir .. action )
-		includedirs { inc_dir }
+		includedirs { bounce_inc_dir }
 		vpaths { [""] = "bounce" }		
 		buildoptions { "-std=c++11" } -- require C++11
 
 		files 
 		{ 
-			inc_dir .. "/bounce/**.h", 
-			inc_dir .. "/bounce/**.inl", 
-			src_dir .. "/bounce/**.cpp" 
+			bounce_inc_dir .. "/bounce/**.h", 
+			bounce_inc_dir .. "/bounce/**.inl", 
+			bounce_src_dir .. "/bounce/**.cpp" 
 		}
 	project "glad"
 		kind "StaticLib"
@@ -178,14 +182,14 @@ solution (solution_name)
 		kind "ConsoleApp"
 		language "C++"
 		location ( solution_dir .. action )
-		includedirs { external_dir, inc_dir }
+		includedirs { external_dir, bounce_inc_dir, examples_inc_dir }
 		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.cpp" }
 		buildoptions { "-std=c++11" } -- GNU/GCC C++11
 
 		files 
 		{ 
-			inc_dir .. "/testbed/**.h", 
-			src_dir .. "/testbed/**.cpp" 
+			examples_inc_dir .. "/testbed/**.h", 
+			examples_src_dir .. "/testbed/**.cpp" 
 		}
 
 		links { "glfw", "glad", "imgui", "bounce" }
@@ -201,7 +205,22 @@ solution (solution_name)
 				"xcb-dri2", "xcb-dri3", "xcb-present", "xcb-sync", "xshmfence", 
 				"Xxf86vm", "Xfixes", "Xext", "X11", "pthread", "xcb", "Xau", "Xdmcp" 
 			}
-			
+		
+	project "hello_world"
+		kind "ConsoleApp"
+		language "C++"
+		location ( solution_dir .. action )
+		includedirs { bounce_inc_dir, examples_inc_dir }
+		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.cpp" }
+		buildoptions { "-std=c++11" } -- GNU/GCC C++11
+
+		files 
+		{ 
+			examples_inc_dir .. "/hello_world/**.h", 
+			examples_src_dir .. "/hello_world/**.cpp" 
+		}
+
+		links { "bounce" }
 -- build
 if os.is "windows" then
 	

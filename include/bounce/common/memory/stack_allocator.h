@@ -21,9 +21,9 @@
 
 #include <bounce/common/settings.h>
 
-// Allocate 10 MiB from the stack. 
+// Allocate 1 MiB from the stack. 
 // Increase as you want.
-const u32 b3_maxStackSize = B3_MiB(10);
+const u32 b3_maxStackSize = B3_MiB(1);
 
 // A stack allocator.
 class b3StackAllocator 

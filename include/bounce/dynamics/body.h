@@ -116,6 +116,12 @@ public:
 	// However, manipulating a body transform during the simulation may cause non-physical behaviour.
 	void SetTransform(const b3Vec3& position, const b3Vec3& axis, float32 angle);
 	
+	// Get the position of the world body origin.
+	b3Vec3 GetPosition() const;
+
+	// Get the orientation of the world body frame.
+	b3Quat GetOrientation() const;
+
 	// Get the gravity scale of the body. One is used by default.
 	float32 GetGravityScale() const;
 	
@@ -380,6 +386,16 @@ inline void b3Body::SetTransform(const b3Vec3& position, const b3Vec3& axis, flo
 	m_sweep.orientation0 = m_sweep.orientation;
 
 	SynchronizeShapes();
+}
+
+inline b3Vec3 b3Body::GetPosition() const
+{
+	return m_sweep.worldCenter;
+}
+
+inline b3Quat b3Body::GetOrientation() const
+{
+	return m_sweep.orientation;
 }
 
 inline b3Vec3 b3Body::GetLocalVector(const b3Vec3& vector) const
