@@ -23,7 +23,6 @@
 
 #include <bounce/common/settings.h>
 #include <bounce/common/time.h>
-#include <bounce/common/profiler.h>
 #include <bounce/common/draw.h>
 
 #include <bounce/common/math/math.h>

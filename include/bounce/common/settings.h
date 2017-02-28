@@ -106,7 +106,7 @@ typedef float float32;
 // This controls how faster overlaps should be resolved per step.
 // This is less than and would be close to 1, so that the all overlap is resolved per step.
 // However values very close to 1 may lead to overshoot.
-#define B3_BAUMGARTE (0.1f)
+#define B3_BAUMGARTE (0.2f)
 
 // If the relative velocity of a contact point is below 
 // the threshold then restitution is not applied.
@@ -128,6 +128,8 @@ typedef float float32;
 #define B3_MiB(n) (1024 * B3_KiB(n))
 #define B3_GiB(n) (1024 * B3_MiB(n))
 
+#define B3_PROFILE(name) b3ProfileScope scope(name)
+
 // You should implement this function to use your own memory allocator.
 void* b3Alloc(u32 size);
 
@@ -137,6 +139,30 @@ void b3Free(void* block);
 // You should implement this function to visualize log messages coming 
 // from this software.
 void b3Log(const char* string, ...);
+
+// You should implement this function to use your own profiler.
+bool b3PushProfileScope(const char* name);
+
+// You should implement this function to use your own profiler.
+void b3PopProfileScope();
+
+struct b3ProfileScope
+{
+	b3ProfileScope(const char* name)
+	{
+		b = b3PushProfileScope(name);
+	}
+
+	~b3ProfileScope()
+	{
+		if (b)
+		{
+			b3PopProfileScope();
+		}
+	}
+private:
+	bool b;
+};
 
 // The current version this software.
 struct b3Version

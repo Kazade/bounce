@@ -22,7 +22,6 @@
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/body.h>
 #include <bounce/dynamics/world_listeners.h>
-#include <bounce/common/profiler.h>
 
 b3ContactManager::b3ContactManager() : 
 	m_convexBlocks(sizeof(b3ConvexContact)),

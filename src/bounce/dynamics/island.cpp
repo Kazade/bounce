@@ -24,7 +24,6 @@
 #include <bounce/dynamics/contacts/contact.h>
 #include <bounce/dynamics/contacts/contact_solver.h>
 #include <bounce/common/memory/stack_allocator.h>
-#include <bounce/common/profiler.h>
 
 b3Island::b3Island(b3StackAllocator* allocator, u32 bodyCapacity, u32 contactCapacity, u32 jointCapacity) 
 {

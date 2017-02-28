@@ -24,7 +24,6 @@
 #include <bounce/dynamics/contacts/contact.h>
 #include <bounce/dynamics/joints/joint.h>
 #include <bounce/dynamics/time_step.h>
-#include <bounce/common/profiler.h>
 
 extern u32 b3_allocCalls;
 extern u32 b3_maxAllocCalls;

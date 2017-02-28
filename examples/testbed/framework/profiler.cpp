@@ -17,7 +17,6 @@
 */
 
 #include <testbed/framework/profiler.h>
-#include <bounce/common/profiler.h>
 #include <bounce/common/time.h>
 #include <bounce/common/template/queue.h>
 
