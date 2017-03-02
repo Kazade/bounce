@@ -179,10 +179,8 @@ void b3Body::SynchronizeTransform()
 
 void b3Body::SynchronizeShapes() 
 {
-	b3Transform xf1;
-	xf1.position = m_sweep.worldCenter0;
-	xf1.rotation = b3ConvertQuatToRot(m_sweep.orientation0);
-	
+	b3Transform xf1 = m_sweep.GetTransform(0.0f);
+
 	b3Transform xf2 = m_xf;
 	
 	b3Vec3 displacement = xf2.position - xf1.position;

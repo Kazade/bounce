@@ -139,6 +139,7 @@ protected:
 	friend class b3Body;
 	friend class b3Contact;
 	friend class b3ContactManager;
+	friend class b3MeshContact;
 	friend class b3ContactSolver;
 	friend class b3List1<b3Shape>;
 

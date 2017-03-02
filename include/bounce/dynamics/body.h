@@ -267,8 +267,8 @@ private:
 	// Destroy all joints connected to the body.
 	void DestroyJoints();
 
-	void SynchronizeShapes();
 	void SynchronizeTransform();
+	void SynchronizeShapes();
 
 	// Check if this body should collide with another.
 	bool ShouldCollide(const b3Body* other) const;

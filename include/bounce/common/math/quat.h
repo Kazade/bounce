@@ -187,7 +187,7 @@ inline float b3Dot(const b3Quat& a, const b3Quat& b)
 	return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
 
-// Conjugate of a quaternion.
+// Conjugate of a quaternion (inverse if the quaternion is unit).
 inline b3Quat b3Conjugate(const b3Quat& q)
 {
 	return b3Quat(-q.x, -q.y, -q.z, q.w);

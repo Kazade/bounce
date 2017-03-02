@@ -20,6 +20,7 @@
 #include <bounce/dynamics/contacts/collide/clip.h>
 #include <bounce/dynamics/contacts/manifold.h>
 #include <bounce/dynamics/shapes/hull_shape.h>
+#include <bounce/dynamics/body.h>
 #include <bounce/collision/shapes/hull.h>
 
 extern u32 b3_convexCacheHits;
@@ -101,11 +102,44 @@ void b3RebuildFaceContact(b3Manifold& manifold,
 	const b3Hull* hullA = sA->m_hull;
 	const b3Hull* hullB = sB->m_hull;
 
-	b3FaceQuery query;
-	query.index = indexA;
+	const b3Body* bodyA = sA->GetBody();
+	const b3Body* bodyB = sB->GetBody();
+
+	const b3Sweep& sweepA = bodyA->GetSweep();
+	b3Quat q10 = sweepA.orientation0;
+	b3Quat q1 = sweepA.orientation;
+
+	const b3Sweep& sweepB = bodyB->GetSweep();
+	b3Quat q20 = sweepB.orientation0;
+	b3Quat q2 = sweepB.orientation;
+
+	// Check if the relative orientation has changed.
+	// Here the second orientation seen by the first orientation.
+	// dp = p2 - p1
+	// dq * q1 = q2
+	// dq = inv(q1) * q2
+
+	// The old relative rotation.
+	// "q0(2) - q0(1)"
+	b3Quat dq0 = b3Conjugate(q10) * q20;
+
+	// The new relative rotation.
+	// "q(2) - q(1)"
+	b3Quat dq = b3Conjugate(q1) * q2;
 	
-	// @todo Use heuristic (relative orientation) to increase performance.
-	b3BuildFaceContact(manifold, xfA, hullA, xfB, hullB, query, flipNormal);
+	// Relative rotation between the new relative rotation and the old relative rotation.
+	// "dq(2) - dq0(1)"
+	b3Quat q = b3Conjugate(dq0) * dq;
+
+	// Check the relative absolute cosine because 
+	// we want to check orientation similarity.
+	const float32 kTol = 0.995f;
+	if (b3Abs(q.w) > kTol)
+	{
+		b3FaceQuery query;
+		query.index = indexA;
+		b3BuildFaceContact(manifold, xfA, hullA, xfB, hullB, query, flipNormal);
+	}
 }
 
 void b3CollideCache(b3Manifold& manifold,

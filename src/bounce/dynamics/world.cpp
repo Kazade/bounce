@@ -288,20 +288,25 @@ void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
 
 		for (b3Body* b = m_bodyList.m_head; b; b = b->m_next)
 		{
-			// If a body didn't participate on a island then it didn't move
-			// at all.
+			// If a body didn't participate on a island then it didn't move.
 			if ((b->m_flags & b3Body::e_islandFlag) == 0)
 			{
 				continue;
 			}
 
-			// Update shape AABBs.
+			if (b->m_type == e_staticBody)
+			{
+				continue;
+			}
+
+			// Update shapes for broad-phase.
 			b->SynchronizeShapes();
 		}
 
 		// Notify the contacts the AABBs may have been moved.
 		m_contactMan.SynchronizeShapes();
 
+		// Find new contacts.
 		m_contactMan.FindNewContacts();
 	}
 }

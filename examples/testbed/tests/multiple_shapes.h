@@ -79,7 +79,7 @@ public:
 		{
 			b3BodyDef bd;
 			bd.type = e_dynamicBody;
-			bd.angularVelocity.Set(0.0f, B3_PI, 0.0f);
+			bd.angularVelocity.Set(0.0f, 200.0f * B3_PI, 0.0f);
 
 			b3Body* body = m_world.CreateBody(bd);
 

@@ -263,6 +263,7 @@ void b3MeshContact::Collide()
 		b3TriangleHull hullB(v1, v2, v3);
 
 		b3HullShape shapeB;
+		shapeB.m_body = bodyB;
 		shapeB.m_hull = &hullB;
 		shapeB.m_radius = B3_HULL_RADIUS;
 
