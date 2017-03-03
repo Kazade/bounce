@@ -209,7 +209,8 @@ public:
 		{
 			g_debugDraw->DrawSegment(p1, out.point, b3Color(0.0f, 1.0f, 0.0f));
 			g_debugDraw->DrawPoint(out.point, 4.0f, b3Color(1.0f, 0.0f, 0.0f));
-			g_debugDraw->DrawSegment(out.point, out.point + out.normal, b3Color(1.0f, 1.0f, 1.0f));
+			g_debugDraw->DrawSegment(out.point, out.normal, b3Color(1.0f, 1.0f, 1.0f));
+			g_debugDraw->DrawSolidCircle(out.normal, out.point + 0.05f * out.normal, 1.0f, b3Color(1.0f, 1.0f, 1.0f));
 		}
 		else
 		{

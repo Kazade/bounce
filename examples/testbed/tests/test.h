@@ -134,7 +134,7 @@ public:
 
 	b3World m_world;
 
-	b3RayCastSingleOutput m_rayHit;
+	b3RayCastSingleOutput m_rayHit; // local space
 	b3BoxHull m_groundHull;
 	b3BoxHull m_boxHull;
 	b3BoxHull m_tallHull;

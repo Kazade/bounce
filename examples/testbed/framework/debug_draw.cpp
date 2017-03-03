@@ -1137,7 +1137,7 @@ void DebugDraw::DrawPolygon(const b3Vec3* vertices, u32 count, const b3Color& co
 void DebugDraw::DrawSolidPolygon(const b3Vec3& normal, const b3Vec3* vertices, u32 count, const b3Color& color)
 {
 	b3Color fillColor(color.r, color.g, color.b, color.a);
-	
+
 	b3Vec3 p1 = vertices[0];
 	for (u32 i = 1; i < count - 1; ++i)
 	{
@@ -1149,60 +1149,91 @@ void DebugDraw::DrawSolidPolygon(const b3Vec3& normal, const b3Vec3* vertices, u
 		m_triangles->Vertex(p3, fillColor, normal);
 	}
 
-	b3Color edgeColor(0.0f, 0.0f, 0.0f, 1.0f);
-	DrawPolygon(vertices, count, edgeColor);
+	b3Color frameColor(0.5f * color.r, 0.5f * color.g, 0.5f * color.b, 1.0f);
+	DrawPolygon(vertices, count, frameColor);
 }
 
 void DebugDraw::DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
 {
+	// Build a tangent vector to normal.
+	b3Vec3 u = b3Cross(normal, b3Vec3(1.0f, 0.0f, 0.0f));
+	b3Vec3 v = b3Cross(normal, b3Vec3(0.0f, 1.0f, 0.0f));
+
+	// Handle edge cases (zero cross product).
+	b3Vec3 n1;
+	if (b3LengthSquared(u) > b3LengthSquared(v))
+	{
+		n1 = u;
+	}
+	else
+	{
+		n1 = v;
+	}
+
+	n1.Normalize();
+	
+	// Build a quaternion to rotate the tangent about the normal.
 	u32 kEdgeCount = 20;
 	float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
-	float32 cosInc = cos(kAngleInc);
-	float32 sinInc = sin(kAngleInc);
-	float32 tInc = 1.0f - cosInc;
+	b3Quat q(normal, kAngleInc);
 
-	b3Vec3 n1 = b3Perp(normal);
-	b3Vec3 v1 = center + radius * n1;
+	b3Vec3 p1 = center + radius * n1;
 	for (u32 i = 0; i < kEdgeCount; ++i)
 	{
-		// Rodrigues' rotation formula
-		b3Vec3 n2 = cosInc * n1 + sinInc * b3Cross(normal, n1) + tInc * b3Dot(normal, n1) * normal;
-		b3Vec3 v2 = center + radius * n2;
+		b3Vec3 n2 = b3Mul(q, n1);
+		b3Vec3 p2 = center + radius * n2;
 
-		m_lines->Vertex(v1, color);
-		m_lines->Vertex(v2, color);
+		m_lines->Vertex(p1, color);
+		m_lines->Vertex(p2, color);
 		
 		n1 = n2;
-		v1 = v2;
+		p1 = p2;
 	}
 }
 
 void DebugDraw::DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
 {
-	u32 kEdgeCount = 20;
-	float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
-	float32 cosInc = cos(kAngleInc);
-	float32 sinInc = sin(kAngleInc);
-	float32 tInc = 1.0f - cosInc;
+	b3Color fillColor(color.r, color.g, color.b, color.a);
+	b3Color frameColor(0.5f * color.r, 0.5f * color.g, 0.5f * color.b, 1.0f);
+	
+	// Build a tangent vector to normal.
+	b3Vec3 u = b3Cross(normal, b3Vec3(1.0f, 0.0f, 0.0f));
+	b3Vec3 v = b3Cross(normal, b3Vec3(0.0f, 1.0f, 0.0f));
 
-	b3Vec3 n1 = b3Perp(normal);
-	b3Vec3 v1 = center + radius * n1;
-	for (u32 i = 0; i < kEdgeCount; ++i)
+	// Handle edge cases (zero cross product).
+	b3Vec3 n1;
+	if (b3LengthSquared(u) > b3LengthSquared(v))
 	{
-		// Rodrigues' rotation formula
-		b3Vec3 n2 = cosInc * n1 + sinInc * b3Cross(normal, n1) + tInc * b3Dot(normal, n1) * normal;
-		b3Vec3 v2 = center + radius * n2;
-
-		m_triangles->Vertex(center, color, normal);
-		m_triangles->Vertex(v1, color, normal);
-		m_triangles->Vertex(v2, color, normal);
-
-		n1 = n2;
-		v1 = v2;
+		n1 = u;
+	}
+	else
+	{
+		n1 = v;
 	}
 
-	b3Color frameColor(0.5f * color.r, 0.5f * color.g, 0.5f * color.b, 1.0f);
-	DrawCircle(normal, center, radius, frameColor);
+	n1.Normalize();
+
+	// Build a quaternion to rotate the tangent about the normal.
+	const u32 kEdgeCount = 20;
+	const float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
+	b3Quat q(normal, kAngleInc);
+
+	b3Vec3 p1 = center + radius * n1;
+	for (u32 i = 0; i < kEdgeCount; ++i)
+	{
+		b3Vec3 n2 = b3Mul(q, n1);
+		b3Vec3 p2 = center + radius * n2;
+		
+		m_triangles->Vertex(center, fillColor, normal);
+		m_triangles->Vertex(p1, fillColor, normal);
+		m_triangles->Vertex(p2, fillColor, normal);
+
+		m_lines->Vertex(p1, frameColor);
+		m_lines->Vertex(p2, frameColor);
+
+		n1 = n2;
+		p1 = p2;
+	}
 }
 
 void DebugDraw::DrawSphere(const b3Vec3& center, float32 radius, const b3Color& color)

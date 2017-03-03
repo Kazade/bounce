@@ -357,6 +357,8 @@ void Test::Step()
 	m_world.Step(dt, g_settings.velocityIterations, g_settings.positionIterations);
 
 	ProfileEnd();
+	
+	g_debugDraw->Submit();
 
 	// Draw World
 	u32 drawFlags = 0;
@@ -370,6 +372,18 @@ void Test::Step()
 
 	g_debugDraw->SetFlags(drawFlags);
 	m_world.DebugDraw();
+	
+	if (m_mouseJoint)
+	{
+		b3Shape* shape = m_rayHit.shape;
+		b3Body* body = shape->GetBody();
+
+		b3Vec3 n = body->GetWorldVector(m_rayHit.normal);
+		b3Vec3 p = body->GetWorldPoint(m_rayHit.point);
+		
+		g_debugDraw->DrawSolidCircle(n, p + 0.05f * n, 1.0f, b3Color_white);
+	}
+
 	g_debugDraw->Submit();
 	
 	if (g_settings.drawFaces)
@@ -453,17 +467,21 @@ void Test::MouseLeftDown(const Ray3& pw)
 		m_world.DestroyBody(groundBody);
 	}
 
+	// Perform the ray cast
 	b3Vec3 p1 = pw.Start();
 	b3Vec3 p2 = pw.End();
 
-	RayCastListener listener;
-	listener.hit.shape = NULL;
-
-	// Perform the ray cast
 	b3RayCastSingleOutput out;
 	if (m_world.RayCastSingle(&out, p1, p2))
 	{
-		m_rayHit = out;		
+		b3Shape* shape = out.shape;
+		b3Body* body = shape->GetBody();
+		
+		m_rayHit.shape = out.shape;
+		m_rayHit.point = body->GetLocalPoint(out.point);
+		m_rayHit.normal = body->GetLocalVector(out.normal);
+		m_rayHit.fraction = out.fraction;
+
 		RayHit();
 	}
 }
@@ -491,7 +509,7 @@ void Test::RayHit()
 	b3MouseJointDef def;
 	def.bodyA = bodyA;
 	def.bodyB = bodyB;
-	def.target = m_rayHit.point;
+	def.target = bodyB->GetWorldPoint(m_rayHit.point);
 	def.maxForce = 2000.0f * bodyB->GetMass();
 
 	m_mouseJoint = (b3MouseJoint*)m_world.CreateJoint(def);
