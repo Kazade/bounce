@@ -197,7 +197,7 @@ bool b3WeldJoint::SolvePositionConstraints(const b3SolverData* data)
 		qB += b3Derivative(qB, m_iB * P);
 		qB.Normalize();
 		
-		angularError += 2.0f * b3Length(C);
+		angularError += b3Length(C);
 	}
 	
 	data->positions[m_indexA].x = xA;
