@@ -33,6 +33,7 @@ enum b3JointType
 	e_unknownJoint,
 	e_mouseJoint,
 	e_springJoint,
+	e_weldJoint,
 	e_revoluteJoint,
 	e_sphereJoint,
 	e_coneJoint,

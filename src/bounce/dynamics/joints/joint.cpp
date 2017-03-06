@@ -19,6 +19,7 @@
 #include <bounce/dynamics/joints/joint.h>
 #include <bounce/dynamics/joints/mouse_joint.h>
 #include <bounce/dynamics/joints/spring_joint.h>
+#include <bounce/dynamics/joints/weld_joint.h>
 #include <bounce/dynamics/joints/revolute_joint.h>
 #include <bounce/dynamics/joints/sphere_joint.h>
 #include <bounce/dynamics/joints/cone_joint.h>
@@ -40,7 +41,12 @@ b3Joint* b3Joint::Create(const b3JointDef* def)
 		joint = new (block) b3SpringJoint((b3SpringJointDef*)def);
 		break;
 	}
-	case e_revoluteJoint:
+	case e_weldJoint:
+	{
+		void* block = b3Alloc(sizeof(b3WeldJoint));
+		joint = new (block) b3WeldJoint((b3WeldJointDef*)def);
+		break;
+	}case e_revoluteJoint:
 	{
 		void* block = b3Alloc(sizeof(b3RevoluteJoint));
 		joint = new (block) b3RevoluteJoint((b3RevoluteJointDef*)def);
@@ -85,6 +91,13 @@ void b3Joint::Destroy(b3Joint* joint)
 	{
 		b3SpringJoint* o = (b3SpringJoint*)joint;
 		o->~b3SpringJoint();
+		b3Free(joint);
+		break;
+	}
+	case e_weldJoint:
+	{
+		b3WeldJoint* o = (b3WeldJoint*)joint;
+		o->~b3WeldJoint();
 		b3Free(joint);
 		break;
 	}

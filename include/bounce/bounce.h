@@ -41,6 +41,7 @@
 
 #include <bounce/dynamics/joints/mouse_joint.h>
 #include <bounce/dynamics/joints/spring_joint.h>
+#include <bounce/dynamics/joints/weld_joint.h>
 #include <bounce/dynamics/joints/sphere_joint.h>
 #include <bounce/dynamics/joints/revolute_joint.h>
 #include <bounce/dynamics/joints/cone_joint.h>

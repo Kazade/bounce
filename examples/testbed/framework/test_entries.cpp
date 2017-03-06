@@ -30,6 +30,7 @@
 #include <testbed/tests/multiple_shapes.h>
 #include <testbed/tests/quadric_shapes.h>
 #include <testbed/tests/spring.h>
+#include <testbed/tests/weld_test.h>
 #include <testbed/tests/newton_cradle.h>
 #include <testbed/tests/hinge_motor.h>
 #include <testbed/tests/hinge_chain.h>
@@ -65,6 +66,7 @@ TestEntry g_tests[] =
 	{ "Multiple Shapes", &MultipleShapes::Create },
 	{ "Quadric Shapes", &QuadricShapes::Create },
 	{ "Springs", &Spring::Create },
+	{ "Weld Test", &WeldTest::Create },
 	{ "Newton's Cradle", &NewtonCradle::Create },
 	{ "Hinge Motor", &HingeMotor::Create },
 	{ "Hinge Chain", &HingeChain::Create },

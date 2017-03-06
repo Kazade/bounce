@@ -243,6 +243,7 @@ private:
 	friend class b3JointSolver;
 	friend class b3MouseJoint;
 	friend class b3SpringJoint;
+	friend class b3WeldJoint;
 	friend class b3RevoluteJoint;
 	friend class b3SphereJoint;
 	friend class b3ConeJoint;

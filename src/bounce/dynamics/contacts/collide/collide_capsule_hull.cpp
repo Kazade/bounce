@@ -50,7 +50,7 @@ void b3BuildEdgeContact(b3Manifold& manifold,
 	}
 
 	b3Vec3 PA, PB;
-	b3ClosestPointsOnNormalizedLines(&PA, &PB, P1, E1, P2, E2);
+	b3ClosestPointsOnNormalizedLines(&PA, &PB, P1, N1, P2, N2);
 
 	b3FeaturePair pair = b3MakePair(0, 1, index2, index2 + 1);
 	
@@ -82,51 +82,54 @@ void b3BuildFaceContact(b3Manifold& manifold,
 
 	b3ClipVertex clipEdge1[2];
 	u32 clipCount = b3ClipEdgeToFace(clipEdge1, edge1, xf2, index2, hull2);
+
+	// Project clipped edge 1 onto face plane 2.
+	float32 r1 = hull1->radius;
+	float32 r2 = B3_HULL_RADIUS;
+	float32 totalRadius = r1 + r2;
+
+	b3Plane localPlane2 = hull2->GetPlane(index2);
+	b3Plane plane2 = b3Mul(xf2, localPlane2);
+	const b3Face* face2 = hull2->GetFace(index2);
+	const b3HalfEdge* edge2 = hull2->GetEdge(face2->edge);
+	b3Vec3 localPoint2 = hull2->GetVertex(edge2->origin);
+
+	b3Vec3 normal = -plane2.normal;
 	
-	// Project.
-	if (clipCount == 2)
+	b3Vec3 center;
+	center.SetZero();
+
+	u32 pointCount = 0;
+	for (u32 i = 0; i < clipCount; ++i)
 	{
-		float32 r1 = hull1->radius;
-		float32 r2 = B3_HULL_RADIUS;
-		float32 totalRadius = r1 + r2;
-
-		b3Plane localPlane2 = hull2->GetPlane(index2);
-		b3Plane plane2 = b3Mul(xf2, localPlane2);
-		const b3Face* face2 = hull2->GetFace(index2);
-		const b3HalfEdge* edge2 = hull2->GetEdge(face2->edge);
-		b3Vec3 localPoint2 = hull2->GetVertex(edge2->origin);
-
-		b3Vec3 cp1 = b3ClosestPointOnPlane(clipEdge1[0].position, plane2);
-		b3Vec3 cp2 = b3ClosestPointOnPlane(clipEdge1[1].position, plane2);
-
-		float32 s1 = b3Distance(clipEdge1[0].position, plane2);
-		float32 s2 = b3Distance(clipEdge1[1].position, plane2);
-
-		if (s1 <= totalRadius && s2 <= totalRadius)
+		float32 s = b3Distance(clipEdge1[i].position, plane2);
+		if (s <= totalRadius)
 		{
-			b3Vec3 normal = -plane2.normal;
-			b3Vec3 p1 = 0.5f * (clipEdge1[0].position + r1 * normal + cp1 - r2 * normal);
-			b3Vec3 p2 = 0.5f * (clipEdge1[1].position + r1 * normal + cp2 - r2 * normal);
+			b3Vec3 cp = b3ClosestPointOnPlane(clipEdge1[i].position, plane2);
+			b3Vec3 p = 0.5f * (clipEdge1[i].position + r1 * normal + cp - r2 * normal);
 
-			manifold.pointCount = 2;
+			b3ManifoldPoint* mp = manifold.points + pointCount;
+			mp->triangleKey = B3_NULL_TRIANGLE;
+			mp->key = b3MakeKey(clipEdge1[i].pair);
+			mp->localNormal = b3MulT(xf1.rotation, normal);
+			mp->localPoint = b3MulT(xf1, clipEdge1[i].position);
+			mp->localPoint2 = b3MulT(xf2, cp);
 			
-			manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
-			manifold.points[0].key = b3MakeKey(clipEdge1[0].pair);
-			manifold.points[0].localNormal = b3MulT(xf1.rotation, normal);
-			manifold.points[0].localPoint = b3MulT(xf1, clipEdge1[0].position);
-			manifold.points[0].localPoint2 = b3MulT(xf2, cp1);
+			++pointCount;
 
-			manifold.points[1].triangleKey = B3_NULL_TRIANGLE;
-			manifold.points[1].key = b3MakeKey(clipEdge1[1].pair);
-			manifold.points[1].localNormal = b3MulT(xf1.rotation, normal);
-			manifold.points[1].localPoint = b3MulT(xf1, clipEdge1[1].position);
-			manifold.points[1].localPoint2 = b3MulT(xf2, cp2);
-
-			manifold.center = 0.5f * (p1 + p2);
-			manifold.normal = normal;
-			manifold.tangent1 = b3Perp(normal);
-			manifold.tangent2 = b3Cross(manifold.tangent1, normal);
+			center += p;
 		}
+	}
+
+	if (pointCount > 0)
+	{
+		center /= pointCount;
+		
+		manifold.center = center;
+		manifold.normal = normal;
+		manifold.tangent1 = b3Perp(normal);
+		manifold.tangent2 = b3Cross(manifold.tangent1, normal);
+		manifold.pointCount = pointCount;
 	}
 }
 
