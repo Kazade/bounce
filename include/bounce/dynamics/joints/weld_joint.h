@@ -44,7 +44,7 @@ struct b3WeldJointDef : public b3JointDef
 	b3Quat relativeRotation;
 };
 
-// A weld joint removes the relative rotation between two bodies. 
+// A weld joint removes the relative movement between two bodies. 
 // You need to specify the relative rotation and the local anchor points. 
 // @todo Soft this constraint.
 class b3WeldJoint : public b3Joint
