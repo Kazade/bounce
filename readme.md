@@ -1,6 +1,6 @@
-<h3>About</h3>
+### About
 
-Bounce is a 3D physics engine for games and interactive applications.
+Bounce is a 3D physics engine for games.
 
 To get started with Bounce see readme.txt.
 
@@ -8,55 +8,51 @@ Here is how to control the Testbed. The Testbed is a collection of non-unit test
 
 Camera (as in Maya):
 
-<ul>
-	<li>Rotate the scene holding LSHIFT + LMB</li>
-	<li>Translate the scene holding LSHIFT + RMB</li>
-	<li>Zoom in/out the scene using LSHIFT + Mouse Wheel</li>
-</ul>
+* Rotate the scene holding LSHIFT + LMB
+* Translate the scene holding LSHIFT + RMB
+* Zoom in/out the scene using LSHIFT + Mouse Wheel
 
 Bounce is released under the <b>zlib</b> license.
 
-<h3>Features</h3>
+### Features
 
-<ul>
-<h4>Common</h4>
+#### Common
 
-	<li>Efficient data structures with no use of STL</li>
-	<li>Stack and small block allocators</li>
-	<li>Built-in math library</li>
-	<li>Tunable settings used across the entire library</li>
+* Efficient data structures with no use of STL
+* Stack and small block allocators
+* Built-in math library
+* Tunable settings used across the entire library
 
-<h4>Collision</h4>
+#### Collision
 
-	<li>Dynamic tree broadphase</li>
-	<li>Static tree "midphase"</li>
-	<li>SAT</li>
-	<li>GJK</li>
-	<li>Spheres, capsules, hulls, triangle meshes</li>
-	<li>Optimized pair management</li>
+* Dynamic tree broadphase
+* Static tree "midphase"
+* SAT
+* GJK
+* Spheres, capsules, hulls, triangle meshes
+* Optimized pair management
 
-<h4>Dynamics</h4>
+#### Dynamics
 
-	<li>Contact, friction, restitution</li>
-	<li>Mouse, spring, sphere, cone, revolute joint types</li>
-	<li>Joint motors, limits</li>
-	<li>Constraint graphs</li>
-	<li>Simulation islands and sleep management</li>
-	<li>Linear time solver</li>
-	<li>Stable shape stacking</li>
-	<li>One-shot contact manifolds</li>
-	<li>Contact clustering, reduction, and persistence</li>
-	<li>Contact callbacks: begin, pre-solve, post-solve</li>
-	<li>Ray-casting and volume queries</li>
+* Contact, friction, restitution
+* Mouse, spring, sphere, cone, revolute joint types
+* Joint motors, limits
+* Constraint graphs
+* Simulation islands and sleep management
+* Linear time solver
+* Stable shape stacking
+* One-shot contact manifolds
+* Contact clustering, reduction, and persistence
+* Contact callbacks: begin, pre-solve, post-solve
+* Ray-casting and volume queries
 
-<h4>Testbed</h4>
+#### Testbed
 	
-	<li>OpenGL with GLFW and GLAD</li>
-	<li>UI by imgui</li>
-	<li>Mouse picking</li>
-	<li>premake build system</li>
+* OpenGL with GLFW and GLAD
+* UI by imgui
+* Mouse picking
+* premake build system
 
-<h4>Documentation</h4>
+#### Documentation
 
-	<li>Doxygen API documentation</li>
-</ul>
+* Doxygen API documentation</li>
