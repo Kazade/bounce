@@ -16,40 +16,53 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef ANGULAR_MOTION_H
-#define ANGULAR_MOTION_H
+#ifndef CAPSULE_HULL_CONTACT_1_H
+#define CAPSULE_HULL_CONTACT_1_H
 
-class AngularMotion : public Test
+class CapsuleAndHullContact1 : public Test
 {
 public:
-	AngularMotion()
+	CapsuleAndHullContact1()
 	{
-		b3BodyDef bd;
-		b3Body* ground = m_world.CreateBody(bd);
+		{
+			b3BodyDef bd;
+			b3Body* body = m_world.CreateBody(bd);
 
-		bd.type = e_dynamicBody;
-		bd.angularVelocity.Set(0.0f, B3_PI, 0.0f);
-		b3Body* body = m_world.CreateBody(bd);
+			b3HullShape hs;
+			hs.m_hull = &m_groundHull;
 
-		b3CapsuleShape shape;
-		shape.m_centers[0].Set(0.0f, 0.0f, -1.0f);
-		shape.m_centers[1].Set(0.0f, 0.0f, 1.0f);
-		shape.m_radius = 1.0f;
+			b3ShapeDef sd;
+			sd.shape = &hs;
 
-		b3ShapeDef sdef;
-		sdef.shape = &shape;
-		sdef.density = 1.0f;
+			body->CreateShape(sd);
+		}
 
-		body->CreateShape(sdef);
-		
-		b3SphereJointDef jd;
-		jd.Initialize(ground, body, b3Vec3(0.0f, 0.0f, 0.0f));
-		m_world.CreateJoint(jd);
+		{
+			b3BodyDef bdef;
+			bdef.type = e_dynamicBody;
+			bdef.position.Set(0.0f, 10.0f, 0.0f);
+			bdef.orientation.Set(b3Vec3(0.0f, 0.0f, -1.0f), 1.5f * B3_PI);
+			bdef.linearVelocity.Set(0.005f, -10.0f, 0.005f);
+			bdef.angularVelocity.Set(2000.0f * B3_PI, 2000.0f * B3_PI, 10000.0f * B3_PI);
+			
+			b3Body* body = m_world.CreateBody(bdef);
+	
+			b3CapsuleShape capsule;
+			capsule.m_centers[0].Set(0.0f, 4.0f, 0.0f);
+			capsule.m_centers[1].Set(0.0f, -4.0f, 0.0f);
+			capsule.m_radius = 0.5f;
+
+			b3ShapeDef sd;
+			sd.shape = &capsule;
+			sd.density = 0.1f;
+
+			body->CreateShape(sd);
+		}
 	}
 
 	static Test* Create()
 	{
-		return new AngularMotion();
+		return new CapsuleAndHullContact1();
 	}
 };
 

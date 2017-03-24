@@ -43,10 +43,6 @@ typedef float float32;
 
 // Collision
 
-// Maximum number of vertices, edges, and faces a 
-// polyhedron can have. Don't increase this value.
-#define B3_MAX_HULL_FEATURES (256)
-
 // How much an AABB in the broad-phase should be extended by 
 // to disallow unecessary proxy updates.
 // A larger value increases performance when there are 
@@ -60,15 +56,11 @@ typedef float float32;
 #define B3_AABB_MULTIPLIER (2.0f)
 
 // Collision and constraint tolerance.
-#define B3_LINEAR_SLOP (0.01f)
-
-// Collision and constraint tolerance.
+#define B3_LINEAR_SLOP (0.005f)
 #define B3_ANGULAR_SLOP (2.0f / 180.0f * B3_PI)
 
 // The radius of the hull shape skin.
-#define B3_HULL_RADIUS (2.0f * B3_LINEAR_SLOP)
-
-// Twice the radius of the hull shape skin.
+#define B3_HULL_RADIUS (0.0f * B3_LINEAR_SLOP)
 #define B3_HULL_RADIUS_SUM (2.0f * B3_HULL_RADIUS)
 
 // Dynamics
@@ -95,26 +87,22 @@ typedef float float32;
 #define B3_MAX_ROTATION (0.5f * B3_PI)
 #define B3_MAX_ROTATION_SQUARED (B3_MAX_ROTATION * B3_MAX_ROTATION)
 
-// The maximum linear position correction used when solving constraints. This helps to
+// The maximum position correction used when solving constraints. This helps to
 // prevent overshoot.
 #define B3_MAX_LINEAR_CORRECTION (0.2f)
-
-// The maximum angular position correction used when solving constraints. This helps to
-// prevent overshoot.
 #define B3_MAX_ANGULAR_CORRECTION (8.0f / 180.0f * B3_PI)
 
 // This controls how faster overlaps should be resolved per step.
 // This is less than and would be close to 1, so that the all overlap is resolved per step.
 // However values very close to 1 may lead to overshoot.
-#define B3_BAUMGARTE (0.2f)
+#define B3_BAUMGARTE (0.1f)
 
 // If the relative velocity of a contact point is below 
 // the threshold then restitution is not applied.
 #define B3_VELOCITY_THRESHOLD (1.0f)
 
 // Sleep
-
-#define B3_TIME_TO_SLEEP (0.2f )
+#define B3_TIME_TO_SLEEP (0.2f)
 #define B3_SLEEP_LINEAR_TOL (0.05f)
 #define B3_SLEEP_ANGULAR_TOL (2.0f / 180.0f * B3_PI)
 
@@ -127,6 +115,8 @@ typedef float float32;
 #define B3_KiB(n) (1024 * n)
 #define B3_MiB(n) (1024 * B3_KiB(n))
 #define B3_GiB(n) (1024 * B3_MiB(n))
+
+#define B3_FORCE_INLINE __forceinline
 
 #define B3_PROFILE(name) b3ProfileScope scope(name)
 

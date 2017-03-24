@@ -33,7 +33,7 @@ public:
 	{
 		{
 			b3BodyDef bd;
-			bd.type = b3BodyType::e_staticBody;
+			bd.type = e_staticBody;
 			b3Body* ground = m_world.CreateBody(bd);
 
 			b3HullShape hs;

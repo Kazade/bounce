@@ -26,12 +26,12 @@ struct b3SimplexCache;
 
 struct b3SimplexVertex
 {
-	b3Vec3 pointA; // support vertex on proxy A
-	b3Vec3 pointB; // support vertex on proxy B
+	b3Vec3 point1; // support vertex on proxy 1
+	b3Vec3 point2; // support vertex on proxy 2
 	b3Vec3 point; // minkowski vertex
 	float32 weight; // barycentric coordinate for point
-	u32 indexA; // support A vertex index
-	u32 indexB; // support B vertex index
+	u32 index1; // support 1 vertex index
+	u32 index2; // support 2 vertex index
 };
 
 struct b3Simplex
@@ -41,7 +41,7 @@ struct b3Simplex
 
 	b3Vec3 GetSearchDirection(const b3Vec3& Q) const;
 	b3Vec3 GetClosestPoint() const;
-	void GetClosestPoints(b3Vec3* pA, b3Vec3* pB) const;
+	void GetClosestPoints(b3Vec3* p1, b3Vec3* p2) const;
 
 	void Solve2(const b3Vec3& Q);
 	void Solve3(const b3Vec3& Q);
@@ -49,9 +49,11 @@ struct b3Simplex
 
 	// Cache
 	void ReadCache(const b3SimplexCache* cache,
-		const b3Transform& xfA, const b3GJKProxy& proxyA,
-		const b3Transform& xfB, const b3GJKProxy& proxyB);
+		const b3Transform& xf1, const b3GJKProxy& proxy1,
+		const b3Transform& xf2, const b3GJKProxy& proxy2);
+	
 	void WriteCache(b3SimplexCache* cache) const;
+	
 	float32 GetMetric() const;
 };
 
@@ -61,14 +63,14 @@ struct b3Simplex
 // If the distance is zero then the proxies are overlapping.
 struct b3GJKOutput
 {
-	b3Vec3 pointA; // closest point on proxy A
-	b3Vec3 pointB; // closest point on proxy B
+	b3Vec3 point1; // closest point on proxy 1
+	b3Vec3 point2; // closest point on proxy 2
 	float32 distance; // euclidean distance between the closest points
 	u32 iterations; // number of GJK iterations
 };
 
 // Find the closest points and distance between two proxies.
-b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA, 
-	const b3Transform& xfB, const b3GJKProxy& proxyB);
+b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1, 
+	const b3Transform& xf2, const b3GJKProxy& proxy2);
 
 #endif

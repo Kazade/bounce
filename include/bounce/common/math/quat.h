@@ -37,7 +37,19 @@ struct b3Quat
 	{
 		Set(axis, angle);
 	}
+	
+	// Write an indexed value to this quaternion.
+	float32& operator[](u32 i)
+	{
+		return (&x)[i];
+	}
 
+	// Read an indexed value from this quaternion.
+	float32 operator[](u32 i) const
+	{
+		return (&x)[i];
+	}
+	
 	// Add a quaternion to this quaternion.
 	void operator+=(const b3Quat& q)
 	{
@@ -203,6 +215,77 @@ inline b3Vec3 b3Mul(const b3Quat& q, const b3Vec3& v)
 	return v + qs * t + b3Cross(qv, t);
 }
 
+// Inverse rotate a vector by an orientation quaternion.
+inline b3Vec3 b3MulT(const b3Quat& q, const b3Vec3& v)
+{
+	return b3Mul(b3Conjugate(q), v);
+}
+
+// Convert a 3-by-3 rotation matrix to an orientation quaternion.
+inline b3Quat b3ConvertRotToQuat(const b3Mat33& m)
+{
+	// Check the diagonal.
+	float32 trace = m[0][0] + m[1][1] + m[2][2];
+	
+	if (trace > 0.0f) 
+	{
+		b3Quat result;
+		
+		float32 s = b3Sqrt(trace + 1.0f);
+		result.w = 0.5f * s;
+				
+		float32 t = 0.5f / s;
+		result.x = t * (m[1][2] - m[2][1]);
+		result.y = t * (m[2][0] - m[0][2]);
+		result.z = t * (m[0][1] - m[1][0]);
+		return result;
+	}
+
+	// Diagonal is negative.
+	const i32 next[3] = { 1, 2, 0 };
+	
+	i32 i = 0;
+	
+	if (m[1][1] > m[0][0])
+	{
+		i = 1;
+	}
+
+	if (m[2][2] > m[i][i])
+	{
+		i = 2;
+	}
+
+	i32 j = next[i];
+	i32 k = next[j];
+
+	float32 s = sqrt((m[i][i] - (m[j][j] + m[k][k])) + 1.0f);
+	
+	float32 q[4];
+	q[i] = s * 0.5f;
+	
+	float32 t;
+	if (s != 0.0f) 
+	{
+		t = 0.5f / s;
+	}
+	else
+	{
+		t = s;
+	}
+
+	q[3] = t * (m[j][k] - m[k][j]);
+	q[j] = t * (m[i][j] + m[j][i]);
+	q[k] = t * (m[i][k] + m[k][i]);
+		
+	b3Quat result;
+	result.x = q[0];
+	result.y = q[1];
+	result.z = q[2];
+	result.w = q[3];
+	return result;
+}
+
 // Convert an orientation quaternion to a 3-by-3 rotation matrix.
 inline b3Mat33 b3ConvertQuatToRot(const b3Quat& q)
 {
@@ -216,45 +299,6 @@ inline b3Mat33 b3ConvertQuatToRot(const b3Quat& q)
 		b3Vec3(1.0f - (yy + zz),          xy + wz, xz - wy),
 		b3Vec3(         xy - wz, 1.0f - (xx + zz), yz + wx),
 		b3Vec3(         xz + wy,          yz - wx, 1.0f - (xx + yy)));
-}
-
-// Perform a linear interpolation between two quaternions.
-inline b3Quat b3Lerp(const b3Quat& a, const b3Quat& b, float32 fraction)
-{
-	B3_ASSERT(fraction >= 0.0f);
-	B3_ASSERT(fraction <= 1.0f);
-	float32 w1 = 1.0f - fraction;
-	float32 w2 = fraction;
-	return w1 * a + w2 * b;
-}
-
-// Perform a spherical interpolation between two quaternions.
-inline b3Quat b3Slerp(const b3Quat& a, const b3Quat& b, float32 fraction)
-{
-	B3_ASSERT(fraction >= 0.0f);
-	B3_ASSERT(fraction <= 1.0f);
-	float32 w1 = 1.0f - fraction;
-	float32 w2 = fraction;
-
-	float32 cosine = b3Dot(a, b);
-	b3Quat b2 = b;
-	if (cosine <= FLT_EPSILON * FLT_EPSILON)
-	{
-		b2 = -b;
-		cosine = -cosine;
-	}
-
-	if (cosine > 1.0f - FLT_EPSILON)
-	{
-		return w1 * a + w2 * b2;
-	}
-
-	float32 angle = acos(cosine);
-	float32 sine = sin(angle);
-	b3Quat q1 = sin(w1 * angle) * a;
-	b3Quat q2 = sin(w2 * angle) * b2;
-	float32 invSin = 1.0f / sine;
-	return invSin * (q1 + q2);
 }
 
 #endif

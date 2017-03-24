@@ -21,13 +21,11 @@
 
 #include <bounce/collision/sat/sat.h>
 
-struct b3Sphere;
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-float32 b3ProjectVertex(const b3Sphere* hull, const b3Plane& plane);
+float32 b3ProjectVertex(const b3Vec3& hull, const b3Plane& plane);
 
-b3FaceQuery b3QueryFaceSeparation(const b3Transform& xfA, const b3Sphere* hullA,
-	const b3Transform& xfB, const b3Hull* hullB);
+b3FaceQuery b3QueryFaceSeparation(const b3Transform& xf1, const b3Vec3& hull1,
+	const b3Transform& xf2, const b3Hull* hull2);
 
 #endif

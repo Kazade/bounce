@@ -33,7 +33,7 @@ public:
 	{
 		g_camera.m_center.Set(2.5f, -2.0f, 5.5f);
 		g_camera.m_zoom = 40.0f;
-
+		
 		{
 			b3BodyDef bdef;
 			bdef.type = b3BodyType::e_staticBody;
@@ -45,17 +45,22 @@ public:
 
 			b3ShapeDef sdef;
 			sdef.shape = &hs;
-			sdef.userData = NULL;
 			sdef.friction = 1.0f;
 
-			b3Shape* shape = body->CreateShape(sdef);
+			body->CreateShape(sdef);
 		}		
 
-		b3Vec3 stackOrigin;
-		stackOrigin.Set(0.0f, 4.05f, 0.0f);
+		b3Vec3 boxScale(1.0f, 1.0f, 1.0f);
+				
+		static b3BoxHull boxHull;
+		
+		b3Transform m;
+		m.rotation = b3Diagonal(boxScale.x, boxScale.y, boxScale.z);
+		m.position.SetZero();
 
-		b3Vec3 boxScale;
-		boxScale.Set(2.05f, 2.05f, 2.05f);
+		boxHull.SetTransform(m);
+
+		b3Vec3 stackOrigin(0.0f, 4.05f, 0.0f);
 
 		for (u32 i = 0; i < e_rowCount; ++i)
 		{
@@ -65,24 +70,25 @@ public:
 				{
 					b3BodyDef bdef;
 					bdef.type = b3BodyType::e_dynamicBody;
+					bdef.orientation.Set(b3Vec3(0.0f, 1.0f, 0.0f), 0.5f * B3_PI);
 
 					bdef.position.x = float32(i) * boxScale.x;
-					bdef.position.y = 1.5f * float32(j) * boxScale.y;
+					bdef.position.y = 2.5f * float32(j) * boxScale.y;
 					bdef.position.z = float32(k) * boxScale.z;
+					
 					bdef.position += stackOrigin;
 
 					b3Body* body = m_world.CreateBody(bdef);
 
 					b3HullShape hs;
-					hs.m_hull = &m_boxHull;
+					hs.m_hull = &boxHull;
 
 					b3ShapeDef sdef;
-					sdef.density = 0.5f;
+					sdef.density = 0.1f;
 					sdef.friction = 0.3f;
 					sdef.shape = &hs;
-					sdef.userData = NULL;
 
-					b3Shape* shape = body->CreateShape(sdef);
+					body->CreateShape(sdef);
 				}
 			}
 		}

@@ -16,18 +16,18 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef CAPSULE_HULL_H
-#define CAPSULE_HULL_H
+#ifndef CAPSULE_HULL_COLLISION_1_H
+#define CAPSULE_HULL_COLLISION_1_H
 
-class CapsuleAndHull : public Collide
+class CapsuleAndHullCollision1 : public Collide
 {
 public:
-	CapsuleAndHull()
+	CapsuleAndHullCollision1()
 	{
 		m_xfA.position.Set(0.0f, 0.0f, 0.0f);
 		m_xfA.rotation = b3ConvertQuatToRot(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.55f * B3_PI));
 		
-		m_sA.m_centers[0].Set(0.0f, -1.0f, 0.0f);
+		m_sA.m_centers[0].Set(1.0f, -1.0f, 0.0f);
 		m_sA.m_centers[1].Set(0.0f, 1.0f, 0.0f);
 		m_sA.m_radius = 2.0f;
 
@@ -49,7 +49,7 @@ public:
 
 	static Test* Create()
 	{
-		return new CapsuleAndHull();
+		return new CapsuleAndHullCollision1();
 	}
 
 	b3CapsuleShape m_sA;

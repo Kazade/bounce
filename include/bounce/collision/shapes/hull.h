@@ -51,7 +51,9 @@ struct b3Hull
 	const b3Plane& GetPlane(u32 index) const;
 
 	u32 GetSupportVertex(const b3Vec3& direction) const;
+	//u32 GetSupportEdge(const b3Vec3& direction) const;
 	u32 GetSupportFace(const b3Vec3& direction) const;
+	
 	b3Plane GetEdgeSidePlane(u32 index) const;
 	
 	u32 GetSize() const;

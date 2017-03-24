@@ -64,6 +64,6 @@ u32 b3Clusterize(b3Manifold outManifolds[3], const b3Manifold* inManifolds, u32 
 // Reduce a set of contact points to a quad (approximate convex polygon).
 // All points must lie in a common plane and an initial point must be given.
 void b3ReducePolygon(b3ClusterPolygon& pOut, const b3ClusterPolygon& pIn, 
-	u32 startIndex);
+	u32 startIndex, const b3Vec3& normal);
 
 #endif

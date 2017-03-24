@@ -21,7 +21,7 @@
 #include <bounce/collision/shapes/hull.h>
 
 void b3BuildEdge(b3ClipVertex vOut[2],
-	const b3Capsule* hull)
+	const b3Segment* hull)
 {
 	vOut[0].position = hull->vertices[0];
 	vOut[0].pair = b3MakePair(0, B3_NULL_EDGE, 0, B3_NULL_EDGE);
@@ -81,14 +81,14 @@ u32 b3ClipEdgeToPlane(b3ClipVertex vOut[2],
 	{
 		float32 fraction = distance1 / (distance1 - distance2);
 		vOut[numOut].position = vIn[0].position + fraction * (vIn[1].position - vIn[0].position);
-		vOut[numOut].pair = b3MakePair(vIn[0].pair.inEdgeA, B3_NULL_EDGE, B3_NULL_EDGE, plane.id);
+		vOut[numOut].pair = b3MakePair(vIn[0].pair.inEdge1, B3_NULL_EDGE, B3_NULL_EDGE, plane.id);
 		++numOut;
 	}
 	else if (distance1 > 0.0f && distance2 <= 0.0f)
 	{
 		float32 fraction = distance1 / (distance1 - distance2);
 		vOut[numOut].position = vIn[0].position + fraction * (vIn[1].position - vIn[0].position);
-		vOut[numOut].pair = b3MakePair(vIn[1].pair.inEdgeA, plane.id, B3_NULL_EDGE, B3_NULL_EDGE);
+		vOut[numOut].pair = b3MakePair(vIn[1].pair.inEdge1, plane.id, B3_NULL_EDGE, B3_NULL_EDGE);
 		++numOut;
 	}
 
@@ -124,7 +124,7 @@ void b3ClipPolygonToPlane(b3ClipPolygon& pOut,
 
 			b3ClipVertex vertex;
 			vertex.position = v1.position + fraction * (v2.position - v1.position);
-			vertex.pair = b3MakePair(v1.pair.inEdgeA, B3_NULL_EDGE, B3_NULL_EDGE, plane.id);
+			vertex.pair = b3MakePair(v1.pair.inEdge1, B3_NULL_EDGE, B3_NULL_EDGE, plane.id);
 
 			pOut.PushBack(vertex);
 		}
@@ -136,7 +136,7 @@ void b3ClipPolygonToPlane(b3ClipPolygon& pOut,
 
 			b3ClipVertex vertex;
 			vertex.position = v1.position + fraction * (v2.position - v1.position);
-			vertex.pair = b3MakePair(v1.pair.inEdgeA, plane.id, B3_NULL_EDGE, B3_NULL_EDGE);
+			vertex.pair = b3MakePair(v1.pair.inEdge1, plane.id, B3_NULL_EDGE, B3_NULL_EDGE);
 
 			pOut.PushBack(vertex);
 			pOut.PushBack(v2);
@@ -150,7 +150,7 @@ void b3ClipPolygonToPlane(b3ClipPolygon& pOut,
 
 // Clip a segment to edge side planes.
 u32 b3ClipEdgeToFace(b3ClipVertex vOut[2],
-	const b3ClipVertex vIn[2], const b3Capsule* hull)
+	const b3ClipVertex vIn[2], const b3Segment* hull)
 {
 	// Start from somewhere.
 	vOut[0] = vIn[0];
@@ -199,7 +199,7 @@ u32 b3ClipEdgeToFace(b3ClipVertex vOut[2],
 
 // Clip a segment to face side planes.
 u32 b3ClipEdgeToFace(b3ClipVertex vOut[2],
-	const b3ClipVertex vIn[2], const b3Transform& xf, u32 index, const b3Hull* hull)
+	const b3ClipVertex vIn[2], const b3Transform& xf, float32 r, u32 index, const b3Hull* hull)
 {
 	// Start from somewhere.
 	vOut[0] = vIn[0];
@@ -215,7 +215,7 @@ u32 b3ClipEdgeToFace(b3ClipVertex vOut[2],
 		u32 edgeId = u32(twin->twin);
 
 		b3Plane plane = hull->GetEdgeSidePlane(edgeId);
-		plane.offset += B3_HULL_RADIUS_SUM;
+		plane.offset += r;
 
 		b3ClipPlane clipPlane;
 		clipPlane.id = edgeId;
@@ -241,7 +241,7 @@ u32 b3ClipEdgeToFace(b3ClipVertex vOut[2],
 
 // Clip a polygon to face side planes.
 void b3ClipPolygonToFace(b3ClipPolygon& pOut,
-	const b3ClipPolygon& pIn, const b3Transform& xf, u32 index, const b3Hull* hull)
+	const b3ClipPolygon& pIn, const b3Transform& xf, float32 r, u32 index, const b3Hull* hull)
 {
 	B3_ASSERT(pIn.Count() > 0);
 	B3_ASSERT(pOut.Count() == 0);
@@ -258,7 +258,7 @@ void b3ClipPolygonToFace(b3ClipPolygon& pOut,
 		u32 edgeId = u32(twin->twin);
 
 		b3Plane plane = hull->GetEdgeSidePlane(edgeId);
-		plane.offset += B3_HULL_RADIUS_SUM;
+		plane.offset += r;
 
 		b3ClipPlane clipPlane;
 		clipPlane.id = edgeId;

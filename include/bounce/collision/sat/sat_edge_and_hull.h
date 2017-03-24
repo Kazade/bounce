@@ -21,20 +21,20 @@
 
 #include <bounce/collision/sat/sat.h>
 
-struct b3Capsule;
+struct b3Segment;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-float32 b3ProjectEdge(const b3Capsule* hull, const b3Plane& plane);
+float32 b3ProjectEdge(const b3Segment* hull, const b3Plane& plane);
 
-b3FaceQuery b3QueryFaceSeparation(const b3Transform& xfA, const b3Capsule* hullA,
-	const b3Transform& xfB, const b3Hull* hullB);
+b3FaceQuery b3QueryFaceSeparation(const b3Transform& xf1, const b3Segment* hull1,
+	const b3Transform& xf2, const b3Hull* hull2);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 float32 b3ProjectEdge(const b3Vec3& P1, const b3Vec3& E1, const b3Vec3& P2, const b3Vec3& E2, const b3Vec3& C2);
 
-b3EdgeQuery b3QueryEdgeSeparation(const b3Transform& xfA, const b3Capsule* hullA, 
-	const b3Transform& xfB, const b3Hull* hullB);
+b3EdgeQuery b3QueryEdgeSeparation(const b3Transform& xf1, const b3Segment* hull1,
+	const b3Transform& xf2, const b3Hull* hull2);
 
 #endif

@@ -30,20 +30,20 @@ float32 b3Project(const b3Hull* hull, const b3Plane& plane)
 }
 
 // Query minimum separation distance and axis of the first hull planes.
-b3FaceQuery b3QueryFaceSeparation(const b3Transform& xfA, const b3Hull* hullA,
-	const b3Transform& xfB, const b3Hull* hullB)
+b3FaceQuery b3QueryFaceSeparation(const b3Transform& xf1, const b3Hull* hull1,
+	const b3Transform& xf2, const b3Hull* hull2)
 {
 	// Perform computations in the local space of the second hull.
-	b3Transform xf = b3MulT(xfB, xfA);
+	b3Transform xf = b3MulT(xf2, xf1);
 
 	// Here greater means less than since is a signed distance.
 	u32 maxIndex = 0;
 	float32 maxSeparation = -B3_MAX_FLOAT;
 
-	for (u32 i = 0; i < hullA->faceCount; ++i)
+	for (u32 i = 0; i < hull1->faceCount; ++i)
 	{
-		b3Plane plane = xf * hullA->GetPlane(i);
-		float32 separation = b3Project(hullB, plane);
+		b3Plane plane = xf * hull1->GetPlane(i);
+		float32 separation = b3Project(hull2, plane);
 		if (separation > maxSeparation)
 		{
 			maxIndex = i;
@@ -72,13 +72,26 @@ bool b3IsMinkowskiFace(const b3Vec3& A, const b3Vec3& B, const b3Vec3& B_x_A, co
 
 float32 b3Project(const b3Vec3& P1, const b3Vec3& E1, const b3Vec3& P2, const b3Vec3& E2, const b3Vec3& C1)
 {
+	float32 L1 = b3Length(E1);
+	B3_ASSERT(L1 > B3_LINEAR_SLOP);
+	if (L1 < B3_LINEAR_SLOP)
+	{
+		return -B3_MAX_FLOAT;
+	}
+	
+	float32 L2 = b3Length(E2);
+	B3_ASSERT(L2 > B3_LINEAR_SLOP);
+	if (L2 < B3_LINEAR_SLOP)
+	{
+		return -B3_MAX_FLOAT;
+	}
+	
 	// Skip over almost parallel edges.
+	const float32 kTol = 0.005f;
+	
 	b3Vec3 E1_x_E2 = b3Cross(E1, E2);
 	float32 L = b3Length(E1_x_E2);
-
-	const float32 kTol = 0.005f;
-
-	if (L < kTol * b3Sqrt(b3LengthSquared(E1) * b3LengthSquared(E2)))
+	if (L < kTol * L1 * L2)
 	{
 		return -B3_MAX_FLOAT;
 	}
@@ -94,49 +107,49 @@ float32 b3Project(const b3Vec3& P1, const b3Vec3& E1, const b3Vec3& P2, const b3
 	return b3Dot(N, P2 - P1);
 }
 
-b3EdgeQuery b3QueryEdgeSeparation(const b3Transform& xfA, const b3Hull* hullA,
-	const b3Transform& xfB, const b3Hull* hullB)
+b3EdgeQuery b3QueryEdgeSeparation(const b3Transform& xf1, const b3Hull* hull1,
+	const b3Transform& xf2, const b3Hull* hull2)
 {
 	// Query minimum separation distance and axis of the first hull planes.
 	// Perform computations in the local space of the second hull.
-	b3Transform xf = b3MulT(xfB, xfA);
-	b3Vec3 C1 = xf * hullA->centroid;
+	b3Transform xf = b3MulT(xf2, xf1);
+	b3Vec3 C1 = xf * hull1->centroid;
 
 	u32 maxIndex1 = 0;
 	u32 maxIndex2 = 0;
 	float32 maxSeparation = -B3_MAX_FLOAT;
 
 	// Loop through the first hull's unique edges.
-	for (u32 i = 0; i < hullA->edgeCount; i += 2)
+	for (u32 i = 0; i < hull1->edgeCount; i += 2)
 	{
-		const b3HalfEdge* edge1 = hullA->GetEdge(i);
-		const b3HalfEdge* twin1 = hullA->GetEdge(i + 1);
+		const b3HalfEdge* edge1 = hull1->GetEdge(i);
+		const b3HalfEdge* twin1 = hull1->GetEdge(i + 1);
 
 		B3_ASSERT(edge1->twin == i + 1 && twin1->twin == i);
 
-		b3Vec3 P1 = xf * hullA->GetVertex(edge1->origin);
-		b3Vec3 Q1 = xf * hullA->GetVertex(twin1->origin);
+		b3Vec3 P1 = xf * hull1->GetVertex(edge1->origin);
+		b3Vec3 Q1 = xf * hull1->GetVertex(twin1->origin);
 		b3Vec3 E1 = Q1 - P1;
 
 		// The Gauss Map of edge 1.
-		b3Vec3 U1 = xf.rotation * hullA->GetPlane(edge1->face).normal;
-		b3Vec3 V1 = xf.rotation * hullA->GetPlane(twin1->face).normal;
+		b3Vec3 U1 = xf.rotation * hull1->GetPlane(edge1->face).normal;
+		b3Vec3 V1 = xf.rotation * hull1->GetPlane(twin1->face).normal;
 
 		// Loop through the second hull's unique edges.
-		for (u32 j = 0; j < hullB->edgeCount; j += 2)
+		for (u32 j = 0; j < hull2->edgeCount; j += 2)
 		{
-			const b3HalfEdge* edge2 = hullB->GetEdge(j);
-			const b3HalfEdge* twin2 = hullB->GetEdge(j + 1);
+			const b3HalfEdge* edge2 = hull2->GetEdge(j);
+			const b3HalfEdge* twin2 = hull2->GetEdge(j + 1);
 
 			B3_ASSERT(edge2->twin == j + 1 && twin2->twin == j);
 
-			b3Vec3 P2 = hullB->GetVertex(edge2->origin);
-			b3Vec3 Q2 = hullB->GetVertex(twin2->origin);
+			b3Vec3 P2 = hull2->GetVertex(edge2->origin);
+			b3Vec3 Q2 = hull2->GetVertex(twin2->origin);
 			b3Vec3 E2 = Q2 - P2;
 
 			// The Gauss Map of edge 2.
-			b3Vec3 U2 = hullB->GetPlane(edge2->face).normal;
-			b3Vec3 V2 = hullB->GetPlane(twin2->face).normal;
+			b3Vec3 U2 = hull2->GetPlane(edge2->face).normal;
+			b3Vec3 V2 = hull2->GetPlane(twin2->face).normal;
 
 			// Negate the Gauss Map 2 for account for the MD.
 			if (b3IsMinkowskiFace(U1, V1, -E1, -U2, -V2, -E2))
@@ -153,8 +166,8 @@ b3EdgeQuery b3QueryEdgeSeparation(const b3Transform& xfA, const b3Hull* hullA,
 	}
 
 	b3EdgeQuery out;
-	out.indexA = maxIndex1;
-	out.indexB = maxIndex2;
+	out.index1 = maxIndex1;
+	out.index2 = maxIndex2;
 	out.separation = maxSeparation;
 	return out;
 }

@@ -92,7 +92,7 @@ b3Vec3 b3Simplex::GetClosestPoint() const
 	}
 }
 
-void b3Simplex::GetClosestPoints(b3Vec3* pA, b3Vec3* pB) const
+void b3Simplex::GetClosestPoints(b3Vec3* p1, b3Vec3* p2) const
 {
 	switch (m_count)
 	{
@@ -100,22 +100,22 @@ void b3Simplex::GetClosestPoints(b3Vec3* pA, b3Vec3* pB) const
 		B3_ASSERT(false);
 		break;
 	case 1:
-		*pA = m_vertices[0].pointA;
-		*pB = m_vertices[0].pointB;
+		*p1 = m_vertices[0].point1;
+		*p2 = m_vertices[0].point2;
 		break;
 
 	case 2:
-		*pA = m_vertices[0].weight * m_vertices[0].pointA + m_vertices[1].weight * m_vertices[1].pointA;
-		*pB = m_vertices[0].weight * m_vertices[0].pointB + m_vertices[1].weight * m_vertices[1].pointB;
+		*p1 = m_vertices[0].weight * m_vertices[0].point1 + m_vertices[1].weight * m_vertices[1].point1;
+		*p2 = m_vertices[0].weight * m_vertices[0].point2 + m_vertices[1].weight * m_vertices[1].point2;
 		break;
 
 	case 3:
-		*pA = m_vertices[0].weight * m_vertices[0].pointA + m_vertices[1].weight * m_vertices[1].pointA + m_vertices[2].weight * m_vertices[2].pointA;
-		*pB = m_vertices[0].weight * m_vertices[0].pointB + m_vertices[1].weight * m_vertices[1].pointB + m_vertices[2].weight * m_vertices[2].pointB;
+		*p1 = m_vertices[0].weight * m_vertices[0].point1 + m_vertices[1].weight * m_vertices[1].point1 + m_vertices[2].weight * m_vertices[2].point1;
+		*p2 = m_vertices[0].weight * m_vertices[0].point2 + m_vertices[1].weight * m_vertices[1].point2 + m_vertices[2].weight * m_vertices[2].point2;
 		break;
 	case 4:
-		*pA = m_vertices[0].weight * m_vertices[0].pointA + m_vertices[1].weight * m_vertices[1].pointA + m_vertices[2].weight * m_vertices[2].pointA + m_vertices[3].weight * m_vertices[3].pointA;
-		*pB = *pA;
+		*p1 = m_vertices[0].weight * m_vertices[0].point1 + m_vertices[1].weight * m_vertices[1].point1 + m_vertices[2].weight * m_vertices[2].point1 + m_vertices[3].weight * m_vertices[3].point1;
+		*p2 = *p1;
 		break;
 	default:
 		B3_ASSERT(false);
@@ -508,7 +508,7 @@ void b3Simplex::Solve4(const b3Vec3& Q)
 	m_vertices[3].weight = s * wABCD[3];
 }
 
-b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA, const b3Transform& xfB, const b3GJKProxy& proxyB)
+b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1, const b3Transform& xf2, const b3GJKProxy& proxy2)
 {
 	++b3_gjkCalls;
 
@@ -517,14 +517,14 @@ b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA, const b3Tran
 	// Initialize the simplex.
 	{
 		b3SimplexVertex* v = simplex.m_vertices + 0;
-		b3Vec3 wALocal = proxyA.GetVertex(0);
-		b3Vec3 wBLocal = proxyB.GetVertex(0);
-		v->pointA = b3Mul(xfA, wALocal);
-		v->pointB = b3Mul(xfB, wBLocal);
-		v->point = v->pointB - v->pointA;
+		b3Vec3 w1Local = proxy1.GetVertex(0);
+		b3Vec3 w2Local = proxy2.GetVertex(0);
+		v->point1 = b3Mul(xf1, w1Local);
+		v->point2 = b3Mul(xf2, w2Local);
+		v->point = v->point2 - v->point1;
 		v->weight = 1.0f;
-		v->indexA = 0;
-		v->indexB = 0;
+		v->index1 = 0;
+		v->index2 = 0;
 		simplex.m_count = 1;
 	}
 
@@ -533,7 +533,7 @@ b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA, const b3Tran
 
 	// These store the vertices of the last simplex so that we
 	// can check for duplicates and prevent cycling.
-	u32 saveA[4], saveB[4];
+	u32 save1[4], save2[4];
 	u32 saveCount = 0;
 
 	// Last iteration squared distance for checking if we're getting close
@@ -553,8 +553,8 @@ b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA, const b3Tran
 		saveCount = simplex.m_count;
 		for (u32 i = 0; i < saveCount; ++i)
 		{
-			saveA[i] = vertices[i].indexA;
-			saveB[i] = vertices[i].indexB;
+			save1[i] = vertices[i].index1;
+			save2[i] = vertices[i].index2;
 		}
 
 		// Determine the closest point on the simplex and
@@ -604,11 +604,11 @@ b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA, const b3Tran
 
 		// Compute a tentative new simplex vertex using support points.
 		b3SimplexVertex* vertex = vertices + simplex.m_count;
-		vertex->indexA = proxyA.GetSupportIndex(b3MulT(xfA.rotation, -d));
-		vertex->pointA = b3Mul(xfA, proxyA.GetVertex(vertex->indexA));
-		vertex->indexB = proxyB.GetSupportIndex(b3MulT(xfB.rotation, d));
-		vertex->pointB = b3Mul(xfB, proxyB.GetVertex(vertex->indexB));
-		vertex->point = vertex->pointB - vertex->pointA;
+		vertex->index1 = proxy1.GetSupportIndex(b3MulT(xf1.rotation, -d));
+		vertex->point1 = b3Mul(xf1, proxy1.GetVertex(vertex->index1));
+		vertex->index2 = proxy2.GetSupportIndex(b3MulT(xf2.rotation, d));
+		vertex->point2 = b3Mul(xf2, proxy2.GetVertex(vertex->index2));
+		vertex->point = vertex->point2 - vertex->point1;
 
 		// Iteration count is equated to the number of support point calls.
 		++iter;
@@ -619,7 +619,7 @@ b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA, const b3Tran
 		bool duplicate = false;
 		for (u32 i = 0; i < saveCount; ++i)
 		{
-			if (vertex->indexA == saveA[i] && vertex->indexB == saveB[i])
+			if (vertex->index1 == save1[i] && vertex->index2 == save2[i])
 			{
 				duplicate = true;
 				break;
@@ -640,8 +640,8 @@ b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA, const b3Tran
 
 	// Prepare output.
 	b3GJKOutput output;
-	simplex.GetClosestPoints(&output.pointA, &output.pointB);
-	output.distance = b3Distance(output.pointA, output.pointB);
+	simplex.GetClosestPoints(&output.point1, &output.point2);
+	output.distance = b3Distance(output.point1, output.point2);
 	output.iterations = iter;
 
 	// Output result.

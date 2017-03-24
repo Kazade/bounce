@@ -72,7 +72,7 @@ b3Vec3 b3Mat33::Solve(const b3Vec3& b) const
 	return xn;
 }
 
-b3Mat33 b3Adjucate(const b3Mat33& A)
+static B3_FORCE_INLINE b3Mat33 b3Adjucate(const b3Mat33& A)
 {
 	b3Vec3 c1 = b3Cross(A.y, A.z);
 	b3Vec3 c2 = b3Cross(A.z, A.x);
@@ -94,89 +94,4 @@ b3Mat33 b3Inverse(const b3Mat33& A)
 		det = 1.0f / det;
 	}
 	return det * b3Adjucate(A);
-}
-
-bool b3Solve(float32* b, float32* A, u32 n)
-{
-	// Gaussian Elimination.
-
-	// Loop through the diagonal elements.
-	for (u32 pivot = 0; pivot < n; ++pivot)
-	{
-		// Find the largest element in the current column.
-		u32 maxRow = pivot;
-		float32 maxElem = b3Abs(A[maxRow + n * pivot]);
-		for (u32 i = pivot + 1; i < n; ++i)
-		{
-			float32 e = b3Abs(A[i + n * pivot]);
-			if (e > maxElem)
-			{
-				maxElem = e;
-				maxRow = i;
-			}
-		}
-
-		// Singularity check.
-		if (b3Abs(maxElem) <= B3_EPSILON)
-		{
-			return false;
-		}
-
-		// Swap rowns if not in the current row.
-		if (maxRow != pivot)
-		{
-			// Swap the row.
-			for (u32 j = 0; j < n; ++j)
-			{
-				float32 a0 = A[maxRow + n * j];
-				A[maxRow + n * j] = A[pivot + n * j];
-				A[pivot + n * j] = a0;
-			}
-
-			// Swap b elements.
-			float32 b0 = b[maxRow];
-			b[maxRow] = b[pivot];
-			b[pivot] = b0;
-		}
-
-		// Divide current row by pivot.
-		float32 invPivot = 1.0f / A[n * pivot + pivot];
-		for (u32 j = 0; j < n; ++j)
-		{
-			A[pivot + n * j] *= invPivot;
-		}
-		b[pivot] *= invPivot;
-
-		// Ensure pivot is 1.
-		A[pivot + n * pivot] = 1.0f;
-
-		// Zero pivot column in other rows. 
-		for (u32 i = pivot + 1; i < n; ++i)
-		{
-			// Subtract multiple of pivot row from current row,
-			// such that pivot column element becomes 0.
-			float32 factor = A[i + n * pivot];
-
-			// Subtract multiple of row.
-			for (u32 j = 0; j < n; ++j)
-			{
-				A[i + n * j] -= factor * A[pivot + n * j];
-			}
-
-			b[i] -= factor * b[pivot];
-		}
-	}
-
-	// Backwards substitution. 
-	u32 p = n - 1;
-	do
-	{
-		--p;		
-		for (u32 j = p + 1; j < n; ++j)
-		{
-			b[p] -= A[p + n*j] * b[j];
-		}
-	} while (p > 0);
-
-	return true;
 }

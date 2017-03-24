@@ -16,31 +16,45 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_CAPSULE_H
-#define B3_CAPSULE_H
+#ifndef HULL_HULL2_H
+#define HULL_HULL2_H
 
-#include <bounce/common/math/vec3.h>
-
-struct b3Segment
+class HullAndHull2 : public Collide
 {
-	b3Vec3 vertices[2];
-	
-	const b3Vec3& GetVertex(u32 index) const;
-	u32 GetSupportVertex(const b3Vec3& direction) const;
-};
-
-inline const b3Vec3& b3Segment::GetVertex(u32 index) const
-{
-	return vertices[index];
-}
-
-inline u32 b3Segment::GetSupportVertex(const b3Vec3& d) const
-{
-	if (b3Dot(d, vertices[0]) > b3Dot(d, vertices[1]))
+public:
+	HullAndHull2()
 	{
-		return 0;
+		b3Transform xf;
+		xf.position.SetZero();
+		xf.rotation = b3Diagonal(1.0f, 2.0f, 1.0f);
+		m_box.SetTransform(xf);
+
+		m_sA.m_hull = &m_box;
+		m_sB.m_hull = &m_box;
+		
+		m_xfA.position.Set(1.500000, 1.000000, 0.000000);
+		m_xfA.rotation.x.Set(0.707107, 0.000000, -0.707107);
+		m_xfA.rotation.y.Set(0.000000, 1.000000, 0.000000);
+		m_xfA.rotation.z.Set(0.707107, 0.000000, 0.707107);
+
+		m_xfB.position.Set(-1.300000, 0.000000, 0.000000);
+		m_xfB.rotation.x.Set(0.809017, 0.266849, -0.523721);
+		m_xfB.rotation.y.Set(0.000000, 0.891007, 0.453991);
+		m_xfB.rotation.z.Set(0.587785, -0.367286, 0.720840);
+
+		m_cache.count = 0;
+		m_shapeA = &m_sA;
+		m_shapeB = &m_sB;
 	}
-	return 1;
-}
+	
+	static Test* Create()
+	{
+		return new HullAndHull2();
+	}
+
+	b3BoxHull m_box;
+	b3HullShape m_sA;
+	b3HullShape m_sB;
+};
 
 #endif

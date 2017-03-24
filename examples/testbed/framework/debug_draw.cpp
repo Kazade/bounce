@@ -27,7 +27,21 @@
 extern Camera g_camera;
 extern DebugDraw* g_debugDraw;
 
-Mat44 Camera::BuildProjectionMatrix() const
+static B3_FORCE_INLINE b3Mat34 Convert34(const b3Transform& T)
+{
+	return b3Mat34(T.rotation.x, T.rotation.y, T.rotation.z, T.position);
+}
+
+static B3_FORCE_INLINE b3Mat44 Convert44(const b3Transform& T)
+{
+	return b3Mat44(
+		b3Vec4(T.rotation.x.x, T.rotation.x.y, T.rotation.x.z, 0.0f),
+		b3Vec4(T.rotation.y.x, T.rotation.y.y, T.rotation.y.z, 0.0f),
+		b3Vec4(T.rotation.z.x, T.rotation.z.y, T.rotation.z.z, 0.0f),
+		b3Vec4(T.position.x, T.position.y, T.position.z, 1.0f));
+}
+
+b3Mat44 Camera::BuildProjectionMatrix() const
 {
 	float32 t = tan(0.5f * m_fovy);
 	float32 sy = 1.0f / t;
@@ -39,11 +53,11 @@ Mat44 Camera::BuildProjectionMatrix() const
 	float32 sz = invRange * (m_zNear + m_zFar);
 	float32 tz = invRange *  m_zNear * m_zFar;
 
-	Mat44 m;
-	m.x.Set(sx, 0.0f, 0.0f, 0.0f);
-	m.y.Set(0.0f, sy, 0.0f, 0.0f);
-	m.z.Set(0.0f, 0.0f, sz, -1.0f);
-	m.w.Set(0.0f, 0.0f, tz, 0.0f);
+	b3Mat44 m;
+	m.x = b3Vec4(sx, 0.0f, 0.0f, 0.0f);
+	m.y = b3Vec4(0.0f, sy, 0.0f, 0.0f);
+	m.z = b3Vec4(0.0f, 0.0f, sz, -1.0f);
+	m.w = b3Vec4(0.0f, 0.0f, tz, 0.0f);
 	return m;
 }
 
@@ -55,10 +69,10 @@ b3Transform Camera::BuildWorldTransform() const
 	return xf;
 }
 
-Mat44 Camera::BuildWorldMatrix() const
+b3Mat44 Camera::BuildWorldMatrix() const
 {
 	b3Transform xf = BuildWorldTransform();
-	return GetMat44(xf);
+	return Convert44(xf);
 }
 
 b3Transform Camera::BuildViewTransform() const
@@ -69,10 +83,10 @@ b3Transform Camera::BuildViewTransform() const
 	return b3Inverse(xf);
 }
 
-Mat44 Camera::BuildViewMatrix() const
+b3Mat44 Camera::BuildViewMatrix() const
 {
 	b3Transform xf = BuildViewTransform();
-	return GetMat44(xf);
+	return Convert44(xf);
 }
 
 b3Vec2 Camera::ConvertWorldToScreen(const b3Vec3& pw) const
@@ -150,11 +164,11 @@ static void PrintLog(GLuint id)
 static GLuint CreateShader(const char* source, GLenum type)
 {
 	GLuint shaderId = glCreateShader(type);
-	
+
 	const char* sources[] = { source };
 	glShaderSource(shaderId, 1, sources, NULL);
 	glCompileShader(shaderId);
-	
+
 	GLint status = GL_FALSE;
 	glGetShaderiv(shaderId, GL_COMPILE_STATUS, &status);
 	if (status == GL_FALSE)
@@ -164,7 +178,7 @@ static GLuint CreateShader(const char* source, GLenum type)
 		glDeleteShader(shaderId);
 		return 0;
 	}
-	
+
 	return shaderId;
 }
 
@@ -225,7 +239,7 @@ struct DrawPoints
 		m_sizeAttribute = 2;
 
 		glGenBuffers(3, m_vboIds);
-		
+
 		glGenVertexArrays(1, &m_vaoId);
 
 		glBindVertexArray(m_vaoId);
@@ -282,14 +296,14 @@ struct DrawPoints
 
 		glUseProgram(m_programId);
 
-		Mat44 m1 = g_camera.BuildViewMatrix();
-		Mat44 m2 = g_camera.BuildProjectionMatrix();
-		Mat44 m = m2 * m1;
-		
+		b3Mat44 m1 = g_camera.BuildViewMatrix();
+		b3Mat44 m2 = g_camera.BuildProjectionMatrix();
+		b3Mat44 m = m2 * m1;
+
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
 
 		glBindVertexArray(m_vaoId);
-		
+
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Vec3), m_vertices);
 
@@ -321,13 +335,13 @@ struct DrawPoints
 	b3Color m_colors[e_vertexCapacity];
 	float32 m_sizes[e_vertexCapacity];
 	u32 m_count;
-	
+
 	GLuint m_programId;
 	GLuint m_projectionUniform;
 	GLuint m_vertexAttribute;
 	GLuint m_colorAttribute;
 	GLuint m_sizeAttribute;
-	
+
 	GLuint m_vboIds[3];
 	GLuint m_vaoId;
 };
@@ -361,8 +375,8 @@ struct DrawLines
 		m_projectionUniform = glGetUniformLocation(m_programId, "projectionMatrix");
 		m_vertexAttribute = 0;
 		m_colorAttribute = 1;
-		
-		glGenVertexArrays(1, &m_vaoId); 
+
+		glGenVertexArrays(1, &m_vaoId);
 		glGenBuffers(2, m_vboIds);
 
 		glBindVertexArray(m_vaoId);
@@ -376,7 +390,7 @@ struct DrawLines
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
 		glVertexAttribPointer(m_colorAttribute, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Color), m_colors, GL_DYNAMIC_DRAW);
-		
+
 		AssertGL();
 
 		glBindVertexArray(0);
@@ -413,9 +427,9 @@ struct DrawLines
 
 		glUseProgram(m_programId);
 
-		Mat44 m1 = g_camera.BuildViewMatrix();
-		Mat44 m2 = g_camera.BuildProjectionMatrix();
-		Mat44 m = m2 * m1;
+		b3Mat44 m1 = g_camera.BuildViewMatrix();
+		b3Mat44 m2 = g_camera.BuildProjectionMatrix();
+		b3Mat44 m = m2 * m1;
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
 
 		glBindVertexArray(m_vaoId);
@@ -427,7 +441,7 @@ struct DrawLines
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Color), m_colors);
 
 		glDrawArrays(GL_LINES, 0, m_count);
-		
+
 		AssertGL();
 
 		glBindVertexArray(0);
@@ -450,7 +464,7 @@ struct DrawLines
 	GLuint m_projectionUniform;
 	GLuint m_vertexAttribute;
 	GLuint m_colorAttribute;
-	
+
 	GLuint m_vboIds[2];
 	GLuint m_vaoId;
 };
@@ -470,7 +484,7 @@ struct DrawTriangles
 			"{\n"
 			"	vec3 La = vec3(0.5f, 0.5f, 0.5f);\n"
 			"	vec3 Ld = vec3(0.5f, 0.5f, 0.5f);\n"
-			"	vec3 L = vec3(0.0f, 0.0f, 1.0f);\n"
+			"	vec3 L = vec3(0.0f, 0.3f, 0.7f);\n"
 			"	vec3 Ma = v_color.xyz;\n"
 			"	vec3 Md = v_color.xyz;\n"
 			"	vec3 a = La * Ma;\n"
@@ -498,7 +512,7 @@ struct DrawTriangles
 		glGenBuffers(3, m_vboIds);
 
 		glBindVertexArray(m_vaoId);
-		
+
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
 		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Vec3), m_vertices, GL_DYNAMIC_DRAW);
 		glVertexAttribPointer(m_vertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
@@ -518,7 +532,7 @@ struct DrawTriangles
 
 		glBindVertexArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		
+
 		m_count = 0;
 	}
 
@@ -551,9 +565,9 @@ struct DrawTriangles
 
 		glUseProgram(m_programId);
 
-		Mat44 m1 = g_camera.BuildViewMatrix();
-		Mat44 m2 = g_camera.BuildProjectionMatrix();
-		Mat44 m = m2 * m1;
+		b3Mat44 m1 = g_camera.BuildViewMatrix();
+		b3Mat44 m2 = g_camera.BuildProjectionMatrix();
+		b3Mat44 m = m2 * m1;
 
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
 
@@ -567,7 +581,7 @@ struct DrawTriangles
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[2]);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Vec3), m_normals);
-		
+
 		glDrawArrays(GL_TRIANGLES, 0, m_count);
 
 		AssertGL();
@@ -578,7 +592,7 @@ struct DrawTriangles
 
 		m_count = 0;
 	}
-	
+
 	enum
 	{
 		e_vertexCapacity = 3 * 512
@@ -724,13 +738,13 @@ struct DrawWire
 	{
 		glUseProgram(m_programId);
 
-		Mat44 m1 = GetMat44(xf);
+		b3Mat44 m1 = Convert44(xf);
 		m1.x = radius * m1.x;
 		m1.y = radius * m1.y;
 		m1.z = radius * m1.z;
-		Mat44 m2 = g_camera.BuildViewMatrix();
-		Mat44 m3 = g_camera.BuildProjectionMatrix();
-		Mat44 m = m3 * m2 * m1;
+		b3Mat44 m2 = g_camera.BuildViewMatrix();
+		b3Mat44 m3 = g_camera.BuildProjectionMatrix();
+		b3Mat44 m = m3 * m2 * m1;
 
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
 
@@ -759,8 +773,8 @@ struct DrawSolidSphere
 {
 	enum
 	{
-		e_rings = 12,
-		e_sectors = 12,
+		e_rings = 18,
+		e_sectors = 18,
 		e_vertexCount = e_rings * e_sectors,
 		e_indexCount = (e_rings - 1) * (e_sectors - 1) * 6,
 		e_faceCount = e_indexCount / 3
@@ -773,18 +787,31 @@ struct DrawSolidSphere
 
 		b3Vec3 vs[e_vertexCount];
 		b3Vec3 ns[e_vertexCount];
-		
+
 		u32 vc = 0;
 		for (u32 r = 0; r < e_rings; r++)
 		{
 			for (u32 s = 0; s < e_sectors; s++)
 			{
-				float32 y = sin(-0.5f * B3_PI + B3_PI * r * R);
-				float32 x = cos(2.0f * B3_PI * s * S) * sin(B3_PI * r * R);
-				float32 z = sin(2.0f * B3_PI * s * S) * sin(B3_PI * r * R);
+				float32 a1 = 2.0f * B3_PI * float32(s) * S;
+				float32 c1 = cos(a1);
+				float32 s1 = sin(a1);
 
-				vs[vc].Set(x, y, z);
-				ns[vc].Set(x, y, z);
+				float32 a2 = -0.5f * B3_PI + B3_PI * float32(r) * R;
+				float32 s2 = sin(a2);
+
+				float32 a3 = B3_PI * float32(r) * R;
+				float32 s3 = sin(a3);
+
+				float32 x = c1 * s3;
+				float32 y = s2;
+				float32 z = s1 * s3;
+				
+				b3Vec3 v(x, y, z);
+				v.Normalize();
+
+				vs[vc] = v;
+				ns[vc] = v;
 				++vc;
 			}
 		}
@@ -843,7 +870,7 @@ struct DrawSolidCylinder
 {
 	enum
 	{
-		e_segments = 24,
+		e_segments = 64,
 		e_vertexCount = e_segments * 6,
 	};
 
@@ -851,12 +878,12 @@ struct DrawSolidCylinder
 	{
 		b3Vec3 vs[e_vertexCount];
 		b3Vec3 ns[e_vertexCount];
-		
+
 		u32 vc = 0;
 		for (u32 i = 0; i < e_segments; ++i)
 		{
-			float32 t0 = 2.0f * B3_PI * (float32)i / (float32)e_segments;
-			float32 t1 = 2.0f * B3_PI * (float32)(i + 1) / (float32)e_segments;
+			float32 t0 = 2.0f * B3_PI * float32(i) / float32(e_segments);
+			float32 t1 = 2.0f * B3_PI * float32(i + 1) / float32(e_segments);
 
 			float32 c0 = cos(t0);
 			float32 s0 = sin(t0);
@@ -868,22 +895,22 @@ struct DrawSolidCylinder
 			v1.x = s0;
 			v1.y = -0.5f;
 			v1.z = c0;
-
+			
 			b3Vec3 v2;
 			v2.x = s1;
 			v2.y = -0.5f;
 			v2.z = c1;
-
+			
 			b3Vec3 v3;
 			v3.x = s1;
 			v3.y = 0.5f;
 			v3.z = c1;
-
+			
 			b3Vec3 v4;
 			v4.x = s0;
 			v4.y = 0.5f;
 			v4.z = c0;
-
+			
 			b3Vec3 n = b3Cross(v2 - v1, v3 - v1);
 			n.Normalize();
 
@@ -966,7 +993,7 @@ struct DrawSolid
 			"	gl_Position = projectionMatrix * vec4(v_position, 1.0f);\n"
 			"	vec3 La = vec3(0.5f, 0.5f, 0.5f);\n"
 			"	vec3 Ld = vec3(0.5f, 0.5f, 0.5f);\n"
-			"	vec3 L = vec3(0.0f, 0.0f, 1.0f);\n"
+			"	vec3 L = vec3(0.0f, 0.3f, 0.7f);\n"
 			"	vec3 Ma = color.xyz;\n"
 			"	vec3 Md = color.xyz;\n"
 			"	vec3 a = La * Ma;\n"
@@ -999,14 +1026,14 @@ struct DrawSolid
 	{
 		glUseProgram(m_programId);
 
-		Mat44 m1 = GetMat44(xf);
+		b3Mat44 m1 = Convert44(xf);
 		m1.x = radius * m1.x;
 		m1.y = height * m1.y;
 		m1.z = radius * m1.z;
 
-		Mat44 m2 = g_camera.BuildViewMatrix();
-		Mat44 m3 = g_camera.BuildProjectionMatrix();
-		Mat44 m = m3 * m2 * m1;
+		b3Mat44 m2 = g_camera.BuildViewMatrix();
+		b3Mat44 m3 = g_camera.BuildProjectionMatrix();
+		b3Mat44 m = m3 * m2 * m1;
 
 		glUniform4fv(m_colorUniform, 1, &c.r);
 		glUniformMatrix4fv(m_modelUniform, 1, GL_FALSE, &m1.x.x);
@@ -1033,14 +1060,14 @@ struct DrawSolid
 	{
 		glUseProgram(m_programId);
 
-		Mat44 m1 = GetMat44(xf);
+		b3Mat44 m1 = Convert44(xf);
 		m1.x = radius * m1.x;
 		m1.y = radius * m1.y;
 		m1.z = radius * m1.z;
 
-		Mat44 m2 = g_camera.BuildViewMatrix();
-		Mat44 m3 = g_camera.BuildProjectionMatrix();
-		Mat44 m = m3 * m2 * m1;
+		b3Mat44 m2 = g_camera.BuildViewMatrix();
+		b3Mat44 m3 = g_camera.BuildProjectionMatrix();
+		b3Mat44 m = m3 * m2 * m1;
 
 		glUniform4fv(m_colorUniform, 1, &c.r);
 		glUniformMatrix4fv(m_modelUniform, 1, GL_FALSE, &m1.x.x);
@@ -1071,7 +1098,7 @@ struct DrawSolid
 	GLuint m_normalAttribute;
 
 	DrawSolidSphere m_sphere;
-	DrawSolidCylinder m_cylinder; 
+	DrawSolidCylinder m_cylinder;
 };
 
 DebugDraw::DebugDraw()
@@ -1115,7 +1142,7 @@ void DebugDraw::DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const 
 	m_triangles->Vertex(p1, color, normal);
 	m_triangles->Vertex(p2, color, normal);
 	m_triangles->Vertex(p3, color, normal);
-	
+
 	b3Color edgeColor(0.0f, 0.0f, 0.0f, 1.0f);
 	DrawTriangle(p2, p3, p3, edgeColor);
 }
@@ -1126,7 +1153,7 @@ void DebugDraw::DrawPolygon(const b3Vec3* vertices, u32 count, const b3Color& co
 	for (u32 i = 0; i < count; ++i)
 	{
 		b3Vec3 p2 = vertices[i];
-		
+
 		m_lines->Vertex(p1, color);
 		m_lines->Vertex(p2, color);
 
@@ -1143,7 +1170,7 @@ void DebugDraw::DrawSolidPolygon(const b3Vec3& normal, const b3Vec3* vertices, u
 	{
 		b3Vec3 p2 = vertices[i];
 		b3Vec3 p3 = vertices[i + 1];
-		
+
 		m_triangles->Vertex(p1, fillColor, normal);
 		m_triangles->Vertex(p2, fillColor, normal);
 		m_triangles->Vertex(p3, fillColor, normal);
@@ -1171,7 +1198,7 @@ void DebugDraw::DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 r
 	}
 
 	n1.Normalize();
-	
+
 	// Build a quaternion to rotate the tangent about the normal.
 	u32 kEdgeCount = 20;
 	float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
@@ -1185,7 +1212,7 @@ void DebugDraw::DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 r
 
 		m_lines->Vertex(p1, color);
 		m_lines->Vertex(p2, color);
-		
+
 		n1 = n2;
 		p1 = p2;
 	}
@@ -1195,7 +1222,7 @@ void DebugDraw::DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, floa
 {
 	b3Color fillColor(color.r, color.g, color.b, color.a);
 	b3Color frameColor(0.5f * color.r, 0.5f * color.g, 0.5f * color.b, 1.0f);
-	
+
 	// Build a tangent vector to normal.
 	b3Vec3 u = b3Cross(normal, b3Vec3(1.0f, 0.0f, 0.0f));
 	b3Vec3 v = b3Cross(normal, b3Vec3(0.0f, 1.0f, 0.0f));
@@ -1223,7 +1250,7 @@ void DebugDraw::DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, floa
 	{
 		b3Vec3 n2 = b3Mul(q, n1);
 		b3Vec3 p2 = center + radius * n2;
-		
+
 		m_triangles->Vertex(center, fillColor, normal);
 		m_triangles->Vertex(p1, fillColor, normal);
 		m_triangles->Vertex(p2, fillColor, normal);
@@ -1281,35 +1308,29 @@ void DebugDraw::DrawAABB(const b3AABB3& aabb, const b3Color& color)
 
 	b3Vec3 vs[8];
 
-	// Face 1
 	vs[0] = lower;
 	vs[1] = b3Vec3(lower.x, upper.y, lower.z);
 	vs[2] = b3Vec3(upper.x, upper.y, lower.z);
 	vs[3] = b3Vec3(upper.x, lower.y, lower.z);
 
-	// Face 2
 	vs[4] = upper;
 	vs[5] = b3Vec3(upper.x, lower.y, upper.z);
 	vs[6] = b3Vec3(lower.x, lower.y, upper.z);
 	vs[7] = b3Vec3(lower.x, upper.y, upper.z);
 
-	// Face 1 edges
 	DrawSegment(vs[0], vs[1], color);
 	DrawSegment(vs[1], vs[2], color);
 	DrawSegment(vs[2], vs[3], color);
 	DrawSegment(vs[3], vs[0], color);
 
-	// Face 2 edges
 	DrawSegment(vs[4], vs[5], color);
 	DrawSegment(vs[5], vs[6], color);
 	DrawSegment(vs[6], vs[7], color);
 	DrawSegment(vs[7], vs[4], color);
 
-	// Face 3 edges
 	DrawSegment(vs[2], vs[4], color);
 	DrawSegment(vs[5], vs[3], color);
 
-	// Face 4 edges
 	DrawSegment(vs[6], vs[0], color);
 	DrawSegment(vs[1], vs[7], color);
 }
@@ -1349,9 +1370,15 @@ void DebugDraw::DrawCapsule(const b3CapsuleShape* s, const b3Color& c, const b3T
 	if (height > 0.0f)
 	{
 		{
+			b3Mat33 R;
+			R.y = (1.0f / height) * (c1 - c2);
+			R.z = b3Perp(R.y);
+			R.x = b3Cross(R.y, R.z);
+
 			b3Transform xfc;
-			xfc.rotation = xf.rotation;
-			xfc.position = xf * ( 0.5f * (c1 + c2) );
+			xfc.position = xf * (0.5f * (c1 + c2));
+			xfc.rotation = xf.rotation * R;
+
 			m_solid->DrawCylinder(radius, height, c, xfc);
 		}
 
@@ -1409,13 +1436,13 @@ void DebugDraw::DrawMesh(const b3MeshShape* s, const b3Color& c, const b3Transfo
 
 		b3Vec3 n1 = b3Cross(p2 - p1, p3 - p1);
 		n1.Normalize();
-		
+
 		m_triangles->Vertex(p1, c, n1);
 		m_triangles->Vertex(p2, c, n1);
 		m_triangles->Vertex(p3, c, n1);
 
 		b3Vec3 n2 = -n1;
-		
+
 		m_triangles->Vertex(p1, c, n2);
 		m_triangles->Vertex(p3, c, n2);
 		m_triangles->Vertex(p2, c, n2);
@@ -1481,7 +1508,7 @@ void DebugDraw::Draw(const b3World& world)
 			DrawShape(s, c, xf);
 		}
 	}
-	
+
 	g_debugDraw->Submit();
 }
 

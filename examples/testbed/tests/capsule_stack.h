@@ -24,9 +24,9 @@ class CapsuleStack : public Test
 public:
 	enum
 	{
-		e_rowCount = 5,
+		e_rowCount = 1,
 		e_columnCount = 5,
-		e_depthCount = 5
+		e_depthCount = 1
 	};
 
 	CapsuleStack()
@@ -57,8 +57,8 @@ public:
 
 		b3ShapeDef sdef;
 		sdef.shape = &capsule;
-		sdef.density = 1.0f;
-		sdef.friction = 0.3f;
+		sdef.density = 0.1f;
+		sdef.friction = 0.4f;
 
 		const u32 c = e_rowCount * e_columnCount * e_depthCount;
 		b3Body* bs[c];
@@ -78,7 +78,7 @@ public:
 					bdef.type = b3BodyType::e_dynamicBody;
 					
 					bdef.position.x = (2.0f + separation) * float32(i) * (0.5f * height + radius);
-					bdef.position.y = (2.0f + separation) * float32(j) * radius;
+					bdef.position.y = 2.0f + (2.0f + separation) * float32(j) * radius;
 					bdef.position.z = (2.0f + separation) * float32(k) * radius;
 					
 					bdef.orientation = b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.5f * B3_PI);
@@ -108,7 +108,7 @@ public:
 			b3Vec3 position = p - center;
 			
 			// move up
-			position.y += 0.5f * aabb.Height() + radius;
+			position.y += 5.0f + 0.5f * aabb.Height() + radius;
 
 			// maintain orientation
 			b3Vec3 axis;

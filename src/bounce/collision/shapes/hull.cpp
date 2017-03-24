@@ -34,7 +34,7 @@ void b3Hull::Validate() const
 		b3Vec3 B = vertices[twin->origin];
 
 		// Ensure each edge has non-zero length.
-		B3_ASSERT(b3DistanceSquared(A, B) > B3_EPSILON * B3_EPSILON);
+		B3_ASSERT(b3DistanceSquared(A, B) > B3_LINEAR_SLOP * B3_LINEAR_SLOP);
 	}
 }
 

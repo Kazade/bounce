@@ -64,7 +64,7 @@ public:
 			frame = m_world.CreateBody(bdef);
 
 			b3ShapeDef sdef;
-			sdef.density = 1.0f;
+			sdef.density = 0.1f;
 			sdef.friction = 0.3f;
 			sdef.shape = &box;
 			
@@ -82,7 +82,7 @@ public:
 
 			b3ShapeDef sdef;
 			sdef.shape = &sphere;
-			sdef.density = 1.0f;
+			sdef.density = 0.1f;
 			sdef.friction = 1.0f;
 			
 			wheelLF->CreateShape(sdef);
@@ -108,7 +108,7 @@ public:
 			wheelRF = m_world.CreateBody(bdef);
 
 			b3ShapeDef sdef;
-			sdef.density = 1.0f;
+			sdef.density = 0.1f;
 			sdef.friction = 1.0f;
 			sdef.shape = &sphere;
 			
@@ -136,7 +136,7 @@ public:
 
 			b3ShapeDef sdef;
 			sdef.shape = &sphere;
-			sdef.density = 1.0f;
+			sdef.density = 0.1f;
 			sdef.friction = 1.0f;
 
 			wheelLB->CreateShape(sdef);
@@ -162,7 +162,7 @@ public:
 			wheelRB = m_world.CreateBody(bdef);
 
 			b3ShapeDef sdef;
-			sdef.density = 1.0f;
+			sdef.density = 0.1f;
 			sdef.friction = 1.0f;
 			sdef.shape = &sphere;
 

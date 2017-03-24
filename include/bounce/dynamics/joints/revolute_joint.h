@@ -20,15 +20,17 @@
 #define B3_REVOLUTE_JOINT_H
 
 #include <bounce/dynamics/joints/joint.h>
-#include <bounce/common/math/mat.h>
 
 struct b3RevoluteJointDef : public b3JointDef 
 {
 	b3RevoluteJointDef() 
 	{
 		type = e_revoluteJoint;
-		localFrameA.SetIdentity();
-		localFrameB.SetIdentity();
+		localAnchorA.SetZero();
+		localRotationA.SetIdentity();
+		localAnchorB.SetZero();
+		localRotationB.SetIdentity();
+		referenceRotation.SetIdentity();
 		enableLimit = false;
 		lowerAngle = 0.0f;
 		upperAngle = 0.0f;
@@ -40,19 +42,28 @@ struct b3RevoluteJointDef : public b3JointDef
 	// Initialize this definition from hinge axis, anchor point, and the lower and upper angle limits in radians.
 	void Initialize(b3Body* bodyA, b3Body* bodyB, const b3Vec3& axis, const b3Vec3& anchor, float32 lowerAngle, float32 upperAngle);
 
-	// The joint frame relative body A's frame.
-	b3Transform localFrameA;
-	
-	// The joint frame relative body B's frame.
-	b3Transform localFrameB;
+	// The joint anchor relative body A's origin.
+	b3Vec3 localAnchorA;
+
+	// The joint orientation relative body A's orientation.
+	b3Quat localRotationA;
+
+	// The joint anchor relative body B's origin.
+	b3Vec3 localAnchorB;
+
+	// The joint orientation relative body B's orientation.
+	b3Quat localRotationB;
+
+	// The initial relative rotation from body A to body B.
+	b3Quat referenceRotation;
 
 	// Enable the joint limit.
 	bool enableLimit;
 
-	// The lower angle limit in radians.
+	// The hinge lower angle limit in radians.
 	float32 lowerAngle;
 	
-	// The upper angle limit in radians.
+	// The hinge upper angle limit in radians.
 	float32 upperAngle;
 
 	// Enable the joint motor.
@@ -67,7 +78,7 @@ struct b3RevoluteJointDef : public b3JointDef
 
 // A revolute joint constrains two bodies to share a point and an axis while 
 // they are free to rotate about the point and the axis. 
-// The relative rotation about the shared axis is the joint angle. 
+// The relative rotation about the shared axis is the joint rotation. 
 // You can limit the relative rotation with a lower and upper angle limit. 
 // You can use a motor to drive the relative rotation about the shared axis. 
 // A maximum motor torque is provided so that infinite forces are not generated.
@@ -82,10 +93,10 @@ public:
 	b3Transform GetFrameB() const;
 
 	// Get the joint frame relative body A's frame.
-	const b3Transform& GetLocalFrameA() const;
+	b3Transform GetLocalFrameA() const;
 
 	// Get the joint frame relative body B's frame.
-	const b3Transform& GetLocalFrameB() const;
+	b3Transform GetLocalFrameB() const;
 
 	// Is the joint limit enabled?
 	bool IsLimitEnabled() const;
@@ -135,8 +146,13 @@ private:
 	virtual bool SolvePositionConstraints(const b3SolverData* data);
 
 	// Solver shared
-	b3Transform m_localFrameA;
-	b3Transform m_localFrameB;
+	b3Quat m_referenceRotation;
+	
+	b3Vec3 m_localAnchorA;
+	b3Quat m_localRotationA;
+
+	b3Vec3 m_localAnchorB;
+	b3Quat m_localRotationB;
 	
 	bool m_enableMotor;
 	float32 m_motorSpeed;
@@ -155,24 +171,31 @@ private:
 	b3Mat33 m_iB;
 	b3Vec3 m_localCenterA;
 	b3Vec3 m_localCenterB;
-	
-	// Motor
-	// The limit axis is the same as the motor axis
+
+	// Hinge motor
+	b3Vec3 m_motor_J1; // 1x3 (row)
+	b3Vec3 m_motor_J2; // 1x3 (row)
 	float32 m_motorMass;
 	float32 m_motorImpulse;
 
-	// Limit
-	b3Vec3 m_limitAxis; // axis of rotation for limit contraint
-	float32 m_limitImpulse;
+	// Hinge limit
+	// The limit axis and constraint space mass are the same as the motor's
 	b3LimitState m_limitState; // constraint state
+	float32 m_limitImpulse;
 
-	// Point-to-point + axes-to-axes
+	// Spherical
 	b3Vec3 m_rA;
 	b3Vec3 m_rB;
-	b3Vec3 m_nA;
-	b3Vec3 m_nB;
-	b3Mat<5, 5> m_mass; // block solver
-	b3Vec<5> m_impulse; // block solver
+	b3Mat33 m_mass;
+	b3Vec3 m_impulse;
+
+	// Hinge
+	b3Mat23 m_J1;
+	b3Mat23 m_J2;
+	b3Mat32 m_J1T;
+	b3Mat32 m_J2T;
+	b3Mat22 m_K;
+	b3Vec2 m_axisImpulse;
 };
 
 #endif

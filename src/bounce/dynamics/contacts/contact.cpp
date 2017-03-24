@@ -39,17 +39,19 @@ void b3Contact::GetWorldManifold(b3WorldManifold* out, u32 index) const
 {
 	B3_ASSERT(index < m_manifoldCount);
 	b3Manifold* m = m_manifolds + index;
-
+	
 	const b3Shape* shapeA = GetShapeA();
-	b3Transform xfA = shapeA->GetBody()->GetTransform();
+	const b3Body* bodyA = shapeA->GetBody();
+	b3Transform xfA = bodyA->GetTransform();
 
 	const b3Shape* shapeB = GetShapeB();
-	b3Transform xfB = shapeB->GetBody()->GetTransform();
+	const b3Body* bodyB = shapeB->GetBody();
+	b3Transform xfB = bodyB->GetTransform();
 
-	out->Initialize(m, xfA, shapeA->m_radius, xfB, shapeB->m_radius);
+	out->Initialize(m, shapeA->m_radius, xfA, shapeB->m_radius, xfB);
 }
 
-void b3Contact::Update(b3ContactListener* listener) 
+void b3Contact::Update(b3ContactListener* listener)
 {
 	b3Shape* shapeA = GetShapeA();
 	b3Body* bodyA = shapeA->GetBody();
@@ -66,29 +68,29 @@ void b3Contact::Update(b3ContactListener* listener)
 	bool wasOverlapping = IsOverlapping();
 	bool isOverlapping = false;
 	bool isSensorContact = shapeA->IsSensor() || shapeB->IsSensor();
-	
+
 	if (isSensorContact == true)
 	{
 		isOverlapping = TestOverlap();
 		m_manifoldCount = 0;
 	}
-	else 
+	else
 	{
 		// Copy the old contact points.
 		b3Manifold oldManifolds[B3_MAX_MANIFOLDS];
 		u32 oldManifoldCount = m_manifoldCount;
 		memcpy(oldManifolds, m_manifolds, oldManifoldCount * sizeof(b3Manifold));
-		
+
 		// Clear all contact points.
 		m_manifoldCount = 0;
 		for (u32 i = 0; i < m_manifoldCapacity; ++i)
 		{
-			m_manifolds[i].GuessImpulses();
+			m_manifolds[i].Initialize();
 		}
 
 		// Generate new contact points for the solver.
 		Collide();
-		
+
 		// Initialize the new built contact points for warm starting the solver.
 		if (world->m_warmStarting == true)
 		{
@@ -98,7 +100,7 @@ void b3Contact::Update(b3ContactListener* listener)
 				for (u32 j = 0; j < oldManifoldCount; ++j)
 				{
 					const b3Manifold* m1 = oldManifolds + j;
-					m2->FindImpulses(*m1);
+					m2->Initialize(*m1);
 				}
 			}
 		}
@@ -114,7 +116,7 @@ void b3Contact::Update(b3ContactListener* listener)
 			}
 		}
 	}
-	
+
 	// Update the contact state.
 
 	if (isOverlapping == true)
@@ -134,7 +136,7 @@ void b3Contact::Update(b3ContactListener* listener)
 	}
 
 	// Notify the contact listener the new contact state.
-	if (listener != NULL) 
+	if (listener != NULL)
 	{
 		if (wasOverlapping == false && isOverlapping == true)
 		{

@@ -90,6 +90,8 @@ struct b3BoxHull : public b3Hull
 		faces = boxFaces;
 		planes = boxPlanes;
 		faceCount = 6;
+		
+		Validate();
 	}
 	
 	// Set this box from three extents and centered at the origin.
@@ -102,8 +104,6 @@ struct b3BoxHull : public b3Hull
 	}
 
 	// Set this box to the unit box and transform it. 
-	// Warning: The transform must not contain non-uniform 
-	// scaling!
 	void SetTransform(const b3Transform& T)
 	{
 		boxVertices[0] = b3Vec3(1.0f, 1.0f, -1.0f);
@@ -169,6 +169,8 @@ struct b3BoxHull : public b3Hull
 		faceCount = 6;
 
 		centroid = T * centroid;
+
+		Validate();
 	}
 };
 

@@ -24,21 +24,24 @@ class HullAndHull : public Collide
 public:
 	HullAndHull()
 	{
-		b3Transform xf;
-		xf.rotation = b3Diagonal(1.0f, 2.0f, 1.0f);
-		xf.position.SetZero();
+		b3Transform m;
+		m.rotation = b3Diagonal(1.0f, 2.0f, 1.0f);
+		m.position.Set(0.0f, 2.0f, 0.0f);
+		m_box1.SetTransform(m);
 
-		m_box.SetTransform(xf);
+		m.rotation = b3Diagonal(1.0f, 1.0f, 1.0f);
+		m.position.Set(0.0f, 0.0f, 0.0f);
+		m_box2.SetTransform(m);
 
-		b3Quat qA(0.0f, 1.0f, 0.0f, 0.025f * B3_PI);
 		m_xfA.SetIdentity();
-		m_xfA.position.Set(0.0186814368f, 1.96078217f, 0.0253920462f);
-		m_xfA.rotation = b3ConvertQuatToRot(qA);
-		m_sA.m_hull = &m_box;
+		m_xfA.position.SetZero();
+		m_xfA.rotation.SetIdentity();
+		m_sA.m_hull = &m_box1;
 		
 		m_xfB.SetIdentity();
-		m_xfB.position.Set(0.f, 0.0f, 0.0f);
-		m_sB.m_hull = &m_box;
+		m_xfB.position.Set(0.0f, 0.0f, 0.0f);
+		m_xfB.rotation.SetIdentity();
+		m_sB.m_hull = &m_box2;
 
 		m_cache.count = 0;
 		m_shapeA = &m_sA;
@@ -50,7 +53,8 @@ public:
 		return new HullAndHull();
 	}
 
-	b3BoxHull m_box;
+	b3BoxHull m_box1;
+	b3BoxHull m_box2;
 	b3HullShape m_sA;
 	b3HullShape m_sB;
 };

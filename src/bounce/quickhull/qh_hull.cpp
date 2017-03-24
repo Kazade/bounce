@@ -757,7 +757,7 @@ void qhHull::Draw(b3Draw* draw) const
 			edge = edge->next;
 		} while (edge != begin);
 
-		draw->DrawSolidPolygon(n, vs.Elements(), vs.Count(), b3Color(1.0f, 1.0f, 1.0f, 0.5f));
+		draw->DrawSolidPolygon(n, vs.Begin(), vs.Count(), b3Color(1.0f, 1.0f, 1.0f, 0.5f));
 
 		qhVertex* v = face->conflictList.head;
 		while (v)

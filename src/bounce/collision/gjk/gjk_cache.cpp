@@ -24,21 +24,21 @@ u32 b3_gjkCacheHits;
 
 // Implements b3Simplex routines for a cached simplex.
 void b3Simplex::ReadCache(const b3SimplexCache* cache, 
-	const b3Transform& xfA, const b3GJKProxy& proxyA, 
-	const b3Transform& xfB, const b3GJKProxy& proxyB)
+	const b3Transform& xf1, const b3GJKProxy& proxy1, 
+	const b3Transform& xf2, const b3GJKProxy& proxy2)
 {
 	B3_ASSERT(cache->count <= 4);
 	m_count = (u8)cache->count;
 	for (u32 i = 0; i < m_count; ++i)
 	{
 		b3SimplexVertex* v = m_vertices + i;
-		v->indexA = cache->indexA[i];
-		v->indexB = cache->indexB[i];
-		b3Vec3 wALocal = proxyA.GetVertex(v->indexA);
-		b3Vec3 wBLocal = proxyB.GetVertex(v->indexB);
-		v->pointA = xfA * wALocal;
-		v->pointB = xfB * wBLocal;
-		v->point = v->pointB - v->pointA;
+		v->index1 = cache->index1[i];
+		v->index2 = cache->index2[i];
+		b3Vec3 wALocal = proxy1.GetVertex(v->index1);
+		b3Vec3 wBLocal = proxy2.GetVertex(v->index2);
+		v->point1 = xf1 * wALocal;
+		v->point2 = xf2 * wBLocal;
+		v->point = v->point2 - v->point1;
 		v->weight = 0.0f;
 	}
 
@@ -64,14 +64,14 @@ void b3Simplex::ReadCache(const b3SimplexCache* cache,
 	if (m_count == 0)
 	{
 		b3SimplexVertex* v = m_vertices + 0;
-		b3Vec3 wALocal = proxyA.GetVertex(0);
-		b3Vec3 wBLocal = proxyB.GetVertex(0);
-		v->pointA = b3Mul(xfA, wALocal);
-		v->pointB = b3Mul(xfB, wBLocal);
-		v->point = v->pointB - v->pointA;
+		b3Vec3 w1Local = proxy1.GetVertex(0);
+		b3Vec3 w2Local = proxy2.GetVertex(0);
+		v->point1 = b3Mul(xf1, w1Local);
+		v->point2 = b3Mul(xf2, w2Local);
+		v->point = v->point2 - v->point1;
 		v->weight = 1.0f;
-		v->indexA = 0;
-		v->indexB = 0;
+		v->index1 = 0;
+		v->index2 = 0;
 		m_count = 1;
 	}
 }
@@ -82,8 +82,8 @@ void b3Simplex::WriteCache(b3SimplexCache* cache) const
 	cache->count = u16(m_count);
 	for (u32 i = 0; i < m_count; ++i)
 	{
-		cache->indexA[i] = u8(m_vertices[i].indexA);
-		cache->indexB[i] = u8(m_vertices[i].indexB);
+		cache->index1[i] = u8(m_vertices[i].index1);
+		cache->index2[i] = u8(m_vertices[i].index2);
 	}
 }
 
@@ -123,22 +123,22 @@ float32 b3Simplex::GetMetric() const
 	}
 }
 
-b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA,
-	const b3Transform& xfB, const b3GJKProxy& proxyB,
+b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1,
+	const b3Transform& xf2, const b3GJKProxy& proxy2,
 	bool applyRadius, b3SimplexCache* cache)
 {
 	++b3_gjkCalls;
 
 	// Initialize the simplex.
 	b3Simplex simplex;
-	simplex.ReadCache(cache, xfA, proxyA, xfB, proxyB);
+	simplex.ReadCache(cache, xf1, proxy1, xf2, proxy2);
 
 	// Get simplex vertices as an array.
 	b3SimplexVertex* vertices = simplex.m_vertices;
 
 	// These store the vertices of the last simplex so that we
 	// can check for duplicates and prevent cycling.
-	u32 saveA[4], saveB[4];
+	u32 save1[4], save2[4];
 	u32 saveCount = 0;
 
 	// Last iteration squared distance for checking if we're getting close
@@ -158,8 +158,8 @@ b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA,
 		saveCount = simplex.m_count;
 		for (u32 i = 0; i < saveCount; ++i)
 		{
-			saveA[i] = vertices[i].indexA;
-			saveB[i] = vertices[i].indexB;
+			save1[i] = vertices[i].index1;
+			save2[i] = vertices[i].index2;
 		}
 
 		// Determine the closest point on the simplex and
@@ -209,11 +209,11 @@ b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA,
 
 		// Compute a tentative new simplex vertex using support points.
 		b3SimplexVertex* vertex = vertices + simplex.m_count;
-		vertex->indexA = proxyA.GetSupportIndex(b3MulT(xfA.rotation, -d));
-		vertex->pointA = b3Mul(xfA, proxyA.GetVertex(vertex->indexA));
-		vertex->indexB = proxyB.GetSupportIndex(b3MulT(xfB.rotation, d));
-		vertex->pointB = b3Mul(xfB, proxyB.GetVertex(vertex->indexB));
-		vertex->point = vertex->pointB - vertex->pointA;
+		vertex->index1 = proxy1.GetSupportIndex(b3MulT(xf1.rotation, -d));
+		vertex->point1 = b3Mul(xf1, proxy1.GetVertex(vertex->index1));
+		vertex->index2 = proxy2.GetSupportIndex(b3MulT(xf2.rotation, d));
+		vertex->point2 = b3Mul(xf2, proxy2.GetVertex(vertex->index2));
+		vertex->point = vertex->point2 - vertex->point1;
 
 		// Iteration count is equated to the number of support point calls.
 		++iter;
@@ -224,7 +224,7 @@ b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA,
 		bool duplicate = false;
 		for (u32 i = 0; i < saveCount; ++i)
 		{
-			if (vertex->indexA == saveA[i] && vertex->indexB == saveB[i])
+			if (vertex->index1 == save1[i] && vertex->index2 == save2[i])
 			{
 				duplicate = true;
 				break;
@@ -245,8 +245,8 @@ b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA,
 
 	// Prepare result.
 	b3GJKOutput output;
-	simplex.GetClosestPoints(&output.pointA, &output.pointB);
-	output.distance = b3Distance(output.pointA, output.pointB);
+	simplex.GetClosestPoints(&output.point1, &output.point2);
+	output.distance = b3Distance(output.point1, output.point2);
 	output.iterations = iter;
 
 	// Cache the simplex.
@@ -255,26 +255,26 @@ b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA,
 	// Apply radius if requested.
 	if (applyRadius)
 	{
-		float32 rA = proxyA.m_radius;
-		float32 rB = proxyB.m_radius;
+		float32 r1 = proxy1.m_radius;
+		float32 r2 = proxy2.m_radius;
 
-		if (output.distance > rA + rB && output.distance > B3_EPSILON)
+		if (output.distance > r1 + r2 && output.distance > B3_EPSILON)
 		{
 			// Shapes are still no overlapped.
 			// Move the witness points to the outer surface.
-			output.distance -= rA + rB;
-			b3Vec3 d = output.pointB - output.pointA;
+			output.distance -= r1 + r2;
+			b3Vec3 d = output.point2 - output.point1;
 			b3Vec3 normal = b3Normalize(d);
-			output.pointA += rA * normal;
-			output.pointB -= rB * normal;
+			output.point1 += r1 * normal;
+			output.point2 -= r2 * normal;
 		}
 		else
 		{
 			// Shapes are overlapped when radii are considered.
 			// Move the witness points to the middle.
-			b3Vec3 p = 0.5f * (output.pointA + output.pointB);
-			output.pointA = p;
-			output.pointB = p;
+			b3Vec3 p = 0.5f * (output.point1 + output.point2);
+			output.point1 = p;
+			output.point2 = p;
 			output.distance = 0.0f;
 		}
 	}

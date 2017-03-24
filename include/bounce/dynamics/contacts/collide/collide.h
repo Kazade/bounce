@@ -44,29 +44,29 @@ struct b3SATFeaturePair
 {
 	enum Type
 	{
-		e_edgeA, // an edge on hull A and an edge on hull B
-		e_faceA, // a face on hull A and a vertex/edge/face on hull B
-		e_faceB, // a face on hull B and a vertex/edge/face on hull A
+		e_edge1, // an edge on hull 1 and an edge on hull 2
+		e_face1, // a face on hull 1 and a vertex/edge/face on hull 2
+		e_face2, // a face on hull 2 and a vertex/edge/face on hull 1
 	};
 
 	b3SATCacheType state; // sat result
 	Type type; // feature pair type
-	u32 indexA; // feature index on hull A
-	u32 indexB; // feature index on hull B
+	u32 index1; // feature index on hull 1
+	u32 index2; // feature index on hull 2
 };
 
 struct b3FeatureCache
 {
 	// Read the current state of the cache.
 	// Return e_unkown if neither a separation or penetration was detected.
-	b3SATCacheType ReadState(const b3Transform& xfA, const b3Hull* hullA,
-		const b3Transform& xfB, const b3Hull* hullB);
+	b3SATCacheType ReadState(const b3Transform& xf1, float32 r1, const b3Hull* hull1,
+		const b3Transform& xf2, float32 r2, const b3Hull* hull2);
 
-	b3SATCacheType ReadEdge(const b3Transform& xfA, const b3Hull* hullA,
-		const b3Transform& xfB, const b3Hull* hullB);
+	b3SATCacheType ReadEdge(const b3Transform& xf1, float32 r1, const b3Hull* hull1,
+		const b3Transform& xf2, float32 r2, const b3Hull* hull2);
 
-	b3SATCacheType ReadFace(const b3Transform& xfA, const b3Hull* hullA,
-		const b3Transform& xfB, const b3Hull* hullB);
+	b3SATCacheType ReadFace(const b3Transform& xf1, float32 r1, const b3Hull* hull1,
+		const b3Transform& xf2, float32 r2, const b3Hull* hull2);
 
 	// We could increase the cache size (e.g. a feature pair of the last two frames).
 	b3SATFeaturePair m_featurePair;
@@ -95,45 +95,45 @@ public:
 };
 
 // Test if two generic shapes are overlapping.
-bool b3TestOverlap(const b3Transform& xfA, u32 indexA, const b3Shape* shapeA,
-	const b3Transform& xfB, u32 indexB, const b3Shape* shapeB,
+bool b3TestOverlap(const b3Transform& xf1, u32 index1, const b3Shape* shape1,
+	const b3Transform& xf2, u32 index2, const b3Shape* shape2,
 	b3ConvexCache* cache);
 
 // Compute a manifold for two generic shapes except when one of them is a mesh.
 void b3CollideShapeAndShape(b3Manifold& manifold, 
-	const b3Transform& xfA, const b3Shape* shapeA,
-	const b3Transform& xfB, const b3Shape* shapeB,
+	const b3Transform& xf1, const b3Shape* shape1,
+	const b3Transform& xf2, const b3Shape* shape2,
 	b3ConvexCache* cache);
 
 // Compute a manifold for two spheres.
 void b3CollideSphereAndSphere(b3Manifold& manifold, 
-	const b3Transform& xfA, const b3SphereShape* shapeA, 
-	const b3Transform& xfB, const b3SphereShape* shapeB);
+	const b3Transform& xf1, const b3SphereShape* shape1, 
+	const b3Transform& xf2, const b3SphereShape* shape2);
 
 // Compute a manifold for a sphere and a hull.
-void b3CollideSphereAndHull(b3Manifold& manifold,
-	const b3Transform& xfA, const b3SphereShape* shapeA, 
-	const b3Transform& xfB, const b3HullShape* shapeB);
+void b3CollideSphereAndHull(b3Manifold& manifold, 
+	const b3Transform& xf1, const b3SphereShape* shape1, 
+	const b3Transform& xf2, const b3HullShape* shape2);
 
 // Compute a manifold for a sphere and a capsule.
 void b3CollideSphereAndCapsule(b3Manifold& manifold, 
-	const b3Transform& xfA, const b3SphereShape* shapeA, 
-	const b3Transform& xfB, const b3CapsuleShape* shapeB);
+	const b3Transform& xf1, const b3SphereShape* shape1, 
+	const b3Transform& xf2, const b3CapsuleShape* shape2);
 
 // Compute a manifold for two capsules.
 void b3CollideCapsuleAndCapsule(b3Manifold& manifold, 
-	const b3Transform& xfA, const b3CapsuleShape* shapeA, 
-	const b3Transform& xfB, const b3CapsuleShape* shapeB);
+	const b3Transform& xf1, const b3CapsuleShape* shape1, 
+	const b3Transform& xf2, const b3CapsuleShape* shape2);
 
 // Compute a manifold for a capsule and a hull.
-void b3CollideCapsuleAndHull(b3Manifold& manifold,
-	const b3Transform& xfA, const b3CapsuleShape* shapeA, 
-	const b3Transform& xfB, const b3HullShape* shapeB);
+void b3CollideCapsuleAndHull(b3Manifold& manifold, 
+	const b3Transform& xf1, const b3CapsuleShape* shape1, 
+	const b3Transform& xf2, const b3HullShape* shape2);
 
 // Compute a manifold for two hulls. 
-void b3CollideHullAndHull(b3Manifold& manifold,
-	const b3Transform& xfA, const b3HullShape* shapeA, 
-	const b3Transform& xfB, const b3HullShape* shapeB,
+void b3CollideHullAndHull(b3Manifold& manifold, 
+	const b3Transform& xf1, const b3HullShape* shape1, 
+	const b3Transform& xf2, const b3HullShape* shape2,
 	b3ConvexCache* cache);
 
 #endif

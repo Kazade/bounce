@@ -17,9 +17,9 @@
 */
 
 #include <bounce/dynamics/contacts/contact_cluster.h>
-#include <bounce/collision/distance.h>
+#include <bounce/collision/collision.h>
 
-inline void AddCluster(b3Array<b3Cluster>& clusters, const b3Vec3& centroid)
+static void AddCluster(b3Array<b3Cluster>& clusters, const b3Vec3& centroid)
 {
 	const float32 kTol = 0.05f;
 	for (u32 i = 0; i < clusters.Count(); ++i)
@@ -165,7 +165,7 @@ void b3InitializeClusters(b3Array<b3Cluster>& outClusters, const b3Array<b3Obser
 	}
 }
 
-inline void b3MoveObsToCluster(b3Array<b3Observation>& observations, u32 fromCluster, u32 toCluster)
+static void b3MoveObsToCluster(b3Array<b3Observation>& observations, u32 fromCluster, u32 toCluster)
 {
 	for (u32 i = 0; i < observations.Count(); ++i)
 	{
@@ -177,7 +177,7 @@ inline void b3MoveObsToCluster(b3Array<b3Observation>& observations, u32 fromClu
 	}
 }
 
-inline u32 b3BestCluster(const b3Array<b3Cluster>& clusters, const b3Vec3& point)
+static u32 b3BestCluster(const b3Array<b3Cluster>& clusters, const b3Vec3& point)
 {
 	u32 bestIndex = 0;
 	float32 bestValue = B3_MAX_FLOAT;
@@ -276,21 +276,49 @@ void b3Clusterize(b3Array<b3Cluster>& outClusters, b3Array<b3Observation>& outOb
 	}
 }
 
-void b3ReducePolygon(b3ClusterPolygon& pOut, 
-	const b3ClusterPolygon& pIn, u32 startIndex)
+static B3_FORCE_INLINE bool b3IsCCW(const b3Vec3& A, const b3Vec3& B, const b3Vec3& C, const b3Vec3& N)
 {
-	B3_ASSERT(startIndex < pIn.Count());
+	b3Vec3 n = b3Cross(B - A, C - A);
+	return b3Dot(n, N) > 0.0f;
+}
 
+static B3_FORCE_INLINE bool b3IsCCW(const b3Vec3& A, const b3Vec3& B, const b3Vec3& C, const b3Vec3& D, const b3Vec3& N)
+{
+	return b3IsCCW(A, B, C, N) && b3IsCCW(C, D, A, N);
+}
+
+static void b3Weld(b3ClusterPolygon& pOut, const b3Vec3& N)
+{
+	B3_ASSERT(pOut.Count() > 0);
+	b3Vec3 A = pOut[0].position;
+	for (u32 i = 1; i < pOut.Count(); ++i)
+	{
+		b3ClusterVertex& vi = pOut[i];
+		b3Vec3 B = vi.position;
+		for (u32 j = i + 1; j < pOut.Count(); ++j)
+		{
+			b3ClusterVertex& vj = pOut[j];
+			b3Vec3 C = vj.position;
+			if (b3IsCCW(A, B, C, N) == false)
+			{
+				b3Swap(vi, vj);
+			}
+		}
+	}
+}
+
+void b3ReducePolygon(b3ClusterPolygon& pOut,
+	const b3ClusterPolygon& pIn, u32 startIndex, const b3Vec3& normal)
+{
+	B3_ASSERT(pIn.Count() > 0);
 	B3_ASSERT(pOut.Count() == 0);
-	
+	B3_ASSERT(startIndex < pIn.Count());
+		
 	pOut.Reserve(pIn.Count());
-
 	if (pIn.Count() <= B3_MAX_MANIFOLD_POINTS)
 	{
-		for (u32 i = 0; i < pIn.Count(); ++i)
-		{
-			pOut.PushBack(pIn[i]);
-		}
+		pOut = pIn;
+		b3Weld(pOut, normal);
 		return;
 	}
 
@@ -328,6 +356,12 @@ void b3ReducePolygon(b3ClusterPolygon& pOut,
 			}
 		}
 
+		// Coincidence check.
+		if (max < B3_EPSILON * B3_EPSILON)
+		{
+			return;
+		}
+
 		pOut.PushBack(pIn[index]);
 		chosens[index] = true;
 	}
@@ -343,14 +377,30 @@ void b3ReducePolygon(b3ClusterPolygon& pOut,
 			if (chosens[i]) { continue; }
 
 			b3Vec3 C = pIn[i].position;
-			b3Vec3 Q = b3ClosestPointOnSegment(C, A, B);
-			b3Vec3 d = Q - C;
-			float32 dd = b3Dot(d, d);
-			if (dd > max)
+			b3Vec3 N = b3Cross(B - A, C - A);
+			float32 sa2 = b3Dot(N, normal);
+			float32 a2 = b3Abs(sa2);
+			if (a2 > max)
 			{
-				max = dd;
+				max = a2;
 				index = i;
 			}
+		}
+
+		// Colinearity check.
+		// Use wanky tolerance for reasonable performance.
+		const float32 kAreaTol = 0.01f;
+		if (max < 2.0f * kAreaTol)
+		{
+			// Return the largest segment AB.
+			return;
+		}
+
+		// Ensure CCW order of triangle ABC.
+		b3Vec3 C = pIn[index].position;
+		if (b3IsCCW(A, B, C, normal) == false)
+		{
+			b3Swap(pOut[0], pOut[1]);
 		}
 
 		pOut.PushBack(pIn[index]);
@@ -362,21 +412,30 @@ void b3ReducePolygon(b3ClusterPolygon& pOut,
 		b3Vec3 B = pOut[1].position;
 		b3Vec3 C = pOut[2].position;
 
+		B3_ASSERT(b3IsCCW(A, B, C, normal));
+
 		u32 index = 0;
-		float32 max = -B3_MAX_FLOAT;
+		float32 min = B3_MAX_FLOAT;
 		for (u32 i = 0; i < pIn.Count(); ++i)
 		{
 			if (chosens[i]) { continue; }
 
 			b3Vec3 D = pIn[i].position;
-			b3Vec3 Q = b3ClosestPointOnTriangle(D, A, B, C);
-			b3Vec3 d = Q - D;
-			float32 dd = b3Dot(d, d);
-			if (dd > max)
+			b3Vec3 N = b3Cross(B - A, D - A);
+			float32 sa2 = b3Dot(N, normal);
+			if (sa2 < min)
 			{
-				max = dd;
+				min = sa2;
 				index = i;
 			}
+		}
+
+		// Colinearity check.
+		const float32 kAreaTol = 0.01f;
+		if (b3Abs(min) < 2.0f * kAreaTol)
+		{
+			// Return the face ABC.
+			return;
 		}
 
 		pOut.PushBack(pIn[index]);
@@ -384,8 +443,8 @@ void b3ReducePolygon(b3ClusterPolygon& pOut,
 	}
 
 	B3_ASSERT(pOut.Count() <= B3_MAX_MANIFOLD_POINTS);
+	b3Weld(pOut, normal);
 }
-
 
 u32 b3Clusterize(b3Manifold outManifolds[3], const b3Manifold* inManifolds, u32 numIn,
 	const b3Transform& xfA, float32 radiusA, const b3Transform& xfB, float32 radiusB)
@@ -397,7 +456,7 @@ u32 b3Clusterize(b3Manifold outManifolds[3], const b3Manifold* inManifolds, u32 
 	for (u32 i = 0; i < numIn; ++i)
 	{
 		b3WorldManifold wm;
-		wm.Initialize(inManifolds + i, xfA, radiusA, xfB, radiusB);
+		wm.Initialize(inManifolds + i, radiusA, xfA, radiusB, xfB);
 
 		for (u32 j = 0; j < wm.pointCount; ++j)
 		{
@@ -444,7 +503,7 @@ u32 b3Clusterize(b3Manifold outManifolds[3], const b3Manifold* inManifolds, u32 
 			const b3ManifoldPoint* mp = m->points + o.manifoldPoint;
 
 			b3WorldManifoldPoint wmp;
-			wmp.Initialize(mp, xfA, radiusA, xfB, radiusB);
+			wmp.Initialize(mp, radiusA, xfA, radiusB, xfB);
 
 			b3ClusterVertex cv;
 			cv.position = wmp.point;
@@ -461,17 +520,11 @@ u32 b3Clusterize(b3Manifold outManifolds[3], const b3Manifold* inManifolds, u32 
 		}
 
 		center /= float32(polygonB.Count());
-		//normal /= float32(polygonB.Count());
 		normal.Normalize();
 
 		B3_ASSERT(numOut < B3_MAX_MANIFOLDS);
 		b3Manifold* manifold = outManifolds + numOut;
 		++numOut;
-
-		manifold->center = center;
-		manifold->normal = normal;
-		manifold->tangent1 = b3Perp(normal);
-		manifold->tangent2 = b3Cross(manifold->tangent1, normal);
 
 		// Reduce.
 		// Ensure deepest point is contained.
@@ -484,7 +537,7 @@ u32 b3Clusterize(b3Manifold outManifolds[3], const b3Manifold* inManifolds, u32 
 			const b3ManifoldPoint* inPoint = inManifold->points + o->manifoldPoint;
 
 			b3WorldManifoldPoint wmp;
-			wmp.Initialize(inPoint, xfA, radiusA, xfB, radiusB);
+			wmp.Initialize(inPoint, radiusA, xfA, radiusB, xfB);
 
 			float32 separation = wmp.separation;
 			if (separation < minSeparation)
@@ -497,7 +550,7 @@ u32 b3Clusterize(b3Manifold outManifolds[3], const b3Manifold* inManifolds, u32 
 		}
 		
 		b3StackArray<b3ClusterVertex, 32> reducedB;
-		b3ReducePolygon(reducedB, polygonB, minIndex);
+		b3ReducePolygon(reducedB, polygonB, minIndex, normal);
 		for (u32 j = 0; j < reducedB.Count(); ++j)
 		{
 			b3ClusterVertex v = reducedB[j];

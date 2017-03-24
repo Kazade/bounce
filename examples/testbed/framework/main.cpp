@@ -16,12 +16,17 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
+#if defined(__APPLE_CC__)
+#include <OpenGL/gl3.h>
+#else
 #include <glad/glad.h>
-#include <glfw/glfw3.h>
+#endif
+
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw_gl3.h>
-
 #include <testbed/tests/test.h>
+
+#include <glfw/glfw3.h>
 
 GLFWwindow* g_window;
 Settings g_settings;
@@ -35,13 +40,13 @@ bool g_rightDown;
 bool g_shiftDown;
 b3Vec2 g_ps0;
 
-void WindowSize(int w, int h)
+static void WindowSize(int w, int h)
 {
 	g_camera.m_width = float32(w);
 	g_camera.m_height = float32(h);
 }
 
-void MouseMove(GLFWwindow* w, double x, double y)
+static void MouseMove(GLFWwindow* w, double x, double y)
 {
 	b3Vec2 ps;
 	ps.Set(float32(x), float32(y));
@@ -83,7 +88,7 @@ void MouseMove(GLFWwindow* w, double x, double y)
 	}
 }
 
-void MouseWheel(GLFWwindow* w, double dx, double dy)
+static void MouseWheel(GLFWwindow* w, double dx, double dy)
 {
 	float32 n = b3Clamp(float32(dy), -1.0f, 1.0f);
 	if (g_shiftDown)
@@ -92,7 +97,7 @@ void MouseWheel(GLFWwindow* w, double dx, double dy)
 	}
 }
 
-void MouseButton(GLFWwindow* w, int button, int action, int mods)
+static void MouseButton(GLFWwindow* w, int button, int action, int mods)
 {
 	double x, y;
 	glfwGetCursorPos(w, &x, &y);
@@ -147,7 +152,7 @@ void MouseButton(GLFWwindow* w, int button, int action, int mods)
 	}
 }
 
-void KeyButton(GLFWwindow* w, int button, int scancode, int action, int mods)
+static void KeyButton(GLFWwindow* w, int button, int scancode, int action, int mods)
 {
 	switch (action)
 	{
@@ -163,12 +168,12 @@ void KeyButton(GLFWwindow* w, int button, int scancode, int action, int mods)
 		{
 			if (button == GLFW_KEY_DOWN)
 			{
-				g_camera.m_zoom += 0.05f;
+				g_camera.m_zoom += 0.2f;
 			}
 
 			if (button == GLFW_KEY_UP)
 			{
-				g_camera.m_zoom -= 0.05f;
+				g_camera.m_zoom -= 0.2f;
 			}
 		}
 		else
@@ -199,30 +204,30 @@ void KeyButton(GLFWwindow* w, int button, int scancode, int action, int mods)
 	}
 }
 
-void Char(GLFWwindow* w, unsigned int codepoint)
+static void Char(GLFWwindow* w, unsigned int codepoint)
 {
 	ImGui_ImplGlfwGL3_CharCallback(w, codepoint);
 }
 
-void CreateInterface()
+static void CreateInterface()
 {
 	ImGui_ImplGlfwGL3_Init(g_window, false);
 	ImGuiIO& io = ImGui::GetIO();
 	io.Fonts[0].AddFontDefault();
 }
 
-void DestroyInterface()
+static void DestroyInterface()
 {
 	ImGui_ImplGlfwGL3_Shutdown();
 }
 
-bool GetTestName(void*, int idx, const char** name)
+static bool GetTestName(void*, int idx, const char** name)
 {
 	*name = g_tests[idx].name;
 	return true;
 }
 
-void Interface()
+static void Interface()
 {
 	ImGui::SetNextWindowPos(ImVec2(g_camera.m_width, 0.0f));
 	ImGui::SetNextWindowSize(ImVec2(250.0f, g_camera.m_height));
@@ -255,11 +260,18 @@ void Interface()
 		g_settings.testID = b3Clamp(g_settings.testID + 1, 0, int(g_testCount) - 1);
 		g_settings.lastTestID = -1;
 	}
+	if (ImGui::Button("Dump", buttonSize))
+	{
+		if (g_test)
+		{
+			g_test->Dump();
+		}
+	}
 	if (ImGui::Button("Exit", buttonSize))
 	{
 		glfwSetWindowShouldClose(g_window, true);
 	}
-
+	
 	ImGui::Separator();
 
 	ImGui::Text("Step");
@@ -271,8 +283,8 @@ void Interface()
 	ImGui::Text("Position Iterations");
 	ImGui::SliderInt("#Position Iterations", &g_settings.positionIterations, 0, 50);
 	ImGui::Checkbox("Sleep", &g_settings.sleep);
+	ImGui::Checkbox("Convex Cache", &g_settings.convexCache);
 	ImGui::Checkbox("Warm Start", &g_settings.warmStart);
-	//ImGui::Checkbox("Convex Cache", &g_settings.convexCache);
 
 	if (ImGui::Button("Play/Pause", buttonSize))
 	{
@@ -283,7 +295,7 @@ void Interface()
 		g_settings.pause = true;
 		g_settings.singleStep = true;
 	}
-
+	
 	ImGui::Separator();
 
 	ImGui::Text("View");
@@ -296,6 +308,7 @@ void Interface()
 	ImGui::Checkbox("Contact Points", &g_settings.drawContactPoints);
 	ImGui::Checkbox("Contact Normals", &g_settings.drawContactNormals);
 	ImGui::Checkbox("Contact Tangents", &g_settings.drawContactTangents);
+	ImGui::Checkbox("Contact Areas", &g_settings.drawContactAreas);
 	ImGui::Checkbox("Statistics", &g_settings.drawStats);
 	ImGui::Checkbox("Profile", &g_settings.drawProfile);
 
@@ -303,10 +316,16 @@ void Interface()
 	ImGui::PopStyleVar();
 }
 
-void Step()
+static void Step()
 {
 	if (g_settings.drawGrid)
 	{
+		b3Color color(0.2f, 0.2f, 0.2f, 1.0f);
+		
+		b3Vec3 pn(0.0f, 1.0f, 0.0f);
+		b3Vec3 p(0.0f, 0.0f, 0.0f);
+		g_debugDraw->DrawCircle(pn, p, 1.0f, color);
+
 		int n = 20;
 
 		b3Vec3 t;
@@ -314,7 +333,6 @@ void Step()
 		t.y = 0.0f;
 		t.z = -0.5f * float32(n);
 
-		b3Color color(0.5f, 0.5f, 0.5f, 1.0f);
 		for (int i = 0; i < n; i += 1)
 		{
 			for (int j = 0; j < n; j += 1)
@@ -347,16 +365,16 @@ void Step()
 	g_debugDraw->Submit();
 }
 
-void Run()
+static void Run()
 {
 	glFrontFace(GL_CCW);
 	glCullFace(GL_BACK);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
 	glClearDepth(1.0f);
 
 	double t1 = glfwGetTime();
@@ -489,5 +507,6 @@ int main(int argc, char** args)
 
 	// Destroy g_window
 	glfwTerminate();
+	
 	return 0;
 }

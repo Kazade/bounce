@@ -25,16 +25,16 @@ b3BroadPhase::b3BroadPhase()
 	memset(m_moveBuffer, 0, m_moveBufferCapacity * sizeof(i32));
 	m_moveBufferCount = 0;
 
-	m_pairBufferCapacity = 16;
-	m_pairBuffer = (b3Pair*)b3Alloc(m_pairBufferCapacity * sizeof(b3Pair));
-	memset(m_pairBuffer, 0, m_pairBufferCapacity * sizeof(b3Pair));
-	m_pairBufferCount = 0;
+	m_pairCapacity = 16;
+	m_pairs = (b3Pair*)b3Alloc(m_pairCapacity * sizeof(b3Pair));
+	memset(m_pairs, 0, m_pairCapacity * sizeof(b3Pair));
+	m_pairCount = 0;
 }
 
 b3BroadPhase::~b3BroadPhase() 
 {
 	b3Free(m_moveBuffer);
-	b3Free(m_pairBuffer);
+	b3Free(m_pairs);
 }
 
 void b3BroadPhase::BufferMove(i32 proxyId) 
@@ -142,21 +142,21 @@ bool b3BroadPhase::Report(i32 proxyId)
 	}
 
 	// Check capacity.
-	if (m_pairBufferCount == m_pairBufferCapacity) 
+	if (m_pairCount == m_pairCapacity) 
 	{
 		// Duplicate capacity.
-		m_pairBufferCapacity *= 2;
+		m_pairCapacity *= 2;
 		
-		b3Pair* oldPairBuffer = m_pairBuffer;
-		m_pairBuffer = (b3Pair*)b3Alloc(m_pairBufferCapacity * sizeof(b3Pair));
-		memcpy(m_pairBuffer, oldPairBuffer, m_pairBufferCount * sizeof(b3Pair));
-		b3Free(oldPairBuffer);
+		b3Pair* oldPairs = m_pairs;
+		m_pairs = (b3Pair*)b3Alloc(m_pairCapacity * sizeof(b3Pair));
+		memcpy(m_pairs, oldPairs, m_pairCount * sizeof(b3Pair));
+		b3Free(oldPairs);
 	}
 
 	// Add overlapping pair to the pair buffer.
-	m_pairBuffer[m_pairBufferCount].proxy1 = b3Min(proxyId, m_queryProxyId);
-	m_pairBuffer[m_pairBufferCount].proxy2 = b3Max(proxyId, m_queryProxyId);
-	++m_pairBufferCount;
+	m_pairs[m_pairCount].proxy1 = b3Min(proxyId, m_queryProxyId);
+	m_pairs[m_pairCount].proxy2 = b3Max(proxyId, m_queryProxyId);
+	++m_pairCount;
 
 	// Keep looking for overlapping pairs.
 	return true;

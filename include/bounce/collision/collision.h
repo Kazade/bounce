@@ -16,41 +16,11 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_DISTANCE_H
-#define B3_DISTANCE_H
+#ifndef B3_COLLISION_H
+#define B3_COLLISION_H
 
 #include <bounce/common/geometry.h>
 #include <bounce/collision/shapes/aabb3.h>
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-
-// Find the closest point for a point P to a normalized plane.
-b3Vec3 b3ClosestPointOnPlane(const b3Vec3& P, const b3Plane& plane);
-
-// Find the closest point for a point P to a segment AB.
-b3Vec3 b3ClosestPointOnSegment(const b3Vec3& P,
-	const b3Vec3& A, const b3Vec3& B);
-
-// Find the closest point for a point P to a triangle ABC.
-b3Vec3 b3ClosestPointOnTriangle(const b3Vec3& P,
-	const b3Vec3& A, const b3Vec3& B, const b3Vec3& C);
-
-// Find the closest points of two lines.
-void b3ClosestPointsOnLines(b3Vec3* C1, b3Vec3* C2,
-	const b3Vec3& P1, const b3Vec3& E1,
-	const b3Vec3& P2, const b3Vec3& E2);
-
-// Find the closest points of two normalized lines.
-void b3ClosestPointsOnNormalizedLines(b3Vec3* C1, b3Vec3* C2,
-	const b3Vec3& P1, const b3Vec3& N1,
-	const b3Vec3& P2, const b3Vec3& N2);
-
-// Find the closest points of two segments.
-void b3ClosestPointsOnSegments(b3Vec3* C1, b3Vec3* C2,
-	const b3Vec3& P1, const b3Vec3& Q1,
-	const b3Vec3& P2, const b3Vec3& Q2);
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Input for a ray cast.
 struct b3RayCastInput

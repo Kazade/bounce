@@ -50,12 +50,12 @@ public:
 		return m_elements + i;
 	}
 
-	const T* Elements() const
+	const T* Begin() const
 	{
 		return m_elements;
 	}
 
-	T* Elements()
+	T* Begin()
 	{
 		return m_elements;
 	}

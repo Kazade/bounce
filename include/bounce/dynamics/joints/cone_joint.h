@@ -37,7 +37,7 @@ struct b3ConeJointDef : public b3JointDef
 
 	// The joint frame relative to body A's frame.
 	b3Transform localFrameA;
-	
+
 	// The joint frame relative to body B's frame.
 	b3Transform localFrameB;
 
@@ -64,7 +64,7 @@ public:
 
 	// Get the joint frame relative to body A's frame.
 	const b3Transform& GetLocalFrameA() const;
-	
+
 	// Get the joint frame relative to body B's frame.
 	const b3Transform& GetLocalFrameB() const;
 
@@ -109,7 +109,7 @@ private:
 	float32 m_mA;
 	float32 m_mB;
 	b3Mat33 m_iA;
-	b3Mat33 m_iB;	
+	b3Mat33 m_iB;
 	b3Vec3 m_localCenterA;
 	b3Vec3 m_localCenterB;
 

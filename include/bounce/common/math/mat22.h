@@ -30,6 +30,13 @@ struct b3Mat22
 	// Set this matrix from two vectors.
 	b3Mat22(const b3Vec2& _x, const b3Vec2& _y) : x(_x), y(_y) { }
 
+	// Set this matrix to the zero matrix.
+	void SetZero()
+	{
+		x.SetZero();
+		y.SetZero();
+	}
+
 	// Solve Ax = b. 
 	// It doesn't compute the inverse. 
 	// Therefore, is more efficient.
@@ -45,6 +52,12 @@ inline b3Vec2 operator*(const b3Mat22& A, const b3Vec2& v)
 	return v.x * A.x + v.y * A.y;
 }
 
+// Add two matrices.
+inline b3Mat22 operator+(const b3Mat22& A, const b3Mat22& B)
+{
+	return b3Mat22(A.x + B.x, A.y + B.y);
+}
+
 // Multiply a matrix times a vector.
 inline b3Vec2 b3Mul(const b3Mat22& A, const b3Vec2& v)
 {
@@ -54,6 +67,6 @@ inline b3Vec2 b3Mul(const b3Mat22& A, const b3Vec2& v)
 // Invert a matrix.
 // If the matrix determinant is zero this returns 
 // the zero matrix.
-inline b3Mat22 b3Inverse(const b3Mat22& A);
+b3Mat22 b3Inverse(const b3Mat22& A);
 
 #endif

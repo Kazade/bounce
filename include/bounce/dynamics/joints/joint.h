@@ -20,6 +20,7 @@
 #define B3_JOINT_H
 
 #include <bounce/common/math/transform.h>
+#include <bounce/common/math/mat.h>
 #include <bounce/common/template/list.h>
 #include <bounce/dynamics/time_step.h>
 

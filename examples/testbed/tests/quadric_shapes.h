@@ -35,35 +35,6 @@ public:
 		g_settings.drawCenterOfMasses = true;
 
 		{
-			b3StackArray<b3Vec3, 32> points;
-			ConstructCone(points);
-
-			u32 size = qhGetMemorySize(points.Count());
-			void* p = b3Alloc(size);
-			
-			qhHull hull;
-			hull.Construct(p, points);
-			m_coneHull = ConvertHull(hull);
-			
-			b3Free(p);
-		}
-		
-		{
-
-			b3StackArray<b3Vec3, 32> points;
-			ConstructCylinder(points);
-
-			const u32 size = qhGetMemorySize(points.Count());
-			void* p = b3Alloc(size);
-			
-			qhHull hull;
-			hull.Construct(p, points);
-			m_cylinderHull = ConvertHull(hull);
-			
-			b3Free(p);
-		}
-
-		{
 			b3BodyDef bd;
 			b3Body* ground = m_world.CreateBody(bd);
 
@@ -79,10 +50,63 @@ public:
 		{
 			b3BodyDef bdef;
 			bdef.type = e_dynamicBody;
-			bdef.position.Set(2.0f, 5.0f, 0.0f);
+			bdef.position.Set(-10.0f, 5.0f, 0.0f);
 
 			b3Body* body = m_world.CreateBody(bdef);
 
+			b3SphereShape sphere;
+			sphere.m_center.SetZero();
+			sphere.m_radius = 1.0f;
+
+			b3ShapeDef sdef;
+			sdef.density = 0.1f;
+			sdef.friction = 0.3f;
+			sdef.shape = &sphere;
+
+			body->CreateShape(sdef);
+		}
+
+		{
+			b3BodyDef bdef;
+			bdef.type = e_dynamicBody;
+			bdef.position.Set(-5.0f, 5.0f, 0.0f);
+
+			b3Body* body = m_world.CreateBody(bdef);
+
+			b3CapsuleShape capsule;
+			capsule.m_centers[0].Set(0.0f, 0.0f, -1.0f);
+			capsule.m_centers[1].Set(0.0f, 0.0f, 1.0f);
+			capsule.m_radius = 1.0f;
+
+			b3ShapeDef sdef;
+			sdef.density = 0.1f;
+			sdef.friction = 0.2f;
+			sdef.shape = &capsule;
+
+			body->CreateShape(sdef);
+		}
+
+		{
+			b3BodyDef bdef;
+			bdef.type = e_dynamicBody;
+			bdef.position.Set(0.0f, 5.0f, 0.0f);
+
+			b3Body* body = m_world.CreateBody(bdef);
+
+			{
+				b3StackArray<b3Vec3, 32> points;
+				ConstructCone(points);
+
+				u32 size = qhGetMemorySize(points.Count());
+				void* p = b3Alloc(size);
+
+				qhHull hull;
+				hull.Construct(p, points);
+				m_coneHull = ConvertHull(hull);
+
+				b3Free(p);
+			}
+			
 			b3HullShape hull;
 			hull.m_hull = &m_coneHull;
 
@@ -97,16 +121,30 @@ public:
 		{
 			b3BodyDef bdef;
 			bdef.type = e_dynamicBody;
-			bdef.position.Set(-2.0f, 5.0f, 0.0f);
+			bdef.position.Set(4.0f, 5.0f, 0.0f);
 
 			b3Body* body = m_world.CreateBody(bdef);
+
+			{
+				b3StackArray<b3Vec3, 32> points;
+				ConstructCylinder(points);
+
+				const u32 size = qhGetMemorySize(points.Count());
+				void* p = b3Alloc(size);
+
+				qhHull hull;
+				hull.Construct(p, points);
+				m_cylinderHull = ConvertHull(hull);
+
+				b3Free(p);
+			}
 
 			b3HullShape hull;
 			hull.m_hull = &m_cylinderHull;
 
 			b3ShapeDef sdef;
 			sdef.density = 0.1f;
-			sdef.friction = 0.3f;
+			sdef.friction = 0.2f;
 			sdef.shape = &hull;
 
 			body->CreateShape(sdef);

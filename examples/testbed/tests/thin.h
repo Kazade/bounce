@@ -49,6 +49,16 @@ public:
 
 			b3Shape* shape = body->CreateShape(sdef);
 		}
+		
+		static b3BoxHull thinHull;
+
+		{
+			b3Transform xf;
+			xf.position.SetZero();
+			xf.rotation = b3Diagonal(4.05f, 2.0f * B3_LINEAR_SLOP, 4.05f);
+			
+			thinHull.SetTransform(xf);
+		}
 
 		b3Vec3 stackOrigin;
 		stackOrigin.Set(0.0f, 4.05f, 0.0f);
@@ -73,7 +83,7 @@ public:
 					b3Body* body = m_world.CreateBody(bdef);
 
 					b3HullShape hs;
-					hs.m_hull = &m_thinHull;
+					hs.m_hull = &thinHull;
 
 					b3ShapeDef sdef;
 					sdef.shape = &hs;

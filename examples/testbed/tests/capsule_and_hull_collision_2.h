@@ -16,31 +16,45 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_CAPSULE_H
-#define B3_CAPSULE_H
+#ifndef CAPSULE_HULL_2_H
+#define CAPSULE_HULL_2_H
 
-#include <bounce/common/math/vec3.h>
-
-struct b3Segment
+class CapsuleAndHullCollision2 : public Collide
 {
-	b3Vec3 vertices[2];
-	
-	const b3Vec3& GetVertex(u32 index) const;
-	u32 GetSupportVertex(const b3Vec3& direction) const;
-};
-
-inline const b3Vec3& b3Segment::GetVertex(u32 index) const
-{
-	return vertices[index];
-}
-
-inline u32 b3Segment::GetSupportVertex(const b3Vec3& d) const
-{
-	if (b3Dot(d, vertices[0]) > b3Dot(d, vertices[1]))
+public:
+	CapsuleAndHullCollision2()
 	{
-		return 0;
+		m_xfA.position.Set(0.0f, 0.0f, 0.0f);
+		m_xfA.rotation = b3ConvertQuatToRot(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.55f * B3_PI));
+
+		m_sA.m_centers[0].Set(0.0f, 0.0f, 0.0f);
+		m_sA.m_centers[1].Set(0.0f, 0.0f, 0.0f);
+		m_sA.m_radius = 0.05f;
+
+		m_xfB.position.Set(0.f, 0.0f, 0.0f);
+		m_xfB.rotation = b3ConvertQuatToRot(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.0f * B3_PI));
+
+		b3Transform xf;
+		xf.SetIdentity();
+		xf.rotation = b3Diagonal(4.0f, 1.0f, 4.0f);
+
+		m_box.SetTransform(xf);
+
+		m_sB.m_hull = &m_box;
+
+		m_shapeA = &m_sA;
+		m_shapeB = &m_sB;
+		m_cache.count = 0;
 	}
-	return 1;
-}
+
+	static Test* Create()
+	{
+		return new CapsuleAndHullCollision2();
+	}
+
+	b3CapsuleShape m_sA;
+	b3HullShape m_sB;
+	b3BoxHull m_box;
+};
 
 #endif

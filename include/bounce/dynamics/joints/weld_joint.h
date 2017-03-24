@@ -28,7 +28,7 @@ struct b3WeldJointDef : public b3JointDef
 		type = e_weldJoint;
 		localAnchorA.SetZero();
 		localAnchorB.SetZero();
-		relativeRotation.SetIdentity();
+		referenceRotation.SetIdentity();
 	}
 
 	// Initialize this definition from bodies and world anchor point.
@@ -41,7 +41,7 @@ struct b3WeldJointDef : public b3JointDef
 	b3Vec3 localAnchorB;
 
 	// The initial relative rotation from body A to body B.
-	b3Quat relativeRotation;
+	b3Quat referenceRotation;
 };
 
 // A weld joint removes the relative movement between two bodies. 
@@ -73,8 +73,7 @@ private:
 	// Solver shared
 	b3Vec3 m_localAnchorA;
 	b3Vec3 m_localAnchorB;
-	
-	b3Quat m_dq0;
+	b3Quat m_referenceRotation;
 
 	// Solver temp
 	u32 m_indexA;
@@ -92,8 +91,13 @@ private:
 	b3Vec3 m_impulse;
 	b3Mat33 m_mass;
 
+	// Weld constraint
+	b3Mat33 m_J1;
+	b3Mat33 m_J2;
+	b3Mat33 m_J1T;
+	b3Mat33 m_J2T;
 	b3Vec3 m_axisImpulse;
-	//b3Vec3 m_velocityBias;
+	b3Mat33 m_K;
 };
 
 #endif

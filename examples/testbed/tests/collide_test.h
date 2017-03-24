@@ -38,33 +38,33 @@ public:
 		cache.featureCache.m_featurePair.state = b3SATCacheType::e_empty;
 
 		b3Manifold manifold;
-		manifold.GuessImpulses();
+		manifold.Initialize();
 
 		b3CollideShapeAndShape(manifold, m_xfA, m_shapeA, m_xfB, m_shapeB, &cache);
-
-		b3WorldManifold wm;
-		wm.Initialize(&manifold, m_xfA, m_shapeA->m_radius, m_xfB, m_shapeB->m_radius);
 		
-		for (u32 i = 0; i < wm.pointCount; ++i)
+		for (u32 i = 0; i < manifold.pointCount; ++i)
 		{
-			b3WorldManifoldPoint* wmp = wm.points + i;
-			b3Vec3 pw = wmp->point;
+			b3WorldManifold wm;
+			wm.Initialize(&manifold, m_shapeA->m_radius, m_xfA, m_shapeB->m_radius, m_xfB);
+
+			b3Vec3 pw = wm.points[i].point;
 			b3Vec2 ps = g_camera.ConvertWorldToScreen(pw);
 			
 			g_debugDraw->DrawPoint(pw, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
-			g_debugDraw->DrawSegment(pw, pw + wmp->normal, b3Color(1.0f, 1.0f, 1.0f));
+			g_debugDraw->DrawSegment(pw, pw + wm.points[i].normal, b3Color(1.0f, 1.0f, 1.0f));
 		}
 
-		if (wm.pointCount > 0)
+		if (g_settings.drawFaces)
 		{
-			g_debugDraw->DrawPoint(wm.center, 4.0f, b3Color(1.0f, 1.0f, 0.0f));
-			g_debugDraw->DrawSegment(wm.center, wm.center + wm.normal, b3Color(1.0f, 1.0f, 0.0f));
-			g_debugDraw->DrawSegment(wm.center, wm.center + wm.tangent1, b3Color(1.0f, 1.0f, 0.0f));
-			g_debugDraw->DrawSegment(wm.center, wm.center + wm.tangent2, b3Color(1.0f, 1.0f, 0.0f));
+			g_debugDraw->DrawShape(m_shapeA, b3Color(1.0f, 1.0f, 1.0f, 0.5f), m_xfA);
+			g_debugDraw->DrawShape(m_shapeB, b3Color(1.0f, 1.0f, 1.0f, 0.5f), m_xfB);
 		}
 		
-		m_world.DrawShape(m_xfA, m_shapeA);
-		m_world.DrawShape(m_xfB, m_shapeB);
+		if (g_settings.drawVerticesEdges)
+		{
+			m_world.DrawShape(m_xfA, m_shapeA);
+			m_world.DrawShape(m_xfB, m_shapeB);
+		}
 	}
 
 	virtual void KeyDown(int key)

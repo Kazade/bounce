@@ -82,6 +82,28 @@ void b3Island::Add(b3Joint* j)
 	++m_jointCount;
 }
 
+// Box2D
+static B3_FORCE_INLINE b3Vec3 b3SolveGyroscopic(const b3Quat& q, const b3Mat33& Ib, const b3Vec3& w1, float32 h)
+{
+	// Convert angular velocity to body coordinates
+	b3Vec3 w1b = b3MulT(q, w1);
+	
+	// Jacobian of f
+	b3Mat33 J = Ib + h * (b3Skew(w1b) * Ib - b3Skew(Ib * w1b));
+	
+	// One iteration of Newton-Raphson
+	// Residual vector
+	b3Vec3 f;
+	{
+		f = h * b3Cross(w1b, Ib * w1b);
+		w1b -= J.Solve(f);
+	}
+	
+	// Convert angular velocity back to world coordinates
+	b3Vec3 w2 = b3Mul(q, w1b);
+	return w2;
+}
+
 void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, u32 positionIterations, u32 flags)
 {
 	float32 h = dt;
@@ -91,7 +113,7 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 	// Solution: v(t) = v0 * exp(-c * t)
 	// Step: v(t + dt) = v0 * exp(-c * (t + dt)) = v0 * exp(-c * t) * exp(-c * dt) = v * exp(-c * dt)
 	// v2 = exp(-c * dt) * v1
-	const float32 k_d = 0.1f;
+	const float32 k_d = 0.005f;
 	float32 d = exp(-k_d * h);
 
 	// 1. Integrate velocities
@@ -110,16 +132,35 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 
 		if (b->m_type == e_dynamicBody) 
 		{
-			b3Vec3 force = b->m_force + b->m_gravityScale * gravity;
-			
 			// Integrate forces
+			b3Vec3 force = b->m_force + b->m_gravityScale * gravity;
 			v += h * b->m_invMass * force;
+			
 			// Clear forces
 			b->m_force.SetZero();
 			
 			// Integrate torques
-			// @todo add gyroscopic term
-			w += h * b->m_worldInvI * b->m_torque;
+			
+			// Superposition Principle
+			// w2 - w1 = dw1 + dw2 
+			// w2 - w1 = h * I^1 * bt + h * I^1 * -gt
+			// w2 = w1 + dw1 + dw2
+						
+			// Explicit Euler on current inertia and applied torque
+			// w2 = w1 + h * I1^1 * bt1
+			b3Vec3 dw1 = h * b->m_worldInvI * b->m_torque;
+			
+			// Implicit Euler on next inertia and angular velocity
+			// w2 = w1 - h * I2^1 * cross(w2, I2 * w2)
+			// w2 - w1 = -I2^1 * h * cross(w2, I2 * w2)
+			// I2 * (w2 - w1) = -h * cross(w2, I2 * w2)
+			// I2 * (w2 - w1) + h * cross(w2, I2 * w2) = 0
+			// Toss out I2 from f using local I2 (constant) and local w1
+			b3Vec3 w2 = b3SolveGyroscopic(q, b->m_I, w, h);
+			b3Vec3 dw2 = w2 - w;
+
+			w += dw1 + dw2;
+			
 			// Clear torques
 			b->m_torque.SetZero();
 			
@@ -209,9 +250,8 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 			w *= ratio;
 		}
 
-		// Integrate linear velocity
+		// Integrate
 		x += h * v;
-		// Integrate angular velocity
 		q = b3Integrate(q, w, h);
 
 		m_positions[i].x = x;

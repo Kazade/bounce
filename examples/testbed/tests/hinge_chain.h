@@ -28,6 +28,14 @@ public:
 		g_camera.m_q = b3Quat(b3Vec3(0.0f, 1.0f, 0.0f), 0.15f * B3_PI);
 		g_camera.m_q = g_camera.m_q * b3Quat(b3Vec3(1.0f, 0.0f, 0.0f), -0.15f * B3_PI);
 		g_camera.m_center.SetZero();
+		
+		static b3BoxHull doorHull;
+		{
+			b3Transform xf;
+			xf.position.SetZero();
+			xf.rotation = b3Diagonal(2.0f, 4.0f, 0.5f);
+			doorHull.SetTransform(xf);
+		}
 
 		float32 x = -50.0f;
 		float32 y = 0.0f;
@@ -39,7 +47,7 @@ public:
 			lastHinge = m_world.CreateBody(bd);
 
 			b3HullShape hull;
-			hull.m_hull = &m_doorHull;
+			hull.m_hull = &doorHull;
 
 			b3ShapeDef sdef;
 			sdef.shape = &hull;
@@ -57,7 +65,7 @@ public:
 			b3Body* hinge = m_world.CreateBody(bd);
 
 			b3HullShape hull;
-			hull.m_hull = &m_doorHull;
+			hull.m_hull = &doorHull;
 			
 			b3ShapeDef sdef;
 			sdef.shape = &hull;
@@ -71,7 +79,7 @@ public:
 
 				b3RevoluteJointDef jd;
 				jd.Initialize(lastHinge, hinge, hingeAxis, hingeAnchor, 0.0f, 0.5f * B3_PI);
-				jd.collideLinked = true;
+				jd.collideLinked = false;
 
 				b3RevoluteJoint* rj = (b3RevoluteJoint*)m_world.CreateJoint(jd);
 			} 

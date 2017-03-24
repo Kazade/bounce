@@ -27,67 +27,54 @@
 // A contact manifold point.
 struct b3ManifoldPoint
 {
+	b3Vec3 localNormal1; // local normal on the first shape 
+	b3Vec3 localPoint1; // local point on the first shape without its radius
+	b3Vec3 localPoint2; // local point on the other shape without its radius
+
 	u32 triangleKey; // triangle identifier
 	u32 key; // point identifier
-	b3Vec3 localNormal; // local normal on the first shape
-	b3Vec3 localPoint; // local point on the first shape	
-	b3Vec3 localPoint2; // local point on the other shape
+
 	float32 normalImpulse; // normal impulse
-	b3Vec2 tangentImpulse; // tangent impulses 
-	u8 persisting; // indicates that the point is persisting
+	u32 persisting; // is this point persistent?
 };
 
-// A manifold is a group of contact points with similar contact normal.
+// A contact manifold is a group of contact points with similar contact normal.
 struct b3Manifold
 {
-	// Choose arbitrary impulses for warm starting.
-	void GuessImpulses();
+	// Clear the manifold.
+	// Initialize impulses arbitrarily for warm starting.
+	void Initialize();
 	
-	// Initialize impulses for warm starting.
-	void FindImpulses(const b3Manifold& old);
+	// Initialize impulses for warm starting from the old manifold.
+	void Initialize(const b3Manifold& old);
 	
 	b3ManifoldPoint points[B3_MAX_MANIFOLD_POINTS]; // manifold points
 	u32 pointCount; // number of manifold points
 
-	b3Vec3 center;
-	b3Vec3 normal;
-	b3Vec3 tangent1;
-	b3Vec3 tangent2;
 	b3Vec2 tangentImpulse;
 	float32 motorImpulse;
 };
 
-// A world manifold point.
 struct b3WorldManifoldPoint
 {
-	// Initialize this manifold from a local manifold point and two transforms.
-	// The radii should come from the shapes that generated the manifold.
-	void Initialize(const b3ManifoldPoint* point,
-		const b3Transform& xfA, float32 radiusA,
-		const b3Transform& xfB, float32 radiusB);
-
+	void Initialize(const b3ManifoldPoint* p, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB);
+	
 	b3Vec3 point;
 	b3Vec3 normal;
-	b3Vec2 tangents[2];
 	float32 separation;
 };
 
-// A contact manifold is a group of contact points with similar normal.
 struct b3WorldManifold
 {
-	// Initialize this world manifold from a local manifold and two transforms.
-	// The radii should come from the shapes that generated the manifold.
-	void Initialize(const b3Manifold* manifold,
-		const b3Transform& xfA, float32 radiusA,
-		const b3Transform& xfB, float32 radiusB);
+	void Initialize(const b3Manifold* m, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB);
+
+	u32 pointCount; 
+	b3WorldManifoldPoint points[B3_MAX_MANIFOLD_POINTS]; 
 
 	b3Vec3 center;
 	b3Vec3 normal;
 	b3Vec3 tangent1;
 	b3Vec3 tangent2;
-
-	b3WorldManifoldPoint points[B3_MAX_MANIFOLD_POINTS]; // contact points
-	u32 pointCount; // number of contact points
 };
 
 #endif

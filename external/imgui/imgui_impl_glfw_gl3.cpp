@@ -6,15 +6,14 @@
 // If you are new to ImGui, see examples/README.txt and documentation at the top of imgui.cpp.
 // https://github.com/ocornut/imgui
 
-#include <imgui/imgui.h>
-#include "imgui_impl_glfw_gl3.h"
-
 #if defined(__APPLE_CC__)
 	#include <OpenGL/gl3.h>
 #else
-	// GLEW/GL3W/GLAD/...
 	#include <glad/glad.h>
 #endif
+
+#include <imgui/imgui.h>
+#include "imgui_impl_glfw_gl3.h"
 
 #include <glfw/glfw3.h>
 

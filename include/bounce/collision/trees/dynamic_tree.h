@@ -22,7 +22,7 @@
 #include <bounce/common/draw.h>
 #include <bounce/common/template/stack.h>
 #include <bounce/collision/shapes/aabb3.h>
-#include <bounce/collision/distance.h>
+#include <bounce/collision/collision.h>
 
 #define NULL_NODE (-1)
 

@@ -75,13 +75,6 @@ inline float32 b3Distance(const b3Vec3& P, const b3Plane& plane)
 	return b3Dot(plane.normal, P) - plane.offset;
 }
 
-// Project a point onto a normal plane.
-inline b3Vec3 b3Project(const b3Vec3& P, const b3Plane& plane)
-{
-	float32 fraction = b3Distance(P, plane);
-	return P - fraction * plane.normal;
-}
-
 // Compute barycentric coordinates (u, v) for point Q to segment AB.
 // The last output value is the divisor.
 inline void b3Barycentric(float32 out[3], 
@@ -148,6 +141,35 @@ inline void b3Barycentric(float32 out[5],
 	out[2] = sign * b3Det(QA, QB, QD);
 	out[3] = sign * b3Det(QA, QC, QB);
 	out[4] = sign * divisor;
+}
+
+// Project a point onto a normal plane.
+inline b3Vec3 b3ClosestPointOnPlane(const b3Vec3& P, const b3Plane& plane)
+{
+	float32 fraction = b3Distance(P, plane);
+	return P - fraction * plane.normal;
+}
+
+// Project a point onto a segment AB.
+inline b3Vec3 b3ClosestPointOnSegment(const b3Vec3& P, const b3Vec3& A, const b3Vec3& B)
+{
+	float32 wAB[3];
+	b3Barycentric(wAB, A, B, P);
+
+	if (wAB[1] <= 0.0f)
+	{
+		return A;
+	}
+
+	if (wAB[0] <= 0.0f)
+	{
+		return B;
+	}
+
+	float32 s = 1.0f / wAB[2];
+	float32 wA = s * wAB[0];
+	float32 wB = s * wAB[1];
+	return wA * A + wB * B;
 }
 
 #endif

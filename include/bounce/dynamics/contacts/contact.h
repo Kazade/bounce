@@ -118,7 +118,7 @@ protected:
 	// Test if the shapes in this contact are overlapping.
 	virtual bool TestOverlap() = 0;
 
-	// Build new contact points.
+	// Initialize contact constraits.
 	virtual void Collide() = 0;
 
 	b3ContactType m_type;

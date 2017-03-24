@@ -27,6 +27,14 @@
 #include <testbed/framework/debug_draw.h>
 #include <testbed/framework/profiler.h>
 
+inline float32 RandomFloat(float32 a, float32 b)
+{
+	float32 x = float32(rand()) / float32(RAND_MAX);
+	float32 diff = b - a;
+	float32 r = x * diff;
+	return a + r;
+}
+
 struct Settings
 {
 	Settings()
@@ -45,8 +53,9 @@ struct Settings
 		drawContactPoints = true;
 		drawContactNormals = false;
 		drawContactTangents = false;
-		drawStats = true;
-		drawProfile = true;
+		drawContactAreas = false;
+		drawStats = false;
+		drawProfile = false;
 		drawGrid = true;
 		pause = false;
 		singleStep = false;
@@ -56,6 +65,8 @@ struct Settings
 
 	int lastTestID;
 	int testID;
+	bool pause;
+	bool singleStep;
 
 	float32 hertz;
 	int velocityIterations;
@@ -63,6 +74,7 @@ struct Settings
 	bool sleep;
 	bool warmStart;
 	bool convexCache;
+	
 	bool drawCenterOfMasses;
 	bool drawBounds;
 	bool drawVerticesEdges;
@@ -72,11 +84,10 @@ struct Settings
 	bool drawContactPoints;
 	bool drawContactNormals;
 	bool drawContactTangents;
+	bool drawContactAreas;
 	bool drawStats;
 	bool drawProfile;
 	bool drawGrid;
-	bool pause;
-	bool singleStep;
 };
 
 class Test;
@@ -132,22 +143,15 @@ public:
 	virtual void KeyDown(int button) { }
 	virtual void KeyUp(int button) { }
 
+	virtual void Dump() { }
+
 	b3World m_world;
-
-	b3RayCastSingleOutput m_rayHit; // local space
-	b3BoxHull m_groundHull;
-	b3BoxHull m_boxHull;
-	b3BoxHull m_tallHull;
-	b3BoxHull m_doorHull;
-	b3BoxHull m_rampHull;
-	b3BoxHull m_plankHull;
-	b3BoxHull m_thinHull;
-
-	b3Hull* m_qhull;
-
-	b3Mesh m_meshes[e_maxMeshes];
-
+	b3RayCastSingleOutput m_rayHit; // ray hit local space
 	b3MouseJoint* m_mouseJoint;
+
+	b3BoxHull m_groundHull;
+	b3BoxHull m_boxHull;	
+	b3Mesh m_meshes[e_maxMeshes];
 };
 
 #endif

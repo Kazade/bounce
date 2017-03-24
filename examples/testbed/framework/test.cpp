@@ -20,8 +20,8 @@
 
 extern u32 b3_allocCalls, b3_maxAllocCalls;
 extern u32 b3_gjkCalls, b3_gjkIters, b3_gjkMaxIters;
+extern bool b3_convexCache;
 extern u32 b3_convexCalls, b3_convexCacheHits;
-extern bool b3_enableConvexCache;
 extern b3Draw* b3_debugDraw;
 
 extern Settings g_settings;
@@ -29,21 +29,86 @@ extern DebugDraw* g_debugDraw;
 extern Camera g_camera;
 extern Profiler* g_profiler;
 
+static void BuildGrid(b3Mesh* mesh, u32 w, u32 h, bool randomY = false)
+{
+	b3Vec3 t;
+	t.x = -0.5f * float32(w);
+	t.y = 0.0f;
+	t.z = -0.5f * float32(h);
+
+	mesh->vertexCount = w * h;
+	mesh->vertices = (b3Vec3*)b3Alloc(mesh->vertexCount * sizeof(b3Vec3));
+
+	for (u32 i = 0; i < w; ++i)
+	{
+		for (u32 j = 0; j < h; ++j)
+		{
+			u32 v1 = i * w + j;
+
+			b3Vec3 v;
+			v.x = float32(i);
+			v.y = randomY ? RandomFloat(0.0f, 1.0f) : 0.0f;
+			v.z = float32(j);
+
+			v += t;
+
+			mesh->vertices[v1] = v;
+		}
+	}
+
+	mesh->triangleCount = 2 * (w - 1) * (h - 1);
+	mesh->triangles = (b3Triangle*)b3Alloc(mesh->triangleCount * sizeof(b3Triangle));
+
+	u32 triangleCount = 0;
+	for (u32 i = 0; i < w - 1; ++i)
+	{
+		for (u32 j = 0; j < h - 1; ++j)
+		{
+			u32 v1 = i * w + j;
+			u32 v2 = (i + 1) * w + j;
+			u32 v3 = (i + 1) * w + (j + 1);
+			u32 v4 = i * w + (j + 1);
+
+			B3_ASSERT(triangleCount < mesh->triangleCount);
+			b3Triangle* t1 = mesh->triangles + triangleCount;
+			++triangleCount;
+
+			t1->v1 = v3;
+			t1->v2 = v2;
+			t1->v3 = v1;
+
+			B3_ASSERT(triangleCount < mesh->triangleCount);
+			b3Triangle* t2 = mesh->triangles + triangleCount;
+			++triangleCount;
+
+			t2->v1 = v1;
+			t2->v2 = v4;
+			t2->v3 = v3;
+		}
+	}
+
+	B3_ASSERT(triangleCount == mesh->triangleCount);
+
+	mesh->BuildTree();
+}
+
 Test::Test()
 {
 	b3_allocCalls = 0;
 	b3_gjkCalls = 0;
 	b3_gjkIters = 0;
 	b3_gjkMaxIters = 0;
+	b3_convexCache = g_settings.convexCache;
 	b3_convexCalls = 0;
 	b3_convexCacheHits = 0;
-	b3_enableConvexCache = g_settings.convexCache;
 	b3_debugDraw = g_debugDraw;
 
 	m_world.SetContactListener(this);
 
-	g_camera.m_q = b3Quat(b3Vec3(0.0f, 1.0f, 0.0f), 0.15f * B3_PI);
-	g_camera.m_q = g_camera.m_q * b3Quat(b3Vec3(1.0f, 0.0f, 0.0f), -0.15f * B3_PI);
+	b3Quat q_y(b3Vec3(0.0f, 1.0f, 0.0f), 0.15f * B3_PI);
+	b3Quat q_x(b3Quat(b3Vec3(1.0f, 0.0f, 0.0f), -0.15f * B3_PI));
+
+	g_camera.m_q = q_y * q_x;
 	g_camera.m_zoom = 50.0f;
 	g_camera.m_center.SetZero();
 	
@@ -51,255 +116,17 @@ Test::Test()
 	m_mouseJoint = NULL;
 
 	{
-		b3Transform xf;
-		xf.position.SetZero();
-		xf.rotation = b3Diagonal(50.0f, 1.0f, 50.0f);
-		m_groundHull.SetTransform(xf);
+		b3Transform m;
+		m.position.SetZero();
+		m.rotation = b3Diagonal(50.0f, 1.0f, 50.0f);
+		m_groundHull.SetTransform(m);
 	}
 
-	{
-		b3Transform xf;
-		xf.position.SetZero();
-		xf.rotation = b3Diagonal(1.0f, 1.0f, 1.0f);
-		m_boxHull.SetTransform(xf);
-	}
+	m_boxHull.SetIdentity();
 
-	{
-		b3Transform xf;
-		xf.position.SetZero();
-		xf.rotation = b3Diagonal(1.0f, 5.0f, 1.0f);
-		m_tallHull.SetTransform(xf);
-	}
-
-	{
-		b3Transform xf;
-		xf.position.SetZero();
-		xf.rotation = b3Diagonal(2.0f, 4.0f, 0.5f);
-		m_doorHull.SetTransform(xf);
-	}
-	
-	{
-		b3Transform xf;
-		xf.position.SetZero();
-		xf.rotation = b3Diagonal(25.0f, 0.5f, 25.0f);
-		m_rampHull.SetTransform(xf);
-	}
-
-	{
-		b3Transform xf;
-		xf.position.SetZero();
-		xf.rotation = b3Diagonal(1.0f, 0.5f, 3.0f);
-		m_plankHull.SetTransform(xf);
-	}
-	
-	{
-		b3Transform xf;
-		xf.position.SetZero();
-		xf.rotation = b3Diagonal(4.05f, 2.0f * B3_LINEAR_SLOP, 4.05f);
-		m_thinHull.SetTransform(xf);
-	}
-
-	{
-		const u32 w = 5;
-		const u32 h = 5;
-
-		b3Vec3 t;
-		t.x = -0.5f * float32(w);
-		t.y = 0.0f;
-		t.z = -0.5f * float32(h);
-
-		b3Mesh* mesh = m_meshes + e_clothMesh;
-
-		mesh->vertexCount = w * h;
-		mesh->vertices = (b3Vec3*)b3Alloc(mesh->vertexCount * sizeof(b3Vec3));
-
-		for (u32 i = 0; i < w; ++i)
-		{
-			for (u32 j = 0; j < h; ++j)
-			{
-				u32 v1 = i * w + j;
-
-				b3Vec3 v;
-				v.x = float32(i);
-				v.y = RandomFloat(0.0f, 0.5f);
-				v.z = float32(j);
-
-				v += t;
-
-				mesh->vertices[v1] = v;
-			}
-		}
-
-		mesh->triangleCount = 2 * (w - 1) * (h - 1);
-		mesh->triangles = (b3Triangle*)b3Alloc(mesh->triangleCount * sizeof(b3Triangle));
-
-		u32 triangleCount = 0;
-		for (u32 i = 0; i < w - 1; ++i)
-		{
-			for (u32 j = 0; j < h - 1; ++j)
-			{
-				u32 v1 = i * w + j;
-				u32 v2 = (i + 1) * w + j;
-				u32 v3 = (i + 1) * w + (j + 1);
-				u32 v4 = i * w + (j + 1);
-
-				B3_ASSERT(triangleCount < mesh->triangleCount);
-				b3Triangle* t1 = mesh->triangles + triangleCount;
-				++triangleCount;
-
-				t1->v1 = v3;
-				t1->v2 = v2;
-				t1->v3 = v1;
-
-				B3_ASSERT(triangleCount < mesh->triangleCount);
-				b3Triangle* t2 = mesh->triangles + triangleCount;
-				++triangleCount;
-
-				t2->v1 = v1;
-				t2->v2 = v4;
-				t2->v3 = v3;
-			}
-		}
-
-		B3_ASSERT(triangleCount == mesh->triangleCount);
-
-		mesh->BuildTree();
-	}
-
-	{
-		const u32 w = 50;
-		const u32 h = 50;
-
-		b3Vec3 t;
-		t.x = -0.5f * float32(w);
-		t.y = 0.0f;
-		t.z = -0.5f * float32(h);
-
-		b3Mesh* mesh = m_meshes + e_gridMesh;
-
-		mesh->vertexCount = w * h;
-		mesh->vertices = (b3Vec3*)b3Alloc(mesh->vertexCount * sizeof(b3Vec3));
-
-		for (u32 i = 0; i < w; ++i)
-		{
-			for (u32 j = 0; j < h; ++j)
-			{
-				u32 v1 = i * w + j;
-
-				b3Vec3 v;
-				v.x = float32(i);
-				v.y = 0.0f;
-				v.z = float32(j);
-
-				v += t;
-
-				mesh->vertices[v1] = v;
-			}
-		}
-
-		// 2 triangles per quad
-		mesh->triangleCount = 2 * (w - 1) * (h - 1);
-		mesh->triangles = (b3Triangle*)b3Alloc(mesh->triangleCount * sizeof(b3Triangle));
-
-		u32 triangleCount = 0;
-		for (u32 i = 0; i < w - 1; ++i)
-		{
-			for (u32 j = 0; j < h - 1; ++j)
-			{
-				u32 v1 = i * w + j;
-				u32 v2 = (i + 1) * w + j;
-				u32 v3 = (i + 1) * w + (j + 1);
-				u32 v4 = i * w + (j + 1);
-
-				B3_ASSERT(triangleCount < mesh->triangleCount);
-				b3Triangle* t1 = mesh->triangles + triangleCount;
-				++triangleCount;
-
-				t1->v1 = v3;
-				t1->v2 = v2;
-				t1->v3 = v1;
-
-				B3_ASSERT(triangleCount < mesh->triangleCount);
-				b3Triangle* t2 = mesh->triangles + triangleCount;
-				++triangleCount;
-
-				t2->v1 = v1;
-				t2->v2 = v4;
-				t2->v3 = v3;
-			}
-		}
-
-		B3_ASSERT(triangleCount == mesh->triangleCount);
-
-		mesh->BuildTree();
-	}
-
-	{
-		const u32 w = 50;
-		const u32 h = 50;
-
-		b3Vec3 t;
-		t.x = -0.5f * float32(w);
-		t.y = 0.0f;
-		t.z = -0.5f * float32(h);
-
-		b3Mesh* mesh = m_meshes + e_terrainMesh;
-		
-		mesh->vertexCount = w * h;
-		mesh->vertices = (b3Vec3*)b3Alloc(mesh->vertexCount * sizeof(b3Vec3));
-		
-		for (u32 i = 0; i < w; ++i)
-		{
-			for (u32 j = 0; j < h; ++j)
-			{
-				u32 v1 = i * w + j;
-				
-				b3Vec3 v;
-				v.x = 2.0f * float32(i);
-				v.y = RandomFloat(0.0f, 0.5f);
-				v.z = 2.0f *float32(j);
-
-				v += t;
-
-				mesh->vertices[v1] = v;
-			}
-		}
-
-		mesh->triangleCount = 2 * (w - 1) * (h - 1);
-		mesh->triangles = (b3Triangle*)b3Alloc(mesh->triangleCount * sizeof(b3Triangle));
-
-		u32 triangleCount = 0;
-		for (u32 i = 0; i < w - 1; ++i)
-		{
-			for (u32 j = 0; j < h - 1; ++j)
-			{
-				u32 v1 = i * w + j;
-				u32 v2 = (i + 1) * w + j;
-				u32 v3 = (i + 1) * w + (j + 1);
-				u32 v4 = i * w + (j + 1);
-
-				B3_ASSERT(triangleCount < mesh->triangleCount);
-				b3Triangle* t1 = mesh->triangles + triangleCount;
-				++triangleCount;
-
-				t1->v1 = v3;
-				t1->v2 = v2;
-				t1->v3 = v1;
-
-				B3_ASSERT(triangleCount < mesh->triangleCount);
-				b3Triangle* t2 = mesh->triangles + triangleCount;
-				++triangleCount;
-
-				t2->v1 = v1;
-				t2->v2 = v4;
-				t2->v3 = v3;
-			}
-		}
-
-		B3_ASSERT(triangleCount == mesh->triangleCount);
-
-		mesh->BuildTree();
-	}
+	BuildGrid(m_meshes + e_gridMesh, 50, 50);
+	BuildGrid(m_meshes + e_terrainMesh, 50, 50, true);
+	BuildGrid(m_meshes + e_clothMesh, 10, 10);
 }
 
 Test::~Test()
@@ -345,10 +172,10 @@ void Test::Step()
 	b3_gjkCalls = 0;
 	b3_gjkIters = 0;
 	b3_gjkMaxIters = 0;
+	b3_convexCache = g_settings.convexCache;
 	b3_convexCalls = 0;
 	b3_convexCacheHits = 0;
-	b3_enableConvexCache = g_settings.convexCache;
-	
+
 	// Step
 	ProfileBegin();
 
@@ -369,6 +196,7 @@ void Test::Step()
 	drawFlags += g_settings.drawContactPoints * b3Draw::e_contactPointsFlag;
 	drawFlags += g_settings.drawContactNormals * b3Draw::e_contactNormalsFlag;
 	drawFlags += g_settings.drawContactTangents * b3Draw::e_contactTangentsFlag;
+	drawFlags += g_settings.drawContactAreas * b3Draw::e_contactAreasFlag;
 
 	g_debugDraw->SetFlags(drawFlags);
 	m_world.DebugDraw();
@@ -448,7 +276,7 @@ void Test::MouseMove(const Ray3& pw)
 		float32 w1 = 1.0f - t;
 		float32 w2 = t;
 
-		b3Vec3 target = w1 * pw.Start() + w2 * pw.End();
+		b3Vec3 target = w1 * pw.A() + w2 * pw.B();
 		m_mouseJoint->SetTarget(target);
 	}
 }
@@ -468,8 +296,8 @@ void Test::MouseLeftDown(const Ray3& pw)
 	}
 
 	// Perform the ray cast
-	b3Vec3 p1 = pw.Start();
-	b3Vec3 p2 = pw.End();
+	b3Vec3 p1 = pw.A();
+	b3Vec3 p2 = pw.B();
 
 	b3RayCastSingleOutput out;
 	if (m_world.RayCastSingle(&out, p1, p2))

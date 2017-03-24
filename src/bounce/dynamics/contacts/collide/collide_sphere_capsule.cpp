@@ -20,24 +20,22 @@
 #include <bounce/dynamics/contacts/manifold.h>
 #include <bounce/dynamics/shapes/sphere_shape.h>
 #include <bounce/dynamics/shapes/capsule_shape.h>
-#include <bounce/collision/shapes/sphere.h>
-#include <bounce/collision/shapes/capsule.h>
 
-void b3CollideSphereAndCapsule(b3Manifold& manifold,
-	const b3Transform& xfA, const b3SphereShape* sA,
-	const b3Transform& xfB, const b3CapsuleShape* sB)
+void b3CollideSphereAndCapsule(b3Manifold& manifold, 
+	const b3Transform& xf1, const b3SphereShape* s1,
+	const b3Transform& xf2, const b3CapsuleShape* s2)
 {
-	b3Vec3 Q = b3Mul(xfA, sA->m_center);
+	b3Vec3 Q = b3Mul(xf1, s1->m_center);
 
-	b3Vec3 A = b3Mul(xfB, sB->m_centers[0]);
-	b3Vec3 B = b3Mul(xfB, sB->m_centers[1]);
+	b3Vec3 A = b3Mul(xf2, s2->m_centers[0]);
+	b3Vec3 B = b3Mul(xf2, s2->m_centers[1]);
 	b3Vec3 AB = B - A;
 	
 	// Barycentric coordinates for Q
 	float32 u = b3Dot(B - Q, AB);
 	float32 v = b3Dot(Q - A, AB);
 	
-	float32 radius = sA->m_radius + sB->m_radius;
+	float32 radius = s1->m_radius + s2->m_radius;
 
 	if (v <= 0.0f)
 	{
@@ -58,16 +56,12 @@ void b3CollideSphereAndCapsule(b3Manifold& manifold,
 		}
 		
 		manifold.pointCount = 1;
+		manifold.points[0].localNormal1 = b3MulT(xf1.rotation, n);
+		manifold.points[0].localPoint1 = s1->m_center;
+		manifold.points[0].localPoint2 = s2->m_centers[0];
 		manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
 		manifold.points[0].key = 0;
-		manifold.points[0].localNormal = b3MulT(xfA.rotation, n);
-		manifold.points[0].localPoint = sA->m_center;
-		manifold.points[0].localPoint2 = sB->m_centers[0];
 
-		manifold.center = 0.5f * (P + sA->m_radius * n + Q - sB->m_radius * n);
-		manifold.normal = n;
-		manifold.tangent1 = b3Perp(n);
-		manifold.tangent2 = b3Cross(manifold.tangent1, n);
 		return;
 	}
 
@@ -90,21 +84,16 @@ void b3CollideSphereAndCapsule(b3Manifold& manifold,
 		}
 
 		manifold.pointCount = 1;
+		manifold.points[0].localNormal1 = b3MulT(xf1.rotation, n);
+		manifold.points[0].localPoint1 = s1->m_center;
+		manifold.points[0].localPoint2 = s2->m_centers[1];
 		manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
 		manifold.points[0].key = 0;
-		manifold.points[0].localNormal = b3MulT(xfA.rotation, n);
-		manifold.points[0].localPoint = sA->m_center;
-		manifold.points[0].localPoint2 = sB->m_centers[1];
 
-		manifold.center = 0.5f * (P + sA->m_radius * n + Q - sB->m_radius * n);
-		manifold.normal = n;
-		manifold.tangent1 = b3Perp(n);
-		manifold.tangent2 = b3Cross(manifold.tangent1, n);
 		return;
 	}
 
 	// AB
-	//float32 s = u + v;
 	float32 s = b3Dot(AB, AB);
 	//B3_ASSERT(s > 0.0f);
 	b3Vec3 P;
@@ -134,14 +123,9 @@ void b3CollideSphereAndCapsule(b3Manifold& manifold,
 	n.Normalize();
 	
 	manifold.pointCount = 1;
+	manifold.points[0].localNormal1 = b3MulT(xf1.rotation, n);
+	manifold.points[0].localPoint1 = s1->m_center;
+	manifold.points[0].localPoint2 = b3MulT(xf2, P);
 	manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
 	manifold.points[0].key = 2;
-	manifold.points[0].localNormal = b3MulT(xfA.rotation, n);
-	manifold.points[0].localPoint = sA->m_center;
-	manifold.points[0].localPoint2 = b3MulT(xfB, P);
-
-	manifold.center = 0.5f * (P + sA->m_radius * n + Q - sB->m_radius * n);
-	manifold.normal = n;
-	manifold.tangent1 = b3Perp(n);
-	manifold.tangent2 = b3Cross(manifold.tangent1, n);
 }

@@ -16,22 +16,16 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef JENGA_H
-#define JENGA_H
+#ifndef INITIAL_OVERLAP_H
+#define INITIAL_OVERLAP_H
 
-class Jenga : public Test
+class InitialOverlap : public Test
 {
 public:
-	enum
-	{
-		e_layerCount = 20,
-		e_depthCount = 3,
-	};
-
-	Jenga()
+	InitialOverlap()
 	{
 		g_camera.m_center.Set(2.0f, -2.0f, 0.0f);
-		g_camera.m_zoom = 60.0f;
+		g_camera.m_zoom = 10.0f;
 
 		{
 			b3BodyDef bd;
@@ -46,7 +40,7 @@ public:
 			body->CreateShape(sd);
 		}
 
-		b3Vec3 boxScale(1.0f, 0.5f, 3.0f);
+		b3Vec3 boxScale(1.0f, 0.5f, 2.0f);
 
 		static b3BoxHull boxHull;
 
@@ -56,65 +50,52 @@ public:
 
 		boxHull.SetTransform(m);
 
-		float32 y = 2.0f;
-
-		for (u32 i = 0; i < e_layerCount / 2; ++i)
 		{
-			for (u32 j = 0; j < e_depthCount; ++j)
-			{
-				b3BodyDef bd;
-				bd.type = b3BodyType::e_dynamicBody;
+			b3BodyDef bd;
+			bd.type = e_dynamicBody;
+			bd.position.Set(0.0f, 1.0f, 0.0f);
 
-				bd.position.x = 2.0f * float32(j) * boxScale.x;
-				bd.position.y = y;
-				bd.position.z = 0.0f;
-				
-				b3Body* body = m_world.CreateBody(bd);
+			b3Body* body = m_world.CreateBody(bd);
 
-				b3HullShape hs;
-				hs.m_hull = &boxHull;
+			b3HullShape hs;
+			hs.m_hull = &boxHull;
 
-				b3ShapeDef sd;
-				sd.shape = &hs;
-				sd.density = 0.1f;
-				sd.friction = 0.3f;
+			b3ShapeDef sd;
+			sd.shape = &hs;
+			sd.density = 0.1f;
+			sd.friction = 0.3f;
 
-				body->CreateShape(sd);
-			}
+			body->CreateShape(sd);
+		}
 
-			y += 2.05f * boxScale.y;
+		{
+			b3BodyDef bd;
+			bd.type = e_dynamicBody;
+			bd.position.Set(0.0f, 1.5f, 0.0f);
 
-			for (u32 j = 0; j < e_depthCount; ++j)
-			{
-				b3BodyDef bd;
-				bd.type = b3BodyType::e_dynamicBody;
+			b3Quat q_y(b3Vec3(0.0f, 1.0f, 0.0f), 0.4f * B3_PI);
+			b3Quat q_z(b3Vec3(0.0f, 0.0f, 1.0f), 0.04f * B3_PI);
+			b3Quat q = q_z * q_y;
 
-				bd.orientation.Set(b3Vec3(0.0f, 1.0f, 0.0f), 0.5f * B3_PI);
+			bd.orientation = q;
 
-				bd.position.x = 2.0f * boxScale.x;
-				bd.position.y = y;
-				bd.position.z = -2.0f * boxScale.x + 2.0f * float32(j) * boxScale.x;
-				
-				b3Body* body = m_world.CreateBody(bd);
+			b3Body* body = m_world.CreateBody(bd);
 
-				b3HullShape hs;
-				hs.m_hull = &boxHull;
+			b3HullShape hs;
+			hs.m_hull = &boxHull;
 
-				b3ShapeDef sd;
-				sd.shape = &hs;
-				sd.density = 0.1f;
-				sd.friction = 0.3f;
+			b3ShapeDef sd;
+			sd.shape = &hs;
+			sd.density = 0.1f;
+			sd.friction = 0.3f;
 
-				body->CreateShape(sd);
-			}
-
-			y += 2.05f * boxScale.y;
+			body->CreateShape(sd);
 		}
 	}
 
 	static Test* Create()
 	{
-		return new Jenga();
+		return new InitialOverlap();
 	}
 };
 

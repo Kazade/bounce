@@ -35,7 +35,7 @@ public:
 			sd.shape = &hs;
 			ground->CreateShape(sd);
 		}
-		
+
 		b3Body* head;
 		b3Body* hip;
 		b3Body* lArm;
@@ -106,10 +106,10 @@ public:
 			b3ShapeDef sd;
 			sd.shape = &cs;
 			sd.density = 0.25f;
-			
+
 			lArm->CreateShape(sd);
 		}
-		
+
 		// Link left arm to chest
 		{
 			b3ConeJointDef cd;
@@ -139,7 +139,7 @@ public:
 
 			rArm->CreateShape(sd);
 		}
-		
+
 		// Link right arm to chest
 		{
 			b3ConeJointDef cd;
@@ -209,7 +209,7 @@ public:
 			b3ConeJoint* cj = (b3ConeJoint*)m_world.CreateJoint(cd);
 		}
 	}
-	
+
 	void KeyDown(int button)
 	{
 	}

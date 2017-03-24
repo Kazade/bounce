@@ -21,7 +21,6 @@
 
 #include <bounce/dynamics/shapes/shape.h>
 
-// A capsule defined along the up-axis.
 class b3CapsuleShape : public b3Shape 
 {
 public:

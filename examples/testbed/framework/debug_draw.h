@@ -20,13 +20,29 @@
 #define DEBUG_DRAW_H
 
 #include <bounce/bounce.h>
-#include "mat44.h"
 
 struct DrawPoints;
 struct DrawLines;
 struct DrawTriangles;
 struct DrawWire;
 struct DrawSolid;
+
+struct Ray3
+{
+	b3Vec3 A() const
+	{
+		return origin;
+	}
+
+	b3Vec3 B() const
+	{
+		return origin + fraction * direction;
+	}
+
+	b3Vec3 direction;
+	b3Vec3 origin;
+	float32 fraction;
+};
 
 class Camera
 {
@@ -38,15 +54,15 @@ public:
 		m_width = 1024.0f;
 		m_height = 768.0f;
 		m_zNear = 1.0f;
-		m_zFar = 500.0f;
+		m_zFar = 1000.0f;
 		m_fovy = 0.25f * B3_PI;
 		m_zoom = 10.0f;
 	}
 
-	Mat44 BuildProjectionMatrix() const;
-	Mat44 BuildViewMatrix() const;
+	b3Mat44 BuildProjectionMatrix() const;
+	b3Mat44 BuildViewMatrix() const;
 	b3Transform BuildViewTransform() const;
-	Mat44 BuildWorldMatrix() const;
+	b3Mat44 BuildWorldMatrix() const;
 	b3Transform BuildWorldTransform() const;
 	
 	b3Vec2 ConvertWorldToScreen(const b3Vec3& pw) const;

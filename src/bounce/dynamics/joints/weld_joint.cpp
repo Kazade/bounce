@@ -19,7 +19,76 @@
 #include <bounce/dynamics/joints/weld_joint.h>
 #include <bounce/dynamics/body.h>
 #include <bounce/common/draw.h>
-#include <bounce/common/math/mat.h>
+
+/*
+P = [0 1 0 0]
+	[0 0 1 0]
+	[0 0 0 1]
+
+q = conj(q1) * q2
+
+C = P * q
+C' = P * q'
+
+q' = 
+conj(q1)' * q2 + conj(q1) * q2' =
+conj(q2') * q2 + conj(q1) * q2'
+
+J1 = -0.5 * Q(conj(q1)) * P(q2)
+J2 =  0.5 * Q(conj(q1)) * P(q2)
+
+J1 = P * J1 * P^T
+J2 = P * J2 * P^T
+*/
+
+static b3Mat44 iQ_mat(const b3Quat& q)
+{
+	b3Mat44 Q;
+	Q.x = b3Vec4(q.w, q.x, q.y, q.z);
+	Q.y = b3Vec4(-q.x, q.w, q.z, -q.y);
+	Q.z = b3Vec4(-q.y, -q.z, q.w, q.x);
+	Q.w = b3Vec4(-q.z, q.y, -q.x, q.w);
+	return Q;
+}
+
+static b3Mat44 iP_mat(const b3Quat& q)
+{
+	b3Mat44 P;
+	P.x = b3Vec4(q.w, q.x, q.y, q.z);
+	P.y = b3Vec4(-q.x, q.w, -q.z, q.y);
+	P.z = b3Vec4(-q.y, q.z, q.w, -q.x);
+	P.w = b3Vec4(-q.z, -q.y, q.x, q.w);
+	return P;
+}
+
+static b3Mat34 P_mat()
+{
+	b3Mat34 P;
+	P.x = b3Vec3(0.0f, 0.0f, 0.0f);
+	P.y = b3Vec3(1.0f, 0.0f, 0.0f);
+	P.z = b3Vec3(0.0f, 1.0f, 0.0f);
+	P.w = b3Vec3(0.0f, 0.0f, 1.0f);
+	return P;
+}
+
+static b3Mat34 P_lock_mat()
+{
+	b3Mat34 P;
+	P.x = b3Vec3(0.0f, 0.0f, 0.0f);
+	P.y = b3Vec3(1.0f, 0.0f, 0.0f);
+	P.z = b3Vec3(0.0f, 1.0f, 0.0f);
+	P.w = b3Vec3(0.0f, 0.0f, 1.0f);
+	return P;
+}
+
+static b3Vec4 q_to_v(const b3Quat& q)
+{
+	return b3Vec4(q.w, q.x, q.y, q.z);
+}
+
+static b3Mat34 P = P_mat();
+static b3Mat43 PT = b3Transpose(P);
+static b3Mat34 P_lock = P_lock_mat();
 
 void b3WeldJointDef::Initialize(b3Body* bA, b3Body* bB, const b3Vec3& anchor)
 {
@@ -31,7 +100,7 @@ void b3WeldJointDef::Initialize(b3Body* bA, b3Body* bB, const b3Vec3& anchor)
 	b3Quat qA = bodyA->GetOrientation();
 	b3Quat qB = bodyB->GetOrientation();
 
-	relativeRotation = b3Conjugate(qA) * qB;
+	referenceRotation = b3Conjugate(qA) * qB;
 }
 
 b3WeldJoint::b3WeldJoint(const b3WeldJointDef* def)
@@ -39,7 +108,7 @@ b3WeldJoint::b3WeldJoint(const b3WeldJointDef* def)
 	m_type = e_weldJoint;
 	m_localAnchorA = def->localAnchorA;
 	m_localAnchorB = def->localAnchorB;
-	m_dq0 = def->relativeRotation;
+	m_referenceRotation = def->referenceRotation;
 	m_impulse.SetZero();
 	m_axisImpulse.SetZero();
 }
@@ -74,6 +143,18 @@ void b3WeldJoint::InitializeConstraints(const b3SolverData* data)
 
 		m_mass = M + RA * m_iA * RAT + RB * m_iB * RBT;
 	}
+
+	{
+		b3Quat dq = b3Conjugate(m_referenceRotation) * b3Conjugate(qA) * qB;
+
+		m_J1 = -0.5f * P_lock * iQ_mat(b3Conjugate(qA)) * iP_mat(qB) * PT;
+		m_J2 =  0.5f * P_lock * iQ_mat(b3Conjugate(qA)) * iP_mat(qB) * PT;
+
+		m_J1T = b3Transpose(m_J1);
+		m_J2T = b3Transpose(m_J2);
+
+		m_K = m_J1 * m_iA * m_J1T + m_J2 * m_iB * m_J2T;
+	}
 }
 
 void b3WeldJoint::WarmStart(const b3SolverData* data)
@@ -83,11 +164,21 @@ void b3WeldJoint::WarmStart(const b3SolverData* data)
 	b3Vec3 vB = data->velocities[m_indexB].v;
 	b3Vec3 wB = data->velocities[m_indexB].w;
 
-	vA -= m_mA * m_impulse;
-	wA -= m_iA * (b3Cross(m_rA, m_impulse) + m_axisImpulse);
+	{
+		vA -= m_mA * m_impulse;
+		wA -= m_iA * b3Cross(m_rA, m_impulse);
 
-	vB += m_mB * m_impulse;
-	wB += m_iB * (b3Cross(m_rB, m_impulse) + m_axisImpulse);
+		vB += m_mB * m_impulse;
+		wB += m_iB * b3Cross(m_rB, m_impulse);
+	}
+
+	{
+		b3Vec3 P1 = m_J1T * m_axisImpulse;
+		b3Vec3 P2 = m_J2T * m_axisImpulse;
+
+		wA += m_iA * P1;
+		wB += m_iB * P2;
+	}
 
 	data->velocities[m_indexA].v = vA;
 	data->velocities[m_indexA].w = wA;
@@ -119,13 +210,16 @@ void b3WeldJoint::SolveVelocityConstraints(const b3SolverData* data)
 	}
 
 	{
-		b3Vec3 Cdot = wB - wA;
-		b3Vec3 impulse = -Cdot;
-
+		b3Vec3 Cdot = m_J1 * wA + m_J2 * wB;
+		b3Vec3 impulse = m_K.Solve(-Cdot);
+		
 		m_axisImpulse += impulse;
 
-		wA -= m_iA * impulse;
-		wB += m_iB * impulse;
+		b3Vec3 P1 = m_J1T * impulse;
+		b3Vec3 P2 = m_J2T * impulse;
+
+		wA += m_iA * P1;
+		wB += m_iB * P2;
 	}
 
 	data->velocities[m_indexA].v = vA;
@@ -172,34 +266,33 @@ bool b3WeldJoint::SolvePositionConstraints(const b3SolverData* data)
 
 	float32 angularError = 0.0f;
 
-	{
-		// qC = inv(dq0) * dq = q_identity
-		// qB - qA - q_rel0
-		// Small angle approximation
-		// C = 2 * sin(theta / 2) = theta
-		b3Quat dq = b3Conjugate(m_dq0) * b3Conjugate(qA) * qB;
-		if (dq.w < 0.0f)
-		{
-			dq.x = -dq.x;
-			dq.y = -dq.y;
-			dq.z = -dq.z;
-		}
-		b3Vec3 axis(dq.x, dq.y, dq.z);
-		axis = b3Mul(qA, axis);
+	{		
+		b3Quat dq = b3Conjugate(m_referenceRotation) * b3Conjugate(qA) * qB;
+		b3Vec4 dq_v = q_to_v(dq);
 
-		b3Vec3 C = 2.0f * axis;
+		b3Vec3 C = P * dq_v;
 
-		b3Vec3 P = -C;
-		
-		qA -= b3Derivative(qA, m_iA * P);
+		angularError += b3Length(C);
+
+		b3Mat33 J1 = -0.5f * P_lock * iQ_mat(b3Conjugate(qA)) * iP_mat(qB) * PT;
+		b3Mat33 J2 = 0.5f * P_lock * iQ_mat(b3Conjugate(qA)) * iP_mat(qB) * PT;
+
+		b3Mat33 J1T = b3Transpose(J1);
+		b3Mat33 J2T = b3Transpose(J2);
+
+		b3Mat33 mass = J1 * m_iA * J1T + J2 * m_iB * J2T;
+		b3Vec3 impulse = mass.Solve(-C);
+
+		b3Vec3 P1 = J1T * impulse;
+		b3Vec3 P2 = J2T * impulse;
+
+		qA += b3Derivative(qA, m_iA * P1);
 		qA.Normalize();
 
-		qB += b3Derivative(qB, m_iB * P);
+		qB += b3Derivative(qB, m_iB * P2);
 		qB.Normalize();
-		
-		angularError += b3Length(C);
 	}
-	
+
 	data->positions[m_indexA].x = xA;
 	data->positions[m_indexA].q = qA;
 	data->positions[m_indexB].x = xB;

@@ -54,22 +54,22 @@ public:
 		{
 			b3GJKFeaturePair featurePair = b3GetFeaturePair(m_cache);
 
-			for (u32 i = 0; i < featurePair.countA; ++i)
+			for (u32 i = 0; i < featurePair.count1; ++i)
 			{
-				u32 index = featurePair.indexA[i];
+				u32 index = featurePair.index1[i];
 				g_debugDraw->DrawPoint(m_xfA * m_proxyA.GetVertex(index), 4.0f, b3Color(1.0f, 1.0f, 0.0f));
 			}
 
-			for (u32 i = 0; i < featurePair.countB; ++i)
+			for (u32 i = 0; i < featurePair.count2; ++i)
 			{
-				u32 index = featurePair.indexB[i];
+				u32 index = featurePair.index2[i];
 				g_debugDraw->DrawPoint(m_xfB * m_proxyB.GetVertex(index), 4.0f, b3Color(1.0f, 1.0f, 0.0f));
 			}
 		}
 		
-		g_debugDraw->DrawPoint(out.pointA, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
-		g_debugDraw->DrawPoint(out.pointB, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
-		g_debugDraw->DrawSegment(out.pointA, out.pointB, b3Color(1.0f, 1.0f, 1.0f));
+		g_debugDraw->DrawPoint(out.point1, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
+		g_debugDraw->DrawPoint(out.point2, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
+		g_debugDraw->DrawSegment(out.point1, out.point2, b3Color(1.0f, 1.0f, 1.0f));
 
 		g_debugDraw->DrawTransform(m_xfA);
 		g_debugDraw->DrawTransform(m_xfB);

@@ -64,9 +64,17 @@ public:
 			bdef.orientation = b3Quat(b3Vec3(0.0f, 1.0f, 0.0f), 0.25f * B3_PI);
 
 			b3Body* body = m_world.CreateBody(bdef);
+			
+			static b3BoxHull boxHull;
+			{
+				b3Transform xf;
+				xf.position.SetZero();
+				xf.rotation = b3Diagonal(2.0f, 4.0f, 0.5f);
+				boxHull.SetTransform(xf);
+			}
 
 			b3HullShape hs;
-			hs.m_hull = &m_tallHull;
+			hs.m_hull = &boxHull;
 
 			b3ShapeDef sdef;
 			sdef.shape = &hs;

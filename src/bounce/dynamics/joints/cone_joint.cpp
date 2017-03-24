@@ -36,7 +36,7 @@ void b3ConeJointDef::Initialize(b3Body* bA, b3Body* bB,
 {
 	bodyA = bA;
 	bodyB = bB;
-	
+
 	b3Transform xf;
 	xf.rotation.y = axis;
 	xf.rotation.z = b3Perp(axis);
@@ -80,7 +80,7 @@ void b3ConeJoint::InitializeConstraints(const b3SolverData* data)
 
 	b3Vec3 xA = data->positions[m_indexA].x;
 	b3Quat qA = data->positions[m_indexA].q;
-	
+
 	b3Vec3 xB = data->positions[m_indexB].x;
 	b3Quat qB = data->positions[m_indexB].q;
 
@@ -108,10 +108,10 @@ void b3ConeJoint::InitializeConstraints(const b3SolverData* data)
 		b3Vec3 u2 = xfB.rotation.y;
 
 		m_limitAxis = b3Cross(u2, u1);
-		
+
 		float32 mass = b3Dot((m_iA + m_iB) * m_limitAxis, m_limitAxis);
 		m_limitMass = mass > 0.0f ? 1.0f / mass : 0.0f;
-		
+
 		// C = cone / 2 - angle >= 0
 		float32 cosine = b3Dot(u2, u1);
 		float32 sine = b3Length(m_limitAxis);
@@ -142,7 +142,7 @@ void b3ConeJoint::WarmStart(const b3SolverData* data)
 	b3Vec3 wA = data->velocities[m_indexA].w;
 	b3Vec3 vB = data->velocities[m_indexB].v;
 	b3Vec3 wB = data->velocities[m_indexB].w;
-	
+
 	{
 		vA -= m_mA * m_impulse;
 		wA -= m_iA * b3Cross(m_rA, m_impulse);
@@ -175,7 +175,7 @@ void b3ConeJoint::SolveVelocityConstraints(const b3SolverData* data)
 	{
 		b3Vec3 Cdot = vB + b3Cross(wB, m_rB) - vA - b3Cross(wA, m_rA);
 		b3Vec3 P = m_mass.Solve(-Cdot);
-		
+
 		m_impulse += P;
 
 		vA -= m_mA * P;
@@ -234,7 +234,7 @@ bool b3ConeJoint::SolvePositionConstraints(const b3SolverData* data)
 		b3Mat33 RB = b3Skew(rB);
 		b3Mat33 RBT = b3Transpose(RB);
 		b3Mat33 mass = M + RA * iA * RAT + RB * iB * RBT;
-		
+
 		b3Vec3 P = mass.Solve(-C);
 
 		xA -= mA * P;
@@ -254,7 +254,7 @@ bool b3ConeJoint::SolvePositionConstraints(const b3SolverData* data)
 		b3Vec3 u1 = b3Mul(qA, m_localFrameA.rotation.y);
 		b3Vec3 u2 = b3Mul(qB, m_localFrameB.rotation.y);
 		b3Vec3 limitAxis = b3Cross(u2, u1);
-		
+
 		// Compute fresh effective mass.
 		float32 mass = b3Dot((iA + iB) * limitAxis, limitAxis);
 		float32 limitMass = mass > 0.0f ? 1.0f / mass : 0.0f;
@@ -263,19 +263,19 @@ bool b3ConeJoint::SolvePositionConstraints(const b3SolverData* data)
 		float32 cosine = b3Dot(u2, u1);
 		float32 sine = b3Length(limitAxis);
 		float32 angle = atan2(sine, cosine);
-		
+
 		float32 limitImpulse = 0.0f;
 
 		if (0.5f * m_coneAngle < angle)
 		{
 			float32 C = 0.5f * m_coneAngle - angle;
 			limitError = -C;
-			
+
 			// Allow some slop and prevent large corrections
 			C = b3Clamp(C + B3_ANGULAR_SLOP, -B3_MAX_ANGULAR_CORRECTION, 0.0f);
 			limitImpulse = -C * limitMass;
 		}
-		
+
 		b3Vec3 P = limitImpulse * limitAxis;
 
 		qA -= b3Derivative(qA, iA * P);

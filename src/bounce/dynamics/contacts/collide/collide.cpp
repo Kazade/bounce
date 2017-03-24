@@ -25,7 +25,7 @@
 #include <bounce/collision/shapes/capsule.h>
 #include <bounce/collision/shapes/hull.h>
 #include <bounce/collision/shapes/mesh.h>
-#include <bounce/collision/distance.h>
+#include <bounce/collision/collision.h>
 
 void b3ShapeGJKProxy::Set(const b3Shape* shape, u32 index)
 {
@@ -90,7 +90,7 @@ bool b3TestOverlap(const b3Transform& xfA, u32 indexA, const b3Shape* shapeA,
 	
 	b3GJKOutput distance = b3GJK(xfA, proxyA, xfB, proxyB, true, &cache->simplexCache);
 
-	const float32 kTol = 2.0f * B3_EPSILON;
+	const float32 kTol = 10.0f * B3_EPSILON;
 	return distance.distance <= kTol;
 }
 
@@ -127,7 +127,7 @@ void b3CollideSphereAndCapsuleShapes(b3Manifold& manifold,
 	b3CollideSphereAndCapsule(manifold, xfA, hullA, xfB, hullB);
 }
 
-void b3CollideCapsuleAndCapsuleShapes(b3Manifold& manifold,
+void b3CollideCapsuleAndCapsuleShapes(b3Manifold& manifold, 
 	const b3Transform& xfA, const b3Shape* shapeA,
 	const b3Transform& xfB, const b3Shape* shapeB,
 	b3ConvexCache* cache)
@@ -138,7 +138,7 @@ void b3CollideCapsuleAndCapsuleShapes(b3Manifold& manifold,
 	b3CollideCapsuleAndCapsule(manifold, xfA, hullA, xfB, hullB);
 }
 
-void b3CollideCapsuleAndHullShapes(b3Manifold& manifold,
+void b3CollideCapsuleAndHullShapes(b3Manifold& manifold, 
 	const b3Transform& xfA, const b3Shape* shapeA,
 	const b3Transform& xfB, const b3Shape* shapeB,
 	b3ConvexCache* cache)
@@ -148,7 +148,7 @@ void b3CollideCapsuleAndHullShapes(b3Manifold& manifold,
 	b3CollideCapsuleAndHull(manifold, xfA, hullA, xfB, hullB);
 }
 
-void b3CollideHullAndHullShapes(b3Manifold& manifold,
+void b3CollideHullAndHullShapes(b3Manifold& manifold, 
 	const b3Transform& xfA, const b3Shape* shapeA,
 	const b3Transform& xfB, const b3Shape* shapeB,
 	b3ConvexCache* cache)
@@ -164,8 +164,8 @@ void b3CollideShapeAndShape(b3Manifold& manifold,
 	b3ConvexCache* cache)
 {
 	typedef void(*b3CollideFunction)(b3Manifold&, 
-		const b3Transform&, const class b3Shape*,
-		const b3Transform&, const class b3Shape*,
+		const b3Transform&, const b3Shape*,
+		const b3Transform&, const b3Shape*,
 		b3ConvexCache*);
 
 	static const b3CollideFunction s_CollideMatrix[e_maxShapes][e_maxShapes] =

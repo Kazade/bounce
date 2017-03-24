@@ -45,7 +45,6 @@ void b3CapsuleShape::ComputeMass(b3MassData* massData, float32 density) const
 
 	b3Vec3 d = B - A;
 	float32 h = b3Length(d);
-	B3_ASSERT(h > B3_LINEAR_SLOP);
 	float32 h2 = h * h;
 
 	float32 r = m_radius;
@@ -116,10 +115,14 @@ void b3CapsuleShape::ComputeMass(b3MassData* massData, float32 density) const
 	// Center of mass doesn't change
 	B3_ASSERT(h > B3_LINEAR_SLOP);
 	b3Mat33 R;
-	R.y = (1.0f / h) * d;
-	R.x = b3Perp(R.y);
-	R.z = b3Cross(R.y, R.x);
-
+	R.SetIdentity();
+	if (h > B3_LINEAR_SLOP)
+	{
+		R.y = (1.0f / h) * d;
+		R.x = b3Perp(R.y);
+		R.z = b3Cross(R.y, R.x);
+	}
+	
 	b3Mat33 Ic = b3RotateToFrame(Ic_Capsule.I, R);
 	
 	// Inertia about the center of mass

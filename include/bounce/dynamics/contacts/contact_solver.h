@@ -62,29 +62,25 @@ struct b3VelocityConstraintPoint
 {
 	b3Vec3 rA;
 	b3Vec3 rB;
-	
+
 	b3Vec3 normal;
 	float32 normalMass;
 	float32 normalImpulse;
-	
-	b3Vec3 tangent1;
-	b3Vec3 tangent2;
-	b3Mat22 tangentMass;
-	b3Vec2 tangentImpulse;
-
 	float32 velocityBias;
 };
 
 struct b3VelocityConstraintManifold
 {
-	b3Vec3 center;
+	b3Vec3 rA;
+	b3Vec3 rB;
+	
 	b3Vec3 normal;
 	b3Vec3 tangent1;
 	b3Vec3 tangent2;
-	b3Vec3 rA;
-	b3Vec3 rB;
+	//float32 leverArm;
+
 	b3Mat22 tangentMass;
-	b3Vec2 tangentImpulse;	
+	b3Vec2 tangentImpulse;
 	float32 motorImpulse;
 	float32 motorMass;
 	

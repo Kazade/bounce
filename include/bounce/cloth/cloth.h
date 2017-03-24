@@ -20,7 +20,7 @@
 #define B3_CLOTH_H
 
 #include <bounce/common/math/vec3.h>
-#include <bounce/collision/distance.h>
+#include <bounce/collision/collision.h>
 
 struct b3Mesh;
 class b3Draw;

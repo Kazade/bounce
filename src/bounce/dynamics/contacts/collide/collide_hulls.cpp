@@ -23,236 +23,245 @@
 #include <bounce/dynamics/shapes/hull_shape.h>
 #include <bounce/collision/shapes/hull.h>
 
-void b3BuildEdgeContact(b3Manifold& manifold,
-	const b3Transform& xfA, const b3Hull* hullA,
-	const b3Transform& xfB, const b3Hull* hullB, 
-	const b3EdgeQuery& query)
+void b3BuildEdgeContact(b3Manifold& manifold, 
+	const b3Transform& xf1, u32 index1, const b3Hull* hull1,
+	const b3Transform& xf2, u32 index2, const b3Hull* hull2)
 {
-	u32 indexA = query.indexA;
+	const b3HalfEdge* edge1 = hull1->GetEdge(index1);
+	const b3HalfEdge* twin1 = hull1->GetEdge(index1 + 1);
 
-	const b3HalfEdge* edge1 = hullA->GetEdge(indexA);
-	const b3HalfEdge* twin1 = hullA->GetEdge(indexA + 1);
-
-	b3Vec3 C1 = b3Mul(xfA, hullA->centroid);
-	b3Vec3 P1 = b3Mul(xfA, hullA->GetVertex(edge1->origin));
-	b3Vec3 Q1 = b3Mul(xfA, hullA->GetVertex(twin1->origin));
+	b3Vec3 C1 = xf1 * hull1->centroid;
+	b3Vec3 P1 = xf1 * hull1->GetVertex(edge1->origin);
+	b3Vec3 Q1 = xf1 * hull1->GetVertex(twin1->origin);
 	b3Vec3 E1 = Q1 - P1;
+	b3Vec3 N1 = E1;
+	float32 L1 = N1.Normalize();
+	B3_ASSERT(L1 > B3_LINEAR_SLOP);
 
-	u32 indexB = query.indexB;
-	
-	const b3HalfEdge* edge2 = hullB->GetEdge(indexB);
-	const b3HalfEdge* twin2 = hullB->GetEdge(indexB + 1);
+	const b3HalfEdge* edge2 = hull2->GetEdge(index2);
+	const b3HalfEdge* twin2 = hull2->GetEdge(index2 + 1);
 
-	b3Vec3 C2 = b3Mul(xfB, hullB->centroid);
-	b3Vec3 P2 = b3Mul(xfB, hullB->GetVertex(edge2->origin));
-	b3Vec3 Q2 = b3Mul(xfB, hullB->GetVertex(twin2->origin));
+	b3Vec3 C2 = xf2 * hull2->centroid;
+	b3Vec3 P2 = xf2 * hull2->GetVertex(edge2->origin);
+	b3Vec3 Q2 = xf2 * hull2->GetVertex(twin2->origin);
 	b3Vec3 E2 = Q2 - P2;
+	b3Vec3 N2 = E2;
+	float32 L2 = N2.Normalize();
+	B3_ASSERT(L2 > B3_LINEAR_SLOP);
+
+	// Compute the closest points on the two lines.
+	float32 b = b3Dot(N1, N2);	
+	float32 den = 1.0f - b * b;
+	if (den <= 0.0f)
+	{
+		return;
+	}
+	
+	float32 inv_den = 1.0f / den;
+
+	b3Vec3 E3 = P1 - P2;
+
+	float32 d = b3Dot(N1, E3);
+	float32 e = b3Dot(N2, E3);
+
+	float32 s = inv_den * (b * e - d);
+	float32 t = inv_den * (e - b * d);
+
+	b3Vec3 c1 = P1 + s * N1;
+	b3Vec3 c2 = P2 + t * N2;
 
 	b3Vec3 N = b3Cross(E1, E2);
+	float32 LN = N.Normalize();
+	B3_ASSERT(LN > 0.0f);
 	if (b3Dot(N, P1 - C1) < 0.0f)
 	{
 		N = -N;
 	}
-	N.Normalize();
-
-	b3Vec3 PA, PB;
-	b3ClosestPointsOnLines(&PA, &PB, P1, E1, P2, E2);
-
-	b3FeaturePair pair = b3MakePair(indexA, indexA + 1, indexB, indexB + 1);
+	
+	b3FeaturePair pair = b3MakePair(index1, index1 + 1, index2, index2 + 1);
 
 	manifold.pointCount = 1;
+	manifold.points[0].localNormal1 = b3MulT(xf1.rotation, N);
+	manifold.points[0].localPoint1 = b3MulT(xf1, c1);
+	manifold.points[0].localPoint2 = b3MulT(xf2, c2);
 	manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
 	manifold.points[0].key = b3MakeKey(pair);
-	manifold.points[0].localNormal = b3MulT(xfA.rotation, N);
-	manifold.points[0].localPoint = b3MulT(xfA, PA);
-	manifold.points[0].localPoint2 = b3MulT(xfB, PB);
-
-	manifold.center = 0.5f * (PA + B3_HULL_RADIUS * N + PB - B3_HULL_RADIUS * N);
-	manifold.normal = N;
-	manifold.tangent1 = b3Perp(N);
-	manifold.tangent2 = b3Cross(manifold.tangent1, N);
 }
 
 void b3BuildFaceContact(b3Manifold& manifold,
-	const b3Transform& xfA, const b3Hull* hullA,
-	const b3Transform& xfB, const b3Hull* hullB,
-	const b3FaceQuery& query, bool flipNormal)
+	const b3Transform& xf1, float32 r1, u32 index1, const b3Hull* hull1,
+	const b3Transform& xf2, float32 r2, const b3Hull* hull2,
+	bool flipNormal)
 {
-	// 1. Define the reference face plane (A).
-	u32 indexA = query.index;
-	const b3Face* faceA = hullA->GetFace(indexA);
-	const b3HalfEdge* edgeA = hullA->GetEdge(faceA->edge);
-	b3Plane localPlaneA = hullA->GetPlane(indexA);
-	b3Vec3 localNormalA = localPlaneA.normal;
-	b3Vec3 localPointA = hullA->GetVertex(edgeA->origin);
-	b3Plane planeA = b3Mul(xfA, localPlaneA);
+	// 1. Define the reference face plane (1).
+	const b3Face* face1 = hull1->GetFace(index1);
+	const b3HalfEdge* edge1 = hull1->GetEdge(face1->edge);
+	b3Plane localPlane1 = hull1->GetPlane(index1);
+	b3Vec3 localNormal1 = localPlane1.normal;
+	b3Vec3 localPoint1 = hull1->GetVertex(edge1->origin);
+	b3Plane plane1 = b3Mul(xf1, localPlane1);
 
-	// 2. Find the incident face polygon (B).	
+	// 2. Find the incident face polygon (2).	
 	
-	// Put the reference plane normal in the frame of the incident hull (B).
-	b3Vec3 normalA = b3MulT(xfB.rotation, planeA.normal);
+	// Put the reference plane normal in the frame of the incident hull (2).
+	b3Vec3 normal1 = b3MulT(xf2.rotation, plane1.normal);
 
-	// Find the support polygon in the *negated* direction.
-	b3StackArray<b3ClipVertex, 32> polygonB;
-	u32 indexB = hullB->GetSupportFace(-normalA);
-	b3BuildPolygon(polygonB, xfB, indexB, hullB);
+	// Find the support face polygon in the *negated* direction.
+	b3StackArray<b3ClipVertex, 32> polygon2;
+	u32 index2 = hull2->GetSupportFace(-normal1);
+	b3BuildPolygon(polygon2, xf2, index2, hull2);
 
-	// 3. Clip incident face polygon (B) against the reference face (A) side planes.
-	b3StackArray<b3ClipVertex, 32> clipPolygonB;
-	b3ClipPolygonToFace(clipPolygonB, polygonB, xfA, indexA, hullA);
-	if (clipPolygonB.IsEmpty())
+	// 3. Clip incident face polygon (2) against the reference face (1) side planes.
+	float32 totalRadius = r1 + r2;
+
+	b3StackArray<b3ClipVertex, 32> clipPolygon2;
+	b3ClipPolygonToFace(clipPolygon2, polygon2, xf1, totalRadius, index1, hull1);
+	if (clipPolygon2.IsEmpty())
 	{
 		return;
 	}
 
 	// 4. Project the clipped polygon on the reference plane for reduction.
 	// Ensure the deepest point is contained in the reduced polygon.
-	b3StackArray<b3ClusterVertex, 32> polygonA;
+	b3StackArray<b3ClusterVertex, 32> polygon1;
 	
 	u32 minIndex = 0;
 	float32 minSeparation = B3_MAX_FLOAT;
 
-	for (u32 i = 0; i < clipPolygonB.Count(); ++i)
+	for (u32 i = 0; i < clipPolygon2.Count(); ++i)
 	{
-		b3ClipVertex vB = clipPolygonB[i];
-		float32 separation = b3Distance(vB.position, planeA);
+		b3ClipVertex v2 = clipPolygon2[i];
+		float32 separation = b3Distance(v2.position, plane1);
 
-		if (separation <= B3_HULL_RADIUS_SUM)
+		if (separation <= totalRadius)
 		{
 			if (separation < minSeparation)
 			{
-				minIndex = polygonA.Count();
+				minIndex = polygon1.Count();
 				minSeparation = separation;
 			}
 
-			b3ClusterVertex vA;
-			vA.position = b3Project(vB.position, planeA);
-			vA.clipIndex = i;
-			polygonA.PushBack(vA);
+			b3ClusterVertex v1;
+			v1.position = b3ClosestPointOnPlane(v2.position, plane1);
+			v1.clipIndex = i;
+			polygon1.PushBack(v1);
 		}
 	}
 
-	if (polygonA.IsEmpty())
+	if (polygon1.IsEmpty())
 	{
 		return;
 	}
 
 	// 5. Reduce.
-	b3StackArray<b3ClusterVertex, 32> reducedPolygonA;
-	b3ReducePolygon(reducedPolygonA, polygonA, minIndex);
-	B3_ASSERT(!reducedPolygonA.IsEmpty());
+	b3Vec3 normal = plane1.normal;
+	b3Vec3 s_normal = flipNormal ? -normal : normal;
+
+	b3StackArray<b3ClusterVertex, 32> reducedPolygon1;
+	b3ReducePolygon(reducedPolygon1, polygon1, minIndex, s_normal);
+	B3_ASSERT(!reducedPolygon1.IsEmpty());
 
 	// 6. Build face contact.
-	b3Vec3 normal = planeA.normal;
-	manifold.center.SetZero();
-
-	u32 pointCount = reducedPolygonA.Count();
+	u32 pointCount = reducedPolygon1.Count();
 	for (u32 i = 0; i < pointCount; ++i)
 	{
-		u32 clipIndex = reducedPolygonA[i].clipIndex;
-		b3ClipVertex vB = clipPolygonB[clipIndex];
-		b3Vec3 vA = b3ClosestPointOnPlane(vB.position, planeA);
+		u32 clipIndex = reducedPolygon1[i].clipIndex;
+		b3ClipVertex v2 = clipPolygon2[clipIndex];
+		b3Vec3 v1 = b3ClosestPointOnPlane(v2.position, plane1);
 
-		b3ManifoldPoint* cp = manifold.points + i;
+		b3ManifoldPoint* mp = manifold.points + i;
 
 		if (flipNormal)
 		{
-			b3FeaturePair pair;
-			pair.inEdgeA = vB.pair.inEdgeB;
-			pair.outEdgeA = vB.pair.outEdgeB;
-			pair.inEdgeB = vB.pair.inEdgeA;
-			pair.outEdgeB = vB.pair.outEdgeA;
-
-			cp->triangleKey = B3_NULL_TRIANGLE;
-			cp->key = b3MakeKey(pair);
-			cp->localNormal = b3MulT(xfB.rotation, -normal);
-			cp->localPoint = b3MulT(xfB, vB.position);
-			cp->localPoint2 = b3MulT(xfA, vA);
+			b3FeaturePair pair = b3MakePair(v2.pair.inEdge2, v2.pair.inEdge1, v2.pair.outEdge2, v2.pair.outEdge1);
 			
-			manifold.center += 0.5f * (vA + B3_HULL_RADIUS * normal + vB.position - B3_HULL_RADIUS * normal);
+			mp->localNormal1 = b3MulT(xf2.rotation, s_normal);
+			mp->localPoint1 = b3MulT(xf2, v2.position);
+			mp->localPoint2 = b3MulT(xf1, v1);
+			mp->triangleKey = B3_NULL_TRIANGLE;
+			mp->key = b3MakeKey(pair);
 		}
 		else
 		{
-			cp->triangleKey = B3_NULL_TRIANGLE;
-			cp->key = b3MakeKey(vB.pair);
-			cp->localNormal = b3MulT(xfA.rotation, normal);
-			cp->localPoint = b3MulT(xfA, vA);
-			cp->localPoint2 = b3MulT(xfB, vB.position);
-			
-			manifold.center += 0.5f * (vA + B3_HULL_RADIUS * normal + vB.position - B3_HULL_RADIUS * normal);
+			mp->localNormal1 = b3MulT(xf1.rotation, normal);
+			mp->localPoint1 = b3MulT(xf1, v1);
+			mp->localPoint2 = b3MulT(xf2, v2.position);
+			mp->triangleKey = B3_NULL_TRIANGLE;
+			mp->key = b3MakeKey(v2.pair);
 		}
 	}
 	
-	if (flipNormal)
-	{
-		localNormalA = -localNormalA;
-		normal = -normal;
-	}
-
-	manifold.center /= float32(pointCount);
-	manifold.normal = normal;
-	manifold.tangent1 = b3Perp(normal);
-	manifold.tangent2 = b3Cross(manifold.tangent1, normal);
 	manifold.pointCount = pointCount;
 }
 
-void b3CollideHulls(b3Manifold& manifold,
-	const b3Transform& xfA, const b3Hull* hullA,
-	const b3Transform& xfB, const b3Hull* hullB)
+void b3CollideHulls(b3Manifold& manifold, 
+	const b3Transform& xf1, const b3HullShape* s1,
+	const b3Transform& xf2, const b3HullShape* s2)
 {
-	b3FaceQuery faceQueryA = b3QueryFaceSeparation(xfA, hullA, xfB, hullB);
-	if (faceQueryA.separation > B3_HULL_RADIUS_SUM)
+	const b3Hull* hull1 = s1->m_hull;
+	const b3Hull* hull2 = s2->m_hull;
+
+	float32 r1 = s1->m_radius;
+	float32 r2 = s2->m_radius;
+	float32 totalRadius = r1 + r2;
+
+	b3FaceQuery faceQuery1 = b3QueryFaceSeparation(xf1, hull1, xf2, hull2);
+	if (faceQuery1.separation > totalRadius)
 	{
 		return;
 	}
 
-	b3FaceQuery faceQueryB = b3QueryFaceSeparation(xfB, hullB, xfA, hullA);
-	if (faceQueryB.separation > B3_HULL_RADIUS_SUM)
+	b3FaceQuery faceQuery2 = b3QueryFaceSeparation(xf2, hull2, xf1, hull1);
+	if (faceQuery2.separation > totalRadius)
 	{
 		return;
 	}
 
-	b3EdgeQuery edgeQuery = b3QueryEdgeSeparation(xfA, hullA, xfB, hullB);
-	if (edgeQuery.separation > B3_HULL_RADIUS_SUM)
+	b3EdgeQuery edgeQuery = b3QueryEdgeSeparation(xf1, hull1, xf2, hull2);
+	if (edgeQuery.separation > totalRadius)
 	{
 		return;
 	}
 
-	const float32 kRelEdgeTol = 0.90f;
-	const float32 kRelFaceTol = 0.98f;
-	const float32 kAbsTol = 0.05f;
-
-	if (edgeQuery.separation > kRelEdgeTol * b3Max(faceQueryA.separation, faceQueryB.separation) + kAbsTol)
+	const float32 kTol = 0.1f * B3_LINEAR_SLOP;
+	if (edgeQuery.separation > b3Max(faceQuery1.separation, faceQuery2.separation) + kTol)
 	{
-		b3BuildEdgeContact(manifold, xfA, hullA, xfB, hullB, edgeQuery);
+		b3BuildEdgeContact(manifold, xf1, edgeQuery.index1, hull1, xf2, edgeQuery.index2, hull2);
 	}
 	else
 	{
-		if (faceQueryA.separation > kRelFaceTol * faceQueryB.separation + kAbsTol)
+		if (faceQuery1.separation + kTol > faceQuery2.separation)
 		{
-			b3BuildFaceContact(manifold, xfA, hullA, xfB, hullB, faceQueryA, false);
+			b3BuildFaceContact(manifold, xf1, r1, faceQuery1.index, hull1, xf2, r2, hull2, false);
 		}
 		else
 		{
-			b3BuildFaceContact(manifold, xfB, hullB, xfA, hullA, faceQueryB, true);
+			b3BuildFaceContact(manifold, xf2, r2, faceQuery2.index, hull2, xf1, r1, hull1, true);
 		}
 	}
 }
 
-//
-bool b3_enableConvexCache = true;
+bool b3_convexCache = true;
 u32 b3_convexCalls = 0, b3_convexCacheHits = 0;
 
-void b3CollideHullAndHull(b3Manifold& manifold,
-	const b3Transform& xfA, const b3HullShape* sA,
-	const b3Transform& xfB, const b3HullShape* sB,
+void b3CollideHulls(b3Manifold& manifold,
+	const b3Transform& xf1, const b3HullShape* s1,
+	const b3Transform& xf2, const b3HullShape* s2,
 	b3FeatureCache* cache);
 
-void b3CollideHullAndHull(b3Manifold& manifold,
-	const b3Transform& xfA, const b3HullShape* sA,
-	const b3Transform& xfB, const b3HullShape* sB, 
+void b3CollideHullAndHull(b3Manifold& manifold, 
+	const b3Transform& xf1, const b3HullShape* s1,
+	const b3Transform& xf2, const b3HullShape* s2, 
 	b3ConvexCache* cache)
 {
 	++b3_convexCalls;
-	b3CollideHullAndHull(manifold, xfA, sA, xfB, sB, &cache->featureCache);
+
+	if (b3_convexCache)
+	{
+		b3CollideHulls(manifold, xf1, s1, xf2, s2, &cache->featureCache);
+	}
+	else
+	{
+		b3CollideHulls(manifold, xf1, s1, xf2, s2);
+	}
 }

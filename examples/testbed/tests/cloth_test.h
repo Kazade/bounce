@@ -33,18 +33,24 @@ public:
 		b3ClothDef def;
 		def.mesh = m_meshes + e_clothMesh;
 		def.density = 0.2f;
-		def.gravity.Set(-10.0f, 1.0f, 0.0f);
-		def.k1 = 0.5f;
-		def.k2 = 0.05f;
-		def.kd = 0.1f;
+		def.gravity.Set(2.5f, 5.0f, -10.0f);
+		def.k1 = 0.2f;
+		def.k2 = 0.1f;
+		def.kd = 0.005f;
 		def.r = 1.0f;
 
 		m_cloth.Initialize(def);
 
+		m_aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
+		m_aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
+
 		b3Particle* vs = m_cloth.GetVertices();
-		for (u32 i = 0; i < 5; ++i)
+		for (u32 i = 0; i < m_cloth.GetVertexCount(); ++i)
 		{
-			vs[i].im = 0.0f;
+			if (m_aabb.Contains(vs[i].p))
+			{
+				vs[i].im = 0.0f;
+			}
 		}
 	}
 
@@ -66,6 +72,8 @@ public:
 
 		m_cloth.Step(dt, g_settings.positionIterations);
 		m_cloth.Draw(g_debugDraw);
+
+		//g_debugDraw->DrawAABB(m_aabb, b3Color_black);
 	}
 
 	static Test* Create()
@@ -74,6 +82,7 @@ public:
 	}
 
 	b3Cloth m_cloth;
+	b3AABB3 m_aabb;
 };
 
 #endif

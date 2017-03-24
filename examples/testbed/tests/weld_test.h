@@ -33,17 +33,17 @@ public:
 
 			b3ShapeDef sd;
 			sd.shape = &shape;
-
+			
 			ground->CreateShape(sd);
 		}
 
-		b3Body* hinge, *door;
+		b3Body* bA, *bB;
 
 		{
 			b3BodyDef bd;
 			bd.type = b3BodyType::e_dynamicBody;
 			bd.position.Set(-2.0f, 5.05f, 0.0f);
-			hinge = m_world.CreateBody(bd);
+			bA = m_world.CreateBody(bd);
 
 			b3CapsuleShape shape;
 			shape.m_centers[0].Set(0.0f, -3.5f, 0.0f);
@@ -54,34 +54,46 @@ public:
 			sd.shape = &shape;
 			sd.density = 1.0f;
 
-			hinge->CreateShape(sd);
+			bA->CreateShape(sd);
 		}
 
 		{
 			b3BodyDef bd;
 			bd.type = b3BodyType::e_dynamicBody;
-			bd.orientation.Set(b3Vec3(1.0f, 0.0f, 0.0f), 0.25f * B3_PI);
 			bd.position.Set(1.0f, 5.05f, 0.0f);
 
-			door = m_world.CreateBody(bd);
+			bB = m_world.CreateBody(bd);
+
+			static b3BoxHull doorHull;
+			{
+				b3Transform xf;
+				xf.position.SetZero();
+				xf.rotation = b3Diagonal(2.0f, 4.0f, 0.5f);
+				doorHull.SetTransform(xf);
+			}
 
 			b3HullShape hull;
-			hull.m_hull = &m_doorHull;
+			hull.m_hull = &doorHull;
 
 			b3ShapeDef sdef;
 			sdef.shape = &hull;
-			sdef.density = 2.0f;
+			sdef.density = 1.0f;
 
-			door->CreateShape(sdef);
-		}
-
-		{
-			b3Vec3 hingeAnchor(-2.0f, 5.0f, 0.0f);
-
-			b3WeldJointDef jd;
-			jd.Initialize(hinge, door, hingeAnchor);
+			bB->CreateShape(sdef);
 			
-			b3WeldJoint* wj = (b3WeldJoint*)m_world.CreateJoint(jd);
+			{
+				b3Vec3 anchor(-2.0f, 5.0f, 0.0f);
+
+				b3WeldJointDef jd;
+				jd.Initialize(bA, bB, anchor);
+
+				b3WeldJoint* wj = (b3WeldJoint*)m_world.CreateJoint(jd);
+			}
+
+			// Invalidate the orientation
+			b3Vec3 axis(1.0f, 0.0f, 0.0f);
+			float32 angle = B3_PI;
+			bB->SetTransform(bB->GetPosition(), axis, angle);
 		}
 	}
 

@@ -80,55 +80,29 @@ void b3World::DebugDraw() const
 	{
 		const b3Shape* shapeA = c->GetShapeA();
 		const b3Shape* shapeB = c->GetShapeB();
-
+		
 		u32 manifoldCount = c->m_manifoldCount;
 		const b3Manifold* manifolds = c->m_manifolds;
-
+		
 		for (u32 i = 0; i < manifoldCount; ++i)
 		{
 			const b3Manifold* m = manifolds + i;
-
 			b3WorldManifold wm;
-			wm.Initialize(m, shapeA->GetBody()->GetTransform(), shapeA->m_radius, shapeB->GetBody()->GetTransform(), shapeB->m_radius);
+			c->GetWorldManifold(&wm, i);
 
-			if (wm.pointCount > 0)
-			{
-				b3Vec3 n = wm.normal;
-				b3Vec3 t1 = wm.tangent1;
-				b3Vec3 t2 = wm.tangent2;
-				b3Vec3 p = wm.center;
-				float32 Pt1 = m->tangentImpulse.x;
-				float32 Pt2 = m->tangentImpulse.y;
-				
-				if (flags & b3Draw::e_contactPointsFlag)
-				{
-					b3_debugDraw->DrawPoint(p, 4.0f, b3Color_yellow);
-				}
+			b3Vec3 t1 = wm.tangent1;
+			b3Vec3 t2 = wm.tangent2;
 
-				if (flags & b3Draw::e_contactNormalsFlag)
-				{
-					b3_debugDraw->DrawSegment(p, p + n, b3Color_yellow);
-				}
-
-				if (flags & b3Draw::e_contactTangentsFlag)
-				{
-					b3_debugDraw->DrawSegment(p, p + t1, b3Color_yellow);
-					b3_debugDraw->DrawSegment(p, p + t2, b3Color_yellow);
-				}
-			}
-
-			for (u32 j = 0; j < wm.pointCount; ++j)
+			b3Vec3 points[B3_MAX_MANIFOLD_POINTS];
+			for (u32 j = 0; j < m->pointCount; ++j)
 			{
 				const b3ManifoldPoint* mp = m->points + j;
 				const b3WorldManifoldPoint* wmp = wm.points + j;
 
 				b3Vec3 n = wmp->normal;
-				b3Vec3 t1 = wm.tangent1;
-				b3Vec3 t2 = wm.tangent2;
 				b3Vec3 p = wmp->point;
-				float32 Pn = mp->normalImpulse;
-				float32 Pt1 = mp->tangentImpulse.x;
-				float32 Pt2 = mp->tangentImpulse.y;
+				
+				points[j] = p;
 
 				if (flags & b3Draw::e_contactPointsFlag)
 				{
@@ -139,11 +113,29 @@ void b3World::DebugDraw() const
 				{
 					b3_debugDraw->DrawSegment(p, p + n, b3Color_white);
 				}
+			}
+
+			if (m->pointCount > 0)
+			{
+				b3Vec3 p = wm.center;
+				b3Vec3 n = wm.normal;
+				b3Vec3 t1 = wm.tangent1;
+				b3Vec3 t2 = wm.tangent2;
 				
+				if (flags & b3Draw::e_contactNormalsFlag)
+				{
+					b3_debugDraw->DrawSegment(p, p + n, b3Color_yellow);
+				}
+
 				if (flags & b3Draw::e_contactTangentsFlag)
 				{
 					b3_debugDraw->DrawSegment(p, p + t1, b3Color_yellow);
 					b3_debugDraw->DrawSegment(p, p + t2, b3Color_yellow);
+				}
+
+				if (flags & b3Draw::e_contactAreasFlag)
+				{
+					b3_debugDraw->DrawSolidPolygon(wm.normal, points, m->pointCount, b3Color_pink);
 				}
 			}
 		}

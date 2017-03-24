@@ -21,7 +21,7 @@
 
 #include <bounce/common/math/transform.h>
 #include <bounce/common/template/list.h>
-#include <bounce/collision/distance.h>
+#include <bounce/collision/collision.h>
 
 struct b3ContactEdge;
 

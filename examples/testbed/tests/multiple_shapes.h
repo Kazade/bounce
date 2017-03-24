@@ -24,8 +24,6 @@ class MultipleShapes : public Test
 public:
 	MultipleShapes()
 	{
-		g_camera.m_center.Set(2.0f, -2.0f, 0.0f);
-		g_camera.m_zoom = 50.0f;
 		g_settings.drawCenterOfMasses = true;
 
 		{
@@ -79,6 +77,7 @@ public:
 		{
 			b3BodyDef bd;
 			bd.type = e_dynamicBody;
+			bd.position.Set(0.0f, 0.0f, 0.0f);
 			bd.angularVelocity.Set(0.0f, 200.0f * B3_PI, 0.0f);
 
 			b3Body* body = m_world.CreateBody(bd);

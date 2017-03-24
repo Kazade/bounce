@@ -98,9 +98,9 @@ private :
 	u32 m_moveBufferCapacity;
 
 	// The buffer holding the unique overlapping AABB pairs.
-	b3Pair* m_pairBuffer;
-	u32 m_pairBufferCapacity;
-	u32 m_pairBufferCount;
+	b3Pair* m_pairs;
+	u32 m_pairCapacity;
+	u32 m_pairCount;
 };
 
 inline const b3AABB3& b3BroadPhase::GetAABB(i32 proxyId) const 
@@ -144,7 +144,7 @@ template<class T>
 inline void b3BroadPhase::FindNewPairs(T* callback) 
 {
 	// Reset the overlapping pairs buffer count for the current step.
-	m_pairBufferCount = 0;
+	m_pairCount = 0;
 
 	// Notifying this class with QueryCallback(), gets the (duplicated) overlapping pair buffer.
 	for (u32 i = 0; i < m_moveBufferCount; ++i) 
@@ -164,22 +164,22 @@ inline void b3BroadPhase::FindNewPairs(T* callback)
 	m_moveBufferCount = 0;
 
 	// Sort the (duplicated) overlapping pair buffer to prune duplicated pairs.
-	std::sort(m_pairBuffer, m_pairBuffer + m_pairBufferCount);
+	std::sort(m_pairs, m_pairs + m_pairCount);
 
 	// Skip duplicated overlapping pairs.
 	u32 index = 0;
-	while (index < m_pairBufferCount) 
+	while (index < m_pairCount) 
 	{
-		const b3Pair* primaryPair = m_pairBuffer + index;
+		const b3Pair* primaryPair = m_pairs + index;
 
 		// Report an unique overlapping pair to the client.
 		callback->AddPair(m_tree.GetUserData(primaryPair->proxy1), m_tree.GetUserData(primaryPair->proxy2));
 
 		// Skip all duplicated pairs until an unique pair is found.
 		++index;
-		while (index < m_pairBufferCount) 
+		while (index < m_pairCount) 
 		{
-			const b3Pair* secondaryPair = m_pairBuffer + index;
+			const b3Pair* secondaryPair = m_pairs + index;
 			if (secondaryPair->proxy1 != primaryPair->proxy1 || secondaryPair->proxy2 != primaryPair->proxy2) 
 			{
 				break;

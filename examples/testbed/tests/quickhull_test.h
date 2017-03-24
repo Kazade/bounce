@@ -266,28 +266,26 @@ inline b3Hull ConvertHull(const qhHull& hull)
 
 inline void ConstructCylinder(b3Array<b3Vec3>& points, float32 radius = 1.0f, float32 height = 1.0f)
 {
+	u32 kEdgeCount = 20;
+	float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
+	b3Vec3 normal(0.0f, 1.0f, 0.0f);
+	b3Quat q(normal, kAngleInc);
+	
+	points.Resize(4 * kEdgeCount);
+
+	u32 j = 0;
+
 	{
 		b3Vec3 center(0.0f, 0.0f, 0.0f);
-
-		b3Vec3 normal;
-		normal.Set(0.0f, 1.0f, 0.0f);
-
-		u32 kEdgeCount = 20;
-		float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
-		float32 cosInc = cos(kAngleInc);
-		float32 sinInc = sin(kAngleInc);
-		float32 tInc = 1.0f - cosInc;
-
-		b3Vec3 n1 = b3Perp(normal);
+		b3Vec3 n1(1.0f, 0.0f, 0.0f);
 		b3Vec3 v1 = center + radius * n1;
 		for (u32 i = 0; i < kEdgeCount; ++i)
 		{
-			// Rodrigues' rotation formula
-			b3Vec3 n2 = cosInc * n1 + sinInc * b3Cross(normal, n1) + tInc * b3Dot(normal, n1) * normal;
+			b3Vec3 n2 = b3Mul(q, n1);
 			b3Vec3 v2 = center + radius * n2;
 
-			points.PushBack(v1);
-			points.PushBack(v2);
+			points[j++] = v1;
+			points[j++] = v2;
 
 			n1 = n2;
 			v1 = v2;
@@ -296,26 +294,15 @@ inline void ConstructCylinder(b3Array<b3Vec3>& points, float32 radius = 1.0f, fl
 
 	{
 		b3Vec3 center(0.0f, height, 0.0f);
-
-		b3Vec3 normal;
-		normal.Set(0.0f, 1.0f, 0.0f);
-
-		u32 kEdgeCount = 20;
-		float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
-		float32 cosInc = cos(kAngleInc);
-		float32 sinInc = sin(kAngleInc);
-		float32 tInc = 1.0f - cosInc;
-
-		b3Vec3 n1 = b3Perp(normal);
+		b3Vec3 n1(1.0f, 0.0f, 0.0f);
 		b3Vec3 v1 = center + radius * n1;
 		for (u32 i = 0; i < kEdgeCount; ++i)
 		{
-			// Rodrigues' rotation formula
-			b3Vec3 n2 = cosInc * n1 + sinInc * b3Cross(normal, n1) + tInc * b3Dot(normal, n1) * normal;
+			b3Vec3 n2 = b3Mul(q, n1);
 			b3Vec3 v2 = center + radius * n2;
 
-			points.PushBack(v1);
-			points.PushBack(v2);
+			points[j++] = v1;
+			points[j++] = v2;
 
 			n1 = n2;
 			v1 = v2;
@@ -325,36 +312,34 @@ inline void ConstructCylinder(b3Array<b3Vec3>& points, float32 radius = 1.0f, fl
 
 inline void ConstructCone(b3Array<b3Vec3>& points, float32 radius = 1.0f, float32 height = 1.0f)
 {
+	u32 kEdgeCount = 20;
+	float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
+	b3Vec3 normal(0.0f, 1.0f, 0.0f);
+	b3Quat q(normal, kAngleInc);
+
+	points.Resize(2 * kEdgeCount + 1);
+
+	u32 j = 0;
+
 	{
 		b3Vec3 center(0.0f, 0.0f, 0.0f);
-
-		b3Vec3 normal;
-		normal.Set(0.0f, 1.0f, 0.0f);
-
-		u32 kEdgeCount = 20;
-		float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
-		float32 cosInc = cos(kAngleInc);
-		float32 sinInc = sin(kAngleInc);
-		float32 tInc = 1.0f - cosInc;
-
-		b3Vec3 n1 = b3Perp(normal);
+		b3Vec3 n1(1.0f, 0.0f, 0.0f);
 		b3Vec3 v1 = center + radius * n1;
 		for (u32 i = 0; i < kEdgeCount; ++i)
 		{
-			// Rodrigues' rotation formula
-			b3Vec3 n2 = cosInc * n1 + sinInc * b3Cross(normal, n1) + tInc * b3Dot(normal, n1) * normal;
+			b3Vec3 n2 = b3Mul(q, n1);
 			b3Vec3 v2 = center + radius * n2;
 
-			points.PushBack(v1);
-			points.PushBack(v2);
+			points[j++] = v1;
+			points[j++] = v2;
 
 			n1 = n2;
 			v1 = v2;
 		}
 	}
-
+	
 	b3Vec3 c(0.0f, height, 0.0f);
-	points.PushBack(c);
+	points[j++] = c;
 }
 
 class QuickhullTest : public Test

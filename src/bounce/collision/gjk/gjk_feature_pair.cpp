@@ -23,17 +23,17 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 	B3_ASSERT(0 < cache.count && cache.count < 4);
 
 	u32 vertexCount = cache.count;
-	u32 uniqueCount1 = b3UniqueCount(cache.indexA, vertexCount);
-	u32 uniqueCount2 = b3UniqueCount(cache.indexB, vertexCount);
+	u32 uniqueCount1 = b3UniqueCount(cache.index1, vertexCount);
+	u32 uniqueCount2 = b3UniqueCount(cache.index2, vertexCount);
 
 	if (vertexCount == 1)
 	{
 		// VV 
 		b3GJKFeaturePair pair;
-		pair.countA = 1;
-		pair.countB = 1;
-		pair.indexA[0] = cache.indexA[0];
-		pair.indexB[0] = cache.indexB[0];
+		pair.count1 = 1;
+		pair.count2 = 1;
+		pair.index1[0] = cache.index1[0];
+		pair.index2[0] = cache.index2[0];
 		return pair;
 	}
 
@@ -43,14 +43,14 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// EE
 			b3GJKFeaturePair pair;
-			pair.countA = 2;
-			pair.countB = 2;
-			pair.indexA[0] = cache.indexA[0];
-			pair.indexA[1] = cache.indexA[1];
-			pair.indexB[0] = cache.indexB[0];
-			pair.indexB[1] = cache.indexB[1];
-			B3_ASSERT(pair.indexA[0] != pair.indexA[1]);
-			B3_ASSERT(pair.indexB[0] != pair.indexB[1]);
+			pair.count1 = 2;
+			pair.count2 = 2;
+			pair.index1[0] = cache.index1[0];
+			pair.index1[1] = cache.index1[1];
+			pair.index2[0] = cache.index2[0];
+			pair.index2[1] = cache.index2[1];
+			B3_ASSERT(pair.index1[0] != pair.index1[1]);
+			B3_ASSERT(pair.index2[0] != pair.index2[1]);
 			return pair;
 		}
 
@@ -58,12 +58,12 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// VE
 			b3GJKFeaturePair pair;
-			pair.countA = 1;
-			pair.countB = 2;
-			pair.indexA[0] = cache.indexA[0];
-			pair.indexB[0] = cache.indexB[0];
-			pair.indexB[1] = cache.indexB[1];
-			B3_ASSERT(pair.indexB[0] != pair.indexB[1]);
+			pair.count1 = 1;
+			pair.count2 = 2;
+			pair.index1[0] = cache.index1[0];
+			pair.index2[0] = cache.index2[0];
+			pair.index2[1] = cache.index2[1];
+			B3_ASSERT(pair.index2[0] != pair.index2[1]);
 			return pair;
 		}
 
@@ -71,12 +71,12 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// EV
 			b3GJKFeaturePair pair;
-			pair.countA = 2;
-			pair.countB = 1;
-			pair.indexA[0] = cache.indexA[0];
-			pair.indexA[1] = cache.indexA[1];
-			pair.indexB[0] = cache.indexB[0];
-			B3_ASSERT(pair.indexA[0] != pair.indexA[1]);
+			pair.count1 = 2;
+			pair.count2 = 1;
+			pair.index1[0] = cache.index1[0];
+			pair.index1[1] = cache.index1[1];
+			pair.index2[0] = cache.index2[0];
+			B3_ASSERT(pair.index1[0] != pair.index1[1]);
 			return pair;
 		}
 		B3_ASSERT(false);
@@ -88,15 +88,15 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// VF
 			b3GJKFeaturePair pair;
-			pair.countA = 1;
-			pair.countB = 3;
-			pair.indexA[0] = cache.indexA[0];
-			pair.indexB[0] = cache.indexB[0];
-			pair.indexB[1] = cache.indexB[1];
-			pair.indexB[2] = cache.indexB[2];
-			B3_ASSERT(pair.indexB[0] != pair.indexB[1]);
-			B3_ASSERT(pair.indexB[1] != pair.indexB[2]);
-			B3_ASSERT(pair.indexB[2] != pair.indexB[0]);
+			pair.count1 = 1;
+			pair.count2 = 3;
+			pair.index1[0] = cache.index1[0];
+			pair.index2[0] = cache.index2[0];
+			pair.index2[1] = cache.index2[1];
+			pair.index2[2] = cache.index2[2];
+			B3_ASSERT(pair.index2[0] != pair.index2[1]);
+			B3_ASSERT(pair.index2[1] != pair.index2[2]);
+			B3_ASSERT(pair.index2[2] != pair.index2[0]);
 			return pair;
 		}
 
@@ -104,15 +104,15 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// FV
 			b3GJKFeaturePair pair;
-			pair.countA = 3;
-			pair.countB = 1;
-			pair.indexA[0] = cache.indexA[0];
-			pair.indexA[1] = cache.indexA[1];
-			pair.indexA[2] = cache.indexA[2];
-			pair.indexB[0] = cache.indexB[0];
-			B3_ASSERT(pair.indexA[0] != pair.indexA[1]);
-			B3_ASSERT(pair.indexA[1] != pair.indexA[2]);
-			B3_ASSERT(pair.indexA[2] != pair.indexA[0]);
+			pair.count1 = 3;
+			pair.count2 = 1;
+			pair.index1[0] = cache.index1[0];
+			pair.index1[1] = cache.index1[1];
+			pair.index1[2] = cache.index1[2];
+			pair.index2[0] = cache.index2[0];
+			B3_ASSERT(pair.index1[0] != pair.index1[1]);
+			B3_ASSERT(pair.index1[1] != pair.index1[2]);
+			B3_ASSERT(pair.index1[2] != pair.index1[0]);
 			return pair;
 		}
 
@@ -120,30 +120,30 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// EE
 			b3GJKFeaturePair pair;
-			pair.countA = 2;
-			pair.countB = 2;
-			pair.indexA[0] = cache.indexA[0];
-			pair.indexB[0] = cache.indexB[0];
+			pair.count1 = 2;
+			pair.count2 = 2;
+			pair.index1[0] = cache.index1[0];
+			pair.index2[0] = cache.index2[0];
 
-			if (cache.indexA[0] == cache.indexA[1])
+			if (cache.index1[0] == cache.index1[1])
 			{
-				pair.indexA[1] = cache.indexA[2];
+				pair.index1[1] = cache.index1[2];
 			}
 			else
 			{
-				pair.indexA[1] = cache.indexA[1];
+				pair.index1[1] = cache.index1[1];
 			}
 
-			if (cache.indexB[0] == cache.indexB[1])
+			if (cache.index2[0] == cache.index2[1])
 			{
-				pair.indexB[1] = cache.indexB[2];
+				pair.index2[1] = cache.index2[2];
 			}
 			else
 			{
-				pair.indexB[1] = cache.indexB[1];
+				pair.index2[1] = cache.index2[1];
 			}
-			B3_ASSERT(pair.indexA[0] != pair.indexA[1]);
-			B3_ASSERT(pair.indexB[0] != pair.indexB[1]);
+			B3_ASSERT(pair.index1[0] != pair.index1[1]);
+			B3_ASSERT(pair.index2[0] != pair.index2[1]);
 			return pair;
 		}
 
@@ -151,27 +151,27 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// EF
 			b3GJKFeaturePair pair;
-			pair.countA = 2;
-			pair.countB = 3;
+			pair.count1 = 2;
+			pair.count2 = 3;
 
-			pair.indexA[0] = cache.indexA[0];
-			if (cache.indexA[0] == cache.indexA[1])
+			pair.index1[0] = cache.index1[0];
+			if (cache.index1[0] == cache.index1[1])
 			{
-				pair.indexA[1] = cache.indexA[2];
+				pair.index1[1] = cache.index1[2];
 			}
 			else
 			{
-				pair.indexA[1] = cache.indexA[1];
+				pair.index1[1] = cache.index1[1];
 			}
 
-			pair.indexB[0] = cache.indexB[0];
-			pair.indexB[1] = cache.indexB[1];
-			pair.indexB[2] = cache.indexB[2];
+			pair.index2[0] = cache.index2[0];
+			pair.index2[1] = cache.index2[1];
+			pair.index2[2] = cache.index2[2];
 
-			B3_ASSERT(pair.indexA[0] != pair.indexA[1]);
-			B3_ASSERT(pair.indexB[0] != pair.indexB[1]);
-			B3_ASSERT(pair.indexB[1] != pair.indexB[2]);
-			B3_ASSERT(pair.indexB[2] != pair.indexB[0]);
+			B3_ASSERT(pair.index1[0] != pair.index1[1]);
+			B3_ASSERT(pair.index2[0] != pair.index2[1]);
+			B3_ASSERT(pair.index2[1] != pair.index2[2]);
+			B3_ASSERT(pair.index2[2] != pair.index2[0]);
 			return pair;
 		}
 
@@ -179,26 +179,26 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 		{
 			// FE
 			b3GJKFeaturePair pair;
-			pair.countA = 3;
-			pair.countB = 2;
-			pair.indexA[0] = cache.indexA[0];
-			pair.indexA[1] = cache.indexA[1];
-			pair.indexA[2] = cache.indexA[2];
+			pair.count1 = 3;
+			pair.count2 = 2;
+			pair.index1[0] = cache.index1[0];
+			pair.index1[1] = cache.index1[1];
+			pair.index1[2] = cache.index1[2];
 
-			pair.indexB[0] = cache.indexB[0];
-			if (cache.indexB[0] == cache.indexB[1])
+			pair.index2[0] = cache.index2[0];
+			if (cache.index2[0] == cache.index2[1])
 			{
-				pair.indexB[1] = cache.indexB[2];
+				pair.index2[1] = cache.index2[2];
 			}
 			else
 			{
-				pair.indexB[1] = cache.indexB[1];
+				pair.index2[1] = cache.index2[1];
 			}
 
-			B3_ASSERT(pair.indexA[0] != pair.indexA[1]);
-			B3_ASSERT(pair.indexA[1] != pair.indexA[2]);
-			B3_ASSERT(pair.indexA[2] != pair.indexA[0]);
-			B3_ASSERT(pair.indexB[0] != pair.indexB[1]);
+			B3_ASSERT(pair.index1[0] != pair.index1[1]);
+			B3_ASSERT(pair.index1[1] != pair.index1[2]);
+			B3_ASSERT(pair.index1[2] != pair.index1[0]);
+			B3_ASSERT(pair.index2[0] != pair.index2[1]);
 			return pair;
 		}
 
@@ -208,7 +208,7 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 	B3_ASSERT(false);
 
 	b3GJKFeaturePair pair;
-	pair.countA = 0;
-	pair.countB = 0;
+	pair.count1 = 0;
+	pair.count2 = 0;
 	return pair;
 }

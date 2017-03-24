@@ -20,69 +20,350 @@
 #define B3_MAT_H
 
 #include <bounce/common/math/math.h>
+#include <bounce/common/math/mat22.h>
+#include <bounce/common/math/mat33.h>
 
-// A vector stored in column-major order.
-template<u32 n>
-struct b3Vec
+struct b3Mat23
 {
-	b3Vec() { }
+	b3Mat23() { }
 
-	const float32& operator[](u32 i) const
+	b3Mat23(const b3Vec2& _x, const b3Vec2& _y, const b3Vec2& _z)
 	{
-		return e[i];
-	}
-	
-	float32& operator[](u32 i)
-	{
-		return e[i];
-	}
-	
-	void operator+=(const b3Vec<n>& v)
-	{
-		for (u32 i = 0; i < n; ++i)
-		{
-			e[i] += v[i];
-		}
+		x = _x;
+		y = _y;
+		z = _z;
 	}
 
-	float32 e[n];
+	void SetZero()
+	{
+		x.SetZero();
+		y.SetZero();
+		z.SetZero();
+	}
+
+	b3Vec2 x, y, z;
 };
 
-template<u32 n>
-inline b3Vec<n> operator-(const b3Vec<n>& v)
+struct b3Mat24
 {
-	b3Vec<n> result;
-	for (u32 i = 0; i < n; ++i)
+	b3Mat24() { }
+
+	b3Mat24(const b3Vec2& _x, const b3Vec2& _y, const b3Vec2& _z, const b3Vec2& _w)
 	{
-		result[i] = -v[i];
+		x = _x;
+		y = _y;
+		z = _z;
+		w = _w;
 	}
+
+	void SetZero()
+	{
+		x.SetZero();
+		y.SetZero();
+		z.SetZero();
+		w.SetZero();
+	}
+
+	b3Vec2 x, y, z, w;
+};
+
+struct b3Mat32
+{
+	b3Mat32() { }
+
+	b3Mat32(const b3Vec3& _x, const b3Vec3& _y)
+	{
+		x = _x;
+		y = _y;
+	}
+
+	void SetZero()
+	{
+		x.SetZero();
+		y.SetZero();
+	}
+
+	b3Vec3 x, y;
+};
+
+struct b3Mat34
+{
+	b3Mat34() { }
+
+	b3Mat34(const b3Vec3& _x, const b3Vec3& _y, const b3Vec3& _z, const b3Vec3& _w)
+	{
+		x = _x;
+		y = _y;
+		z = _z;
+		w = _w;
+	}
+
+	void SetZero()
+	{
+		x.SetZero();
+		y.SetZero();
+		z.SetZero();
+		w.SetZero();
+	}
+
+	b3Vec3 x, y, z, w;
+};
+
+struct b3Vec4
+{
+	b3Vec4() { }
+
+	b3Vec4(float32 _x, float32 _y, float32 _z, float32 _w)
+	{
+		x = _x;
+		y = _y;
+		z = _z;
+		w = _w;
+	}
+
+	void SetZero()
+	{
+		x = 0.0f;
+		y = 0.0f;
+		z = 0.0f;
+		w = 0.0f;
+	}
+
+	float32 x, y, z, w;
+};
+
+struct b3Mat43
+{
+	b3Mat43() { }
+
+	b3Mat43(const b3Vec4& _x, const b3Vec4& _y, const b3Vec4& _z)
+	{
+		x = _x;
+		y = _y;
+		z = _z;
+	}
+
+	void SetZero()
+	{
+		x.SetZero();
+		y.SetZero();
+		z.SetZero();
+	}
+
+	b3Vec4 x, y, z;
+};
+
+struct b3Mat44
+{
+	b3Mat44() { }
+
+	b3Mat44(const b3Vec4& _x, const b3Vec4& _y, const b3Vec4& _z, const b3Vec4& _w)
+	{
+		x = _x;
+		y = _y;
+		z = _z;
+		w = _w;
+	}
+
+	void SetZero()
+	{
+		x.SetZero();
+		y.SetZero();
+		z.SetZero();
+		w.SetZero();
+	}
+
+	b3Vec4 x, y, z, w;
+};
+
+inline b3Vec4 operator+(const b3Vec4& a, const b3Vec4& b)
+{
+	return b3Vec4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
+}
+
+inline b3Vec4 operator-(const b3Vec4& a, const b3Vec4& b)
+{
+	return b3Vec4(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
+}
+
+// 1x1 * 1x4 = 1x1
+inline b3Vec4 operator*(float32 s, const b3Vec4& v)
+{
+	return b3Vec4(s * v.x, s * v.y, s * v.z, s * v.w);
+}
+
+// a * 4x4 = 4x4
+inline b3Mat44 operator*(float32 s, const b3Mat44& A)
+{
+	return b3Mat44(s * A.x, s * A.y, s * A.z, s * A.w);
+}
+
+// 4x4 * 4x1 = 4x1
+inline b3Vec4 operator*(const b3Mat44& A, const b3Vec4& v)
+{
+	return v.x * A.x + v.y * A.y + v.z * A.z + v.w * A.w;
+}
+
+// 4x4 * 4x4 = 4x4
+inline b3Mat44 operator*(const b3Mat44& A, const b3Mat44& B)
+{
+	return b3Mat44(A * B.x, A * B.y, A * B.z, A * B.w);
+}
+
+// a * 3x4 = 3x4
+inline b3Mat34 operator*(float32 s, const b3Mat34& A)
+{
+	return b3Mat34(s * A.x, s * A.y, s * A.z, s * A.w);
+}
+
+// 4x3 * 3x1 = 4x1
+inline b3Vec4 operator*(const b3Mat43& A, const b3Vec3& v)
+{
+	return v.x * A.x + v.y * A.y + v.z * A.z;
+}
+
+// 3x4 * 4x1 = 3x1
+inline b3Vec3 operator*(const b3Mat34& A, const b3Vec4& v)
+{
+	return v.x * A.x + v.y * A.y + v.z * A.z + v.w * A.w;
+}
+
+// 1x4 * 4x1 = 1x1
+inline float32 operator*(const b3Vec4& A, const b3Vec4& B)
+{
+	return A.x * B.x + A.y * B.y + A.z * B.z + A.w * B.w;
+}
+
+// 3x1 * 1x1 = 3x1
+inline b3Vec3 operator*(const b3Vec3& v, float32 s)
+{
+	return s * v;
+}
+
+// 2x1 * 1x1 = 2x1
+inline b3Vec2 operator*(const b3Vec2& v, float32 s)
+{
+	return s * v;
+}
+
+// 1x3 * 3x1 = 1x1
+inline float32 operator*(const b3Vec3& A, const b3Vec3& B)
+{
+	return A.x * B.x + A.y * B.y + A.z * B.z;
+}
+
+// 1x3 * 3x3 = 1x3
+inline b3Vec3 operator*(const b3Vec3& A, const b3Mat33& B)
+{
+	return b3Vec3(A * B.x, A * B.y, A * B.z);
+}
+
+// 1x4 * 4x4 = 1x4
+inline b3Vec4 operator*(const b3Vec4& A, const b3Mat44& B)
+{
+	return b3Vec4(A * B.x, A * B.y, A * B.z, A * B.w);
+}
+
+// 1x4 * 4x3 = 1x3
+inline b3Vec3 operator*(const b3Vec4& A, const b3Mat43& B)
+{
+	return b3Vec3(A * B.x, A * B.y, A * B.z);
+}
+
+// 3x2 * 2x1 = 3x1
+inline b3Vec3 operator*(const b3Mat32& A, const b3Vec2& B)
+{
+	return B.x * A.x + B.y * A.y;
+}
+
+// 2x3 * 2x1 = 2x1
+inline b3Vec2 operator*(const b3Mat23& A, const b3Vec3& B)
+{
+	return B.x * A.x + B.y * A.y + B.z * A.z;
+}
+
+// 2x3 * 2x2 = 2x2
+inline b3Mat22 operator*(const b3Mat23& A, const b3Mat32& B)
+{
+	return b3Mat22(A * B.x, A * B.y);
+}
+
+// 2x3 * 3x3 = 2x3
+inline b3Mat23 operator*(const b3Mat23& A, const b3Mat33& B)
+{
+	return b3Mat23(A * B.x, A * B.y, A * B.z);
+}
+
+// 3x4 * 4x3 = 3x3
+inline b3Mat33 operator*(const b3Mat34& A, const b3Mat43& B)
+{
+	return b3Mat33(A * B.x, A * B.y, A * B.z);
+}
+
+// 3x4 * 4x4 = 3x3
+inline b3Mat34 operator*(const b3Mat34& A, const b3Mat44& B)
+{
+	return b3Mat34(A * B.x, A * B.y, A * B.z, A * B.w);
+}
+
+// 2x4 * 4x1 = 2x1
+inline b3Vec2 operator*(const b3Mat24& A, const b3Vec4& B)
+{
+	return B.x * A.x + B.y * A.y + B.z * A.z + B.w * A.w;
+}
+
+// 2x4 * 4x3 = 4x3
+inline b3Mat23 operator*(const b3Mat24& A, const b3Mat43& B)
+{
+	return b3Mat23(A * B.x, A * B.y, A * B.z);
+}
+
+// 2x4 * 2x4 = 2x4
+inline b3Mat24 operator*(const b3Mat24& A, const b3Mat44& B)
+{
+	return b3Mat24(A * B.x, A * B.y, A * B.z, A * B.w);
+}
+
+// 4x4 * 4x3 = 4x3
+inline b3Mat43 operator*(const b3Mat44& A, const b3Mat43& B)
+{
+	return b3Mat43(A * B.x, A * B.y, A * B.z);
+}
+
+inline b3Mat23 b3Transpose(const b3Mat32& A)
+{
+	b3Mat23 result;
+	result.x = b3Vec2(A.x.x, A.y.x);
+	result.y = b3Vec2(A.x.y, A.y.y);
+	result.z = b3Vec2(A.x.z, A.y.z);
 	return result;
 }
 
-// A matrix stored in column-major order.
-template<u32 n, u32 m>
-struct b3Mat
+inline b3Mat32 b3Transpose(const b3Mat23& A)
 {
-	b3Mat() { }
+	b3Mat32 result;
+	result.x = b3Vec3(A.x.x, A.y.x, A.z.x);
+	result.y = b3Vec3(A.x.y, A.y.y, A.z.y);
+	return result;
+}
 
-	const float32& operator()(u32 i, u32 j) const
-	{
-		return e[i + n * j];
-	}
+inline b3Mat34 b3Transpose(const b3Mat43& A)
+{
+	b3Mat34 result;
+	result.x = b3Vec3(A.x.x, A.y.x, A.z.x);
+	result.y = b3Vec3(A.x.y, A.y.y, A.z.y);
+	result.z = b3Vec3(A.x.z, A.y.z, A.z.z);
+	result.w = b3Vec3(A.x.w, A.y.w, A.z.w);
+	return result;
+}
 
-	float32& operator()(u32 i, u32 j)
-	{
-		return e[i + n * j];
-	}
-
-	float32 e[n * m];
-};
-
-// Solve Ax = b.
-// It doesn't compute the inverse. 
-// Therefore, is more efficient.
-// Returns false if the matrix is singular.
-// Warning: Make sure to pass a copy of the original matrix to the function. A will be invalidated.
-bool b3Solve(float32* b, float32* A, u32 n);
+inline b3Mat43 b3Transpose(const b3Mat34& A)
+{
+	b3Mat43 result;
+	result.x = b3Vec4(A.x.x, A.y.x, A.z.x, A.w.x);
+	result.y = b3Vec4(A.x.y, A.y.y, A.z.y, A.w.y);
+	result.z = b3Vec4(A.x.z, A.y.z, A.z.z, A.w.z);
+	return result;
+}
 
 #endif

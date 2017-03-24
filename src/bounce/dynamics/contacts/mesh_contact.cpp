@@ -231,17 +231,6 @@ void b3MeshContact::Collide()
 	b3MeshShape* meshShapeB = (b3MeshShape*)shapeB;
 	b3Transform xfB = bodyB->GetTransform();
 
-	// Remove this conditional inclusion if collisions 
-	// between spheres and the internal features of meshes 
-	// should be filtered.
-#if 0
-	if (shapeA->GetType() == e_sphereShape)
-	{
-		CollideSphere();
-		return;
-	}
-#endif
-
 	b3World* world = bodyA->GetWorld();
 	b3StackAllocator* allocator = &world->m_stackAllocator;
 
@@ -266,9 +255,10 @@ void b3MeshContact::Collide()
 		shapeB.m_body = bodyB;
 		shapeB.m_hull = &hullB;
 		shapeB.m_radius = B3_HULL_RADIUS;
-
+				
 		b3Manifold* manifold = tempManifolds + tempCount;
-		manifold->GuessImpulses();
+		manifold->Initialize();
+		
 		b3CollideShapeAndShape(*manifold, xfA, shapeA, xfB, &shapeB, &triangleCache->cache);
 		
 		for (u32 j = 0; j < manifold->pointCount; ++j)
@@ -282,5 +272,6 @@ void b3MeshContact::Collide()
 	// Send contact manifolds for clustering. This is an important optimization.
 	B3_ASSERT(m_manifoldCount == 0);
 	m_manifoldCount = b3Clusterize(m_stackManifolds, tempManifolds, tempCount, xfA, shapeA->m_radius, xfB, B3_HULL_RADIUS);
+	
 	allocator->Free(tempManifolds);
 }

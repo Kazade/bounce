@@ -33,15 +33,15 @@ struct b3FaceQuery
 
 float32 b3Project(const b3Hull* hull, const b3Plane& plane);
 
-b3FaceQuery b3QueryFaceSeparation(const b3Transform& xfA, const b3Hull* hullA,
-	const b3Transform& xfB, const b3Hull* hullB);
+b3FaceQuery b3QueryFaceSeparation(const b3Transform& xf1, const b3Hull* hull1,
+	const b3Transform& xf2, const b3Hull* hull2);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct b3EdgeQuery
 {
-	u32 indexA;
-	u32 indexB;
+	u32 index1;
+	u32 index2;
 	float32 separation;
 };
 
@@ -49,7 +49,7 @@ bool b3IsMinkowskiFace(const b3Vec3& A, const b3Vec3& B, const b3Vec3& B_x_A, co
 
 float32 b3Project(const b3Vec3& P1, const b3Vec3& E1, const b3Vec3& P2, const b3Vec3& E2, const b3Vec3& C1);
 
-b3EdgeQuery b3QueryEdgeSeparation(const b3Transform& xfA, const b3Hull* hullA,
-	const b3Transform& xfB, const b3Hull* hullB);
+b3EdgeQuery b3QueryEdgeSeparation(const b3Transform& xf1, const b3Hull* hull1,
+	const b3Transform& xf2, const b3Hull* hull2);
 
 #endif

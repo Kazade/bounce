@@ -42,9 +42,17 @@ public:
 			bd.position.Set(0.0f, 6.0f, 0.0f);
 			
 			b3Body* body = m_world.CreateBody(bd);
+			
+			static b3BoxHull boxHull;
+			{
+				b3Transform xf;
+				xf.position.SetZero();
+				xf.rotation = b3Diagonal(2.0f, 4.0f, 0.5f);
+				boxHull.SetTransform(xf);
+			}
 
 			b3HullShape hs;
-			hs.m_hull = &m_tallHull;
+			hs.m_hull = &boxHull;
 
 			b3ShapeDef sd;
 			sd.shape = &hs;

@@ -31,25 +31,25 @@ struct b3SimplexCache
 	float32 metric; // distance or area or volume
 	u32 iterations; // number of GJK iterations
 	u16 count; // number of support vertices
-	u8 indexA[4]; // support vertices on proxy A
-	u8 indexB[4]; // support vertices on proxy B
+	u8 index1[4]; // support vertices on proxy 1
+	u8 index2[4]; // support vertices on proxy 2
 };
 
 // Find the closest points and distance between two proxies. 
 // Assumes a simplex is given for increasing the performance of 
 // the algorithm when called more than once.
-b3GJKOutput b3GJK(const b3Transform& xfA, const b3GJKProxy& proxyA,
-				  const b3Transform& xfB, const b3GJKProxy& proxyB,
+b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1,
+				  const b3Transform& xf2, const b3GJKProxy& proxy2,
 				  bool applyRadius, b3SimplexCache* cache);
 
 // A feature pair contains the vertices of the features associated 
 // with the closest points.
 struct b3GJKFeaturePair
 {
-	u32 indexA[3]; // vertices on proxy A
-	u32 countA; // number of vertices on proxy A
-	u32 indexB[3]; // vertices on proxy B
-	u32 countB; // number of vertices on proxy B
+	u32 index1[3]; // vertices on proxy 1
+	u32 count1; // number of vertices on proxy 1
+	u32 index2[3]; // vertices on proxy 2
+	u32 count2; // number of vertices on proxy 2
 };
 
 // Identify the vertices of the features that the closest points between two 

@@ -27,19 +27,19 @@
 // A combination of features used to uniquely identify a vertex on a feature.
 struct b3FeaturePair
 {
-	u8 inEdgeA; // incoming edge on hull A
-	u8 inEdgeB; // incoming edge on hull B
-	u8 outEdgeA; // outgoing edge on hull A
-	u8 outEdgeB; // outgoing edge on hull B
+	u8 inEdge1; // incoming edge on hull 1
+	u8 inEdge2; // incoming edge on hull 2
+	u8 outEdge1; // outgoing edge on hull 1
+	u8 outEdge2; // outgoing edge on hull 2
 };
 
-inline b3FeaturePair b3MakePair(u32 inEdgeA, u32 inEdgeB, u32 outEdgeA, u32 outEdgeB)
+inline b3FeaturePair b3MakePair(u32 inEdge1, u32 inEdge2, u32 outEdge1, u32 outEdge2)
 {
 	b3FeaturePair out;
-	out.inEdgeA = u8(inEdgeA);
-	out.inEdgeB = u8(inEdgeB);
-	out.outEdgeA = u8(outEdgeA);
-	out.outEdgeB = u8(outEdgeB);
+	out.inEdge1 = u8(inEdge1);
+	out.inEdge2 = u8(inEdge2);
+	out.outEdge1 = u8(outEdge1);
+	out.outEdge2 = u8(outEdge2);
 	return out;
 }
 
@@ -75,11 +75,11 @@ struct b3ClipPlane
 };
 
 struct b3Hull;
-struct b3Capsule;
+struct b3Segment;
 
 // Build a clip edge for an edge.
 void b3BuildEdge(b3ClipVertex vOut[2],
-	const b3Capsule* hull);
+	const b3Segment* hull);
 
 // Build a clip polygon given an index to the polygon face.
 void b3BuildPolygon(b3ClipPolygon& pOut,
@@ -99,15 +99,15 @@ void b3ClipPolygonToPlane(b3ClipPolygon& pOut,
 // Clip a segment by a hull face (side planes).
 // Return the number of output points.
 u32 b3ClipEdgeToFace(b3ClipVertex vOut[2],
-	const b3ClipVertex vIn[2], const b3Capsule* hull);
+	const b3ClipVertex vIn[2], const b3Segment* hull);
 
 // Clip a segment by a hull face (side planes).
 // Return the number of output points.
 u32 b3ClipEdgeToFace(b3ClipVertex vOut[2],
-	const b3ClipVertex vIn[2], const b3Transform& xf, u32 index, const b3Hull* hull);
+	const b3ClipVertex vIn[2], const b3Transform& xf, float32 r, u32 index, const b3Hull* hull);
 
 // Clip a polygon by a hull face (side planes).
 void b3ClipPolygonToFace(b3ClipPolygon& pOut,
-	const b3ClipPolygon& pIn, const b3Transform& xf, u32 index, const b3Hull* hull);
+	const b3ClipPolygon& pIn, const b3Transform& xf, float32 r, u32 index, const b3Hull* hull);
 
 #endif

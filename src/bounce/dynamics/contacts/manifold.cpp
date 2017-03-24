@@ -18,7 +18,7 @@
 
 #include <bounce/dynamics/contacts/manifold.h>
 
-void b3Manifold::GuessImpulses()
+void b3Manifold::Initialize()
 {
 	pointCount = 0;
 	tangentImpulse.SetZero();
@@ -27,12 +27,11 @@ void b3Manifold::GuessImpulses()
 	{
 		b3ManifoldPoint* p = points + i;
 		p->normalImpulse = 0.0f;
-		p->tangentImpulse.SetZero();
 		p->persisting = 0;
 	}
 }
 
-void b3Manifold::FindImpulses(const b3Manifold& oldManifold)
+void b3Manifold::Initialize(const b3Manifold& oldManifold)
 {
 	tangentImpulse = oldManifold.tangentImpulse;
 	motorImpulse = oldManifold.motorImpulse;
@@ -46,7 +45,6 @@ void b3Manifold::FindImpulses(const b3Manifold& oldManifold)
 			if (p2->triangleKey == p1->triangleKey && p2->key == p1->key)
 			{
 				p2->normalImpulse = p1->normalImpulse;
-				p2->tangentImpulse = p1->tangentImpulse;
 				p2->persisting = 1;
 				break;
 			}
@@ -54,36 +52,42 @@ void b3Manifold::FindImpulses(const b3Manifold& oldManifold)
 	}
 }
 
-void b3WorldManifoldPoint::Initialize(const b3ManifoldPoint* mp,
-	const b3Transform& xfA, float32 radiusA,
-	const b3Transform& xfB, float32 radiusB)
+void b3WorldManifoldPoint::Initialize(const b3ManifoldPoint* p, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB)
 {
-	normal = b3Mul(xfA.rotation, mp->localNormal);
-	b3Vec3 p1 = b3Mul(xfA, mp->localPoint);
-	b3Vec3 p2 = b3Mul(xfB, mp->localPoint2);
-	point = 0.5f * (p1 + radiusA * normal + p2 - radiusB * normal);
-	separation = b3Dot(p2 - p1, normal) - radiusA - radiusB;
+	b3Vec3 nA = xfA.rotation * p->localNormal1;
+	b3Vec3 cA = xfA * p->localPoint1;
+	b3Vec3 cB = xfB * p->localPoint2;
+
+	b3Vec3 pA = cA + rA * nA;
+	b3Vec3 pB = cB - rB * nA;
+	
+	point = 0.5f * (pA + pB);
+	normal = nA;
+	separation = b3Dot(cB - cA, nA) - rA - rB;
 }
 
-void b3WorldManifold::Initialize(const b3Manifold* manifold,
-	const b3Transform& xfA, float32 radiusA,
-	const b3Transform& xfB, float32 radiusB)
+void b3WorldManifold::Initialize(const b3Manifold* m, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB)
 {
-	if (manifold->pointCount > 0)
-	{
-		center = manifold->center;
-		normal = manifold->normal;
-		tangent1 = manifold->tangent1;
-		tangent2 = manifold->tangent2;
-	}
-
-	pointCount = manifold->pointCount;
-
+	center.SetZero();
+	normal.SetZero();
+	pointCount = m->pointCount;
 	for (u32 i = 0; i < pointCount; ++i)
 	{
-		const b3ManifoldPoint* mp = manifold->points + i;
-		b3WorldManifoldPoint* wmp = points + i;
+		const b3ManifoldPoint* p = m->points + i;
+		b3WorldManifoldPoint* wp = points + i;
 		
-		wmp->Initialize(mp, xfA, radiusA, xfB, radiusB);
+		wp->Initialize(p, rA, xfA, rB, xfB);
+
+		center += wp->point;
+		normal += wp->normal;
+	}
+
+	if (pointCount > 0)
+	{
+		center /= float32(pointCount);
+		normal.Normalize();
+
+		tangent1 = b3Perp(normal);
+		tangent2 = b3Cross(tangent1, normal);
 	}
 }

@@ -23,69 +23,63 @@
 #include <bounce/collision/shapes/sphere.h>
 #include <bounce/collision/shapes/hull.h>
 
-void b3CollideSphereAndHull(b3Manifold& manifold,
+void b3CollideSphereAndHull(b3Manifold& manifold, 
 	const b3Transform& xf1, const b3SphereShape* s1, 
 	const b3Transform& xf2, const b3HullShape* s2) 
 {
 	b3ShapeGJKProxy proxy1(s1, 0);	
 	b3ShapeGJKProxy proxy2(s2, 0);	
-	b3GJKOutput distance = b3GJK(xf1, proxy1, xf2, proxy2);	
-	float32 totalRadius = s1->m_radius + s2->m_radius;
-	if (distance.distance > totalRadius)
+	
+	b3GJKOutput gjk = b3GJK(xf1, proxy1, xf2, proxy2);	
+		
+	float32 r1 = s1->m_radius;
+	float32 r2 = s2->m_radius;
+
+	float32 totalRadius = r1 + r2;
+	
+	if (gjk.distance > totalRadius)
 	{
 		return;
 	}
 	
-	if (distance.distance > 0.0f)
+	if (gjk.distance > 0.0f)
 	{
-		b3Vec3 p1 = distance.pointA;
-		b3Vec3 p2 = distance.pointB;
-		b3Vec3 normal = (p2 - p1) / distance.distance;
+		b3Vec3 c1 = gjk.point1;
+		b3Vec3 c2 = gjk.point2;
+		b3Vec3 normal = (c2 - c1) / gjk.distance;
 		
 		manifold.pointCount = 1;
+		manifold.points[0].localNormal1 = b3MulT(xf1.rotation, normal);
+		manifold.points[0].localPoint1 = s1->m_center;
+		manifold.points[0].localPoint2 = b3MulT(xf2, c2);
 		manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
 		manifold.points[0].key = 0;
-		manifold.points[0].localNormal = b3MulT(xf1.rotation, normal);
-		manifold.points[0].localPoint = s1->m_center;
-		manifold.points[0].localPoint2 = b3MulT(xf2, p2);
-		
-		manifold.center = 0.5f * (p1 + s1->m_radius * normal + p2 - s2->m_radius * normal);
-		manifold.normal = normal;
-		manifold.tangent1 = b3Perp(normal);
-		manifold.tangent2 = b3Cross(manifold.tangent1, normal);
 
 		return;
 	}
 
-	b3Sphere hull1;
-	hull1.vertex = s1->m_center;
-	hull1.radius = s1->m_radius;
-	
+	const b3Vec3& hull1 = s1->m_center;
 	const b3Hull* hull2 = s2->m_hull;
 
-	b3FaceQuery faceQuery = b3QueryFaceSeparation(xf1, &hull1, xf2, hull2);
+	b3FaceQuery faceQuery = b3QueryFaceSeparation(xf1, hull1, xf2, hull2);
 	if (faceQuery.separation > totalRadius)
 	{
 		return;
 	}
 
-	b3Plane localPlane = hull2->GetPlane(faceQuery.index);
-	b3Plane plane = b3Mul(xf2, localPlane);
-	b3Vec3 cp1 = b3Mul(xf1, hull1.vertex);
-	b3Vec3 cp2 = b3ClosestPointOnPlane(cp1, plane);
+	b3Plane localPlane2 = hull2->planes[faceQuery.index];
+	b3Plane plane2 = xf2 * localPlane2;
 	
-	// Ensure normal orientation to shape B
-	b3Vec3 normal = -plane.normal;
+	b3Vec3 c1 = xf1 * hull1;
+	b3Vec3 c2 = b3ClosestPointOnPlane(c1, plane2);
 	
+	// Ensure normal orientation to shape 2
+	b3Vec3 n1 = -plane2.normal;
+
 	manifold.pointCount = 1;
+	manifold.points[0].localNormal1 = b3MulT(xf1.rotation, n1);
+	manifold.points[0].localPoint1 = s1->m_center;
+	manifold.points[0].localPoint2 = b3MulT(xf2, c2);
 	manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
 	manifold.points[0].key = 1;
-	manifold.points[0].localNormal = b3MulT(xf1.rotation, normal);
-	manifold.points[0].localPoint = s1->m_center;
-	manifold.points[0].localPoint2 = b3MulT(xf2, cp2);
-	
-	manifold.center = 0.5f * (cp1 + s1->m_radius * normal + cp2 - B3_HULL_RADIUS * normal);
-	manifold.normal = normal;
-	manifold.tangent1 = b3Perp(normal);
-	manifold.tangent2 = b3Cross(manifold.tangent1, normal);
 }
