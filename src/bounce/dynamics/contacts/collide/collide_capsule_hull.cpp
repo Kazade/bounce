@@ -70,6 +70,7 @@ static void b3BuildEdgeContact(b3Manifold& manifold,
 	b3Vec3 c1 = P1 + s * N1;
 	b3Vec3 c2 = P2 + t * N2;
 
+	// Ensure normal orientation to hull 2.
 	b3Vec3 N = b3Cross(E1, E2);
 	float32 LN = N.Normalize();
 	B3_ASSERT(LN > 0.0f);
