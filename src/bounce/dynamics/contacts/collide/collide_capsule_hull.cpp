@@ -27,16 +27,17 @@
 #include <bounce/collision/shapes/hull.h>
 
 static void b3BuildEdgeContact(b3Manifold& manifold,
-	const b3Transform& xf1, const b3Segment* hull1,
-	const b3Transform& xf2, u32 index2, const b3Hull* hull2)
+	const b3Transform& xf1, const b3CapsuleShape* s1,
+	const b3Transform& xf2, u32 index2, const b3HullShape* s2)
 {
-	b3Vec3 P1 = xf1 * hull1->GetVertex(0);
-	b3Vec3 Q1 = xf1 * hull1->GetVertex(1);
+	b3Vec3 P1 = xf1 * s1->m_centers[0];
+	b3Vec3 Q1 = xf1 * s1->m_centers[1];
 	b3Vec3 E1 = Q1 - P1;
 	b3Vec3 N1 = E1;
 	float32 L1 = N1.Normalize();
 	B3_ASSERT(L1 > 0.0f);
 
+	const b3Hull* hull2 = s2->m_hull;
 	const b3HalfEdge* edge2 = hull2->GetEdge(index2);
 	const b3HalfEdge* twin2 = hull2->GetEdge(index2 + 1);
 
@@ -88,16 +89,20 @@ static void b3BuildEdgeContact(b3Manifold& manifold,
 }
 
 static void b3BuildFaceContact(b3Manifold& manifold,
-	const b3Transform& xf1, float32 r1, const b3Segment* hull1,
-	const b3Transform& xf2, float32 r2, u32 index2, const b3Hull* hull2)
+	const b3Transform& xf1, const b3CapsuleShape* s1,
+	const b3Transform& xf2, u32 index2, const b3HullShape* s2)
 {
 	// Clip edge 1 against the side planes of the face 2.
-	b3Segment tempEdge1;
-	tempEdge1.vertices[0] = xf1 * hull1->vertices[0];
-	tempEdge1.vertices[1] = xf1 * hull1->vertices[1];
-	
+	b3Segment segment1;
+	segment1.vertices[0] = xf1 * s1->m_centers[0];
+	segment1.vertices[1] = xf1 * s1->m_centers[1];
+	float32 r1 = s1->m_radius;
+
 	b3ClipVertex edge1[2];
-	b3BuildEdge(edge1, &tempEdge1);
+	b3BuildEdge(edge1, &segment1);
+	
+	const b3Hull* hull2 = s2->m_hull;
+	float32 r2 = s2->m_radius;
 
 	b3ClipVertex clipEdge1[2];
 	u32 clipCount = b3ClipEdgeToFace(clipEdge1, edge1, xf2, r2, index2, hull2);
@@ -109,6 +114,7 @@ static void b3BuildFaceContact(b3Manifold& manifold,
 	const b3HalfEdge* edge2 = hull2->GetEdge(face2->edge);
 	b3Vec3 localPoint2 = hull2->GetVertex(edge2->origin);
 
+	// Ensure normal orientation to hull 2.
 	b3Vec3 n1 = -plane2.normal;
 
 	float32 totalRadius = r1 + r2;
@@ -142,10 +148,11 @@ void b3CollideCapsuleAndHull(b3Manifold& manifold,
 {
 	b3ShapeGJKProxy proxy1(s1, 0);
 	b3ShapeGJKProxy proxy2(s2, 0);
-	
+
 	b3GJKOutput gjk = b3GJK(xf1, proxy1, xf2, proxy2);
-	
-	float32 r1 = s1->m_radius, r2 = s2->m_radius;
+
+	float32 r1 = s1->m_radius;
+	float32 r2 = s2->m_radius;
 
 	float32 totalRadius = r1 + r2;
 
@@ -179,7 +186,7 @@ void b3CollideCapsuleAndHull(b3Manifold& manifold,
 		{
 			// Reference face found.
 			// Try to build a face contact.
-			b3BuildFaceContact(manifold, xf1, r1, &hull1, xf2, r2, index2, hull2);
+			b3BuildFaceContact(manifold, xf1, s1, xf2, index2, s2);
 			if (manifold.pointCount == 2)
 			{
 				return;
@@ -211,10 +218,10 @@ void b3CollideCapsuleAndHull(b3Manifold& manifold,
 	const float32 kTol = 0.1f * B3_LINEAR_SLOP;
 	if (edgeQuery.separation > faceQuery2.separation + kTol)
 	{
-		b3BuildEdgeContact(manifold, xf1, &hull1, xf2, edgeQuery.index2, hull2);
+		b3BuildEdgeContact(manifold, xf1, s1, xf2, edgeQuery.index2, s2);
 	}
 	else
 	{
-		b3BuildFaceContact(manifold, xf1, r1, &hull1, xf2, r2, faceQuery2.index, hull2);
+		b3BuildFaceContact(manifold, xf1, s1, xf2, faceQuery2.index, s2);
 	}
 }

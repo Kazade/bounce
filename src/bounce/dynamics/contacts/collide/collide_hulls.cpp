@@ -24,9 +24,10 @@
 #include <bounce/collision/shapes/hull.h>
 
 void b3BuildEdgeContact(b3Manifold& manifold, 
-	const b3Transform& xf1, u32 index1, const b3Hull* hull1,
-	const b3Transform& xf2, u32 index2, const b3Hull* hull2)
+	const b3Transform& xf1, u32 index1, const b3HullShape* s1,
+	const b3Transform& xf2, u32 index2, const b3HullShape* s2)
 {
+	const b3Hull* hull1 = s1->m_hull;
 	const b3HalfEdge* edge1 = hull1->GetEdge(index1);
 	const b3HalfEdge* twin1 = hull1->GetEdge(index1 + 1);
 
@@ -38,6 +39,7 @@ void b3BuildEdgeContact(b3Manifold& manifold,
 	float32 L1 = N1.Normalize();
 	B3_ASSERT(L1 > B3_LINEAR_SLOP);
 
+	const b3Hull* hull2 = s2->m_hull;
 	const b3HalfEdge* edge2 = hull2->GetEdge(index2);
 	const b3HalfEdge* twin2 = hull2->GetEdge(index2 + 1);
 
@@ -70,6 +72,7 @@ void b3BuildEdgeContact(b3Manifold& manifold,
 	b3Vec3 c1 = P1 + s * N1;
 	b3Vec3 c2 = P2 + t * N2;
 
+	// Ensure normal orientation to hull 2.
 	b3Vec3 N = b3Cross(E1, E2);
 	float32 LN = N.Normalize();
 	B3_ASSERT(LN > 0.0f);
@@ -89,10 +92,18 @@ void b3BuildEdgeContact(b3Manifold& manifold,
 }
 
 void b3BuildFaceContact(b3Manifold& manifold,
-	const b3Transform& xf1, float32 r1, u32 index1, const b3Hull* hull1,
-	const b3Transform& xf2, float32 r2, const b3Hull* hull2,
+	const b3Transform& xf1, u32 index1, const b3HullShape* s1,
+	const b3Transform& xf2, const b3HullShape* s2,
 	bool flipNormal)
 {
+	const b3Hull* hull1 = s1->m_hull;
+	float32 r1 = s1->m_radius;
+
+	const b3Hull* hull2 = s2->m_hull;
+	float32 r2 = s2->m_radius;
+
+	float32 totalRadius = r1 + r2;
+
 	// 1. Define the reference face plane (1).
 	const b3Face* face1 = hull1->GetFace(index1);
 	const b3HalfEdge* edge1 = hull1->GetEdge(face1->edge);
@@ -112,8 +123,6 @@ void b3BuildFaceContact(b3Manifold& manifold,
 	b3BuildPolygon(polygon2, xf2, index2, hull2);
 
 	// 3. Clip incident face polygon (2) against the reference face (1) side planes.
-	float32 totalRadius = r1 + r2;
-
 	b3StackArray<b3ClipVertex, 32> clipPolygon2;
 	b3ClipPolygonToFace(clipPolygon2, polygon2, xf1, totalRadius, index1, hull1);
 	if (clipPolygon2.IsEmpty())
@@ -155,6 +164,8 @@ void b3BuildFaceContact(b3Manifold& manifold,
 
 	// 5. Reduce.
 	b3Vec3 normal = plane1.normal;
+	
+	// Ensure normal orientation to hull 2.
 	b3Vec3 s_normal = flipNormal ? -normal : normal;
 
 	b3StackArray<b3ClusterVertex, 32> reducedPolygon1;
@@ -173,6 +184,7 @@ void b3BuildFaceContact(b3Manifold& manifold,
 
 		if (flipNormal)
 		{
+			// Swap the feature pairs.
 			b3FeaturePair pair = b3MakePair(v2.pair.inEdge2, v2.pair.inEdge1, v2.pair.outEdge2, v2.pair.outEdge1);
 			
 			mp->localNormal1 = b3MulT(xf2.rotation, s_normal);
@@ -199,10 +211,11 @@ void b3CollideHulls(b3Manifold& manifold,
 	const b3Transform& xf2, const b3HullShape* s2)
 {
 	const b3Hull* hull1 = s1->m_hull;
-	const b3Hull* hull2 = s2->m_hull;
-
 	float32 r1 = s1->m_radius;
+	
+	const b3Hull* hull2 = s2->m_hull;
 	float32 r2 = s2->m_radius;
+	
 	float32 totalRadius = r1 + r2;
 
 	b3FaceQuery faceQuery1 = b3QueryFaceSeparation(xf1, hull1, xf2, hull2);
@@ -226,17 +239,17 @@ void b3CollideHulls(b3Manifold& manifold,
 	const float32 kTol = 0.1f * B3_LINEAR_SLOP;
 	if (edgeQuery.separation > b3Max(faceQuery1.separation, faceQuery2.separation) + kTol)
 	{
-		b3BuildEdgeContact(manifold, xf1, edgeQuery.index1, hull1, xf2, edgeQuery.index2, hull2);
+		b3BuildEdgeContact(manifold, xf1, edgeQuery.index1, s1, xf2, edgeQuery.index2, s2);
 	}
 	else
 	{
 		if (faceQuery1.separation + kTol > faceQuery2.separation)
 		{
-			b3BuildFaceContact(manifold, xf1, r1, faceQuery1.index, hull1, xf2, r2, hull2, false);
+			b3BuildFaceContact(manifold, xf1, faceQuery1.index, s1, xf2, s2, false);
 		}
 		else
 		{
-			b3BuildFaceContact(manifold, xf2, r2, faceQuery2.index, hull2, xf1, r1, hull1, true);
+			b3BuildFaceContact(manifold, xf2, faceQuery2.index, s2, xf1, s1, true);
 		}
 	}
 }

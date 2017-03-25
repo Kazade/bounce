@@ -59,14 +59,14 @@ struct b3FeatureCache
 {
 	// Read the current state of the cache.
 	// Return e_unkown if neither a separation or penetration was detected.
-	b3SATCacheType ReadState(const b3Transform& xf1, float32 r1, const b3Hull* hull1,
-		const b3Transform& xf2, float32 r2, const b3Hull* hull2);
+	b3SATCacheType ReadState(const b3Transform& xf1, const b3Hull* hull1,
+		const b3Transform& xf2, const b3Hull* hull2, float32 totalRadius);
 
-	b3SATCacheType ReadEdge(const b3Transform& xf1, float32 r1, const b3Hull* hull1,
-		const b3Transform& xf2, float32 r2, const b3Hull* hull2);
+	b3SATCacheType ReadEdge(const b3Transform& xf1, const b3Hull* hull1,
+		const b3Transform& xf2, const b3Hull* hull2, float32 totalRadius);
 
-	b3SATCacheType ReadFace(const b3Transform& xf1, float32 r1, const b3Hull* hull1,
-		const b3Transform& xf2, float32 r2, const b3Hull* hull2);
+	b3SATCacheType ReadFace(const b3Transform& xf1, const b3Hull* hull1,
+		const b3Transform& xf2, const b3Hull* hull2, float32 totalRadius);
 
 	// We could increase the cache size (e.g. a feature pair of the last two frames).
 	b3SATFeaturePair m_featurePair;
