@@ -75,74 +75,6 @@ inline float32 b3Distance(const b3Vec3& P, const b3Plane& plane)
 	return b3Dot(plane.normal, P) - plane.offset;
 }
 
-// Compute barycentric coordinates (u, v) for point Q to segment AB.
-// The last output value is the divisor.
-inline void b3Barycentric(float32 out[3], 
-	const b3Vec3& A, const b3Vec3& B, 
-	const b3Vec3& Q)
-{
-	b3Vec3 AB = B - A;
-	b3Vec3 QA = A - Q;
-	b3Vec3 QB = B - Q;
-	//float32 divisor = b3Dot(AB, AB);
-	out[0] = b3Dot(QB, AB);
-	out[1] = -b3Dot(QA, AB);
-	out[2] = out[0] + out[1];
-}
-
-// Compute barycentric coordinates (u, v, w) for point Q to triangle ABC.
-// The last output value is the divisor.
-inline void b3Barycentric(float32 out[4], 
-	const b3Vec3& A, const b3Vec3& B, const b3Vec3& C, 
-	const b3Vec3& Q)
-{
-	// RTCD, 140.
-	b3Vec3 AB = B - A;
-	b3Vec3 AC = C - A;
-
-	b3Vec3 QA = A - Q;
-	b3Vec3 QB = B - Q;
-	b3Vec3 QC = C - Q;
-	
-	b3Vec3 QB_x_QC = b3Cross(QB, QC);
-	b3Vec3 QC_x_QA = b3Cross(QC, QA);
-	b3Vec3 QA_x_QB = b3Cross(QA, QB);
-	
-	b3Vec3 AB_x_AC = b3Cross(AB, AC);
-	//float32 divisor = b3Dot(AB_x_AC, AB_x_AC);
-
-	out[0] = b3Dot(QB_x_QC, AB_x_AC);
-	out[1] = b3Dot(QC_x_QA, AB_x_AC);
-	out[2] = b3Dot(QA_x_QB, AB_x_AC);
-	out[3] = out[0] + out[1] + out[2];
-}
-
-// Compute barycentric coordinates (u, v, w, x) for point Q to tetrahedron ABCD.
-// The last output value is the (positive) divisor.
-inline void b3Barycentric(float32 out[5], 
-	const b3Vec3& A, const b3Vec3& B, const b3Vec3& C, const b3Vec3& D, 
-	const b3Vec3& Q)
-{
-	// RTCD, 48, 49.
-	b3Vec3 AB = B - A;
-	b3Vec3 AC = C - A;
-	b3Vec3 AD = D - A;
-
-	b3Vec3 QA = A - Q;
-	b3Vec3 QB = B - Q;
-	b3Vec3 QC = C - Q;
-	b3Vec3 QD = D - Q;
-
-	float32 divisor = b3Det(AB, AC, AD);
-	float32 sign = b3Sign(divisor);
-
-	out[0] = sign * b3Det(QB, QC, QD);
-	out[1] = sign * b3Det(QA, QD, QC);
-	out[2] = sign * b3Det(QA, QB, QD);
-	out[3] = sign * b3Det(QA, QC, QB);
-	out[4] = sign * divisor;
-}
-
 // Project a point onto a normal plane.
 inline b3Vec3 b3ClosestPointOnPlane(const b3Vec3& P, const b3Plane& plane)
 {
@@ -150,11 +82,56 @@ inline b3Vec3 b3ClosestPointOnPlane(const b3Vec3& P, const b3Plane& plane)
 	return P - fraction * plane.normal;
 }
 
+// Convert a point Q from euclidean coordinates to barycentric coordinates (u, v) 
+// with respect to a segment AB.
+// The last output value is the divisor.
+inline void b3BarycentricCoordinates(float32 out[3], 
+	const b3Vec3& A, const b3Vec3& B, 
+	const b3Vec3& Q)
+{
+	b3Vec3 AB = B - A;
+	b3Vec3 QA = A - Q;
+	b3Vec3 QB = B - Q;
+	
+	float32 divisor = b3Dot(AB, AB);
+	
+	out[0] = b3Dot(QB, AB);
+	out[1] = -b3Dot(QA, AB);
+	out[2] = divisor;
+}
+
+// Convert a point Q from euclidean coordinates to barycentric coordinates (u, v, w) 
+// with respect to a triangle ABC.
+// The last output value is the divisor.
+inline void b3BarycentricCoordinates(float32 out[4],
+	const b3Vec3& A, const b3Vec3& B, const b3Vec3& C,
+	const b3Vec3& Q)
+{
+	b3Vec3 AB = B - A;
+	b3Vec3 AC = C - A;
+
+	b3Vec3 QA = A - Q;
+	b3Vec3 QB = B - Q;
+	b3Vec3 QC = C - Q;
+
+	b3Vec3 QB_x_QC = b3Cross(QB, QC);
+	b3Vec3 QC_x_QA = b3Cross(QC, QA);
+	b3Vec3 QA_x_QB = b3Cross(QA, QB);
+
+	b3Vec3 AB_x_AC = b3Cross(AB, AC);
+	float32 divisor = b3Dot(AB_x_AC, AB_x_AC);
+
+	out[0] = b3Dot(QB_x_QC, AB_x_AC);
+	out[1] = b3Dot(QC_x_QA, AB_x_AC);
+	out[2] = b3Dot(QA_x_QB, AB_x_AC);
+	out[3] = divisor;
+}
+
 // Project a point onto a segment AB.
 inline b3Vec3 b3ClosestPointOnSegment(const b3Vec3& P, const b3Vec3& A, const b3Vec3& B)
 {
 	float32 wAB[3];
-	b3Barycentric(wAB, A, B, P);
+	b3BarycentricCoordinates(wAB, A, B, P);
 
 	if (wAB[1] <= 0.0f)
 	{

@@ -19,7 +19,9 @@
 #ifndef B3_GJK_H
 #define B3_GJK_H
 
-#include <bounce/common/geometry.h>
+#include <bounce/common/math/transform.h>
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 class b3GJKProxy;
 struct b3SimplexCache;
@@ -72,5 +74,44 @@ struct b3GJKOutput
 // Find the closest points and distance between two proxies.
 b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1, 
 	const b3Transform& xf2, const b3GJKProxy& proxy2);
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+// A cached simplex is used to improve the performance 
+// of the GJK when called more than once. 
+// Make sure to set cache.count to zero before 
+// passing this structure as an argument to GJK when called 
+// for the first time.
+struct b3SimplexCache
+{
+	float32 metric; // distance or area or volume
+	u32 iterations; // number of GJK iterations
+	u16 count; // number of support vertices
+	u8 index1[4]; // support vertices on proxy 1
+	u8 index2[4]; // support vertices on proxy 2
+};
+
+// A feature pair contains the vertices of the features associated 
+// with the closest points.
+struct b3GJKFeaturePair
+{
+	u32 index1[3]; // vertices on proxy 1
+	u32 count1; // number of vertices on proxy 1
+	u32 index2[3]; // vertices on proxy 2
+	u32 count2; // number of vertices on proxy 2
+};
+
+// Identify the vertices of the features that the closest points between two 
+// GJK proxies are contained on given a cached simplex.
+// The GJK must have been called using the pair of proxies and 
+// cache.count must be < 4, that is, the proxies must not be overlapping.
+b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache);
+
+// Find the closest points and distance between two proxies. 
+// Assumes a simplex is given for increasing the performance of 
+// the algorithm when called more than once.
+b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1,
+	const b3Transform& xf2, const b3GJKProxy& proxy2,
+	bool applyRadius, b3SimplexCache* cache);
 
 #endif

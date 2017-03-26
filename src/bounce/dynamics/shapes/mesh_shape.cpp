@@ -106,7 +106,7 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 	b3Vec3 q = p1 + t * d;
 
 	float32 w[4];
-	b3Barycentric(w, v1, v2, v3, q);
+	b3BarycentricCoordinates(w, v1, v2, v3, q);
 
 	if (w[0] > 0.0f && w[1] > 0.0f && w[2] > 0.0f)
 	{

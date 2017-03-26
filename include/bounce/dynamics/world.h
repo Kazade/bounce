@@ -97,7 +97,7 @@ public:
 	// and the intersection fraction.
 	void RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const;
 
-	// Perform a AABB cast with the world.
+	// Perform a AABB query with the world.
 	// The query listener will be notified when two shape AABBs are overlapping.
 	// If the listener returns false then the query is stopped immediately.
 	// Otherwise, it continues searching for new overlapping shape AABBs.

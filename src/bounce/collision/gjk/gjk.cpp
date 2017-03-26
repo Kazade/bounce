@@ -19,10 +19,84 @@
 #include <bounce/collision/gjk/gjk.h>
 #include <bounce/collision/gjk/gjk_proxy.h>
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Implementation of the GJK (Gilbert-Johnson-Keerthi) algorithm 
 // using Voronoi regions and Barycentric coordinates.
 
 u32 b3_gjkCalls = 0, b3_gjkIters = 0, b3_gjkMaxIters = 0;
+
+// Convert a point Q from euclidean coordinates to barycentric coordinates (u, v) 
+// with respect to a segment AB.
+// The last output value is the divisor.
+static B3_FORCE_INLINE void b3Barycentric(float32 out[3], 
+	const b3Vec3& A, const b3Vec3& B,
+	const b3Vec3& Q)
+{
+	b3Vec3 AB = B - A;
+	b3Vec3 QA = A - Q;
+	b3Vec3 QB = B - Q;
+
+	//float32 divisor = b3Dot(AB, AB);
+	
+	out[0] = b3Dot(QB, AB);
+	out[1] = -b3Dot(QA, AB);
+	out[2] = out[0] + out[1];
+}
+
+// Convert a point Q from euclidean coordinates to barycentric coordinates (u, v, w) 
+// with respect to a triangle ABC.
+// The last output value is the divisor.
+static B3_FORCE_INLINE void b3Barycentric(float32 out[4],
+	const b3Vec3& A, const b3Vec3& B, const b3Vec3& C,
+	const b3Vec3& Q)
+{
+	b3Vec3 AB = B - A;
+	b3Vec3 AC = C - A;
+
+	b3Vec3 QA = A - Q;
+	b3Vec3 QB = B - Q;
+	b3Vec3 QC = C - Q;
+
+	b3Vec3 QB_x_QC = b3Cross(QB, QC);
+	b3Vec3 QC_x_QA = b3Cross(QC, QA);
+	b3Vec3 QA_x_QB = b3Cross(QA, QB);
+
+	b3Vec3 AB_x_AC = b3Cross(AB, AC);
+	
+	//float32 divisor = b3Dot(AB_x_AC, AB_x_AC);
+
+	out[0] = b3Dot(QB_x_QC, AB_x_AC);
+	out[1] = b3Dot(QC_x_QA, AB_x_AC);
+	out[2] = b3Dot(QA_x_QB, AB_x_AC);
+	out[3] = out[0] + out[1] + out[2];
+}
+
+// Convert a point Q from euclidean coordinates to barycentric coordinates (u, v, w, x) 
+// with respect to a tetrahedron ABCD.
+// The last output value is the (positive) divisor.
+static B3_FORCE_INLINE void b3Barycentric(float32 out[5],
+	const b3Vec3& A, const b3Vec3& B, const b3Vec3& C, const b3Vec3& D,
+	const b3Vec3& Q)
+{
+	b3Vec3 AB = B - A;
+	b3Vec3 AC = C - A;
+	b3Vec3 AD = D - A;
+
+	b3Vec3 QA = A - Q;
+	b3Vec3 QB = B - Q;
+	b3Vec3 QC = C - Q;
+	b3Vec3 QD = D - Q;
+
+	float32 divisor = b3Det(AB, AC, AD);
+	float32 sign = b3Sign(divisor);
+
+	out[0] = sign * b3Det(QB, QC, QD);
+	out[1] = sign * b3Det(QA, QD, QC);
+	out[2] = sign * b3Det(QA, QB, QD);
+	out[3] = sign * b3Det(QA, QC, QB);
+	out[4] = sign * divisor;
+}
 
 b3Vec3 b3Simplex::GetSearchDirection(const b3Vec3& Q) const
 {
@@ -508,25 +582,17 @@ void b3Simplex::Solve4(const b3Vec3& Q)
 	m_vertices[3].weight = s * wABCD[3];
 }
 
-b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1, const b3Transform& xf2, const b3GJKProxy& proxy2)
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1,
+	const b3Transform& xf2, const b3GJKProxy& proxy2,
+	bool applyRadius, b3SimplexCache* cache)
 {
 	++b3_gjkCalls;
 
-	b3Simplex simplex;
-	
 	// Initialize the simplex.
-	{
-		b3SimplexVertex* v = simplex.m_vertices + 0;
-		b3Vec3 w1Local = proxy1.GetVertex(0);
-		b3Vec3 w2Local = proxy2.GetVertex(0);
-		v->point1 = b3Mul(xf1, w1Local);
-		v->point2 = b3Mul(xf2, w2Local);
-		v->point = v->point2 - v->point1;
-		v->weight = 1.0f;
-		v->index1 = 0;
-		v->index2 = 0;
-		simplex.m_count = 1;
-	}
+	b3Simplex simplex;
+	simplex.ReadCache(cache, xf1, proxy1, xf2, proxy2);
 
 	// Get simplex vertices as an array.
 	b3SimplexVertex* vertices = simplex.m_vertices;
@@ -632,18 +698,162 @@ b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1, const b3Tran
 			break;
 		}
 
-		// New vertex is needed.
+		// New vertex is ok and needed.
 		++simplex.m_count;
 	}
 
 	b3_gjkMaxIters = b3Max(b3_gjkMaxIters, iter);
 
-	// Prepare output.
+	// Prepare result.
 	b3GJKOutput output;
 	simplex.GetClosestPoints(&output.point1, &output.point2);
 	output.distance = b3Distance(output.point1, output.point2);
 	output.iterations = iter;
 
+	// Cache the simplex.
+	simplex.WriteCache(cache);
+
+	// Apply radius if requested.
+	if (applyRadius)
+	{
+		float32 r1 = proxy1.m_radius;
+		float32 r2 = proxy2.m_radius;
+
+		if (output.distance > r1 + r2 && output.distance > B3_EPSILON)
+		{
+			// Shapes are still no overlapped.
+			// Move the witness points to the outer surface.
+			output.distance -= r1 + r2;
+			b3Vec3 d = output.point2 - output.point1;
+			b3Vec3 normal = b3Normalize(d);
+			output.point1 += r1 * normal;
+			output.point2 -= r2 * normal;
+		}
+		else
+		{
+			// Shapes are overlapped when radii are considered.
+			// Move the witness points to the middle.
+			b3Vec3 p = 0.5f * (output.point1 + output.point2);
+			output.point1 = p;
+			output.point2 = p;
+			output.distance = 0.0f;
+		}
+	}
+
 	// Output result.
 	return output;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+u32 b3_gjkCacheHits = 0;
+
+// Implements b3Simplex routines for a cached simplex.
+void b3Simplex::ReadCache(const b3SimplexCache* cache,
+	const b3Transform& xf1, const b3GJKProxy& proxy1,
+	const b3Transform& xf2, const b3GJKProxy& proxy2)
+{
+	B3_ASSERT(cache->count <= 4);
+	m_count = (u8)cache->count;
+	for (u32 i = 0; i < m_count; ++i)
+	{
+		b3SimplexVertex* v = m_vertices + i;
+		v->index1 = cache->index1[i];
+		v->index2 = cache->index2[i];
+		b3Vec3 wALocal = proxy1.GetVertex(v->index1);
+		b3Vec3 wBLocal = proxy2.GetVertex(v->index2);
+		v->point1 = xf1 * wALocal;
+		v->point2 = xf2 * wBLocal;
+		v->point = v->point2 - v->point1;
+		v->weight = 0.0f;
+	}
+
+	// Compute the new simplex metric
+	// If it is substantially different than
+	// old metric then flush the simplex.
+	if (m_count > 1)
+	{
+		float32 metric1 = cache->metric;
+		float32 metric2 = GetMetric();
+		if (metric2 < 0.5f * metric1 || 2.0f * metric1 < metric2 || metric2 < B3_EPSILON)
+		{
+			// Flush
+			m_count = 0;
+		}
+		else
+		{
+			++b3_gjkCacheHits;
+		}
+	}
+
+	// If cache is empty or flushed choose an arbitrary simplex.
+	if (m_count == 0)
+	{
+		b3SimplexVertex* v = m_vertices + 0;
+		b3Vec3 w1Local = proxy1.GetVertex(0);
+		b3Vec3 w2Local = proxy2.GetVertex(0);
+		v->point1 = b3Mul(xf1, w1Local);
+		v->point2 = b3Mul(xf2, w2Local);
+		v->point = v->point2 - v->point1;
+		v->weight = 1.0f;
+		v->index1 = 0;
+		v->index2 = 0;
+		m_count = 1;
+	}
+}
+
+void b3Simplex::WriteCache(b3SimplexCache* cache) const
+{
+	cache->metric = GetMetric();
+	cache->count = u16(m_count);
+	for (u32 i = 0; i < m_count; ++i)
+	{
+		cache->index1[i] = u8(m_vertices[i].index1);
+		cache->index2[i] = u8(m_vertices[i].index2);
+	}
+}
+
+float32 b3Simplex::GetMetric() const
+{
+	switch (m_count)
+	{
+	case 0:
+		B3_ASSERT(false);
+		return 0.0f;
+	case 1:
+		return 0.0f;
+	case 2:
+		// Magnitude
+		return b3Distance(m_vertices[0].point, m_vertices[1].point);
+	case 3:
+	{
+		// Area
+		b3Vec3 E1 = m_vertices[1].point - m_vertices[0].point;
+		b3Vec3 E2 = m_vertices[2].point - m_vertices[0].point;
+		return b3Length(b3Cross(E1, E2));
+	}
+	case 4:
+	{
+		// Volume
+		b3Vec3 E1 = m_vertices[1].point - m_vertices[0].point;
+		b3Vec3 E2 = m_vertices[2].point - m_vertices[0].point;
+		b3Vec3 E3 = m_vertices[3].point - m_vertices[0].point;
+		float32 det = b3Det(E1, E2, E3);
+		float32 sign = b3Sign(det);
+		float32 volume = sign * det;
+		return volume;
+	}
+	default:
+		B3_ASSERT(false);
+		return 0.0f;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1,
+	const b3Transform& xf2, const b3GJKProxy& proxy2)
+{
+	b3SimplexCache cache;
+	cache.count = 0;
+	return b3GJK(xf1, proxy1, xf2, proxy2, false, &cache);
 }

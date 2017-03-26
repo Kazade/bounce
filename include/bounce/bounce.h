@@ -28,7 +28,6 @@
 #include <bounce/common/math/math.h>
 
 #include <bounce/collision/gjk/gjk.h>
-#include <bounce/collision/gjk/gjk_cache.h>
 #include <bounce/collision/sat/sat.h>
 #include <bounce/collision/collision.h>
 #include <bounce/collision/broad_phase.h>

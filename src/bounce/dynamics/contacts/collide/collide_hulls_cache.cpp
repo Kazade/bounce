@@ -84,10 +84,10 @@ static void b3RebuildEdgeContact(b3Manifold& manifold,
 	// Check if the closest points are still lying on the opposite segments 
 	// using Barycentric coordinates.
 	float32 w2[3];
-	b3Barycentric(w2, P1, Q1, c2);
+	b3BarycentricCoordinates(w2, P1, Q1, c2);
 
 	float32 w1[3];
-	b3Barycentric(w1, P2, Q2, c1);
+	b3BarycentricCoordinates(w1, P2, Q2, c1);
 
 	if (w2[1] > 0.0f && w2[1] <= w2[2] &&
 		w1[1] > 0.0f && w1[1] <= w1[2])

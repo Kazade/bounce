@@ -155,7 +155,8 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 			// w2 - w1 = -I2^1 * h * cross(w2, I2 * w2)
 			// I2 * (w2 - w1) = -h * cross(w2, I2 * w2)
 			// I2 * (w2 - w1) + h * cross(w2, I2 * w2) = 0
-			// Toss out I2 from f using local I2 (constant) and local w1
+			// Toss out I2 from f using local I2 (constant) and local w1 
+			// to remove its time dependency.
 			b3Vec3 w2 = b3SolveGyroscopic(q, b->m_I, w, h);
 			b3Vec3 dw2 = w2 - w;
 

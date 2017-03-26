@@ -19,8 +19,8 @@
 #ifndef B3_COLLIDE_H
 #define B3_COLLIDE_H
 
+#include <bounce/collision/gjk/gjk.h>
 #include <bounce/collision/gjk/gjk_proxy.h>
-#include <bounce/collision/gjk/gjk_cache.h>
 #include <bounce/collision/sat/sat.h>
 #include <bounce/collision/sat/sat_edge_and_hull.h>
 #include <bounce/collision/sat/sat_vertex_and_hull.h>
