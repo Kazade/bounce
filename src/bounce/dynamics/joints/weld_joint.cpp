@@ -86,9 +86,9 @@ static b3Vec4 q_to_v(const b3Quat& q)
 	return b3Vec4(q.w, q.x, q.y, q.z);
 }
 
-static b3Mat34 P = P_mat();
-static b3Mat43 PT = b3Transpose(P);
-static b3Mat34 P_lock = P_lock_mat();
+static const b3Mat34 P = P_mat();
+static const b3Mat43 PT = b3Transpose(P);
+static const b3Mat34 P_lock = P_lock_mat();
 
 void b3WeldJointDef::Initialize(b3Body* bA, b3Body* bB, const b3Vec3& anchor)
 {

@@ -249,11 +249,6 @@ void b3Simplex::Solve3(const b3Vec3& Q)
 	b3Barycentric(wBC, B.point, C.point, Q);
 	b3Barycentric(wCA, C.point, A.point, Q);
 	
-	// Test edge regions		
-	float32 wABC[4];
-	b3Barycentric(wABC, A.point, B.point, C.point, Q);
-
-	// Test vertex regions
 	// R A
 	if (wAB[1] <= 0.0f && wCA[0] <= 0.0f)
 	{
@@ -282,6 +277,9 @@ void b3Simplex::Solve3(const b3Vec3& Q)
 	}
 
 	// Test edge regions		
+	float32 wABC[4];
+	b3Barycentric(wABC, A.point, B.point, C.point, Q);
+	
 	// This is used to help testing if the face degenerates 
 	// into an edge.
 	float32 area = wABC[3];
@@ -363,19 +361,6 @@ void b3Simplex::Solve4(const b3Vec3& Q)
 	b3Barycentric(wAD, A.point, D.point, Q);
 	b3Barycentric(wCD, C.point, D.point, Q);
 	b3Barycentric(wDB, D.point, B.point, Q);
-
-	// Test edge regions
-	float32 wACB[4], wABD[4], wADC[4], wBCD[4];
-	b3Barycentric(wACB, A.point, C.point, B.point, Q);
-	b3Barycentric(wABD, A.point, B.point, D.point, Q);
-	b3Barycentric(wADC, A.point, D.point, C.point, Q);
-	b3Barycentric(wBCD, B.point, C.point, D.point, Q);
-	
-	// Test face regions
-	float32 wABCD[5];
-	b3Barycentric(wABCD, A.point, B.point, C.point, D.point, Q);
-
-	// Test vertex regions
 	
 	// R A
 	if (wAB[1] <= 0.0f && wAC[1] <= 0.0f && wAD[1] <= 0.0f)
@@ -414,7 +399,12 @@ void b3Simplex::Solve4(const b3Vec3& Q)
 	}
 
 	// Test edge regions
-	
+	float32 wACB[4], wABD[4], wADC[4], wBCD[4];
+	b3Barycentric(wACB, A.point, C.point, B.point, Q);
+	b3Barycentric(wABD, A.point, B.point, D.point, Q);
+	b3Barycentric(wADC, A.point, D.point, C.point, Q);
+	b3Barycentric(wBCD, B.point, C.point, D.point, Q);
+
 	// R AB
 	if (wABD[2] <= 0.0f && wACB[1] <= 0.0f && wAB[0] > 0.0f && wAB[1] > 0.0f)
 	{
@@ -500,7 +490,9 @@ void b3Simplex::Solve4(const b3Vec3& Q)
 	}
 
 	// Test face regions
-	
+	float32 wABCD[5];
+	b3Barycentric(wABCD, A.point, B.point, C.point, D.point, Q);
+
 	// R ACB 
 	if (wABCD[3] <= 0.0f && wACB[0] > 0.0f && wACB[1] > 0.0f && wACB[2] > 0.0f)
 	{
