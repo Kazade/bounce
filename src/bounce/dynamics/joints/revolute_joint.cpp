@@ -610,9 +610,9 @@ bool b3RevoluteJoint::SolvePositionConstraints(const b3SolverData* data)
 	float32 angularError = 0.0f;
 
 	{
-		b3Quat fA = m_referenceRotation * qA * m_localRotationA;
-		b3Quat fB = m_referenceRotation * qB * m_localRotationB;
-		b3Quat q = b3Conjugate(fA) * fB;
+		b3Quat fA = qA * m_localRotationA;
+		b3Quat fB = qB * m_localRotationB;
+		b3Quat q = b3Conjugate(m_referenceRotation) * b3Conjugate(fA) * fB;
 
 		b3Vec2 C = P_hinge * q_to_v(q);
 		
