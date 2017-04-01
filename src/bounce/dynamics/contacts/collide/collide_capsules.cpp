@@ -93,15 +93,17 @@ static void b3ClosestPoints(b3Vec3& C1, b3Vec3& C2,
 
 	// Here and in 3D we need to start "GJK" with the closest points between the two edges 
 	// since the cross product between their direction is a possible separating axis.
-	b3Vec3 N1 = E1;
-	float32 LN1 = N1.Normalize();
+	B3_ASSERT(L1 > 0.0f);
+	B3_ASSERT(L2 > 0.0f);
 
-	b3Vec3 N2 = E2;
-	float32 LN2 = N2.Normalize();
+	b3Vec3 N1 = E1 / L1;
+	b3Vec3 N2 = E2 / L2;
 	
 	float32 b = b3Dot(N1, N2);
 	float32 den = 1.0f - b * b;
+	
 	const float32 kTol = 0.005f;
+	
 	if (den < kTol * kTol)
 	{
 		C1 = P1;
