@@ -90,6 +90,14 @@ public:
 	// This will reset the current body inertial properties.
 	void SetType(b3BodyType type);
 
+	// Get the world the body belongs to.
+	const b3World* GetWorld() const;
+	b3World* GetWorld();
+
+	// Get the shapes associated with the body.
+	const b3List1<b3Shape>& GetShapeList() const;
+	b3List1<b3Shape>& GetShapeList();
+
 	// Create a new shape for the body given the shape definition and return a pointer to its clone.
 	// The shape passed to the definition it will be cloned and is not recommended modifying 
 	// it inside simulation callbacks. 
@@ -99,61 +107,55 @@ public:
 	// Destroy a given shape from the body.
 	void DestroyShape(b3Shape* shape);
 
-	// Get the shapes associated with the body.
-	const b3List1<b3Shape>& GetShapeList() const;
-	b3List1<b3Shape>& GetShapeList();
-
-	// Get the world the body belongs to.
-	const b3World* GetWorld() const;
-	b3World* GetWorld();
+	// Get the body sweep.
+	const b3Sweep& GetSweep() const;
 
 	// Get the body world transform.
 	const b3Transform& GetTransform() const;
-	
+
 	// Set the body world transform from a position, axis of rotation and an angle 
 	// of rotation about the axis.
-	// The transform defines a reference frame for this body world center of mass.
 	// However, manipulating a body transform during the simulation may cause non-physical behaviour.
 	void SetTransform(const b3Vec3& position, const b3Vec3& axis, float32 angle);
-	
+
 	// Get the position of the world body origin.
 	b3Vec3 GetPosition() const;
 
 	// Get the orientation of the world body frame.
 	b3Quat GetOrientation() const;
 
-	// Get the gravity scale of the body. One is used by default.
-	float32 GetGravityScale() const;
+	// Get the world position of the center of mass.
+	b3Vec3 GetWorldCenter() const;
+
+	// Get the local position of the center of mass.
+	b3Vec3 GetLocalCenter() const;
+
+	// Get the linear velocity of the center of mass.
+	b3Vec3 GetLinearVelocity() const;
+
+	// Set the linear velocity of the center of mass. 
+	// If is a non-zero velocity then the body awakes.
+	// The body must be dynamic or kinematic.
+	void SetLinearVelocity(const b3Vec3& linearVelocity);
 	
-	// Set the gravity scale of the body.
-	void SetGravityScale(float32 scale);
+	// Get the angular velocity of the body frame.
+	b3Vec3 GetAngularVelocity() const;
 
-	// See if the body is awake.
-	bool IsAwake() const;
+	// Set the angular velocity of the body frame. 
+	// If is a non-zero velocity then the body awakes.
+	// The body must be dynamic or kinematic.
+	void SetAngularVelocity(const b3Vec3& angularVelocity);
 
-	// Set the awake status of the body.
-	void SetAwake(bool flag);
-
-	// Get the user data associated with the body.
-	// The user data is usually a game entity.
-	void* GetUserData() const;
-
-	// Set the user data to the body.
-	void SetUserData(void* _userData);
-	
-	// Get the body sweep.
-	const b3Sweep& GetSweep() const;
-
-	// Apply a force to a specific point of the body. 
+	// Apply a force at a specific world point. 
 	// If the point isn't the center of mass then a non-zero torque is applied.
 	// The body must be dynamic.
 	void ApplyForce(const b3Vec3& force, const b3Vec3& point, bool wake);
-	
-	// Apply a force to the body center of mass. Generally this is a external force. 
+
+	// Apply a force at the center of mass. Usually this is a external force. 
 	// The body must be dynamic.
 	void ApplyForceToCenter(const b3Vec3& force, bool wake);
-	
-	// Apply a torque (angular momentum change) to the body.
+
+	// Apply a torque to the body.
 	// The body must be dynamic.
 	void ApplyTorque(const b3Vec3& torque, bool wake);
 
@@ -161,25 +163,11 @@ public:
 	// If the point isn't the center of mass then a non-zero angular impulse is applied.
 	// The body must be dynamic.
 	void ApplyLinearImpulse(const b3Vec3& impulse, const b3Vec3& point, bool wake);
-	
+
 	// Apply a angular impulse (angular velocity change) to the body.
 	// The body must be dynamic.
 	void ApplyAngularImpulse(const b3Vec3& impulse, bool wake);
 
-	// Get the linear velocity of the body.
-	b3Vec3 GetLinearVelocity() const;
-
-	// Set the linear velocity of the body. If is a non-zero velocity then the body awakes.
-	// The body must be dynamic or kinematic.
-	void SetLinearVelocity(const b3Vec3& linearVelocity);
-	
-	// Get the angular velocity of the body.
-	b3Vec3 GetAngularVelocity() const;
-
-	// Set the angular velocity of the body. If is a non-zero velocity then the body awakes.
-	// The body must be dynamic or kinematic.
-	void SetAngularVelocity(const b3Vec3& angularVelocity);
-	
 	// Get the mass of the body. Typically in kg/m^3.
 	float32 GetMass() const;
 
@@ -221,6 +209,25 @@ public:
 
 	// Transform a frame to the world space.
 	b3Transform GetWorldFrame(const b3Transform& localFrame) const;
+
+	// Get the gravity scale of the body. One is used by default.
+	float32 GetGravityScale() const;
+
+	// Set the gravity scale of the body.
+	void SetGravityScale(float32 scale);
+
+	// See if the body is awake.
+	bool IsAwake() const;
+
+	// Set the awake status of the body.
+	void SetAwake(bool flag);
+
+	// Get the user data associated with the body.
+	// The user data is usually a game entity.
+	void* GetUserData() const;
+
+	// Set the user data to the body.
+	void SetUserData(void* _userData);
 
 	// Get the next body in the world body list.
 	const b3Body* GetNext() const;
@@ -391,12 +398,22 @@ inline void b3Body::SetTransform(const b3Vec3& position, const b3Vec3& axis, flo
 
 inline b3Vec3 b3Body::GetPosition() const
 {
-	return m_sweep.worldCenter;
+	return m_xf.position;
 }
 
 inline b3Quat b3Body::GetOrientation() const
 {
 	return m_sweep.orientation;
+}
+
+inline b3Vec3 b3Body::GetWorldCenter() const
+{
+	return m_sweep.worldCenter;
+}
+
+inline b3Vec3 b3Body::GetLocalCenter() const
+{
+	return m_sweep.localCenter;
 }
 
 inline b3Vec3 b3Body::GetLocalVector(const b3Vec3& vector) const
