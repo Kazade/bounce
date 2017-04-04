@@ -184,8 +184,6 @@ void b3RevoluteJointDef::Initialize(b3Body* bA, b3Body* bB,
 	float32 len = q.Normalize();
 	B3_ASSERT(len > B3_EPSILON);
 
-	B3_ASSERT(b3Length(q) > B3_EPSILON);
-	
 	b3Quat qA = bA->GetOrientation();
 	b3Quat qB = bB->GetOrientation();
 	

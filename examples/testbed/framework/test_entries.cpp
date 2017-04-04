@@ -57,6 +57,7 @@
 #include <testbed/tests/varying_restitution.h>
 #include <testbed/tests/cloth_test.h>
 #include <testbed/tests/tumbler.h>
+#include <testbed/tests/pendulum.h>
 
 TestEntry g_tests[] =
 {
@@ -99,5 +100,6 @@ TestEntry g_tests[] =
 	{ "Cloth", &Cloth::Create },
 	{ "Tumbler", &Tumbler::Create },
 	{ "Initial Overlap", &InitialOverlap::Create },
+	{ "Pendulum", &Pendulum::Create },
 	{ NULL, NULL }
 };
