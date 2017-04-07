@@ -20,6 +20,7 @@
 #define B3_MATH_H
 
 #include <cmath>
+#include <cstdlib> // For abs() with integral types
 #include <bounce/common/settings.h>
 
 inline bool b3IsValid(float32 fx)
