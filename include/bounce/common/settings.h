@@ -116,12 +116,12 @@ typedef float float32;
 #define B3_MiB(n) (1024 * B3_KiB(n))
 #define B3_GiB(n) (1024 * B3_MiB(n))
 
-#ifndef _MSC_VER
-  #ifdef __cplusplus
-  #define B3_FORCE_INLINE inline
-  #else
-  #define B3_FORCE_INLINE
-  #endif
+#ifndef B3_FORCE_INLINE
+# if defined(_MSC_VER) && (_MSC_VER >= 1200)
+#  define B3_FORCE_INLINE __forceinline
+# else
+#  define B3_FORCE_INLINE __inline
+# endif
 #endif
 
 #define B3_PROFILE(name) b3ProfileScope scope(name)
