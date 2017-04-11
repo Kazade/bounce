@@ -76,19 +76,18 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 {
 	B3_ASSERT(index < m_mesh->triangleCount);
 	b3Triangle* triangle = m_mesh->triangles + index;
-
-	b3Vec3 p1 = input.p1;
-	b3Vec3 p2 = input.p2;
-	b3Vec3 d = p2 - p1;
-
 	b3Vec3 v1 = m_mesh->vertices[triangle->v1];
 	b3Vec3 v2 = m_mesh->vertices[triangle->v2];
 	b3Vec3 v3 = m_mesh->vertices[triangle->v3];
 
+	// Put the ray into the mesh's frame of reference.
+	b3Vec3 p1 = b3MulT(xf, input.p1);
+	b3Vec3 p2 = b3MulT(xf, input.p2);
+	b3Vec3 d = p2 - p1;
+
 	b3Vec3 n = b3Cross(v2 - v1, v3 - v1);
 	n.Normalize();
-	float32 offset = b3Dot(n, v1);
-
+	
 	float32 numerator = b3Dot(n, v1 - p1);
 	float32 denominator = b3Dot(n, d);
 
@@ -98,6 +97,8 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 	}
 
 	float32 t = numerator / denominator;
+		
+	// Is the intersection point on the segment?
 	if (t < 0.0f || input.maxFraction < t)
 	{
 		return false;
@@ -108,17 +109,21 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 	float32 w[4];
 	b3BarycentricCoordinates(w, v1, v2, v3, q);
 
+	// Is the intersection point on the triangle?
 	if (w[0] > 0.0f && w[1] > 0.0f && w[2] > 0.0f)
 	{
 		output->fraction = t;
+		
+		// Does the ray start from below or above the triangle?
 		if (numerator > 0.0f)
 		{
-			output->normal = -n;
+			output->normal = -b3Mul(xf.rotation, n);
 		}
 		else
 		{
-			output->normal = n;
+			output->normal = b3Mul(xf.rotation, n);
 		}
+		
 		return true;
 	}
 
@@ -129,42 +134,41 @@ struct b3MeshRayCastCallback
 {
 	float32 Report(const b3RayCastInput& input, u32 proxyId)
 	{
-		u32 index = mesh->m_mesh->tree.GetUserData(proxyId);
-		b3RayCastOutput indexOutput;
-		if (mesh->RayCast(&indexOutput, input, xf, index))
+		u32 childIndex = mesh->m_mesh->tree.GetUserData(proxyId);
+		
+		b3RayCastOutput childOutput;
+		if (mesh->RayCast(&childOutput, input, xf, childIndex))
 		{
-			hit = true;
-			if (indexOutput.fraction < output.fraction)
+			// Track minimum time of impact to require less memory.
+			if (childOutput.fraction < output.fraction)
 			{
-				output = indexOutput;
+				hit = true;
+				output = childOutput;
 			}
 		}
+		
 		return 1.0f;
 	}
 
-	b3Transform xf;
 	const b3MeshShape* mesh;
+	b3Transform xf;
+	
 	bool hit;
 	b3RayCastOutput output;
 };
 
 bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf) const 
 {
-	// Put the ray into the mesh's frame of reference.
-	b3RayCastInput subInput;
-	subInput.p1 = b3MulT(xf.rotation, input.p1 - xf.position);
-	subInput.p2 = b3MulT(xf.rotation, input.p2 - xf.position);
-	subInput.maxFraction = input.maxFraction;
-
 	b3MeshRayCastCallback callback;
 	callback.mesh = this;
+	callback.xf = xf;
 	callback.hit = false;
 	callback.output.fraction = B3_MAX_FLOAT;
-
-	m_mesh->tree.RayCast(&callback, subInput);
+	
+	m_mesh->tree.RayCast(&callback, input);
 
 	output->fraction = callback.output.fraction;
-	output->normal = b3Mul(xf.rotation, callback.output.normal);
+	output->normal = callback.output.normal;
 
 	return callback.hit;
 }
