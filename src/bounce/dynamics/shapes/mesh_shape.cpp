@@ -138,8 +138,12 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 	float32 v = b3Dot(QC_x_QA, AB_x_AC);
 	float32 w = b3Dot(QA_x_QB, AB_x_AC);
 
+	// This tolerance helps intersections lying on  
+	// shared edges to not be missed.
+	const float32 kTol = -0.005f;
+
 	// Is the intersection on the triangle?
-	if (u > 0.0f && v > 0.0f && w > 0.0f)
+	if (u > kTol && v > kTol && w > kTol)
 	{
 		output->fraction = t;
 		
