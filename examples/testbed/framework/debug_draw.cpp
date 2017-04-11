@@ -64,7 +64,7 @@ b3Mat44 Camera::BuildProjectionMatrix() const
 b3Transform Camera::BuildWorldTransform() const
 {
 	b3Transform xf;
-	xf.rotation = b3ConvertQuatToRot(m_q);
+	xf.rotation = b3ConvertQuatToMat(m_q);
 	xf.position = (m_zoom * xf.rotation.z) - m_center;
 	return xf;
 }
@@ -78,7 +78,7 @@ b3Mat44 Camera::BuildWorldMatrix() const
 b3Transform Camera::BuildViewTransform() const
 {
 	b3Transform xf;
-	xf.rotation = b3ConvertQuatToRot(m_q);
+	xf.rotation = b3ConvertQuatToMat(m_q);
 	xf.position = (m_zoom * xf.rotation.z) - m_center;
 	return b3Inverse(xf);
 }

@@ -35,7 +35,7 @@ struct b3Transform
 	b3Transform(const b3Vec3& p, const b3Quat& q)
 	{
 		position = p;
-		rotation = b3ConvertQuatToRot(q);
+		rotation = b3ConvertQuatToMat(q);
 	}
 	
 	// Set this transform to the identity.
@@ -75,7 +75,7 @@ inline b3Transform b3Sweep::GetTransform(float32 t) const
 	q.Normalize();
 
 	b3Transform xf;
-	xf.rotation = b3ConvertQuatToRot(q);
+	xf.rotation = b3ConvertQuatToMat(q);
 	xf.position = c - b3Mul(q, localCenter);
 	return xf;
 }

@@ -26,6 +26,7 @@ public:
 	{
 		{
 			b3BodyDef bd;
+			bd.orientation.Set(b3Vec3(0.0f, 1.0f, 0.0f), 0.18f * B3_PI);
 			b3Body* ground = m_world.CreateBody(bd);
 
 			b3MeshShape ms;

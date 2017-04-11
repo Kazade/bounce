@@ -205,7 +205,7 @@ inline b3Quat b3Conjugate(const b3Quat& q)
 	return b3Quat(-q.x, -q.y, -q.z, q.w);
 }
 
-// Rotate a vector by an orientation quaternion.
+// Rotate a vector.
 inline b3Vec3 b3Mul(const b3Quat& q, const b3Vec3& v)
 {
 	b3Vec3 qv(q.x, q.y, q.z);
@@ -215,14 +215,14 @@ inline b3Vec3 b3Mul(const b3Quat& q, const b3Vec3& v)
 	return v + qs * t + b3Cross(qv, t);
 }
 
-// Inverse rotate a vector by an orientation quaternion.
+// Inverse rotate a vector.
 inline b3Vec3 b3MulT(const b3Quat& q, const b3Vec3& v)
 {
 	return b3Mul(b3Conjugate(q), v);
 }
 
-// Convert a 3-by-3 rotation matrix to an orientation quaternion.
-inline b3Quat b3ConvertRotToQuat(const b3Mat33& m)
+// Convert a 3-by-3 rotation matrix to an rotation quaternion.
+inline b3Quat b3ConvertMatToQuat(const b3Mat33& m)
 {
 	// Check the diagonal.
 	float32 trace = m[0][0] + m[1][1] + m[2][2];
@@ -286,8 +286,8 @@ inline b3Quat b3ConvertRotToQuat(const b3Mat33& m)
 	return result;
 }
 
-// Convert an orientation quaternion to a 3-by-3 rotation matrix.
-inline b3Mat33 b3ConvertQuatToRot(const b3Quat& q)
+// Convert an rotation quaternion to a 3-by-3 rotation matrix.
+inline b3Mat33 b3ConvertQuatToMat(const b3Quat& q)
 {
 	float32 x = q.x, y = q.y, z = q.z, w = q.w;
 	float32 x2 = x + x, y2 = y + y, z2 = z + z;

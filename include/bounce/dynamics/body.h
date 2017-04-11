@@ -385,7 +385,7 @@ inline void b3Body::SetTransform(const b3Vec3& position, const b3Vec3& axis, flo
 	b3Quat q = b3Quat(axis, angle);
 	
 	m_xf.position = position;
-	m_xf.rotation = b3ConvertQuatToRot(q);
+	m_xf.rotation = b3ConvertQuatToMat(q);
 
 	m_sweep.worldCenter = b3Mul(m_xf, m_sweep.localCenter);
 	m_sweep.orientation = q;

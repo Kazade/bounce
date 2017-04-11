@@ -176,11 +176,11 @@ void b3ContactSolver::InitializeConstraints()
 		b3Vec3 wB = m_velocities[indexB].w;
 
 		b3Transform xfA;
-		xfA.rotation = b3ConvertQuatToRot(qA);
+		xfA.rotation = b3ConvertQuatToMat(qA);
 		xfA.position = xA - b3Mul(xfA.rotation, localCenterA);
 		
 		b3Transform xfB;
-		xfB.rotation = b3ConvertQuatToRot(qB);
+		xfB.rotation = b3ConvertQuatToMat(qB);
 		xfB.position = xB - b3Mul(xfB.rotation, localCenterB);
 
 		for (u32 j = 0; j < manifoldCount; ++j)
@@ -532,11 +532,11 @@ bool b3ContactSolver::SolvePositionConstraints()
 				b3PositionConstraintPoint* pcp = pcm->points + k;
 
 				b3Transform xfA;
-				xfA.rotation = b3ConvertQuatToRot(qA);
+				xfA.rotation = b3ConvertQuatToMat(qA);
 				xfA.position = cA - b3Mul(xfA.rotation, localCenterA);
 
 				b3Transform xfB;
-				xfB.rotation = b3ConvertQuatToRot(qB);
+				xfB.rotation = b3ConvertQuatToMat(qB);
 				xfB.position = cB - b3Mul(xfB.rotation, localCenterB);
 
 				b3ContactPositionSolverPoint cpcp;

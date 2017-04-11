@@ -180,7 +180,7 @@ void b3RevoluteJointDef::Initialize(b3Body* bA, b3Body* bB,
 	rotation.y = b3Perp(axis);
 	rotation.x = b3Cross(rotation.y, axis);
 
-	b3Quat q = b3ConvertRotToQuat(rotation);
+	b3Quat q = b3ConvertMatToQuat(rotation);
 	float32 len = q.Normalize();
 	B3_ASSERT(len > B3_EPSILON);
 

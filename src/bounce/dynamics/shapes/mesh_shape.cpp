@@ -62,7 +62,15 @@ void b3MeshShape::ComputeAABB(b3AABB3* output, const b3Transform& xf) const
 
 void b3MeshShape::ComputeAABB(b3AABB3* output, const b3Transform& xf, u32 index) const
 {
-	*output = m_mesh->GetTriangleAABB(index);
+	B3_ASSERT(index < m_mesh->triangleCount);
+	const b3Triangle* triangle = m_mesh->triangles + index;
+	b3Vec3 v1 = b3Mul(xf, m_mesh->vertices[triangle->v1]);
+	b3Vec3 v2 = b3Mul(xf, m_mesh->vertices[triangle->v2]);
+	b3Vec3 v3 = b3Mul(xf, m_mesh->vertices[triangle->v3]);
+
+	output->m_lower = b3Min(b3Min(v1, v2), v3);
+	output->m_upper = b3Max(b3Max(v1, v2), v3);
+	output->Extend(m_radius);
 }
 
 bool b3MeshShape::TestPoint(const b3Vec3& point, const b3Transform& xf) const
@@ -98,7 +106,7 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 
 	float32 t = numerator / denominator;
 		
-	// Is the intersection point on the segment?
+	// Is the intersection not on the segment?
 	if (t < 0.0f || input.maxFraction < t)
 	{
 		return false;
@@ -106,11 +114,32 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 
 	b3Vec3 q = p1 + t * d;
 
-	float32 w[4];
-	b3BarycentricCoordinates(w, v1, v2, v3, q);
+	// Barycentric coordinates for q
+	b3Vec3 Q = q;
+	b3Vec3 A = v1;
+	b3Vec3 B = v2;
+	b3Vec3 C = v3;
 
-	// Is the intersection point on the triangle?
-	if (w[0] > 0.0f && w[1] > 0.0f && w[2] > 0.0f)
+	b3Vec3 AB = B - A;
+	b3Vec3 AC = C - A;
+	
+	b3Vec3 QA = A - Q;
+	b3Vec3 QB = B - Q;
+	b3Vec3 QC = C - Q;
+
+	b3Vec3 QB_x_QC = b3Cross(QB, QC);
+	b3Vec3 QC_x_QA = b3Cross(QC, QA);
+	b3Vec3 QA_x_QB = b3Cross(QA, QB);
+
+	b3Vec3 AB_x_AC = b3Cross(AB, AC);
+	float32 den = b3Dot(AB_x_AC, AB_x_AC);
+
+	float32 u = b3Dot(QB_x_QC, AB_x_AC);
+	float32 v = b3Dot(QC_x_QA, AB_x_AC);
+	float32 w = b3Dot(QA_x_QB, AB_x_AC);
+
+	// Is the intersection on the triangle?
+	if (u > 0.0f && v > 0.0f && w > 0.0f)
 	{
 		output->fraction = t;
 		
@@ -132,8 +161,10 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 
 struct b3MeshRayCastCallback
 {
-	float32 Report(const b3RayCastInput& input, u32 proxyId)
+	float32 Report(const b3RayCastInput& subInput, u32 proxyId)
 	{
+		B3_NOT_USED(subInput);
+
 		u32 childIndex = mesh->m_mesh->tree.GetUserData(proxyId);
 		
 		b3RayCastOutput childOutput;
@@ -150,6 +181,7 @@ struct b3MeshRayCastCallback
 		return 1.0f;
 	}
 
+	b3RayCastInput input;
 	const b3MeshShape* mesh;
 	b3Transform xf;
 	
@@ -160,12 +192,17 @@ struct b3MeshRayCastCallback
 bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf) const 
 {
 	b3MeshRayCastCallback callback;
+	callback.input = input;
 	callback.mesh = this;
 	callback.xf = xf;
 	callback.hit = false;
 	callback.output.fraction = B3_MAX_FLOAT;
 	
-	m_mesh->tree.RayCast(&callback, input);
+	b3RayCastInput subInput;
+	subInput.p1 = b3MulT(xf, input.p1);
+	subInput.p2 = b3MulT(xf, input.p2);
+	subInput.maxFraction = input.maxFraction;
+	m_mesh->tree.RayCast(&callback, subInput);
 
 	output->fraction = callback.output.fraction;
 	output->normal = callback.output.normal;

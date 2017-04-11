@@ -92,7 +92,7 @@ public:
 		if (key == GLFW_KEY_X)
 		{
 			b3Quat qx(b3Vec3(1.0f, 0.0f, 0.0f), 0.05f * B3_PI);
-			b3Mat33 xfx = b3ConvertQuatToRot(qx);
+			b3Mat33 xfx = b3ConvertQuatToMat(qx);
 
 			m_xfB.rotation = m_xfB.rotation * xfx;
 		}
@@ -100,7 +100,7 @@ public:
 		if (key == GLFW_KEY_Y)
 		{
 			b3Quat qy(b3Vec3(0.0f, 1.0f, 0.0f), 0.05f * B3_PI);
-			b3Mat33 xfy = b3ConvertQuatToRot(qy);
+			b3Mat33 xfy = b3ConvertQuatToMat(qy);
 
 			m_xfB.rotation = m_xfB.rotation * xfy;
 		}
