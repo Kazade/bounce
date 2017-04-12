@@ -108,14 +108,6 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 {
 	float32 h = dt;
 
-	// Apply some damping.
-	// ODE: dv/dt + c * v = 0
-	// Solution: v(t) = v0 * exp(-c * t)
-	// Step: v(t + dt) = v0 * exp(-c * (t + dt)) = v0 * exp(-c * t) * exp(-c * dt) = v * exp(-c * dt)
-	// v2 = exp(-c * dt) * v1
-	const float32 k_d = 0.005f;
-	float32 d = exp(-k_d * h);
-
 	// 1. Integrate velocities
 	for (u32 i = 0; i < m_bodyCount; ++i) 
 	{
@@ -165,9 +157,15 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 			// Clear torques
 			b->m_torque.SetZero();
 			
-			// Apply damping
-			v *= d;
-			w *= d;
+			// Apply local damping.
+			// ODE: dv/dt + c * v = 0
+			// Solution: v(t) = v0 * exp(-c * t)
+			// Step: v(t + dt) = v0 * exp(-c * (t + dt)) = v0 * exp(-c * t) * exp(-c * dt) = v * exp(-c * dt)
+			// v2 = exp(-c * dt) * v1
+			// Padé approximation:
+			// 1 / (1 + c * dt) 
+			v *= 1.0f / (1.0f + h * b->m_linearDamping);
+			w *= 1.0f / (1.0f + h * b->m_angularDamping);
 		}
 
 		m_velocities[i].v = v;

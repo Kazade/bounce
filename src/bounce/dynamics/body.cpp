@@ -79,6 +79,8 @@ b3Body::b3Body(const b3BodyDef& def, b3World* world)
 	m_xf.position = m_sweep.worldCenter;
 	m_xf.rotation = b3ConvertQuatToMat(m_sweep.orientation);
 	
+	m_linearDamping = def.linearDamping;
+	m_angularDamping = def.angularDamping;
 	m_gravityScale = def.gravityScale;
 	m_userData = def.userData;
 	m_islandID = -1;

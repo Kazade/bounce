@@ -59,18 +59,47 @@ struct b3BodyDef
 		linearVelocity.SetZero();
 		angularVelocity.SetZero();
 		gravityScale = 1.0f;
+		linearDamping = 0.0f;
+		angularDamping = 0.0f;
 	}
 
+	//
 	b3BodyType type;
+	
+	//
 	bool awake;
+	
+	//
 	bool fixedRotationX;
+	
+	//
 	bool fixedRotationY;
+	
+	//
 	bool fixedRotationZ;
+	
+	//
 	void* userData;
+	
+	//
 	b3Vec3 position;
+	
+	//
 	b3Quat orientation;
+	
+	//
 	b3Vec3 linearVelocity;
+	
+	//
 	b3Vec3 angularVelocity;
+	
+	//
+	float32 linearDamping;
+
+	//
+	float32 angularDamping;
+
+	//
 	float32 gravityScale;
 };
 
@@ -210,10 +239,22 @@ public:
 	// Transform a frame to the world space.
 	b3Transform GetWorldFrame(const b3Transform& localFrame) const;
 
-	// Get the gravity scale of the body. One is used by default.
+	// Get the linear damping of the body. 
+	float32 GetLinearDamping() const;
+	
+	// Set the linear damping of the body. Zero is set by default.
+	void SetLinearDamping(float32 damping);
+
+	// Get the angular damping of the body. 
+	float32 GetAngularDamping() const;
+
+	// Set the angular damping of the body. Zero is set by default.
+	void SetAngularDamping(float32 damping);
+
+	// Get the gravity scale of the body. 
 	float32 GetGravityScale() const;
 
-	// Set the gravity scale of the body.
+	// Set the gravity scale of the body. One is set by default.
 	void SetGravityScale(float32 scale);
 
 	// See if the body is awake.
@@ -310,11 +351,14 @@ private:
 	// Inverse inertia about the body world center of mass.
 	b3Mat33 m_worldInvI;
 	
-	float32 m_gravityScale;
 	b3Vec3 m_force;
 	b3Vec3 m_torque;
 	b3Vec3 m_linearVelocity;
 	b3Vec3 m_angularVelocity;
+	
+	float32 m_linearDamping;
+	float32 m_angularDamping;
+	float32 m_gravityScale;
 	
 	// Motion proxy for CCD.
 	b3Sweep m_sweep;
@@ -475,6 +519,26 @@ inline void b3Body::SetAwake(bool flag)
 		m_linearVelocity.SetZero();
 		m_angularVelocity.SetZero();		
 	}
+}
+
+inline float32 b3Body::GetLinearDamping() const
+{
+	return m_linearDamping;
+}
+
+inline void b3Body::SetLinearDamping(float32 damping) 
+{
+	m_linearDamping = damping;
+}
+
+inline float32 b3Body::GetAngularDamping() const
+{
+	return m_angularDamping;
+}
+
+inline void b3Body::SetAngularDamping(float32 damping) 
+{
+	m_angularDamping = damping;
 }
 
 inline float32 b3Body::GetGravityScale() const
