@@ -17,23 +17,10 @@
 */
 
 #include <bounce/dynamics/contacts/contact.h>
-#include <bounce/dynamics/contacts/manifold.h>
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/body.h>
 #include <bounce/dynamics/world.h>
 #include <bounce/dynamics/world_listeners.h>
-
-const b3Manifold* b3Contact::GetManifold(u32 index) const
-{
-	B3_ASSERT(index < m_manifoldCount);
-	return m_manifolds + index;
-}
-
-b3Manifold* b3Contact::GetManifold(u32 index)
-{
-	B3_ASSERT(index < m_manifoldCount);
-	return m_manifolds + index;
-}
 
 void b3Contact::GetWorldManifold(b3WorldManifold* out, u32 index) const
 {

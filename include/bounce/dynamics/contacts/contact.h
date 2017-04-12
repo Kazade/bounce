@@ -22,9 +22,7 @@
 #include <bounce/common/math/math.h>
 #include <bounce/common/template/list.h>
 #include <bounce/common/template/array.h>
-
-struct b3Manifold;
-struct b3WorldManifold;
+#include <bounce/dynamics/contacts/manifold.h>
 
 class b3Shape;
 class b3Body;
@@ -82,9 +80,15 @@ public:
 	const b3Shape* GetShapeB() const;
 	b3Shape* GetShapeB();
 
+	// Get the manifold capacity from this contact.
+	u32 GetManifoldCapacity() const;
+	
 	// Get a contact manifold from this contact.
 	const b3Manifold* GetManifold(u32 index) const;
 	b3Manifold* GetManifold(u32 index);
+
+	// Get the number of manifolds from this contact.
+	u32 GetManifoldCount() const;
 
 	// Get a world contact manifold from this contact.
 	void GetWorldManifold(b3WorldManifold* out, u32 index) const;
@@ -163,6 +167,28 @@ inline b3Shape* b3Contact::GetShapeB()
 inline const b3Shape* b3Contact::GetShapeB() const 
 {
 	return m_pair.shapeB;
+}
+
+inline u32 b3Contact::GetManifoldCapacity() const
+{
+	return m_manifoldCapacity;
+}
+
+inline const b3Manifold* b3Contact::GetManifold(u32 index) const
+{
+	B3_ASSERT(index < m_manifoldCount);
+	return m_manifolds + index;
+}
+
+inline b3Manifold* b3Contact::GetManifold(u32 index)
+{
+	B3_ASSERT(index < m_manifoldCount);
+	return m_manifolds + index;
+}
+
+inline u32 b3Contact::GetManifoldCount() const
+{
+	return m_manifoldCount;
 }
 
 inline bool b3Contact::IsOverlapping() const 
