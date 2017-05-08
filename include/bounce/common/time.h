@@ -168,7 +168,7 @@ class b3Time
 public:
     b3Time()
     {
-        m_c0 = timer_ms_gettime64();
+        m_c0 = timer_us_gettime64();
         m_t0 = 0.0;
         m_t = 0.0;
     }
@@ -188,8 +188,8 @@ public:
     // Add the elapsed time since this function was called to this timer.
     void Update()
     {
-        uint64_t c = timer_ms_gettime64();
-        double dt = double(c - m_c0) * 0.0001;
+        uint64_t c = timer_us_gettime64();
+        double dt = double(c - m_c0) * 0.0000001;
         m_c0 = c;
         Add(dt);
     }
