@@ -29,6 +29,8 @@
 #define B3_PLATFORM B3_WINDOWS
 #elif defined( __APPLE__ )
 #define B3_PLATFORM B3_MAC
+#elif defined(_arch_dreamcast)
+#define B3_PLATFORM B3_DREAMCAST
 #else
 #define B3_PLATFORM B3_UNIX
 #endif
@@ -155,6 +157,54 @@ private:
 	uint64_t m_c0;
 	double m_t0;
 	double m_t;
+};
+
+#elif B3_PLATFORM == B3_DREAMCAST
+
+#include <kos.h>
+
+class b3Time
+{
+public:
+    b3Time()
+    {
+        m_c0 = timer_ms_gettime64();
+        m_t0 = 0.0;
+        m_t = 0.0;
+    }
+
+    // Get the accumulated time in miliseconds from this timer.
+    double GetCurrentMilis() const
+    {
+        return m_t;
+    }
+
+    // Get the elapsed time since this timer was updated.
+    double GetElapsedMilis() const
+    {
+        return m_t - m_t0;
+    }
+
+    // Add the elapsed time since this function was called to this timer.
+    void Update()
+    {
+        uint64_t c = timer_ms_gettime64();
+        double dt = double(c - m_c0) * 0.0001;
+        m_c0 = c;
+        Add(dt);
+    }
+
+    // Add time to this timer.
+    void Add(double dt)
+    {
+        m_t0 = m_t;
+        m_t += dt;
+    }
+
+private:
+    uint64_t m_c0;
+    double m_t0;
+    double m_t;
 };
 
 #else
