@@ -77,7 +77,7 @@ b3Body::b3Body(const b3BodyDef& def, b3World* world)
 	m_sweep.t0 = 0.0f;
 
 	m_xf.position = m_sweep.worldCenter;
-	m_xf.rotation = b3ConvertQuatToMat(m_sweep.orientation);
+	m_xf.rotation = b3QuatMat33(m_sweep.orientation);
 	
 	m_linearDamping = def.linearDamping;
 	m_angularDamping = def.angularDamping;

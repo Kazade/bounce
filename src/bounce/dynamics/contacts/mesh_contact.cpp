@@ -72,7 +72,7 @@ void b3MeshContact::SynchronizeShapes()
 	b3Sweep* sweepA = &bodyA->m_sweep;
 	b3Transform xfA0;
 	xfA0.position = sweepA->worldCenter0;
-	xfA0.rotation = b3ConvertQuatToMat(sweepA->orientation0);
+	xfA0.rotation = b3QuatMat33(sweepA->orientation0);
 		
 	// Calculate the displacement of body A using its position at the last 
 	// time step and the current position.

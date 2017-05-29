@@ -180,7 +180,7 @@ void b3RevoluteJointDef::Initialize(b3Body* bA, b3Body* bB,
 	rotation.y = b3Perp(axis);
 	rotation.x = b3Cross(rotation.y, axis);
 
-	b3Quat q = b3ConvertMatToQuat(rotation);
+	b3Quat q = b3Mat33Quat(rotation);
 	float32 len = q.Normalize();
 	B3_ASSERT(len > B3_EPSILON);
 
@@ -651,24 +651,24 @@ bool b3RevoluteJoint::SolvePositionConstraints(const b3SolverData* data)
 
 b3Transform b3RevoluteJoint::GetFrameA() const
 {
-	b3Transform xf(m_localAnchorA, m_localRotationA);
+	b3Transform xf(m_localRotationA, m_localAnchorA);
 	return GetBodyA()->GetWorldFrame(xf);
 }
 
 b3Transform b3RevoluteJoint::GetFrameB() const
 {
-	b3Transform xf(m_localAnchorB, m_localRotationB);
+	b3Transform xf(m_localRotationB, m_localAnchorB);
 	return GetBodyB()->GetWorldFrame(xf);
 }
 
 b3Transform b3RevoluteJoint::GetLocalFrameA() const
 {
-	return b3Transform(m_localAnchorA, m_localRotationA);
+	return b3Transform(m_localRotationA, m_localAnchorA);
 }
 
 b3Transform b3RevoluteJoint::GetLocalFrameB() const
 {
-	return b3Transform(m_localAnchorB, m_localRotationB);
+	return b3Transform(m_localRotationB, m_localAnchorB);
 }
 
 bool b3RevoluteJoint::IsLimitEnabled() const

@@ -76,7 +76,7 @@ public:
 
 	// Remove a joint from the world and deallocate it from the memory.
 	void DestroyJoint(b3Joint* joint);
-
+	 
 	// Simulate a physics step.
 	// The function parameters are the ammount of time to simulate, 
 	// and the number of constraint solver iterations.

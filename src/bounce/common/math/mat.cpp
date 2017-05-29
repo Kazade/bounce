@@ -19,6 +19,16 @@
 #include <bounce/common/math/mat22.h>
 #include <bounce/common/math/mat33.h>
 
+b3Mat33 b3Mat33_zero = b3Mat33(
+	b3Vec3(0.0f, 0.0f, 0.0f),
+	b3Vec3(0.0f, 0.0f, 0.0f),
+	b3Vec3(0.0f, 0.0f, 0.0f));
+
+b3Mat33 b3Mat33_identity = b3Mat33(
+	b3Vec3(1.0f, 0.0f, 0.0f),
+	b3Vec3(0.0f, 1.0f, 0.0f),
+	b3Vec3(0.0f, 0.0f, 1.0f));
+
 b3Vec2 b3Mat22::Solve(const b3Vec2& b) const
 {
 	// Cramer's rule
@@ -32,10 +42,10 @@ b3Vec2 b3Mat22::Solve(const b3Vec2& b) const
 		det = 1.0f / det;
 	}
 
-	b3Vec2 x;
-	x.x = det * (a22 * b.x - a12 * b.y);
-	x.y = det * (a11 * b.y - a21 * b.x);
-	return x;
+	b3Vec2 xn;
+	xn.x = det * (a22 * b.x - a12 * b.y);
+	xn.y = det * (a11 * b.y - a21 * b.x);
+	return xn;
 }
 
 b3Mat22 b3Inverse(const b3Mat22& A)
@@ -94,4 +104,33 @@ b3Mat33 b3Inverse(const b3Mat33& A)
 		det = 1.0f / det;
 	}
 	return det * b3Adjucate(A);
+}
+
+b3Mat33 b3SymInverse(const b3Mat33& A)
+{
+	float32 det = b3Det(A.x, A.y, A.z);
+	if (det != 0.0f)
+	{
+		det = 1.0f / det;
+	}
+
+	float32 a11 = A.x.x, a12 = A.y.x, a13 = A.z.x;
+	float32 a22 = A.y.y, a23 = A.z.y;
+	float32 a33 = A.z.z;
+
+	b3Mat33 M;
+
+	M.x.x = det * (a22 * a33 - a23 * a23);
+	M.x.y = det * (a13 * a23 - a12 * a33);
+	M.x.z = det * (a12 * a23 - a13 * a22);
+
+	M.y.x = M.x.y;
+	M.y.y = det * (a11 * a33 - a13 * a13);
+	M.y.z = det * (a13 * a12 - a11 * a23);
+
+	M.z.x = M.x.z;
+	M.z.y = M.y.z;
+	M.z.z = det * (a11 * a22 - a12 * a12);
+
+	return M;
 }

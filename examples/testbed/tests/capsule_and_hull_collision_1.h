@@ -25,14 +25,14 @@ public:
 	CapsuleAndHullCollision1()
 	{
 		m_xfA.position.Set(0.0f, 0.0f, 0.0f);
-		m_xfA.rotation = b3ConvertQuatToMat(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.55f * B3_PI));
+		m_xfA.rotation = b3QuatMat33(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.55f * B3_PI));
 		
 		m_sA.m_centers[0].Set(1.0f, -1.0f, 0.0f);
 		m_sA.m_centers[1].Set(0.0f, 1.0f, 0.0f);
 		m_sA.m_radius = 2.0f;
 
 		m_xfB.position.Set(0.f, 0.0f, 0.0f);
-		m_xfB.rotation = b3ConvertQuatToMat(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.0f * B3_PI));
+		m_xfB.rotation = b3QuatMat33(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.0f * B3_PI));
 
 		b3Transform xf;
 		xf.SetIdentity();

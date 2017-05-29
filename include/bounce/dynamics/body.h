@@ -106,12 +106,6 @@ struct b3BodyDef
 class b3Body
 {
 public:
-	// A world manages the body construction.
-	b3Body(const b3BodyDef& def, b3World* world);
-	
-	// A world manages the body destruction.
-	~b3Body() { }
-
 	// Get the type of the body.
 	b3BodyType GetType() const;
 
@@ -307,6 +301,9 @@ private:
 		e_fixedRotationZ = 0x0010,
 	};
 
+	b3Body(const b3BodyDef& def, b3World* world);
+	~b3Body() { }
+
 	// Destroy all shapes associated with the body.
 	void DestroyShapes();
 
@@ -429,7 +426,7 @@ inline void b3Body::SetTransform(const b3Vec3& position, const b3Vec3& axis, flo
 	b3Quat q = b3Quat(axis, angle);
 	
 	m_xf.position = position;
-	m_xf.rotation = b3ConvertQuatToMat(q);
+	m_xf.rotation = b3QuatMat33(q);
 
 	m_sweep.worldCenter = b3Mul(m_xf, m_sweep.localCenter);
 	m_sweep.orientation = q;

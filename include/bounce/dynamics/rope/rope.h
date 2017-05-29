@@ -16,45 +16,94 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef CAPSULE_HULL_2_H
-#define CAPSULE_HULL_2_H
+#ifndef B3_ROPE_H
+#define B3_ROPE_H
 
-class CapsuleAndHullCollision2 : public Collide
+#include <bounce/common/math/transform.h>
+
+class b3Draw;
+
+struct b3RopeBody;
+
+//
+struct b3RopeDef
+{
+	b3RopeDef()
+	{
+		vertices = NULL;
+		masses = NULL;
+		count = 0;
+		gravity.SetZero();
+		linearDamping = 0.6f;
+		angularDamping = 0.6f;
+	}
+
+	//
+	b3Vec3* vertices;
+
+	//
+	float32* masses;
+
+	//
+	u32 count;
+
+	//
+	b3Vec3 gravity;
+
+	//
+	float32 linearDamping;
+
+	//
+	float32 angularDamping;
+};
+
+//
+class b3Rope
 {
 public:
-	CapsuleAndHullCollision2()
+	//
+	b3Rope();
+	
+	//
+	~b3Rope();
+
+	//
+	void Initialize(const b3RopeDef& def);
+	
+	//
+	void SetOrigin(const b3Vec3& position)
 	{
-		m_xfA.position.Set(0.0f, 0.0f, 0.0f);
-		m_xfA.rotation = b3QuatMat33(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.55f * B3_PI));
-
-		m_sA.m_centers[0].Set(0.0f, 0.0f, 0.0f);
-		m_sA.m_centers[1].Set(0.0f, 0.0f, 0.0f);
-		m_sA.m_radius = 0.05f;
-
-		m_xfB.position.Set(0.f, 0.0f, 0.0f);
-		m_xfB.rotation = b3QuatMat33(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.0f * B3_PI));
-
-		b3Transform xf;
-		xf.SetIdentity();
-		xf.rotation = b3Diagonal(4.0f, 1.0f, 4.0f);
-
-		m_box.SetTransform(xf);
-
-		m_sB.m_hull = &m_box;
-
-		m_shapeA = &m_sA;
-		m_shapeB = &m_sB;
-		m_cache.count = 0;
+		m_p = position;
 	}
 
-	static Test* Create()
+	//
+	void SetGravity(const b3Vec3& gravity)
 	{
-		return new CapsuleAndHullCollision2();
+		m_gravity = gravity;
 	}
 
-	b3CapsuleShape m_sA;
-	b3HullShape m_sB;
-	b3BoxHull m_box;
+	//
+	void Step(float32 dt);
+
+	//
+	void Draw(b3Draw* draw) const;
+private:
+	//
+	float32 m_kd1, m_kd2;
+
+	//
+	b3Vec3 m_gravity;
+
+	// Base
+	b3Vec3 m_v;
+	b3Vec3 m_w;
+
+	b3Vec3 m_p;
+	b3Quat m_q;
+
+	// 
+	u32 m_count;
+	b3RopeBody* m_links;	
 };
 
 #endif

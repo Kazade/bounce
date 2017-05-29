@@ -56,6 +56,14 @@ struct b3Mat33
 		z += B.z;
 	}
 
+	// Subtract this matrix from a matrix.
+	void operator-=(const b3Mat33& B)
+	{
+		x -= B.x;
+		y -= B.y;
+		z -= B.z;
+	}
+	
 	// Set this matrix to the zero matrix.
 	void SetZero() 
 	{
@@ -80,6 +88,10 @@ struct b3Mat33
 
 	b3Vec3 x, y, z;
 };
+
+// Usefull constants.
+extern b3Mat33 b3Mat33_zero;
+extern b3Mat33 b3Mat33_identity;
 
 // Add two matrices.
 inline b3Mat33 operator+(const b3Mat33& A, const b3Mat33& B) 
@@ -185,6 +197,11 @@ inline b3Mat33 b3Diagonal(float32 x, float32 y, float32 z)
 // returns the zero matrix.
 b3Mat33 b3Inverse(const b3Mat33& A);
 
+// Invert a symmetric matrix.
+// If the matrix is singular this 
+// returns the zero matrix.
+b3Mat33 b3SymInverse(const b3Mat33& A);
+
 // Return a skew (anti-symmetric) matrix for a vector.
 inline b3Mat33 b3Skew(const b3Vec3& v) 
 {
@@ -226,6 +243,45 @@ inline b3Mat33 b3Basis(const b3Vec3& a)
 	A.y = b3Normalize(A.y);
 	A.z = b3Cross(a, A.y);
 	return A;
+}
+
+// Rotation about the x-axis.
+inline b3Mat33 b3Mat33RotationX(float32 angle)
+{
+	float32 c = cos(angle);
+	float32 s = sin(angle);
+
+	b3Mat33 R;
+	R.x.Set(1.0f, 0.0f, 0.0f);
+	R.y.Set(0.0f, c, s);
+	R.z.Set(0.0f, -s, c);
+	return R;
+}
+
+// Rotation about the y-axis.
+inline b3Mat33 b3Mat33RotationY(float32 angle)
+{
+	float32 c = cos(angle);
+	float32 s = sin(angle);
+
+	b3Mat33 R;
+	R.x.Set(c, 0.0f, -s);
+	R.y.Set(0.0f, 1.0f, 0.0f);
+	R.z.Set(s, 0.0f, c);
+	return R;
+}
+
+// Rotation about the z-axis.
+inline b3Mat33 b3Mat33RotationZ(float32 angle)
+{
+	float32 c = cos(angle);
+	float32 s = sin(angle);
+
+	b3Mat33 R;
+	R.x.Set(c, s, 0.0f);
+	R.y.Set(-s, c, 0.0f);
+	R.z.Set(0.0f, 0.0f, 1.0f);
+	return R;
 }
 
 #endif

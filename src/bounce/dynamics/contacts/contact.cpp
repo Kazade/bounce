@@ -104,8 +104,14 @@ void b3Contact::Update(b3ContactListener* listener)
 		}
 	}
 
-	// Update the contact state.
+	// Wake the bodies associated with the shapes if the contact has began.
+	if (isOverlapping != wasOverlapping)
+	{
+		bodyA->SetAwake(true);
+		bodyB->SetAwake(true);
+	}
 
+	// Update the contact state.
 	if (isOverlapping == true)
 	{
 		m_flags |= e_overlapFlag;
@@ -113,13 +119,6 @@ void b3Contact::Update(b3ContactListener* listener)
 	else
 	{
 		m_flags &= ~e_overlapFlag;;
-	}
-
-	// Wake the bodies associated with the shapes if the contact has began.
-	if (isOverlapping != wasOverlapping)
-	{
-		bodyA->SetAwake(true);
-		bodyB->SetAwake(true);
 	}
 
 	// Notify the contact listener the new contact state.

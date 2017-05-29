@@ -147,7 +147,7 @@ inline b3Quat operator+(const b3Quat& a, const b3Quat& b)
 	return b3Quat(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
 }
 
-// Sobtract two quaternions.
+// Subtract two quaternions.
 inline b3Quat operator-(const b3Quat& a, const b3Quat& b)
 {
 	return b3Quat(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
@@ -165,8 +165,8 @@ inline b3Quat operator-(const b3Quat& q)
 	return b3Quat(-q.x, -q.y, -q.z, -q.w);
 }
 
-// Compute a quaternion-quaternion product.
-inline b3Quat operator*(const b3Quat& a, const b3Quat& b)
+// Multiply two quaternions.
+inline b3Quat b3Mul(const b3Quat& a, const b3Quat& b)
 {
 	return b3Quat(
 		a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
@@ -175,7 +175,32 @@ inline b3Quat operator*(const b3Quat& a, const b3Quat& b)
 		a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z);
 }
 
-// Compute the length of a quaternion.
+// Multiply two quaternions.
+inline b3Quat operator*(const b3Quat& a, const b3Quat& b)
+{
+	return b3Mul(a, b);
+}
+
+// Perform the dot poduct of two quaternions.
+inline float32 b3Dot(const b3Quat& a, const b3Quat& b)
+{
+	return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+}
+
+// Return the conjugate of a quaternion.
+// If the quaternion is unit this returns its inverse.
+inline b3Quat b3Conjugate(const b3Quat& q)
+{
+	return b3Quat(-q.x, -q.y, -q.z, q.w);
+}
+
+// Multiply the conjugate of a quaternion times another quaternion.
+inline b3Quat b3MulT(const b3Quat& a, const b3Quat& b)
+{
+	return b3Mul(b3Conjugate(a), b);
+}
+
+// Return the length of a quaternion.
 inline float32 b3Length(const b3Quat& q)
 {
 	return b3Sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
@@ -191,18 +216,6 @@ inline b3Quat b3Normalize(const b3Quat& q)
 		return s * q;
 	}
 	return b3Quat(0.0f, 0.0f, 0.0f, 1.0f);
-}
-
-// Perform the dot poduct of two quaternions.
-inline float b3Dot(const b3Quat& a, const b3Quat& b)
-{
-	return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
-}
-
-// Conjugate of a quaternion (inverse if the quaternion is unit).
-inline b3Quat b3Conjugate(const b3Quat& q)
-{
-	return b3Quat(-q.x, -q.y, -q.z, q.w);
 }
 
 // Rotate a vector.
@@ -221,8 +234,8 @@ inline b3Vec3 b3MulT(const b3Quat& q, const b3Vec3& v)
 	return b3Mul(b3Conjugate(q), v);
 }
 
-// Convert a 3-by-3 rotation matrix to an rotation quaternion.
-inline b3Quat b3ConvertMatToQuat(const b3Mat33& m)
+// Convert a 3-by3 rotation matrix to a rotation quaternion.
+inline b3Quat b3Mat33Quat(const b3Mat33& m)
 {
 	// Check the diagonal.
 	float32 trace = m[0][0] + m[1][1] + m[2][2];
@@ -286,8 +299,8 @@ inline b3Quat b3ConvertMatToQuat(const b3Mat33& m)
 	return result;
 }
 
-// Convert an rotation quaternion to a 3-by-3 rotation matrix.
-inline b3Mat33 b3ConvertQuatToMat(const b3Quat& q)
+// Convert a rotation quaternion to a 3-by-3 rotation matrix.
+inline b3Mat33 b3QuatMat33(const b3Quat& q)
 {
 	float32 x = q.x, y = q.y, z = q.z, w = q.w;
 	float32 x2 = x + x, y2 = y + y, z2 = z + z;
@@ -299,6 +312,45 @@ inline b3Mat33 b3ConvertQuatToMat(const b3Quat& q)
 		b3Vec3(1.0f - (yy + zz),          xy + wz, xz - wy),
 		b3Vec3(         xy - wz, 1.0f - (xx + zz), yz + wx),
 		b3Vec3(         xz + wy,          yz - wx, 1.0f - (xx + yy)));
+}
+
+// Rotation about the x-axis.
+inline b3Quat b3QuatRotationX(float32 angle)
+{
+	float32 x = 0.5f * angle;
+
+	b3Quat q;
+	q.x = sin(x);
+	q.y = 0.0f;
+	q.z = 0.0f;
+	q.w = cos(x);
+	return q;
+}
+
+// Rotation about the y-axis.
+inline b3Quat b3QuatRotationY(float32 angle)
+{
+	float32 x = 0.5f * angle;
+
+	b3Quat q;
+	q.x = 0.0f;
+	q.y = sin(x);
+	q.z = 0.0f;
+	q.w = cos(x);
+	return q;
+}
+
+// Rotation about the z-axis.
+inline b3Quat b3QuatRotationZ(float32 angle)
+{
+	float32 x = 0.5f * angle;
+
+	b3Quat q;
+	q.x = 0.0f;
+	q.y = 0.0f;
+	q.z = sin(x);
+	q.w = cos(x);
+	return q;
 }
 
 #endif

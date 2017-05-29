@@ -16,7 +16,7 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/cloth/cloth.h>
+#include <bounce/dynamics/cloth/cloth.h>
 #include <bounce/collision/shapes/mesh.h>
 #include <bounce/common/template/array.h>
 #include <bounce/common/draw.h>

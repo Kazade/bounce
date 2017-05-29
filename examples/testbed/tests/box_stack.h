@@ -33,11 +33,11 @@ public:
 	{
 		g_camera.m_center.Set(2.5f, -2.0f, 5.5f);
 		g_camera.m_zoom = 40.0f;
-		
+
 		{
 			b3BodyDef bdef;
 			bdef.type = b3BodyType::e_staticBody;
-			
+
 			b3Body* body = m_world.CreateBody(bdef);
 
 			b3HullShape hs;
@@ -48,12 +48,12 @@ public:
 			sdef.friction = 1.0f;
 
 			body->CreateShape(sdef);
-		}		
+		}
 
 		b3Vec3 boxScale(1.0f, 1.0f, 1.0f);
-				
+
 		static b3BoxHull boxHull;
-		
+
 		b3Transform m;
 		m.rotation = b3Diagonal(boxScale.x, boxScale.y, boxScale.z);
 		m.position.SetZero();
@@ -75,7 +75,7 @@ public:
 					bdef.position.x = float32(i) * boxScale.x;
 					bdef.position.y = 2.5f * float32(j) * boxScale.y;
 					bdef.position.z = float32(k) * boxScale.z;
-					
+
 					bdef.position += stackOrigin;
 
 					b3Body* body = m_world.CreateBody(bdef);

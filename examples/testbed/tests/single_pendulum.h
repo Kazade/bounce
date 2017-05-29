@@ -22,10 +22,10 @@
 extern Settings g_settings;
 extern DebugDraw* g_debugDraw;
 
-class Pendulum : public Test
+class SinglePendulum : public Test
 {
 public:
-	Pendulum()
+	SinglePendulum()
 	{
 		m_g = -10.0f;
 
@@ -34,7 +34,7 @@ public:
 		m_I = m_m * m_r * m_r;
 		
 		// Initial state
-		m_theta = 0.5f * B3_PI;
+		m_theta = -0.5f * B3_PI;
 		m_omega = 0.0f;
 	}
 
@@ -90,7 +90,7 @@ public:
 
 	static Test* Create()
 	{
-		return new Pendulum();
+		return new SinglePendulum();
 	}
 
 	// Gravity

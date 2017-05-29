@@ -59,11 +59,11 @@ struct b3ShapeDef
 
 struct b3MassData 
 {
+	// The center of mass of the shape relative to the shape's origin. 
+	b3Vec3 center;
+
 	// The mass of the shape in kilograms.
 	float32 mass;
-
-	// The shape center of mass relative to the shape's origin. 
-	b3Vec3 center;
 
 	// The rotational inertia of the shape about the shape's center of mass.
 	b3Mat33 I;

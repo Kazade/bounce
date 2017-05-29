@@ -55,9 +55,12 @@
 #include <testbed/tests/body_types.h>
 #include <testbed/tests/varying_friction.h>
 #include <testbed/tests/varying_restitution.h>
-#include <testbed/tests/cloth_test.h>
 #include <testbed/tests/tumbler.h>
-#include <testbed/tests/pendulum.h>
+#include <testbed/tests/single_pendulum.h>
+#include <testbed/tests/multiple_pendulum.h>
+#include <testbed/tests/cloth_test.h>
+#include <testbed/tests/rope_test.h>
+//#include <testbed/tests/tree_test.h>
 
 TestEntry g_tests[] =
 {
@@ -97,9 +100,12 @@ TestEntry g_tests[] =
 	{ "Body Types", &BodyTypes::Create },
 	{ "Varying Friction", &VaryingFriction::Create },
 	{ "Varying Restitution", &VaryingRestitution::Create },
-	{ "Cloth", &Cloth::Create },
 	{ "Tumbler", &Tumbler::Create },
 	{ "Initial Overlap", &InitialOverlap::Create },
-	{ "Pendulum", &Pendulum::Create },
+	{ "Single Pendulum", &SinglePendulum::Create },
+	{ "Multiple Pendulum", &MultiplePendulum::Create },
+	{ "Cloth", &Cloth::Create },
+	{ "Rope", &Rope::Create },
+	//{ "Tree", &Tree::Create },
 	{ NULL, NULL }
 };

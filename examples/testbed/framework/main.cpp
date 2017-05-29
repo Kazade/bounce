@@ -64,14 +64,14 @@ static void MouseMove(GLFWwindow* w, double x, double y)
 		if (g_leftDown)
 		{
 			// Negate angles to do positive rotations (CCW) of the world.
-			float32 angleX = 0.005f * B3_PI * -nx;
 			float32 angleY = 0.005f * B3_PI * -ny;
+			float32 angleX = 0.005f * B3_PI * -nx;
+			
+			b3Quat qx = b3QuatRotationX(angleY);
+			b3Quat qy = b3QuatRotationY(angleX);
 
-			b3Quat qx(b3Vec3(1.0f, 0.0f, 0.0f), angleY);
-			b3Quat qy(b3Vec3(0.0f, 1.0f, 0.0f), angleX);
-
-			g_camera.m_q = qy * g_camera.m_q;
 			g_camera.m_q = g_camera.m_q * qx;
+			g_camera.m_q = qy * g_camera.m_q;
 			g_camera.m_q.Normalize();
 		}
 

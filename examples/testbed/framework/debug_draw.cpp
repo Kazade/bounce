@@ -64,7 +64,7 @@ b3Mat44 Camera::BuildProjectionMatrix() const
 b3Transform Camera::BuildWorldTransform() const
 {
 	b3Transform xf;
-	xf.rotation = b3ConvertQuatToMat(m_q);
+	xf.rotation = b3QuatMat33(m_q);
 	xf.position = (m_zoom * xf.rotation.z) - m_center;
 	return xf;
 }
@@ -78,7 +78,7 @@ b3Mat44 Camera::BuildWorldMatrix() const
 b3Transform Camera::BuildViewTransform() const
 {
 	b3Transform xf;
-	xf.rotation = b3ConvertQuatToMat(m_q);
+	xf.rotation = b3QuatMat33(m_q);
 	xf.position = (m_zoom * xf.rotation.z) - m_center;
 	return b3Inverse(xf);
 }
@@ -1279,6 +1279,65 @@ void DebugDraw::DrawSolidSphere(const b3Vec3& center, float32 radius, const b3Co
 	xf.position = center;
 
 	m_solid->DrawSphere(radius, color, xf);
+}
+
+void DebugDraw::DrawCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const b3Color& color)
+{
+	float32 height = b3Length(c1 - c2);
+
+	{
+		b3Transform xfc;
+		xfc.rotation.SetIdentity();
+		xfc.position = c1;
+		m_wire->DrawSphere(radius, color, xfc);
+	}
+
+	if (height > 0.0f)
+	{
+		DrawSegment(c1, c2, color);
+		
+		{
+			b3Transform xfc;
+			xfc.rotation.SetIdentity();
+			xfc.position = c2;
+			m_wire->DrawSphere(radius, color, xfc);
+		}
+	}
+}
+
+void DebugDraw::DrawSolidCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const b3Color& c)
+{
+	float32 height = b3Length(c1 - c2);
+
+	{
+		b3Transform xfc;
+		xfc.rotation.SetIdentity();
+		xfc.position = c1;
+		m_solid->DrawSphere(radius, c, xfc);
+	}
+
+	if (height > 0.0f)
+	{
+		{
+			b3Mat33 R;
+			R.y = (1.0f / height) * (c1 - c2);
+			R.z = b3Perp(R.y);
+			R.x = b3Cross(R.y, R.z);
+
+			b3Transform xfc;
+			xfc.position = 0.5f * (c1 + c2);
+			xfc.rotation = R;
+
+			m_solid->DrawCylinder(radius, height, c, xfc);
+		}
+
+		{
+			b3Transform xfc;
+			xfc.rotation.SetIdentity();
+			xfc.position = c2;
+			m_solid->DrawSphere(radius, c, xfc);
+		}
+	}
 }
 
 void DebugDraw::DrawTransform(const b3Transform& xf)

@@ -54,10 +54,18 @@
 #include <bounce/dynamics/contacts/convex_contact.h>
 #include <bounce/dynamics/contacts/mesh_contact.h>
 
+#include <bounce/dynamics/rope/rope.h>
+#include <bounce/dynamics/cloth/cloth.h>
 #include <bounce/dynamics/body.h>
+
+//#include <bounce/dynamics/tree/joints/tree_weld_joint.h>
+//#include <bounce/dynamics/tree/joints/tree_prismatic_joint.h>
+//#include <bounce/dynamics/tree/joints/tree_revolute_joint.h>
+//#include <bounce/dynamics/tree/joints/tree_spherical_joint.h>
+//#include <bounce/dynamics/tree/tree_body.h>
+//#include <bounce/dynamics/tree/body_tree.h>
+
 #include <bounce/dynamics/world.h>
 #include <bounce/dynamics/world_listeners.h>
-
-#include <bounce/cloth/cloth.h>
 
 #endif

@@ -83,7 +83,7 @@ void b3Island::Add(b3Joint* j)
 }
 
 // Box2D
-static B3_FORCE_INLINE b3Vec3 b3SolveGyroscopic(const b3Quat& q, const b3Mat33& Ib, const b3Vec3& w1, float32 h)
+static B3_FORCE_INLINE b3Vec3 b3SolveGyro(const b3Quat& q, const b3Mat33& Ib, const b3Vec3& w1, float32 h)
 {
 	// Convert angular velocity to body coordinates
 	b3Vec3 w1b = b3MulT(q, w1);
@@ -149,7 +149,7 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 			// I2 * (w2 - w1) + h * cross(w2, I2 * w2) = 0
 			// Toss out I2 from f using local I2 (constant) and local w1 
 			// to remove its time dependency.
-			b3Vec3 w2 = b3SolveGyroscopic(q, b->m_I, w, h);
+			b3Vec3 w2 = b3SolveGyro(q, b->m_I, w, h);
 			b3Vec3 dw2 = w2 - w;
 
 			w += dw1 + dw2;

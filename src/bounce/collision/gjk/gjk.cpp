@@ -26,7 +26,7 @@
 
 u32 b3_gjkCalls = 0, b3_gjkIters = 0, b3_gjkMaxIters = 0;
 
-// Convert a point Q from euclidean coordinates to barycentric coordinates (u, v) 
+// Convert a point Q from Cartesian coordinates to Barycentric coordinates (u, v) 
 // with respect to a segment AB.
 // The last output value is the divisor.
 static B3_FORCE_INLINE void b3Barycentric(float32 out[3], 
@@ -44,7 +44,7 @@ static B3_FORCE_INLINE void b3Barycentric(float32 out[3],
 	out[2] = out[0] + out[1];
 }
 
-// Convert a point Q from euclidean coordinates to barycentric coordinates (u, v, w) 
+// Convert a point Q from Cartesian coordinates to Barycentric coordinates (u, v, w) 
 // with respect to a triangle ABC.
 // The last output value is the divisor.
 static B3_FORCE_INLINE void b3Barycentric(float32 out[4],
@@ -72,7 +72,7 @@ static B3_FORCE_INLINE void b3Barycentric(float32 out[4],
 	out[3] = out[0] + out[1] + out[2];
 }
 
-// Convert a point Q from euclidean coordinates to barycentric coordinates (u, v, w, x) 
+// Convert a point Q from Cartesian coordinates to Barycentric coordinates (u, v, w, x) 
 // with respect to a tetrahedron ABCD.
 // The last output value is the (positive) divisor.
 static B3_FORCE_INLINE void b3Barycentric(float32 out[5],

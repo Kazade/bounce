@@ -82,7 +82,7 @@ inline b3Vec3 b3ClosestPointOnPlane(const b3Vec3& P, const b3Plane& plane)
 	return P - fraction * plane.normal;
 }
 
-// Convert a point Q from euclidean coordinates to barycentric coordinates (u, v) 
+// Convert a point Q from Cartesian coordinates to Barycentric coordinates (u, v) 
 // with respect to a segment AB.
 // The last output value is the divisor.
 inline void b3BarycentricCoordinates(float32 out[3], 
