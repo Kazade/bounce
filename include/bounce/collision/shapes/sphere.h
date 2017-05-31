@@ -32,11 +32,13 @@ struct b3Sphere
 
 inline const b3Vec3& b3Sphere::GetVertex(u32 index) const
 {
+    B3_NOT_USED(index);
 	return vertex;
 }
 
 inline u32 b3Sphere::GetSupportVertex(const b3Vec3& direction) const
 {
+    B3_NOT_USED(direction);
 	return 0;
 }
 

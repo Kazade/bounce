@@ -73,8 +73,7 @@ void b3Hull::Validate(const b3HalfEdge* e) const
 	do 
 	{
 		const b3HalfEdge* next = edges + e->next;
-		const b3HalfEdge* twin = edges + next->twin;
-		e = twin;
+		e = edges + next->twin;
 		B3_ASSERT(count < edgeCount);
 		++count;
 	} while (e != begin);

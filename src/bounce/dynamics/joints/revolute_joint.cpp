@@ -409,9 +409,7 @@ void b3RevoluteJoint::SolveVelocityConstraints(const b3SolverData* data)
 	b3Vec3 vB = data->velocities[m_indexB].v;
 	b3Vec3 wB = data->velocities[m_indexB].w;
 
-	float32 mA = m_mA;
 	b3Mat33 iA = m_iA;
-	float32 mB = m_mB;
 	b3Mat33 iB = m_iB;
 
 	// Solve motor constraint.
@@ -517,13 +515,13 @@ bool b3RevoluteJoint::SolvePositionConstraints(const b3SolverData* data)
 		b3Quat fB = qB * m_localRotationB;
 		b3Quat q = b3Conjugate(m_referenceRotation) * b3Conjugate(fA) * fB;
 
-		b3Vec4 P_hinge = P_hinge_limit_mat(q);
+		b3Vec4 P_hinge_limit = P_hinge_limit_mat(q);
 
 		b3Mat44 G1 = -0.5f * iQ_mat(b3Conjugate(fA)) * iP_mat(fB);
 		b3Mat44 G2 =  0.5f * iQ_mat(b3Conjugate(fA)) * iP_mat(fB);
 
-		b3Vec3 J1 = P_hinge * G1 * PT;
-		b3Vec3 J2 = P_hinge * G2 * PT;
+		b3Vec3 J1 = P_hinge_limit * G1 * PT;
+		b3Vec3 J2 = P_hinge_limit * G2 * PT;
 
 		b3Vec3 J1T = J1;
 		b3Vec3 J2T = J2;

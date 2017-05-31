@@ -124,7 +124,11 @@ typedef float float32;
 # endif
 #endif
 
-#define B3_PROFILE(name) b3ProfileScope scope(name)
+#define B3_JOIN(a, b) a##b
+#define B3_CONCATENATE(a, b) B3_JOIN(a, b)
+#define B3_UNIQUE_NAME(name) B3_CONCATENATE(name, __LINE__)
+
+#define B3_PROFILE(name) b3ProfileScope B3_UNIQUE_NAME(scope)(name)
 
 // You should implement this function to use your own memory allocator.
 void* b3Alloc(u32 size);

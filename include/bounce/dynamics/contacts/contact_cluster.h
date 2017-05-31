@@ -23,7 +23,7 @@
 #include <bounce/common/template/array.h>
 #include <bounce/dynamics/contacts/manifold.h>
 
-#define B3_NULL_CLUSTER (-1)
+#define B3_NULL_CLUSTER (0u - 1u)
 
 // Used for contact cluster reduction.
 struct b3ClusterVertex
@@ -41,7 +41,7 @@ struct b3Observation
 	u32 manifold;
 	u32 manifoldPoint;
 	b3Vec3 point; // normal
-	i32 cluster; // normal
+	u32 cluster; // normal
 };
 
 // A group of contact points with a similar contact normal.
