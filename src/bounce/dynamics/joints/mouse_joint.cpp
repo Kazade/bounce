@@ -83,6 +83,7 @@ void b3MouseJoint::SolveVelocityConstraints(const b3SolverData* data)
 
 bool b3MouseJoint::SolvePositionConstraints(const b3SolverData* data) 
 {
+    B3_NOT_USED(data);
 	// There is no position correction for this constraint.
 	return true;
 }

@@ -23,6 +23,9 @@
 
 b3ConvexContact::b3ConvexContact(b3Shape* shapeA, b3Shape* shapeB)
 {
+    B3_NOT_USED(shapeA);
+    B3_NOT_USED(shapeB);
+
 	m_type = e_convexContact;
 
 	m_manifoldCapacity = 1;

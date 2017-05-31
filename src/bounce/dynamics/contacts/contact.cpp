@@ -42,12 +42,10 @@ void b3Contact::Update(b3ContactListener* listener)
 {
 	b3Shape* shapeA = GetShapeA();
 	b3Body* bodyA = shapeA->GetBody();
-	i32 proxyA = shapeA->m_broadPhaseID;
 	b3Transform xfA = bodyA->GetTransform();
 
 	b3Shape* shapeB = GetShapeB();
 	b3Body* bodyB = shapeB->GetBody();
-	i32 proxyB = shapeB->m_broadPhaseID;
 	b3Transform xfB = bodyB->GetTransform();
 
 	b3World* world = bodyA->GetWorld();

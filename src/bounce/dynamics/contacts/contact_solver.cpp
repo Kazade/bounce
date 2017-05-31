@@ -186,7 +186,6 @@ void b3ContactSolver::InitializeConstraints()
 		for (u32 j = 0; j < manifoldCount; ++j)
 		{
 			b3Manifold* m = c->m_manifolds + j;
-			b3PositionConstraintManifold* pcm = pc->manifolds + j;
 			b3VelocityConstraintManifold* vcm = vc->manifolds + j;
 
 			b3WorldManifold wm;
@@ -201,8 +200,7 @@ void b3ContactSolver::InitializeConstraints()
 			for (u32 k = 0; k < pointCount; ++k)
 			{
 				b3WorldManifoldPoint* mp = wm.points + k;
-				
-				b3PositionConstraintPoint* pcp = pcm->points + k;
+
 				b3VelocityConstraintPoint* vcp = vcm->points + k;
 
 				b3Vec3 normal = mp->normal;
