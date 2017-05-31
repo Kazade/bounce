@@ -78,9 +78,6 @@ void b3World::DebugDraw() const
 
 	for (b3Contact* c = m_contactMan.m_contactList.m_head; c; c = c->m_next)
 	{
-		const b3Shape* shapeA = c->GetShapeA();
-		const b3Shape* shapeB = c->GetShapeB();
-		
 		u32 manifoldCount = c->m_manifoldCount;
 		const b3Manifold* manifolds = c->m_manifolds;
 		
@@ -119,8 +116,8 @@ void b3World::DebugDraw() const
 			{
 				b3Vec3 p = wm.center;
 				b3Vec3 n = wm.normal;
-				b3Vec3 t1 = wm.tangent1;
-				b3Vec3 t2 = wm.tangent2;
+				t1 = wm.tangent1;
+				t2 = wm.tangent2;
 				
 				if (flags & b3Draw::e_contactNormalsFlag)
 				{
@@ -255,5 +252,5 @@ void b3World::DrawJoint(const b3Joint* joint) const
 
 void b3World::DrawContact(const b3Contact* c) const
 {
-
+    B3_NOT_USED(c);
 }

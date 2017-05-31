@@ -115,12 +115,7 @@ static void b3RebuildFaceContact(b3Manifold& manifold,
 	const b3Transform& xf1, u32 index1, const b3HullShape* s1,
 	const b3Transform& xf2, const b3HullShape* s2, bool flipNormal)
 {
-	const b3Hull* hull1 = s1->m_hull;
-	float32 r1 = s1->m_radius;
 	const b3Body* body1 = s1->GetBody();
-
-	const b3Hull* hull2 = s2->m_hull;
-	float32 r2 = s2->m_radius;
 	const b3Body* body2 = s2->GetBody();
 
 	const b3Sweep& sweep1 = body1->GetSweep();

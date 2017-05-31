@@ -132,7 +132,6 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 	b3Vec3 QA_x_QB = b3Cross(QA, QB);
 
 	b3Vec3 AB_x_AC = b3Cross(AB, AC);
-	float32 den = b3Dot(AB_x_AC, AB_x_AC);
 
 	float32 u = b3Dot(QB_x_QC, AB_x_AC);
 	float32 v = b3Dot(QC_x_QA, AB_x_AC);

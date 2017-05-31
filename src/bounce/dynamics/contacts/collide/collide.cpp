@@ -143,6 +143,7 @@ void b3CollideCapsuleAndHullShapes(b3Manifold& manifold,
 	const b3Transform& xfB, const b3Shape* shapeB,
 	b3ConvexCache* cache)
 {
+    B3_NOT_USED(cache);
 	b3CapsuleShape* hullA = (b3CapsuleShape*)shapeA;
 	b3HullShape* hullB = (b3HullShape*)shapeB;
 	b3CollideCapsuleAndHull(manifold, xfA, hullA, xfB, hullB);

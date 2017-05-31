@@ -199,10 +199,6 @@ bool b3MeshContact::TestOverlap()
 	b3Body* bodyB = shapeB->GetBody();
 	b3Transform xfB = bodyB->GetTransform();
 
-	b3MeshShape* meshShapeB = (b3MeshShape*)shapeB;
-	const b3Mesh* meshB = meshShapeB->m_mesh;
-	const b3StaticTree* treeB = &meshB->tree;
-
 	// Test if at least one triangle of the shape B overlaps the shape A.
 	for (u32 i = 0; i < m_triangleCount; ++i)
 	{
@@ -251,15 +247,15 @@ void b3MeshContact::Collide()
 
 		b3TriangleHull hullB(v1, v2, v3);
 
-		b3HullShape shapeB;
-		shapeB.m_body = bodyB;
-		shapeB.m_hull = &hullB;
-		shapeB.m_radius = B3_HULL_RADIUS;
+		b3HullShape hullShapeB;
+		hullShapeB.m_body = bodyB;
+		hullShapeB.m_hull = &hullB;
+		hullShapeB.m_radius = B3_HULL_RADIUS;
 				
 		b3Manifold* manifold = tempManifolds + tempCount;
 		manifold->Initialize();
 		
-		b3CollideShapeAndShape(*manifold, xfA, shapeA, xfB, &shapeB, &triangleCache->cache);
+		b3CollideShapeAndShape(*manifold, xfA, shapeA, xfB, &hullShapeB, &triangleCache->cache);
 		
 		for (u32 j = 0; j < manifold->pointCount; ++j)
 		{
