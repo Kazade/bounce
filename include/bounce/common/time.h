@@ -189,7 +189,7 @@ public:
     void Update()
     {
         uint64_t c = timer_us_gettime64();
-        double dt = double(c - m_c0) * 0.0000001;
+        double dt = double(c - m_c0) * 0.000001;
         m_c0 = c;
         Add(dt);
     }
