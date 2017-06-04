@@ -27,7 +27,7 @@ struct b3RopeBody
 	// J * v
 	b3MotionVec v_J() const
 	{
-		return m_S[0] * m_v.x + m_S[1] * m_v.y + m_S[2] * m_v.z;
+		return m_S[0] * m_v[0] + m_S[1] * m_v[1] + m_S[2] * m_v[2];
 	}
 
 	// 
@@ -142,12 +142,12 @@ void b3Rope::Initialize(const b3RopeDef& def)
 	}
 
 	m_v.SetZero();
-	m_w.SetZero();
 	m_p = def.vertices[0];
+	m_w.SetZero();
 	m_q.SetIdentity();
 
-	m_links[0].m_X.rotation = b3QuatMat33(m_q);
-	m_links[0].m_X.position = m_p;
+	m_links->m_X.rotation = b3QuatMat33(m_q);
+	m_links->m_X.position = m_p;
 
 	for (u32 i = 1; i < m_count; ++i)
 	{
@@ -414,12 +414,11 @@ void b3Rope::Step(float32 h)
 	{
 		b3RopeBody* b = m_links;
 
-		// Integrate acceleration
-		
 		// Convert local to global acceleration
 		b3Vec3 v_dot = b3Mul(m_q, b->m_sa.v);
 		b3Vec3 w_dot = b3Mul(m_q, b->m_sa.w);
 
+		// Integrate acceleration
 		m_v += h * v_dot;
 		m_w += h * w_dot;
 		
@@ -430,10 +429,6 @@ void b3Rope::Step(float32 h)
 		b3Quat q_dot = 0.5f * q_w * m_q;
 		m_q += h * q_dot;
 		m_q.Normalize();
-
-		// Synchronize transform
-		b->m_X.rotation = b3QuatMat33(m_q);
-		b->m_X.position = m_p;
 	}
 	
 	for (u32 i = 1; i < m_count; ++i)
@@ -446,7 +441,7 @@ void b3Rope::Step(float32 h)
 		// Avoid numerical instability due to large velocities
 		link->m_v = b3Clamp(link->m_v, min, max);
 
-		// 
+		// Integrate velocity		
 		b3Quat q_w(link->m_v.x, link->m_v.y, link->m_v.z, 0.0f);
 		b3Quat q_dot = 0.5f * link->m_p * q_w;
 
@@ -455,6 +450,8 @@ void b3Rope::Step(float32 h)
 	}
 
 	// Propagate down transforms
+	m_links->m_X.rotation = b3QuatMat33(m_q);
+	m_links->m_X.position = m_p;
 	m_links->m_invX = b3Inverse(m_links->m_X);
 
 	for (u32 j = 1; j < m_count; ++j)
