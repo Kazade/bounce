@@ -289,7 +289,8 @@ void b3Rope::Step(float32 h)
 		b3RopeBody* link = m_links + j;
 		b3RopeBody* parent = link - 1;
 		b3MotionVec* S = link->m_S;
-		
+		b3MotionVec& c = link->m_sc;
+
 		b3SpInertia& I_A = link->m_I_A;
 		b3ForceVec& F_A = link->m_F_A;
 
@@ -345,7 +346,7 @@ void b3Rope::Step(float32 h)
 		b3ForceVec U_invD_u = U_invD[0] * u[0] + U_invD[1] * u[1] + U_invD[2] * u[2];
 		
 		// F_a = F_A + I_a * c + U * D^-1 * u
-		b3ForceVec F_a = link->m_F_A + I_a * link->m_sc + U_invD_u;
+		b3ForceVec F_a = F_A + I_a * c + U_invD_u;
 
 		b3SpInertia I_a_i = b3MulT(link->m_X_i_j, I_a);
 		b3ForceVec F_a_i = b3MulT(link->m_X_i_j, F_a);
