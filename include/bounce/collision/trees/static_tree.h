@@ -78,7 +78,7 @@ private :
 	};
 
 	// 
-	void Build(const b3AABB3* set, b3Node* node, u32* indices, u32 numObjects, u32 minObjectsPerLeaf, u32 nodeCapacity, u32& leafCount, u32& internalCount);
+	void Build(const b3AABB3* set, b3Node* node, u32* indices, u32 count, u32 minObjectsPerLeaf, u32 nodeCapacity, u32& leafCount, u32& internalCount);
 
 	// The nodes of this tree stored in an array.
 	u32 m_nodeCount;
