@@ -18,7 +18,6 @@
 
 #include <bounce/collision/trees/static_tree.h>
 #include <bounce/common/template/stack.h>
-#include <algorithm>
 
 b3StaticTree::b3StaticTree()
 {
@@ -31,41 +30,129 @@ b3StaticTree::~b3StaticTree()
 	b3Free(m_nodes);
 }
 
-struct b3Params
+static B3_FORCE_INLINE bool b3SortPredicate(const b3AABB3* set, u32 axis, u32 a, u32 b)
 {
-	u32 node;
-	u32* indices;
-	u32 numObjects;
-};
+	const b3AABB3* b1 = set + a;
+	const b3AABB3* b2 = set + b;
 
-struct b3SortPredicate
+	b3Vec3 c1 = b1->Centroid();
+	b3Vec3 c2 = b2->Centroid();
+
+	return c1[axis] < c2[axis];
+}
+
+static void b3Sort(const b3AABB3* set, u32 axis, u32* ids, u32 count)
 {
-	const b3AABB3* bs;
-	u32 axis;
-
-	bool operator()(const u32& i, const u32& j) const
+	if (count <= 1)
 	{
-		const b3AABB3* b1 = bs + i;
-		const b3AABB3* b2 = bs + j;
-
-		b3Vec3 c1 = b1->Centroid();
-		b3Vec3 c2 = b2->Centroid();
-
-		if (c1[axis] < c2[axis])
-		{
-			return true;
-		}
-		
-		return false;	
+		return;
 	}
-};
 
-void b3StaticTree::Build(const b3AABB3* set, u32 n)
+	u32 pivot = ids[count - 1];
+	u32 low = 0;
+	for (u32 i = 0; i < count - 1; ++i)
+	{
+		if (b3SortPredicate(set, axis, ids[i], pivot))
+		{
+			u32 tmp = ids[i];
+			ids[i] = ids[low];
+			ids[low] = tmp;
+			low++;
+		}
+	}
+
+	ids[count - 1] = ids[low];
+	ids[low] = pivot;
+	
+	b3Sort(set, axis, ids, low);
+	b3Sort(set, axis, ids + low + 1, count - 1 - low);
+}
+
+static u32 b3Partition(const b3AABB3& setAABB, const b3AABB3* set, u32* ids, u32 count)
 {
-	B3_ASSERT(n > 0);
+	u32 splitAxis = setAABB.GetLongestAxisIndex();
+	float32 splitPos = setAABB.Centroid()[splitAxis];
 
-	u32* ids = (u32*)b3Alloc(n * sizeof(u32));
-	for (u32 i = 0; i < n; ++i)
+	// Sort along longest axis
+	b3Sort(set, splitAxis, ids, count);
+
+	// Find the object that splits the set in two subsets.
+	u32 left = 0;
+	u32 right = count - 1;
+	u32 middle = left;
+	while (middle < right)
+	{
+		b3Vec3 center = set[ids[middle]].Centroid();
+		if (center[splitAxis] > splitPos)
+		{
+			// Found median.
+			break;
+		}
+		++middle;
+	}
+
+	B3_ASSERT(middle >= left);
+	B3_ASSERT(middle <= right);
+	
+	// Ensure nonempty subsets.
+	u32 count1 = middle;
+	u32 count2 = count - middle;
+	if (count1 == 0 || count2 == 0)
+	{
+		middle = (left + right) / 2;
+	}
+
+	return middle;
+}
+
+void b3StaticTree::Build(const b3AABB3* set, b3Node* node, u32* ids, u32 count, u32 minObjectsPerLeaf, u32 nodeCapacity, u32& leafCount, u32& internalCount)
+{
+	B3_ASSERT(count > 0);
+	
+	// Enclose set
+	b3AABB3 setAABB = set[ids[0]];
+	for (u32 i = 1; i < count; ++i)
+	{
+		setAABB = b3Combine(setAABB, set[ids[i]]);
+	}
+
+	node->aabb = setAABB;
+
+	if (count <= minObjectsPerLeaf)
+	{
+		++leafCount;
+		node->child1 = NULL_NODE_S;
+		node->index = ids[0];
+	}
+	else
+	{
+		++internalCount;
+
+		// Partition current set
+		u32 middle = b3Partition(setAABB, set, ids, count);
+
+		// Allocate left subtree
+		B3_ASSERT(m_nodeCount < nodeCapacity);
+		node->child1 = m_nodeCount;
+		++m_nodeCount;
+
+		// Allocate right subtree
+		B3_ASSERT(m_nodeCount < nodeCapacity);
+		node->child2 = m_nodeCount;
+		++m_nodeCount;
+
+		// Build left and right subtrees
+		Build(set, m_nodes + node->child1, ids, middle, minObjectsPerLeaf, nodeCapacity, leafCount, internalCount);
+		Build(set, m_nodes + node->child2, ids + middle, count - middle, minObjectsPerLeaf, nodeCapacity, leafCount, internalCount);
+	}
+}
+
+void b3StaticTree::Build(const b3AABB3* set, u32 count)
+{
+	B3_ASSERT(count > 0);
+
+	u32* ids = (u32*)b3Alloc(count * sizeof(u32));
+	for (u32 i = 0; i < count; ++i)
 	{
 		ids[i] = i;
 	}
@@ -74,9 +161,9 @@ void b3StaticTree::Build(const b3AABB3* set, u32 n)
 	// each leaf node contains exactly 1 object.
 	const u32 kMinObjectsPerLeaf = 1;
 
-	u32 internalCapacity = n - 1;
-	u32 leafCapacity = n;
-	u32 nodeCapacity = 2 * n - 1;
+	u32 internalCapacity = count - 1;
+	u32 leafCapacity = count;
+	u32 nodeCapacity = 2 * count - 1;
 
 	u32 internalCount = 0;
 	u32 leafCount = 0;
@@ -84,112 +171,8 @@ void b3StaticTree::Build(const b3AABB3* set, u32 n)
 	m_nodes = (b3Node*)b3Alloc(nodeCapacity * sizeof(b3Node));
 	m_nodeCount = 1;
 
-	b3Stack<b3Params, 256> stack;
+	Build(set, m_nodes, ids, count, kMinObjectsPerLeaf, nodeCapacity, leafCount, internalCount);
 
-	{
-		b3Params params;
-		params.node = 0;
-		params.indices = ids;
-		params.numObjects = n;
-		stack.Push(params);
-	}
-
-	while (stack.Count() > 0)
-	{
-		b3Params params = stack.Top();
-		stack.Pop();
-
-		u32 nodeIndex = params.node;
-		u32* indices = params.indices;
-		u32 numObjects = params.numObjects;
-
-		B3_ASSERT(numObjects > 0);
-		
-		// "Allocate" node
-		b3Node* node = m_nodes + nodeIndex;
-
-		// Enclose set
-		b3AABB3 setAABB = set[indices[0]];
-		for (u32 i = 1; i < numObjects; ++i)
-		{
-			setAABB = b3Combine(setAABB, set[indices[i]]);
-		}
-
-		node->aabb = setAABB;
-
-		if (numObjects <= kMinObjectsPerLeaf)
-		{
-			++leafCount;
-			node->child1 = NULL_NODE_S;
-			node->index = indices[0];
-		}
-		else
-		{
-			++internalCount;
-
-			u32 splitAxis = setAABB.GetLongestAxisIndex();
-			float32 splitPos = setAABB.Centroid()[splitAxis];
-
-			// Sort along longest axis
-			b3SortPredicate pred;
-			pred.axis = splitAxis;
-			pred.bs = set;
-			std::sort(indices, indices + numObjects, pred);
-
-			// Find the object that splits the set in two subsets.
-			u32 left = 0;
-			u32 right = numObjects - 1;
-			u32 middle = left;
-			while (middle < right)
-			{
-				b3Vec3 center = set[indices[middle]].Centroid();
-				if (center[splitAxis] > splitPos)
-				{
-					// Found median.
-					break;
-				}
-				++middle;
-			}
-			
-			B3_ASSERT(middle >= left);
-			B3_ASSERT(middle <= right);
-
-			// Ensure we don't have empty subsets.
-			u32 count1 = middle;
-			u32 count2 = numObjects - middle;
-			if (count1 == 0 || count2 == 0)
-			{
-				// Split at object median.
-				middle = (left + right) / 2;
-				count1 = middle;
-				count2 = numObjects - middle;
-			}
-
-			B3_ASSERT(count1 > 0 && count2 > 0);
-
-			B3_ASSERT(m_nodeCount < nodeCapacity);
-			node->child1 = m_nodeCount;
-			++m_nodeCount;
-
-			B3_ASSERT(m_nodeCount < nodeCapacity);
-			node->child2 = m_nodeCount;
-			++m_nodeCount;
-
-			// Repeat for childs
-			b3Params params1;
-			params1.node = node->child1;
-			params1.indices = indices;
-			params1.numObjects = count1;
-			stack.Push(params1);
-
-			b3Params params2;
-			params2.node = node->child2;
-			params2.indices = indices + middle;
-			params2.numObjects = count2;
-			stack.Push(params2);
-		}
-	}
-	
 	b3Free(ids);
 
 	B3_ASSERT(leafCount == leafCapacity);

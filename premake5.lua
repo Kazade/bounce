@@ -226,11 +226,21 @@ if os.is "windows" then
 	
     newaction
     {
-        trigger = "solution",
+        trigger = "solution_vs2015",
         description = "Generate solution",
         execute = function ()
 	    os.execute ( "premake5 clean" )
             os.execute ( "premake5 vs2015" )
+        end
+    }
+
+	newaction
+    {
+        trigger = "solution_vs2017",
+        description = "Generate solution",
+        execute = function ()
+	    os.execute ( "premake5 clean" )
+            os.execute ( "premake5 vs2017" )
         end
     }
 

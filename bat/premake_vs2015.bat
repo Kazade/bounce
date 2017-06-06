@@ -1,2 +1,2 @@
 cd ..\
-premake5 solution
+premake5 solution_vs2015

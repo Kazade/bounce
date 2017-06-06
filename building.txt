@@ -10,6 +10,14 @@ Open build/vs2015/bounce.sln.
 Set testbed as the startup project.
 Press F5 to run.
 
+Visual Studio 2017
+
+Ensure you have installed the Visual Studio 2015 libraries
+Say { premake5 vs2017 } on a command line.
+Open build/vs2017/bounce.sln.
+Set testbed as the startup project.
+Press F5 to run.
+
 Linux
 
 On a clean Ubuntu 16.04 install these packages first:
