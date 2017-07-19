@@ -30,26 +30,26 @@ struct Event
 	Event* parent;
 };
 
-static b3Time time;
-static b3BoundedQueue<Event, 256> events;
-static Event* top = NULL;
+static b3Time s_time;
+static b3BoundedQueue<Event, 256> s_events;
+static Event* s_top = NULL;
 
 bool b3PushProfileScope(const char* name)
 {
-	time.Update();
+	s_time.Update();
 
 	Event e;
 	e.tid = -1;
 	e.pid = -1;
-	e.t0 = time.GetCurrentMilis();
+	e.t0 = s_time.GetCurrentMilis();
 	e.t1 = 0;
 	e.name = name;
-	e.parent = top;
+	e.parent = s_top;
 
-	Event* back = events.Push(e);
+	Event* back = s_events.Push(e);
 	if (back)
 	{
-		top = back;
+		s_top = back;
 	}
 
 	return back != NULL;
@@ -57,35 +57,35 @@ bool b3PushProfileScope(const char* name)
 
 void b3PopProfileScope()
 {
-	B3_ASSERT(top);
-	B3_ASSERT(top->t1 == 0);
+	B3_ASSERT(s_top);
+	B3_ASSERT(s_top->t1 == 0);
 
-	time.Update();
-	top->t1 = time.GetCurrentMilis();
-	B3_ASSERT(top->t1 != 0);
-	top = top->parent;
+	s_time.Update();
+	s_top->t1 = s_time.GetCurrentMilis();
+	B3_ASSERT(s_top->t1 != 0);
+	s_top = s_top->parent;
 }
 
 void ProfileBegin()
 {
-	B3_ASSERT(events.IsEmpty());
+	B3_ASSERT(s_events.IsEmpty());
 }
 
 void ProfileEnd()
 {
 	ProfileBeginEvents();
 
-	while (events.IsEmpty() == false)
+	while (s_events.IsEmpty() == false)
 	{
-		const Event& e = events.Front();
-		events.Pop();
+		const Event& e = s_events.Front();
+		s_events.Pop();
 
 		ProfileEvent(e.tid, e.pid, e.name, e.t0, e_begin);
 		ProfileEvent(e.tid, e.pid, e.name, e.t1, e_end);
 		ProfileEvent(e.tid, e.pid, e.name, e.t1 - e.t0);
 	}
 
-	B3_ASSERT(events.IsEmpty());
+	B3_ASSERT(s_events.IsEmpty());
 
 	ProfileEndEvents();
 }
@@ -106,7 +106,7 @@ void ProfileBeginEvents()
 
 }
 
-void ProfileEvent(i32 tid, i32 pid, const char* name, float64 time, ProfileType type)
+void ProfileEvent(i32 tid, i32 pid, const char* name, float64 t, ProfileType type)
 {
 
 }
@@ -128,38 +128,38 @@ void ProfileEndEvents()
 
 using namespace rapidjson;
 
-static FILE* file = NULL;
-static FileWriteStream* stream = NULL;
-static Writer<FileWriteStream>* writer = NULL;
+static FILE* s_file = NULL;
+static FileWriteStream* s_stream = NULL;
+static Writer<FileWriteStream>* s_writer = NULL;
 
 #define STRING(x) String(x, sizeof(x) - 1)
 
 void ProfileBeginEvents()
 {
-	if (file)
+	if (s_file)
 	{
 		return;
 	}
 
-	file = fopen("profile.json", "wt");
-	if (!file)
+	s_file = fopen("profile.json", "wt");
+	if (!s_file)
 	{
 		return;
 	}
 
 	static char buffer[512];
-	stream = new FileWriteStream(file, buffer, sizeof(buffer));
+	s_stream = new FileWriteStream(s_file, buffer, sizeof(buffer));
 
-	writer = new Writer<FileWriteStream>(*stream);
+	s_writer = new Writer<FileWriteStream>(*s_stream);
 
-	writer->StartObject();
-	writer->STRING("traceEvents");
-	writer->StartArray();
+	s_writer->StartObject();
+	s_writer->STRING("traceEvents");
+	s_writer->StartArray();
 }
 
-void ProfileEvent(i32 tid, i32 pid, const char* name, float64 time, ProfileType type)
+void ProfileEvent(i32 tid, i32 pid, const char* name, float64 t, ProfileType type)
 {
-	if (!writer)
+	if (!s_writer)
 	{
 		return;
 	}
@@ -174,15 +174,15 @@ void ProfileEvent(i32 tid, i32 pid, const char* name, float64 time, ProfileType 
 
 	float64 scale = 1000.0;
 
-	writer->StartObject();
-	writer->STRING("pid");  writer->Int(pid);
-	writer->STRING("tid");  writer->Int(tid);
-	writer->STRING("ts");   writer->Int64((u64)(time * scale));
-	writer->STRING("ph");   writer->String(phase, 1);
-	writer->STRING("cat");  writer->STRING("physics");
-	writer->STRING("name"); writer->String(name, strlen(name));
-	writer->STRING("args"); writer->StartObject(); writer->EndObject();
-	writer->EndObject();
+	s_writer->StartObject();
+	s_writer->STRING("pid");  s_writer->Int(pid);
+	s_writer->STRING("tid");  s_writer->Int(tid);
+	s_writer->STRING("ts");   s_writer->Int64((u64)(t * scale));
+	s_writer->STRING("ph");   s_writer->String(phase, 1);
+	s_writer->STRING("cat");  s_writer->STRING("physics");
+	s_writer->STRING("name"); s_writer->String(name, strlen(name));
+	s_writer->STRING("args"); s_writer->StartObject(); s_writer->EndObject();
+	s_writer->EndObject();
 }
 
 void ProfileEvent(i32 tid, i32 pid, const char* name, float64 elapsed)
@@ -191,22 +191,22 @@ void ProfileEvent(i32 tid, i32 pid, const char* name, float64 elapsed)
 
 void ProfileEndEvents()
 {
-	if (!writer)
+	if (!s_writer)
 	{
 		return;
 	}
 
-	writer->EndArray();
-	writer->EndObject();
+	s_writer->EndArray();
+	s_writer->EndObject();
 
-	delete writer;
-	writer = NULL;
+	delete s_writer;
+	s_writer = NULL;
 
-	delete stream;
-	stream = NULL;
+	delete s_stream;
+	s_stream = NULL;
 
-	fclose(file);
-	file = NULL;
+	fclose(s_file);
+	s_file = NULL;
 }
 
 #undef STRING

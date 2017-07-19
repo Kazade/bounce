@@ -32,11 +32,8 @@ b3StaticTree::~b3StaticTree()
 
 static B3_FORCE_INLINE bool b3SortPredicate(const b3AABB3* set, u32 axis, u32 a, u32 b)
 {
-	const b3AABB3* b1 = set + a;
-	const b3AABB3* b2 = set + b;
-
-	b3Vec3 c1 = b1->Centroid();
-	b3Vec3 c2 = b2->Centroid();
+	b3Vec3 c1 = set[a].Centroid();
+	b3Vec3 c2 = set[b].Centroid();
 
 	return c1[axis] < c2[axis];
 }
@@ -70,13 +67,16 @@ static void b3Sort(const b3AABB3* set, u32 axis, u32* ids, u32 count)
 
 static u32 b3Partition(const b3AABB3& setAABB, const b3AABB3* set, u32* ids, u32 count)
 {
+	// Choose a partitioning axis.
 	u32 splitAxis = setAABB.GetLongestAxisIndex();
+
+	// Choose a split point.
 	float32 splitPos = setAABB.Centroid()[splitAxis];
 
-	// Sort along longest axis
+	// Sort along the split axis.
 	b3Sort(set, splitAxis, ids, count);
 
-	// Find the object that splits the set in two subsets.
+	// Find the AABB that splits the set in two subsets.
 	u32 left = 0;
 	u32 right = count - 1;
 	u32 middle = left;
@@ -91,14 +91,12 @@ static u32 b3Partition(const b3AABB3& setAABB, const b3AABB3* set, u32* ids, u32
 		++middle;
 	}
 
-	B3_ASSERT(middle >= left);
-	B3_ASSERT(middle <= right);
-	
 	// Ensure nonempty subsets.
 	u32 count1 = middle;
 	u32 count2 = count - middle;
 	if (count1 == 0 || count2 == 0)
 	{
+		// Choose median.
 		middle = (left + right) / 2;
 	}
 
@@ -182,11 +180,6 @@ void b3StaticTree::Build(const b3AABB3* set, u32 count)
 
 void b3StaticTree::Draw(b3Draw* draw) const
 {
-	b3Color red = b3Color(1.0f, 0.0f, 0.0f, 1.0f);
-	b3Color green = b3Color(0.0f, 1.0f, 0.0f, 1.0f);
-	b3Color blue = b3Color(0.0f, 0.0f, 1.0f, 1.0f);
-	b3Color purple = b3Color(1.0f, 0.0f, 1.0f, 1.0f);
-
 	if (m_nodeCount == 0)
 	{
 		return;
@@ -206,11 +199,11 @@ void b3StaticTree::Draw(b3Draw* draw) const
 		const b3Node* node = m_nodes + nodeIndex;
 		if (node->IsLeaf())
 		{
-			draw->DrawAABB(node->aabb, purple);
+			draw->DrawAABB(node->aabb, b3Color_pink);
 		}
 		else
 		{
-			draw->DrawAABB(node->aabb, red);
+			draw->DrawAABB(node->aabb, b3Color_red);
 			
 			stack.Push(node->child1);
 			stack.Push(node->child2);

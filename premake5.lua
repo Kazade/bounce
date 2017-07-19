@@ -34,7 +34,7 @@ solution (solution_name)
 		rtti "Off"
 		flags { "FloatFast" }
 			
-    	configuration "release"
+    configuration "release"
 		targetdir ( solution_dir .. action .. bin_dir .. "%{cfg.platform}/%{cfg.buildcfg}/%{prj.name}" )
 		objdir ( "!" .. solution_dir .. action .. obj_dir .. "%{cfg.platform}/%{cfg.buildcfg}/%{prj.name}" )
 		defines { "NDEBUG" }
@@ -48,13 +48,15 @@ solution (solution_name)
 	configuration { "windows" }
 		defines { "_WIN32", "WIN32", "_WINDOWS" }
 
+	filter "language:C++"
+		buildoptions { "-std=c++11" }
+
 	project "bounce"
 		kind "StaticLib"
 		language "C++"
 		location ( solution_dir .. action )
 		includedirs { bounce_inc_dir }
-		vpaths { [""] = "bounce" }		
-		buildoptions { "-std=c++11" } -- require C++11
+		vpaths { [""] = "bounce" }
 
 		files 
 		{ 
@@ -157,7 +159,6 @@ solution (solution_name)
 		location ( solution_dir .. action )
 		includedirs { external_dir } 
 		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.cpp" }		
-		buildoptions { "-std=c++11" } -- require C++11
 
 		files 
 		{ 
@@ -171,7 +172,6 @@ solution (solution_name)
 		location ( solution_dir .. action )
 		includedirs { external_dir } 
 		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.cpp" }		
-		buildoptions { "-std=c++11" } -- require C++11
 
 		files 
 		{ 
@@ -184,7 +184,6 @@ solution (solution_name)
 		location ( solution_dir .. action )
 		includedirs { external_dir, bounce_inc_dir, examples_inc_dir }
 		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.cpp" }
-		buildoptions { "-std=c++11" } -- GNU/GCC C++11
 
 		files 
 		{ 
@@ -212,7 +211,6 @@ solution (solution_name)
 		location ( solution_dir .. action )
 		includedirs { bounce_inc_dir, examples_inc_dir }
 		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.cpp" }
-		buildoptions { "-std=c++11" } -- GNU/GCC C++11
 
 		files 
 		{ 
