@@ -37,7 +37,7 @@
 
 #if B3_PLATFORM == B3_WINDOWS
 
-#include <Windows.h>
+#include <windows.h>
 
 // A timer class that accumulates time.
 // Usefull for measuring elapsed times between code sections.
