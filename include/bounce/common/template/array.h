@@ -96,6 +96,11 @@ public:
 		return m_elements[m_count - 1];
 	}
 
+	u32 Capacity() const
+	{
+		return m_capacity;
+	}
+
 	u32 Count() const
 	{
 		return m_count;
