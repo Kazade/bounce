@@ -221,6 +221,11 @@ protected:
 
 	b3ObjectArray(const b3ObjectArray<T>& other)
 	{
+		m_localElements = nullptr;
+		m_capacity = 0;
+		m_elements = nullptr;
+		m_count = 0;
+
 		Swap(other);
 	}
 
@@ -252,7 +257,7 @@ template <typename T, u32 N>
 class b3StackObjectArray : public b3ObjectArray<T>
 {
 public:
-	b3StackObjectArray<T, N>() : b3ObjectArray<T>(m_stackElements, N)
+	b3StackObjectArray<T, N>() : b3ObjectArray<T>((T*)m_stackElements, N)
 	{
 	}
 
@@ -275,9 +280,7 @@ public:
 	}
 
 protected:
-	//@todo
-	// u8 m_bytes[N * sizeof(T)];
-	T m_stackElements[N];
+	u8 m_stackElements[N * sizeof(T)];
 };
 
 #endif

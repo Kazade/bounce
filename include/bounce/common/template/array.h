@@ -197,6 +197,11 @@ protected:
 
 	b3Array(const b3Array<T>& other)
 	{
+		m_localElements = nullptr;
+		m_capacity = 0;
+		m_elements = nullptr;
+		m_count = 0;
+
 		Swap(other);
 	}
 
