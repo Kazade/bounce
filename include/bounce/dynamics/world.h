@@ -61,8 +61,10 @@ public:
 
 	// Enable warm-starting for the constraint solvers. This improves stability significantly.
 	void SetWarmStart(bool flag);
-
-	// Set the world gravity force.
+	
+	// Set the acceleration due to the gravity force between this world and each dynamic 
+	// body in the world. 
+	// The acceleration has units of m/s^2.
 	void SetGravity(const b3Vec3& gravity);
 
 	// Create a new rigid body.
