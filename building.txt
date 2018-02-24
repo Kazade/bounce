@@ -1,6 +1,6 @@
 Bounce uses premake for generating project files in a platform agnostic manner. 
 
-Grab premake from http://industriousone.com/premake.
+Grab premake from https://premake.github.io/.
 Put premake into bounce/.
 
 Visual Studio 2017
