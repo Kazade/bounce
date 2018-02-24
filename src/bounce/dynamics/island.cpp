@@ -125,8 +125,7 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 		if (b->m_type == e_dynamicBody) 
 		{
 			// Integrate forces
-			b3Vec3 force = b->m_force + b->m_gravityScale * gravity;
-			v += h * b->m_invMass * force;
+			v += h * (b->m_gravityScale * gravity + b->m_invMass * b->m_force);
 			
 			// Clear forces
 			b->m_force.SetZero();
@@ -162,7 +161,7 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 			// Solution: v(t) = v0 * exp(-c * t)
 			// Step: v(t + dt) = v0 * exp(-c * (t + dt)) = v0 * exp(-c * t) * exp(-c * dt) = v * exp(-c * dt)
 			// v2 = exp(-c * dt) * v1
-			// Padé approximation:
+			// PadÃ© approximation:
 			// 1 / (1 + c * dt) 
 			v *= 1.0f / (1.0f + h * b->m_linearDamping);
 			w *= 1.0f / (1.0f + h * b->m_angularDamping);
