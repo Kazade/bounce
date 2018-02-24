@@ -131,20 +131,20 @@ private :
 
 inline const b3AABB3& b3DynamicTree::GetAABB(i32 proxyId) const
 {
-	B3_ASSERT(proxyId < m_nodeCount);
+	B3_ASSERT(proxyId != NULL_NODE && proxyId < m_nodeCapacity);
 	return m_nodes[proxyId].aabb;
 }
 
 inline void* b3DynamicTree::GetUserData(i32 proxyId) const
 {
-	B3_ASSERT(proxyId < m_nodeCount);
+	B3_ASSERT(proxyId != NULL_NODE && proxyId < m_nodeCapacity);
 	return m_nodes[proxyId].userData;
 }
 
 inline bool b3DynamicTree::TestOverlap(i32 proxy1, i32 proxy2) const 
 {
-	B3_ASSERT(proxy1 < m_nodeCount);
-	B3_ASSERT(proxy2 < m_nodeCount);
+	B3_ASSERT(proxy1 != NULL_NODE && proxy1 < m_nodeCapacity);
+	B3_ASSERT(proxy2 != NULL_NODE && proxy2 < m_nodeCapacity);
 	return b3TestOverlap(m_nodes[proxy1].aabb, m_nodes[proxy2].aabb);
 }
 

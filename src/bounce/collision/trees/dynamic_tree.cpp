@@ -76,7 +76,7 @@ i32 b3DynamicTree::AllocateNode()
 
 void b3DynamicTree::FreeNode(i32 node) 
 {
-	B3_ASSERT(node >= 0 && node < m_nodeCapacity);
+	B3_ASSERT(node != NULL_NODE && node < m_nodeCapacity);
 	m_nodes[node].next = m_freeList;
 	m_nodes[node].height = -1;
 	m_freeList = node;
@@ -364,11 +364,6 @@ void b3DynamicTree::Validate(i32 nodeID) const
 
 void b3DynamicTree::Draw(b3Draw* draw) const
 {
-	b3Color red = b3Color(1.0f, 0.0f, 0.0f);
-	b3Color green = b3Color(0.0f, 1.0f, 0.0f);
-	b3Color blue = b3Color(0.0f, 0.0f, 1.0f);
-	b3Color purple = b3Color(1.0f, 0.0f, 1.0f);
-
 	if (m_nodeCount == 0)
 	{
 		return;
@@ -390,11 +385,11 @@ void b3DynamicTree::Draw(b3Draw* draw) const
 		const b3Node* node = m_nodes + nodeIndex;
 		if (node->IsLeaf())
 		{
-			draw->DrawAABB(node->aabb, purple);
+			draw->DrawAABB(node->aabb, b3Color_pink);
 		}
 		else
 		{
-			draw->DrawAABB(node->aabb, red);
+			draw->DrawAABB(node->aabb, b3Color_red);
 			
 			stack.Push(node->child1);
 			stack.Push(node->child2);
