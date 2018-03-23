@@ -61,7 +61,7 @@
 #include <testbed/tests/rope_test.h>
 #include <testbed/tests/cloth_test.h>
 #include <testbed/tests/implicit_spring.h>
-//#include <testbed/tests/spring_cloth_test.h>
+#include <testbed/tests/spring_cloth_test.h>
 //#include <testbed/tests/tree_test.h>
 
 TestEntry g_tests[] =
@@ -109,7 +109,7 @@ TestEntry g_tests[] =
 	{ "Rope", &Rope::Create },
 	{ "Implicit Spring", &ImplicitSpring::Create },
 	{ "Cloth", &Cloth::Create },
-	//{ "Spring Cloth", &SpringCloth::Create },
+	{ "Spring Cloth", &SpringCloth::Create },
 	//{ "Tree", &Tree::Create },
 	{ NULL, NULL }
 };
