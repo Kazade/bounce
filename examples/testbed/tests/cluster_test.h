@@ -32,27 +32,28 @@ public:
 		g_camera.m_zoom = 10.0f;
 
 		// Initialize observations
-		b3StackArray<b3Observation, 256> tempObservations;
-		tempObservations.Resize(90);
-		for (u32 i = 0; i < tempObservations.Count(); ++i)
+		for (u32 i = 0; i < 90; ++i)
 		{
 			float32 x = RandomFloat(-1.0f, 1.0f);
 			float32 y = RandomFloat(-1.0f, 1.0f);
 			float32 z = RandomFloat(-1.0f, 1.0f);
 			
-			tempObservations[i].point.Set(x, y, z);
-			tempObservations[i].point = b3Normalize(tempObservations[i].point);
-			tempObservations[i].cluster = 0xFFFFFFFF;
+			b3Observation obs;
+			obs.point.Set(x, y, z);
+			obs.point = b3Normalize(obs.point);
+			obs.cluster = B3_NULL_CLUSTER;
+
+			m_solver.AddObservation(obs);
 		}
 		
 		// Initialize clusters
-		b3StackArray<b3Cluster, 3> tempClusters;
-		b3InitializeClusters(tempClusters, tempObservations);
+		m_solver.Solve();
 
-		// Clusterize
-		b3Clusterize(m_clusters, m_observs, tempClusters, tempObservations);
-
-		for (u32 i = 0; i < m_clusters.Count(); ++i)
+		const b3Array<b3Cluster>& clusters = m_solver.GetClusters();
+		
+		m_colors.Resize(clusters.Count());
+		
+		for (u32 i = 0; i < clusters.Count(); ++i)
 		{
 			m_colors[i] = b3Color(RandomFloat(0.0f, 1.0f), RandomFloat(0.0f, 1.0f), RandomFloat(0.0f, 1.0f));
 		}
@@ -60,14 +61,17 @@ public:
 
 	void Step()
 	{
-		for (u32 i = 0; i < m_clusters.Count(); ++i)
+		const b3Array<b3Observation>& observations = m_solver.GetObservations();
+		const b3Array<b3Cluster>& clusters = m_solver.GetClusters();
+		
+		for (u32 i = 0; i < clusters.Count(); ++i)
 		{
-			g_debugDraw->DrawSegment(b3Vec3(0, 0, 0), m_clusters[i].centroid, b3Color(1, 1, 1));
-			g_debugDraw->DrawPoint(m_clusters[i].centroid, 4.0f, m_colors[i]);
+			g_debugDraw->DrawSegment(b3Vec3(0, 0, 0), clusters[i].centroid, b3Color(1, 1, 1));
+			g_debugDraw->DrawPoint(clusters[i].centroid, 4.0f, m_colors[i]);
 
-			for (u32 j = 0; j < m_observs.Count(); ++j)
+			for (u32 j = 0; j < observations.Count(); ++j)
 			{
-				b3Observation obs = m_observs[j];
+				b3Observation obs = observations[j];
 				if (obs.cluster == i)
 				{
 					g_debugDraw->DrawPoint(obs.point, 4.0f, m_colors[i]);
@@ -81,9 +85,9 @@ public:
 		return new Cluster();
 	}
 
-	b3StackArray<b3Observation, 256> m_observs;
-	b3StackArray<b3Cluster, 3> m_clusters;
-	b3Color m_colors[3];
+	b3ClusterSolver m_solver;
+
+	b3StackArray<b3Color, 32> m_colors;
 };
 
 #endif

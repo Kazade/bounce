@@ -23,47 +23,92 @@
 #include <bounce/common/template/array.h>
 #include <bounce/dynamics/contacts/manifold.h>
 
-#define B3_NULL_CLUSTER (0xFFFFFFFF)
-
 // Used for contact cluster reduction.
-struct b3ClusterVertex
+struct b3ClusterPolygonVertex
 {
 	b3Vec3 position; // point on the cluster plane
-	u32 clipIndex; // where did this vertex came from (hint: local point)
+	u32 clipIndex; // where did this vertex came from 
 };
 
 // Used for contact cluster reduction.
-typedef b3Array<b3ClusterVertex> b3ClusterPolygon;
+typedef b3Array<b3ClusterPolygonVertex> b3ClusterPolygon;
 
-// A observation represents a contact normal.	
+// Weld a convex polygon such that the polygon normal points to a given direction.
+void b3WeldPolygon(b3ClusterPolygon& pOut, 
+	const b3ClusterPolygon& pIn, const b3Vec3& pNormal);
+
+// Reduce a set of contact points to a quad (approximate convex polygon).
+// All points must lie in a common plane and an initial point must be given.
+void b3ReducePolygon(b3ClusterPolygon& pOut, 
+	const b3ClusterPolygon& pIn, const b3Vec3& pNormal, u32 initialPoint);
+
+#define B3_NULL_CLUSTER (0xFFFFFFFF)
+
+// An observation represents a contact normal.	
 struct b3Observation
 {
+	b3Vec3 point; 
+	u32 cluster; 
 	u32 manifold;
 	u32 manifoldPoint;
-	b3Vec3 point; // normal
-	u32 cluster; // normal
 };
 
-// A group of contact points with a similar contact normal.
+// A group of contact normals pointing to a similar direction.
 struct b3Cluster
 {
 	b3Vec3 centroid;
 };
 
-// Initialize a set of clusters.
-void b3InitializeClusters(b3Array<b3Cluster>& outClusters, 
-const b3Array<b3Observation>& inObservations);
+class b3ClusterSolver
+{
+public:
+	b3ClusterSolver();
+	
+	~b3ClusterSolver();
 
-// Run the cluster algorithm.
-void b3Clusterize(b3Array<b3Cluster>& outClusters, b3Array<b3Observation>& outObservations,
-	const b3Array<b3Cluster>& inClusters, const b3Array<b3Observation>& inObservations);
+	//
+	void AddObservation(const b3Observation& observation);
 
-u32 b3Clusterize(b3Manifold outManifolds[3], const b3Manifold* inManifolds, u32 numIn,
-	const b3Transform& xfA, float32 radiusA, const b3Transform& xfB, float32 radiusB);
+	//
+	const b3Array<b3Observation>& GetObservations() const;
 
-// Reduce a set of contact points to a quad (approximate convex polygon).
-// All points must lie in a common plane and an initial point must be given.
-void b3ReducePolygon(b3ClusterPolygon& pOut, const b3ClusterPolygon& pIn, 
-	u32 startIndex, const b3Vec3& normal);
+	//
+	const b3Array<b3Cluster>& GetClusters() const;
+
+	// 
+	void Run(b3Manifold mOut[3], u32& numOut,
+	const b3Manifold* mIn, u32 numIn,
+		const b3Transform& xfA, float32 radiusA, const b3Transform& xfB, float32 radiusB);
+
+	//
+	void Solve();
+private:
+	// 
+	void InitializeClusters();
+	
+	// 
+	void AddCluster(const b3Vec3& centroid);
+
+	//
+	u32 BestCluster(const b3Vec3& point) const;
+
+	b3StackArray<b3Observation, 32> m_observations;
+	b3StackArray<b3Cluster, 32> m_clusters;
+};
+
+inline void b3ClusterSolver::AddObservation(const b3Observation& observation)
+{
+	m_observations.PushBack(observation);
+}
+
+inline const b3Array<b3Observation>& b3ClusterSolver::GetObservations() const
+{
+	return m_observations;
+}
+
+inline const b3Array<b3Cluster>& b3ClusterSolver::GetClusters() const
+{
+	return m_clusters;
+}
 
 #endif

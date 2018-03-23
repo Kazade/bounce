@@ -267,7 +267,9 @@ void b3MeshContact::Collide()
 
 	// Send contact manifolds for clustering. This is an important optimization.
 	B3_ASSERT(m_manifoldCount == 0);
-	m_manifoldCount = b3Clusterize(m_stackManifolds, tempManifolds, tempCount, xfA, shapeA->m_radius, xfB, B3_HULL_RADIUS);
+	
+	b3ClusterSolver clusterSolver;
+	clusterSolver.Run(m_stackManifolds, m_manifoldCount, tempManifolds, tempCount, xfA, shapeA->m_radius, xfB, B3_HULL_RADIUS);
 	
 	allocator->Free(tempManifolds);
 }

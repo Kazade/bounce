@@ -132,7 +132,7 @@ void b3BuildFaceContact(b3Manifold& manifold,
 
 	// 4. Project the clipped polygon on the reference plane for reduction.
 	// Ensure the deepest point is contained in the reduced polygon.
-	b3StackArray<b3ClusterVertex, 32> polygon1;
+	b3StackArray<b3ClusterPolygonVertex, 32> polygon1;
 	
 	u32 minIndex = 0;
 	float32 minSeparation = B3_MAX_FLOAT;
@@ -150,7 +150,7 @@ void b3BuildFaceContact(b3Manifold& manifold,
 				minSeparation = separation;
 			}
 
-			b3ClusterVertex v1;
+			b3ClusterPolygonVertex v1;
 			v1.position = b3ClosestPointOnPlane(v2.position, plane1);
 			v1.clipIndex = i;
 			polygon1.PushBack(v1);
@@ -167,9 +167,9 @@ void b3BuildFaceContact(b3Manifold& manifold,
 	
 	// Ensure normal orientation to hull 2.
 	b3Vec3 s_normal = flipNormal ? -normal : normal;
-
-	b3StackArray<b3ClusterVertex, 32> reducedPolygon1;
-	b3ReducePolygon(reducedPolygon1, polygon1, minIndex, s_normal);
+	
+	b3StackArray<b3ClusterPolygonVertex, 32> reducedPolygon1;
+	b3ReducePolygon(reducedPolygon1, polygon1, s_normal, minIndex);
 	B3_ASSERT(!reducedPolygon1.IsEmpty());
 
 	// 6. Build face contact.
