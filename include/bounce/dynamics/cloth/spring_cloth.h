@@ -20,6 +20,9 @@
 #define B3_SPRING_CLOTH_H
 
 #include <bounce/common/math/mat33.h>
+#include <bounce/collision/shapes/sphere.h>
+
+#define B3_CLOTH_SPHERE_CAPACITY 32
 
 class b3StackAllocator;
 class b3Draw;
@@ -36,6 +39,7 @@ struct b3SpringClothDef
 		ks = 0.0f;
 		kb = 0.0f;
 		kd = 0.0f;
+		r = 0.05f;
 		gravity.SetZero();
 	}
 
@@ -57,7 +61,10 @@ struct b3SpringClothDef
 	// Damping stiffness
 	float32 kd;
 	
-	// Force due to gravity 
+	// Mass radius
+	float32 r;
+	
+	// Force due to gravity
 	b3Vec3 gravity;
 };
 
@@ -85,6 +92,15 @@ enum b3MassType
 {
 	e_staticMass,
 	e_dynamicMass
+};
+
+// This structure represents an acceleration constraint.
+struct b3MassCollision
+{
+	u32 j;
+	float32 s;
+	b3Vec3 n;
+	bool active;
 };
 
 // Time step statistics
@@ -119,6 +135,9 @@ public:
 	//
 	b3MassType GetType(u32 i) const;
 
+	//
+	b3Sphere* CreateSphere(const b3Vec3& center, float32 radius);
+
 	// 
 	const b3SpringClothStep& GetStep() const;
 
@@ -131,6 +150,8 @@ public:
 	//
 	void Draw(b3Draw* draw) const;
 protected:
+	void UpdateCollisions() const;
+	
 	b3StackAllocator* m_allocator;
 
 	b3Mesh* m_mesh;
@@ -141,11 +162,18 @@ protected:
 	b3Vec3* m_v;
 	b3Vec3* m_f;
 	float32* m_inv_m;
+	b3Vec3* m_y;
 	b3MassType* m_massTypes;
+	b3MassCollision* m_collisions;
 	u32 m_massCount;
 
 	b3Spring* m_springs;
 	u32 m_springCount;
+
+	float32 m_r;
+
+	b3Sphere m_spheres[B3_CLOTH_SPHERE_CAPACITY];
+	u32 m_sphereCount;
 
 	b3SpringClothStep m_step;
 };

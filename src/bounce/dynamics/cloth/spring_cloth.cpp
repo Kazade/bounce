@@ -34,12 +34,18 @@ b3SpringCloth::b3SpringCloth()
 	m_x = nullptr;
 	m_v = nullptr;
 	m_f = nullptr;
+	m_y = nullptr;
 	m_inv_m = nullptr;
 	m_massTypes = nullptr;
+	m_collisions = nullptr;
 	m_massCount = 0;
 	
 	m_springs = nullptr;
-	m_springCount = 0;
+	m_springCount = 0; 
+	
+	m_r = 0.0f;
+
+	m_sphereCount = 0;
 
 	m_step.iterations = 0;
 }
@@ -50,7 +56,9 @@ b3SpringCloth::~b3SpringCloth()
 	b3Free(m_v);
 	b3Free(m_f);
 	b3Free(m_inv_m);
+	b3Free(m_y);
 	b3Free(m_massTypes);
+	b3Free(m_collisions);
 	b3Free(m_springs);
 }
 
@@ -63,6 +71,8 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 	m_mesh = def.mesh;
 	m_gravity = def.gravity;
 
+	m_r = def.r;
+	
 	const b3Mesh* m = m_mesh;
 
 	m_massCount = m->vertexCount;
@@ -70,14 +80,18 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 	m_v = (b3Vec3*)b3Alloc(m_massCount * sizeof(b3Vec3));
 	m_f = (b3Vec3*)b3Alloc(m_massCount * sizeof(b3Vec3));
 	m_inv_m = (float32*)b3Alloc(m_massCount * sizeof(float32));
+	m_y = (b3Vec3*)b3Alloc(m_massCount * sizeof(b3Vec3));
 	m_massTypes = (b3MassType*)b3Alloc(m_massCount * sizeof(b3MassType));
+	m_collisions = (b3MassCollision*)b3Alloc(m_massCount * sizeof(b3MassCollision));
 
 	for (u32 i = 0; i < m->vertexCount; ++i)
 	{
+		m_collisions[i].active = false;
 		m_x[i] = m->vertices[i];
 		m_v[i].SetZero();
 		m_f[i].SetZero();
 		m_inv_m[i] = 0.0f;
+		m_y[i].SetZero();
 		m_massTypes[i] = e_staticMass;
 	}
 
@@ -154,7 +168,24 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 	}
 }
 
-static B3_FORCE_INLINE void b3Filter(b3Vec3* out, const b3Vec3* v, u32 size, const b3MassType* types)
+b3Sphere* b3SpringCloth::CreateSphere(const b3Vec3& center, float32 radius)
+{
+	B3_ASSERT(m_sphereCount < B3_CLOTH_SPHERE_CAPACITY);
+	
+	if (m_sphereCount == B3_CLOTH_SPHERE_CAPACITY)
+	{
+		return nullptr;
+	}
+
+	b3Sphere* sphere = m_spheres + m_sphereCount;
+	sphere->vertex = center;
+	sphere->radius = radius;
+	++m_sphereCount;
+	return sphere;
+}
+
+static B3_FORCE_INLINE void b3Make_z(b3Vec3* out, u32 size,
+	const b3MassType* types, const b3MassCollision* collisions)
 {
 	for (u32 i = 0; i < size; ++i)
 	{
@@ -167,6 +198,47 @@ static B3_FORCE_INLINE void b3Filter(b3Vec3* out, const b3Vec3* v, u32 size, con
 		}
 		case e_dynamicMass:
 		{
+			if (collisions[i].active)
+			{
+				out[i].SetZero();
+				break;
+			}
+
+			out[i].SetZero();
+			break;
+		}
+		default:
+		{
+			B3_ASSERT(false);
+			break;
+		}
+		}
+	}
+}
+
+static B3_FORCE_INLINE void b3Filter(b3Vec3* out, const b3Vec3* v, u32 size, 
+	const b3MassType* types, const b3MassCollision* collisions)
+{
+	for (u32 i = 0; i < size; ++i)
+	{
+		switch (types[i])
+		{
+		case e_staticMass:
+		{
+			out[i].SetZero();
+			break;
+		}
+		case e_dynamicMass:
+		{
+			if (collisions[i].active)
+			{
+				b3Vec3 n = collisions[i].n;
+
+				b3Mat33 S = b3Mat33_identity - b3Outer(n, n);
+
+				out[i] = S * v[i];
+				break;
+			}
 
 			out[i] = v[i];
 			break;
@@ -319,8 +391,90 @@ static B3_FORCE_INLINE void b3Mul_A(b3Vec3* out, const b3Vec3* v, u32 mass_size,
 	allocator->Free(v1);
 }
 
+void b3SpringCloth::UpdateCollisions() const
+{
+	// Compute cloth-solid collision position alteration
+	for (u32 i = 0; i < m_massCount; ++i)
+	{
+		// Clear flag
+		m_collisions[i].active = false;
+
+		b3Vec3 c1 = m_x[i];
+		float32 r1 = m_r;
+
+		// Only solve the deepest penetrations
+		float32 bestSeparation = B3_MAX_FLOAT;
+		u32 bestIndex = ~0;
+
+		for (u32 j = 0; j < m_sphereCount; ++j)
+		{
+			const b3Sphere* sphere = m_spheres + j;
+			b3Vec3 c2 = sphere->vertex;
+			float32 r2 = sphere->radius;
+
+			b3Vec3 d = c2 - c1;
+			float32 dd = b3Dot(d, d);
+			float32 totalRadius = r1 + r2;
+			if (dd > totalRadius * totalRadius)
+			{
+				continue;
+			}
+
+			float32 distance = b3Length(d);
+			float32 separation = distance - totalRadius;
+
+			if (separation < bestSeparation)
+			{
+				bestSeparation = separation;
+				bestIndex = j;
+			}
+		}
+
+		if (bestIndex != ~0)
+		{
+			const b3Sphere* sphere = m_spheres + bestIndex;
+			b3Vec3 c2 = sphere->vertex;
+			float32 r2 = sphere->radius;
+
+			float32 totalRadius = r1 + r2;
+
+			b3Vec3 d = c2 - c1;
+			float32 distance = b3Length(d);
+			float32 separation = distance - totalRadius;
+
+			b3Vec3 n(0.0f, 1.0f, 0.0f);
+			if (distance > B3_EPSILON)
+			{
+				n = d / distance;
+			}
+
+			// Avoid large corrections
+			const float32 kMaxCorrection = 0.75f;
+			separation = b3Clamp(separation, -kMaxCorrection, 0.0f);
+
+			b3Vec3 dx1 = separation * n;
+
+			// Add position alteration
+			m_y[i] += dx1;
+
+			m_collisions[i].active = true;
+			m_collisions[i].j = bestIndex;
+			m_collisions[i].s = separation;
+			m_collisions[i].n = n;
+		}
+	}
+}
+
 void b3SpringCloth::Step(float32 h)
 {
+	if (h == 0.0f)
+	{
+		return;
+	}
+
+	// Detect and store collisions
+	UpdateCollisions();
+
 	u32 size = m_massCount;
 	b3MassType* types = m_massTypes;
 	u32 spring_size = m_springCount;
@@ -328,9 +482,12 @@ void b3SpringCloth::Step(float32 h)
 	// Add gravity
 	for (u32 i = 0; i < size; ++i)
 	{
-		m_f[i] += m_gravity;
+		if (types[i] == e_dynamicMass)
+		{
+			m_f[i] += m_gravity;
+		}
 	}
-	
+
 	// Compute non-zero Jacobians Jx, Jv
 	b3Mat33* Jx = (b3Mat33*)m_allocator->Allocate(spring_size * sizeof(b3Mat33));
 	b3SetZero_Jacobian(Jx, spring_size);
@@ -403,18 +560,27 @@ void b3SpringCloth::Step(float32 h)
 
 	// Compute b
 
-	// b = h * (f0 + h * dfdx * v0) 
+	// b = h * (f0 + h * dfdx * v0 + dfdx * y) ) 
 	b3Vec3* b = (b3Vec3*) m_allocator->Allocate(size * sizeof(b3Vec3));
 
-	// b = dfdx * v0
-	// b3Mul(b, dfdx, m_v, size);
-	b3Mul_Jacobian(b, m_v, size, Jx, m_springs, m_springCount);
+	// Jx_v = dfdx * v
+	b3Vec3* Jx_v = (b3Vec3*)m_allocator->Allocate(size * sizeof(b3Vec3));
+	// b3Mul(Jx_v, dfdx, v, size);
+	b3Mul_Jacobian(Jx_v, m_v, size, Jx, m_springs, m_springCount);
 
-	// b = h * (f0 + h * b)
+	// Jx_v0y = dfdx * y
+	b3Vec3* Jx_y = (b3Vec3*)m_allocator->Allocate(size * sizeof(b3Vec3));
+	// b3Mul(Jx_y, dfdx, y, size);
+	b3Mul_Jacobian(Jx_y, m_y, size, Jx, m_springs, m_springCount);
+
+	// b = h * (f0 + h * Jx_v + Jx_y )
 	for (u32 i = 0; i < size; ++i)
 	{
-		b[i] = h * (m_f[i] + h * b[i]);
+		b[i] = h * (m_f[i] + h * Jx_v[i] + Jx_y[i]);
 	}
+
+	m_allocator->Free(Jx_y);
+	m_allocator->Free(Jx_v);
 
 	// Solve Ax = b
 	b3Vec3* z = (b3Vec3*)m_allocator->Allocate(size * sizeof(b3Vec3));
@@ -436,27 +602,7 @@ void b3SpringCloth::Step(float32 h)
 	b3Vec3* inv_P = (b3Vec3*)m_allocator->Allocate(size * sizeof(b3Vec3));
 
 	// Compute z
-	for (u32 i = 0; i < size; ++i)
-	{
-		switch (types[i])
-		{
-		case e_staticMass:
-		{
-			z[i].SetZero();
-			break;
-		}
-		case e_dynamicMass:
-		{
-			z[i].SetZero();
-			break;
-		}
-		default:
-		{
-			B3_ASSERT(false);
-			break;
-		}
-		}
-	}
+	b3Make_z(z, size, types, m_collisions);
 
 	// dv = z
 	b3Copy(dv, z, size);
@@ -543,7 +689,7 @@ void b3SpringCloth::Step(float32 h)
 
 	// eps0 = dot( filter(b), P * filter(b) )
 	b3Vec3* filter_b = (b3Vec3*)m_allocator->Allocate(size * sizeof(b3Vec3));
-	b3Filter(filter_b, b, size, types);
+	b3Filter(filter_b, b, size, types, m_collisions);
 
 	b3Vec3* P_filter_b = (b3Vec3*)m_allocator->Allocate(size * sizeof(b3Vec3));
 	for (u32 i = 0; i < size; ++i)
@@ -560,7 +706,7 @@ void b3SpringCloth::Step(float32 h)
 
 	// r = filter(b - Adv)
 	b3Sub(r, b, Adv, size);
-	b3Filter(r, r, size, types);
+	b3Filter(r, r, size, types, m_collisions);
 
 	// c = filter(P^-1 * r)
 	for (u32 i = 0; i < m_massCount; ++i)
@@ -569,7 +715,7 @@ void b3SpringCloth::Step(float32 h)
 		c[i][1] = inv_P[i][1] * r[i][1];
 		c[i][2] = inv_P[i][2] * r[i][2];
 	}
-	b3Filter(c, c, size, types);
+	b3Filter(c, c, size, types, m_collisions);
 
 	// epsNew = dot(r, c)
 	float32 epsNew = b3Dot(r, c, size);
@@ -577,10 +723,10 @@ void b3SpringCloth::Step(float32 h)
 	// This is in [0, 1]
 	// Making it smaller can increase accuracy, but it might increase the number 
 	// of iterations to be taken by the solver.
-	const float32 kTol = 0.75f;
+	const float32 kTol = 0.25f;
 
 	// Limit number of iterations to prevent cycling.
-	const u32 kMaxIters = 100;
+	const u32 kMaxIters = 200;
 	
 	// Main iteration loop.
 	u32 iter = 0;
@@ -589,7 +735,7 @@ void b3SpringCloth::Step(float32 h)
 		// q = filter(A * c) 
 		// b3Mul(q, A, c, size);
 		b3Mul_A(q, c, size, m_allocator, m_inv_m, h, Jx, Jv, m_springs, m_springCount);
-		b3Filter(q, q, size, types);
+		b3Filter(q, q, size, types, m_collisions);
 
 		// alpha = epsNew / dot(c, q)
 		float32 alpha = epsNew / b3Dot(c, q, size);
@@ -628,7 +774,7 @@ void b3SpringCloth::Step(float32 h)
 		{
 			c[i] = s[i] + beta * c[i];
 		}
-		b3Filter(c, c, size, types);
+		b3Filter(c, c, size, types, m_collisions);
 
 		++iter;
 	}
@@ -639,7 +785,7 @@ void b3SpringCloth::Step(float32 h)
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
 		m_v[i] += dv[i];
-		m_x[i] += h * m_v[i];
+		m_x[i] += h * m_v[i] + m_y[i];
 	}
 
 	// Clear forces
@@ -648,6 +794,12 @@ void b3SpringCloth::Step(float32 h)
 		m_f[i].SetZero();
 	}
 
+	// Clear position alteration
+	for (u32 i = 0; i < m_massCount; ++i)
+	{
+		m_y[i].SetZero();
+	}
+	
 	m_allocator->Free(inv_P);
 	m_allocator->Free(P);
 	m_allocator->Free(s);
@@ -672,6 +824,11 @@ void b3SpringCloth::Apply() const
 
 void b3SpringCloth::Draw(b3Draw* draw) const
 {
+	for (u32 i = 0; i < m_sphereCount; ++i)
+	{
+		draw->DrawSolidSphere(m_spheres[i].vertex, m_spheres[i].radius, b3Color_white);
+	}
+
 	const b3Mesh* m = m_mesh;
 
 	for (u32 i = 0; i < m->vertexCount; ++i)
