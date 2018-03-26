@@ -195,13 +195,13 @@ inline float32 b3DistanceSquared(const b3Vec3& a, const b3Vec3& b)
 // Compute the triangle area.
 inline float32 b3Area(const b3Vec3& a, const b3Vec3& b, const b3Vec3& c)
 {
-	return b3Length(b3Cross(b - a, c - a));
+	return 0.5f * b3Length(b3Cross(b - a, c - a));
 }
 
 // Compute the squared triangle area.
 inline float32 b3AreaSquared(const b3Vec3& a, const b3Vec3& b, const b3Vec3& c)
 {
-	return b3LengthSquared(b3Cross(b - a, c - a));
+	return 0.25f * b3LengthSquared(b3Cross(b - a, c - a));
 }
 
 // Compute the tetrahedron volume.
