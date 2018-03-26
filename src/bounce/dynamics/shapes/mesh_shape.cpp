@@ -73,9 +73,17 @@ void b3MeshShape::ComputeAABB(b3AABB3* output, const b3Transform& xf, u32 index)
 	output->Extend(m_radius);
 }
 
-bool b3MeshShape::TestPoint(const b3Vec3& point, const b3Transform& xf) const
+bool b3MeshShape::TestSphere(const b3Sphere& sphere, const b3Transform& xf) const
 {
-	B3_NOT_USED(point);
+	B3_NOT_USED(sphere);
+	B3_NOT_USED(xf);
+	return false;
+}
+
+bool b3MeshShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere, const b3Transform& xf) const
+{
+	B3_NOT_USED(output);
+	B3_NOT_USED(sphere);
 	B3_NOT_USED(xf);
 	return false;
 }

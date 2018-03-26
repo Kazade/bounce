@@ -22,6 +22,7 @@
 #include <bounce/common/math/transform.h>
 #include <bounce/common/template/list.h>
 #include <bounce/collision/collision.h>
+#include <bounce/collision/shapes/sphere.h>
 
 struct b3ContactEdge;
 
@@ -35,6 +36,12 @@ enum b3ShapeType
 	e_hullShape,
 	e_meshShape,
 	e_maxShapes
+};
+
+struct b3TestSphereOutput
+{
+	float32 separation;
+	b3Vec3 normal;
 };
 
 struct b3ShapeDef 
@@ -72,7 +79,7 @@ struct b3MassData
 class b3Shape
 {
 public:
-	b3Shape() { }
+	b3Shape();
 	virtual ~b3Shape() { }
 
 	// Get the shape type.
@@ -88,8 +95,13 @@ public:
 	// Compute the shape world AABB.
 	virtual void ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const = 0;
 
-	// Test if a point is contained inside this shape.
-	virtual bool TestPoint(const b3Vec3& point, const b3Transform& xf) const = 0;
+	// Test if a sphere is contained inside this shape.
+	virtual bool TestSphere(const b3Sphere& sphere, const b3Transform& xf) const = 0;
+
+	// Test if a sphere is contained inside this shape.
+	// If the sphere is inside this shape then return the minimum separation distance and normal.
+	// The direction of the normal points from this shape to the sphere.
+	virtual bool TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere, const b3Transform& xf) const = 0;
 
 	// Compute the ray intersection point, normal of surface, and fraction.
 	virtual bool RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf) const = 0;

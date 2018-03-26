@@ -142,19 +142,60 @@ void b3HullShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const
 	aabb->Extend(m_radius);
 }
 
-bool b3HullShape::TestPoint(const b3Vec3& point, const b3Transform& xf) const
+bool b3HullShape::TestSphere(const b3Sphere& sphere, const b3Transform& xf) const
 {
-	// Put the point into the hull's frame of reference.
-	b3Vec3 p = b3MulT(xf, point);
+	b3Vec3 support = b3MulT(xf, sphere.vertex);
+	float32 radius = m_radius + sphere.radius;
+
 	for (u32 i = 0; i < m_hull->faceCount; ++i)
 	{
-		float32 d = b3Distance(p, m_hull->planes[i]);
-		if (d > m_radius)
+		b3Plane plane = m_hull->GetPlane(i);
+		float32 separation = b3Distance(support, plane);
+
+		if (separation > radius)
 		{
 			return false;
 		}
 	}
+
 	return true;
+}
+
+bool b3HullShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere, const b3Transform& xf) const
+{
+	// Perform computations in the local space of the first hull.
+	b3Vec3 support = b3MulT(xf, sphere.vertex);
+	float32 radius = m_radius + sphere.radius;
+	
+	u32 maxIndex = ~0;
+	float32 maxSeparation = -B3_MAX_FLOAT;
+
+	for (u32 i = 0; i < m_hull->faceCount; ++i)
+	{
+		b3Plane plane = m_hull->GetPlane(i);
+		float32 separation = b3Distance(support, plane);
+
+		if (separation > radius)
+		{
+			return false;
+		}
+
+		if (separation > maxSeparation)
+		{
+			maxIndex = i;
+			maxSeparation = separation;
+		}
+	}
+
+	if (maxIndex != ~0)
+	{
+		output->separation = maxSeparation;
+		output->normal = b3Mul(xf.rotation, m_hull->GetPlane(maxIndex).normal);
+		return true;
+	}
+	
+	B3_ASSERT(false);
+	return false;
 }
 
 bool b3HullShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf) const

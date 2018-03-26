@@ -35,7 +35,9 @@ public :
 
 	void ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const;	
 
-	bool TestPoint(const b3Vec3& point, const b3Transform& xf) const;
+	bool TestSphere(const b3Sphere& sphere, const b3Transform& xf) const;
+	
+	bool TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere, const b3Transform& xf) const;
 
 	bool RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf) const;
 

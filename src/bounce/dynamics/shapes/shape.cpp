@@ -29,6 +29,18 @@
 #include <bounce/collision/shapes/hull.h>
 #include <bounce/collision/shapes/mesh.h>
 
+b3Shape::b3Shape() 
+{
+	m_density = 0.0f;
+	m_friction = 0.0f;
+	m_restitution = 0.0f;
+	
+	m_isSensor = false;
+	m_userData = nullptr;
+
+	m_body = nullptr;
+}
+
 void b3Shape::SetSensor(bool flag)
 {
 	if (flag != m_isSensor)

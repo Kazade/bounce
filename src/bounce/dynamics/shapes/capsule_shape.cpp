@@ -140,10 +140,10 @@ void b3CapsuleShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const
 	aabb->m_upper = b3Max(c1, c2) + r;
 }
 
-bool b3CapsuleShape::TestPoint(const b3Vec3& point, const b3Transform& xf) const
+bool b3CapsuleShape::TestSphere(const b3Sphere& sphere, const b3Transform& xf) const
 {
 	// The point in the frame of the capsule
-	b3Vec3 Q = b3MulT(xf, point);
+	b3Vec3 Q = b3MulT(xf, sphere.vertex);
 
 	b3Vec3 A = m_centers[0];
 	b3Vec3 B = m_centers[1];
@@ -153,10 +153,12 @@ bool b3CapsuleShape::TestPoint(const b3Vec3& point, const b3Transform& xf) const
 	float32 u = b3Dot(B - Q, AB);
 	float32 v = b3Dot(Q - A, AB);
 
+	float32 radius = m_radius + sphere.radius;
+
 	if (v <= 0.0f)
 	{
 		// A
-		if (b3DistanceSquared(A, Q) > m_radius * m_radius)
+		if (b3DistanceSquared(A, Q) > radius * radius)
 		{
 			return false;
 		}
@@ -166,7 +168,7 @@ bool b3CapsuleShape::TestPoint(const b3Vec3& point, const b3Transform& xf) const
 	if (u <= 0.0f)
 	{
 		// B
-		if (b3DistanceSquared(B, Q) > m_radius * m_radius)
+		if (b3DistanceSquared(B, Q) > radius * radius)
 		{
 			return false;
 		}
@@ -177,11 +179,107 @@ bool b3CapsuleShape::TestPoint(const b3Vec3& point, const b3Transform& xf) const
 	float32 s = b3Dot(AB, AB);
 	B3_ASSERT(s > 0.0f);
 	b3Vec3 P = (1.0f / s) * (u * A + v * B);
-	if (b3DistanceSquared(P, Q) > m_radius * m_radius)
+	if (b3DistanceSquared(P, Q) > radius * radius)
 	{
 		return false;
 	}
 
+	return true;
+}
+
+bool b3CapsuleShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere, const b3Transform& xf) const
+{
+	b3Vec3 Q = sphere.vertex;
+
+	b3Vec3 A = b3Mul(xf, m_centers[0]);
+	b3Vec3 B = b3Mul(xf, m_centers[1]);
+	b3Vec3 AB = B - A;
+
+	// Barycentric coordinates for Q
+	float32 u = b3Dot(B - Q, AB);
+	float32 v = b3Dot(Q - A, AB);
+
+	float32 radius = m_radius + sphere.radius;
+
+	if (v <= 0.0f)
+	{
+		// A
+		b3Vec3 P = A;
+		b3Vec3 d = Q - P;
+		float32 dd = b3Dot(d, d);
+		if (dd > radius * radius)
+		{
+			return false;
+		}
+
+		b3Vec3 n(0.0f, 1.0f, 0.0f);
+		float32 len = b3Sqrt(dd);
+		if (len > B3_EPSILON)
+		{
+			n = d / len;
+		}
+
+		output->separation = len - radius;
+		output->normal = n;
+
+		return true;
+	}
+
+	if (u <= 0.0f)
+	{
+		// B
+		b3Vec3 P = B;
+		b3Vec3 d = Q - P;
+		float32 dd = b3Dot(d, d);
+		if (dd > radius * radius)
+		{
+			return false;
+		}
+
+		b3Vec3 n(0.0f, 1.0f, 0.0f);
+		float32 len = b3Sqrt(dd);
+		if (len > B3_EPSILON)
+		{
+			n = d / len;
+		}
+
+		output->separation = len - radius;
+		output->normal = n;
+
+		return true;
+	}
+
+	// AB
+	float32 s = b3Dot(AB, AB);
+	//B3_ASSERT(s > 0.0f);
+	b3Vec3 P;
+	if (s < B3_LINEAR_SLOP * B3_LINEAR_SLOP)
+	{
+		P = A;
+	}
+	else
+	{
+		P = (u * A + v * B) / s;
+	}
+
+	b3Vec3 d = Q - P;
+	float32 dd = b3Dot(d, d);
+	if (dd > radius * radius)
+	{
+		return false;
+	}
+
+	b3Vec3 QA = A - Q;
+	b3Vec3 e = b3Cross(AB, QA);
+	b3Vec3 n = b3Cross(AB, e);
+	if (b3Dot(n, QA) < 0.0f)
+	{
+		n = -n;
+	}
+	n.Normalize();
+
+	output->separation = b3Sqrt(dd) - radius;
+	output->normal = -n;
 	return true;
 }
 

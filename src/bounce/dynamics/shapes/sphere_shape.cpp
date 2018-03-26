@@ -58,16 +58,42 @@ void b3SphereShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const
 	aabb->m_upper = center + r;
 }
 
-bool b3SphereShape::TestPoint(const b3Vec3& point, const b3Transform& xf) const
+bool b3SphereShape::TestSphere(const b3Sphere& sphere, const b3Transform& xf) const
 {
 	b3Vec3 center = b3Mul(xf, m_center);
-	float32 rr = m_radius * m_radius;
-	b3Vec3 d = point - center;
+	float32 radius = m_radius + sphere.radius;
+	float32 rr = radius * radius;
+	b3Vec3 d = sphere.vertex - center;
 	float32 dd = b3Dot(d, d);
 	return dd <= rr;
 }
 
-bool b3SphereShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf) const 
+bool b3SphereShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere, const b3Transform& xf) const
+{
+	b3Vec3 center = b3Mul(xf, m_center);
+	float32 radius = m_radius + sphere.radius;
+	float32 rr = radius * radius;
+	b3Vec3 d = sphere.vertex - center;
+	float32 dd = b3Dot(d, d);
+	
+	if (dd <= rr)
+	{
+		float32 d_len = b3Sqrt(dd);
+
+		output->separation = d_len - radius;
+		output->normal.Set(0.0f, 1.0, 0.0f);
+		if (d_len > B3_EPSILON)
+		{
+			output->normal = d / d_len;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+bool b3SphereShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf) const
 {
 	// dot(x - c, x - c) - r^2 = 0
 	// S = p1 + t * (p2 - p1)
