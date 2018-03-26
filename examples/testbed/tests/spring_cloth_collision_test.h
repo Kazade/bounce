@@ -35,13 +35,20 @@ public:
 		def.mesh = m_meshes + e_clothMesh;
 		def.density = 0.2f;
 		def.ks = 1000.0f;
-		def.kd = 10.0f;
+		def.kd = 0.0f;
 		def.r = 0.2f;
 		def.gravity.Set(0.0f, -10.0f, 0.0f);
 
 		m_cloth.Initialize(def);
 
-		b3Sphere* sphere = m_cloth.CreateSphere(b3Vec3(0.0f, -5.0f, 0.0f), 4.0f);
+		m_clothCapsule.m_centers[0].Set(0.0f, -2.0f, 2.0f);
+		m_clothCapsule.m_centers[1].Set(0.0f, -2.0f, -2.0f);
+		m_clothCapsule.m_radius = 2.0f;
+		
+		m_clothCapsule.SetFriction(1.0f);
+
+
+		m_cloth.AddShape(&m_clothCapsule);
 	}
 
 	void Step()
@@ -61,6 +68,18 @@ public:
 		}
 
 		m_cloth.Step(dt);
+
+		b3Shape** shapes = m_cloth.GetShapes();
+		for (u32 i = 0; i < m_cloth.GetShapeCount(); ++i)
+		{
+			b3Shape* s = shapes[i];
+			
+			b3Transform xf;
+			xf.SetIdentity();
+
+			g_debugDraw->DrawShape(s, b3Color_white, xf);
+		}
+
 		m_cloth.Draw(g_debugDraw);
 
 		b3SpringClothStep step = m_cloth.GetStep();
@@ -76,6 +95,7 @@ public:
 	}
 
 	b3StackAllocator m_clothAllocator;
+	b3CapsuleShape m_clothCapsule;
 	b3SpringCloth m_cloth;
 };
 
