@@ -332,6 +332,8 @@ void b3SpringCloth::Step(float32 dt)
 
 	solver.Solve(forces);
 
+	m_step.iterations = solver.GetIterations();
+	
 	// Store constraint forces for physics logic
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
