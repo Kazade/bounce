@@ -20,12 +20,13 @@
 #define B3_SPRING_CLOTH_H
 
 #include <bounce/common/math/mat33.h>
-#include <bounce/collision/shapes/sphere.h>
 
-#define B3_CLOTH_SPHERE_CAPACITY 32
+#define B3_CLOTH_SHAPE_CAPACITY 32
 
 class b3StackAllocator;
 class b3Draw;
+
+class b3Shape;
 
 struct b3Mesh;
 
@@ -94,13 +95,13 @@ enum b3MassType
 	e_dynamicMass
 };
 
-// This structure represents an acceleration constraint.
-struct b3MassCollision
+// 
+struct b3MassContact
 {
+	b3Vec3 n, t1, t2;
+	float32 Fn, Ft1, Ft2;
 	u32 j;
-	float32 s;
-	b3Vec3 n;
-	bool active;
+	bool lockOnSurface, slideOnSurface;
 };
 
 // Time step statistics
@@ -136,7 +137,13 @@ public:
 	b3MassType GetType(u32 i) const;
 
 	//
-	b3Sphere* CreateSphere(const b3Vec3& center, float32 radius);
+	void AddShape(b3Shape* shape);
+
+	// 
+	u32 GetShapeCount() const;
+
+	// 
+	b3Shape** GetShapes();
 
 	// 
 	const b3SpringClothStep& GetStep() const;
@@ -150,11 +157,16 @@ public:
 	//
 	void Draw(b3Draw* draw) const;
 protected:
-	void UpdateCollisions() const;
+	friend class b3SpringSolver;
+	
+	// Update contacts. 
+	// This is where some contacts might be initiated or terminated.
+	void UpdateContacts();
 	
 	b3StackAllocator* m_allocator;
 
 	b3Mesh* m_mesh;
+	float32 m_r;
 
 	b3Vec3 m_gravity;
 
@@ -163,17 +175,16 @@ protected:
 	b3Vec3* m_f;
 	float32* m_inv_m;
 	b3Vec3* m_y;
-	b3MassType* m_massTypes;
-	b3MassCollision* m_collisions;
+	b3MassType* m_types;
 	u32 m_massCount;
 
+	b3MassContact* m_contacts;
+	
 	b3Spring* m_springs;
 	u32 m_springCount;
 
-	float32 m_r;
-
-	b3Sphere m_spheres[B3_CLOTH_SPHERE_CAPACITY];
-	u32 m_sphereCount;
+	b3Shape* m_shapes[B3_CLOTH_SHAPE_CAPACITY];
+	u32 m_shapeCount;
 
 	b3SpringClothStep m_step;
 };
@@ -191,13 +202,23 @@ inline void b3SpringCloth::SetGravity(const b3Vec3& gravity)
 inline b3MassType b3SpringCloth::GetType(u32 i) const
 {
 	B3_ASSERT(i < m_massCount);
-	return m_massTypes[i];
+	return m_types[i];
 }
 
 inline void b3SpringCloth::SetType(u32 i, b3MassType type)
 {
 	B3_ASSERT(i < m_massCount);
-	m_massTypes[i] = type;
+	m_types[i] = type;
+}
+
+inline u32 b3SpringCloth::GetShapeCount() const
+{
+	return m_shapeCount;
+}
+
+inline b3Shape** b3SpringCloth::GetShapes() 
+{
+	return m_shapes;
 }
 
 inline const b3SpringClothStep& b3SpringCloth::GetStep() const
