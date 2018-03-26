@@ -320,7 +320,7 @@ void b3SpringCloth::Step(float32 dt)
 		}
 	}
 
-	// Solve springs, constraints, and integrate
+	// Integrate
 	b3SpringSolverDef solverDef;
 	solverDef.cloth = this;
 	solverDef.dt = dt;
