@@ -99,6 +99,33 @@ inline void b3BarycentricCoordinates(float32 out[3],
 	out[1] = -b3Dot(QA, AB);
 	out[2] = divisor;
 }
+// Convert a point Q from Cartesian coordinates to Barycentric coordinates (u, v, w) 
+// with respect to a triangle ABC.
+// The last output value is the divisor.
+inline void b3BarycentricCoordinates(float32 out[4],
+	const b3Vec3& A, const b3Vec3& B, const b3Vec3& C,
+	const b3Vec3& Q)
+{
+	b3Vec3 AB = B - A;
+	b3Vec3 AC = C - A;
+
+	b3Vec3 QA = A - Q;
+	b3Vec3 QB = B - Q;
+	b3Vec3 QC = C - Q;
+
+	b3Vec3 QB_x_QC = b3Cross(QB, QC);
+	b3Vec3 QC_x_QA = b3Cross(QC, QA);
+	b3Vec3 QA_x_QB = b3Cross(QA, QB);
+
+	b3Vec3 AB_x_AC = b3Cross(AB, AC);
+
+	//float32 divisor = b3Dot(AB_x_AC, AB_x_AC);
+
+	out[0] = b3Dot(QB_x_QC, AB_x_AC);
+	out[1] = b3Dot(QC_x_QA, AB_x_AC);
+	out[2] = b3Dot(QA_x_QB, AB_x_AC);
+	out[3] = out[0] + out[1] + out[2];
+}
 
 // Project a point onto a segment AB.
 inline b3Vec3 b3ClosestPointOnSegment(const b3Vec3& P, const b3Vec3& A, const b3Vec3& B)
