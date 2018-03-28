@@ -351,7 +351,7 @@ void b3SpringSolver::InitializeSpringForces()
 		m_f[i1] += sf1;
 		m_f[i2] += sf2;
 
-		// C * n = 1 - L0 / L
+		// C * n = 1 - L0 / L * dx
 		const b3Mat33 I = b3Mat33_identity;
 		
 		float32 L3 = L * L * L;
