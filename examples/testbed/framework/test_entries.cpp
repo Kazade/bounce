@@ -61,6 +61,7 @@
 #include <testbed/tests/cloth_test.h>
 #include <testbed/tests/spring_cloth_test.h>
 #include <testbed/tests/spring_cloth_collision_test.h>
+#include <testbed/tests/cloth_dragger.h>
 #include <testbed/tests/rope_test.h>
 //#include <testbed/tests/tree_test.h>
 #include <testbed/tests/implicit_spring.h>
@@ -110,6 +111,7 @@ TestEntry g_tests[] =
 	{ "Cloth", &Cloth::Create },
 	{ "Spring Cloth", &SpringCloth::Create },
 	{ "Spring Cloth Collision", &SpringClothCollision::Create },
+	{ "Spring Cloth Dragging", &ClothDraggerTest::Create },
 	{ "Rope", &Rope::Create },
 	//{ "Tree", &Tree::Create },
 	{ "Implicit Spring", &ImplicitSpring::Create },
