@@ -69,8 +69,17 @@ struct b3SpringClothDef
 	b3Vec3 gravity;
 };
 
+enum b3SpringType
+{
+	e_strechSpring,
+	e_bendSpring
+};
+
 struct b3Spring
 {
+	// Spring type
+	b3SpringType type;
+
 	// Mass 1
 	u32 i1;
 
@@ -125,6 +134,9 @@ public:
 	void Initialize(const b3SpringClothDef& def);
 
 	//
+	b3Mesh* GetMesh() const;
+
+	//
 	void SetGravity(const b3Vec3& gravity);
 
 	//
@@ -136,6 +148,18 @@ public:
 	//
 	b3MassType GetType(u32 i) const;
 
+	// Note, the position will be changed only after performing a time step.
+	void SetPosition(u32 i, const b3Vec3& translation);
+
+	//
+	const b3Vec3& GetPosition(u32 i) const;
+
+	//
+	void ApplyForce(u32 i, const b3Vec3& force);
+
+	//
+	float32 GetKineticEnergy() const;
+	
 	//
 	void AddShape(b3Shape* shape);
 
@@ -173,6 +197,7 @@ protected:
 	b3Vec3* m_x;
 	b3Vec3* m_v;
 	b3Vec3* m_f;
+	float32* m_m;
 	float32* m_inv_m;
 	b3Vec3* m_y;
 	b3MassType* m_types;
@@ -188,6 +213,11 @@ protected:
 
 	b3SpringClothStep m_step;
 };
+
+inline b3Mesh* b3SpringCloth::GetMesh() const
+{
+	return m_mesh;
+}
 
 inline const b3Vec3& b3SpringCloth::GetGravity() const
 {
@@ -208,7 +238,57 @@ inline b3MassType b3SpringCloth::GetType(u32 i) const
 inline void b3SpringCloth::SetType(u32 i, b3MassType type)
 {
 	B3_ASSERT(i < m_massCount);
+	if (m_types[i] == type)
+	{
+		return;
+	}
+
 	m_types[i] = type;
+	
+	m_f[i].SetZero();
+	
+	if (type == e_staticMass)
+	{
+		m_v[i].SetZero();
+		m_y[i].SetZero();
+		
+		m_contacts[i].lockOnSurface = false;
+	}
+}
+
+inline void b3SpringCloth::SetPosition(u32 i, const b3Vec3& position)
+{
+	B3_ASSERT(i < m_massCount);
+	m_y[i] += position - m_x[i];
+}
+
+inline const b3Vec3& b3SpringCloth::GetPosition(u32 i) const
+{
+	B3_ASSERT(i < m_massCount);
+	return m_x[i];
+}
+
+inline void b3SpringCloth::ApplyForce(u32 i, const b3Vec3& force)
+{
+	B3_ASSERT(i < m_massCount);
+	
+	if (m_types[i] != e_dynamicMass)
+	{
+		return;
+	}
+
+	m_f[i] += force;
+}
+
+inline float32 b3SpringCloth::GetKineticEnergy() const
+{
+	float32 E = 0.0f;
+	for (u32 i = 0; i < m_massCount; ++i)
+	{
+		b3Vec3 P = m_m[i] * m_v[i];
+		E += b3Dot(P, m_v[i]);
+	}
+	return E;
 }
 
 inline u32 b3SpringCloth::GetShapeCount() const

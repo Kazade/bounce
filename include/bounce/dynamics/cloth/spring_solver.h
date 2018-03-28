@@ -74,6 +74,7 @@ private:
 	b3Vec3* m_x;
 	b3Vec3* m_v;
 	b3Vec3* m_f;
+	float32* m_m;
 	float32* m_inv_m;
 	b3Vec3* m_y;
 	b3MassType* m_types;
