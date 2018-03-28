@@ -238,7 +238,7 @@ public :
 
 	void operator=(const b3StackArray<T, N>& other)
 	{
-		Swap(other);
+		b3Array<T>::Swap((const b3Array<T>& )other);
 	}
 	
 	void operator=(const b3Array<T>& other)
