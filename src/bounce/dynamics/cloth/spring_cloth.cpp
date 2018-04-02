@@ -406,19 +406,21 @@ void b3SpringCloth::UpdateContacts()
 			c->Ft1 = 0.0f;
 			c->Ft2 = 0.0f;
 			c->lockN = true;
+			c->lockT1 = false;
+			c->lockT2 = false;
 		}
 
 #if B3_CLOTH_FRICTION == 1
 
 		// Apply friction impulses
 
-		// Note without a friction force, the tangential acceleration won't be 
-		// removed.
-
 		// Relative velocity
 		b3Vec3 dv = m_v[i];
 
 		b3MakeTangents(c->t1, c->t2, dv, n);
+
+		// Note without a friction force, the tangential acceleration won't be 
+		// removed.
 
 		// Coefficients of friction for the solid
 		const float32 uk = shape->GetFriction();
