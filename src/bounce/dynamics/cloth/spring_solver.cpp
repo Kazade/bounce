@@ -372,9 +372,8 @@ static void b3Compute_z(b3DenseVec3& out,
 	out.SetZero();
 }
 
-// Maintains invariants inside the MCG solver.
-static void b3Filter(b3DenseVec3& out,
-	const b3DenseVec3& v, u32 massCount, const b3MassType* types, const b3MassContact* contacts)
+// 
+static void b3Compute_S(b3Mat33* out, u32 massCount, const b3MassType* types, const b3MassContact* contacts)
 {
 	for (u32 i = 0; i < massCount; ++i)
 	{
@@ -407,11 +406,11 @@ static void b3Filter(b3DenseVec3& out,
 					S -= b3Outer(t2, t2);
 				}
 
-				out[i] = S * v[i];
+				out[i] = S;
 				break;
 			}
 
-			out[i] = v[i];
+			out[i].SetIdentity();
 			break;
 		}
 		default:
@@ -423,8 +422,22 @@ static void b3Filter(b3DenseVec3& out,
 	}
 }
 
+// Maintains invariants inside the MCG solver.
+static void b3Filter(b3DenseVec3& out, 
+	const b3DenseVec3& v, const b3Mat33* S, u32 massCount)
+{
+	for (u32 i = 0; i < massCount; ++i)
+	{
+		out[i] = S[i] * v[i];
+	}
+}
+
 void b3SpringSolver::Solve_MCG(b3DenseVec3& dv, const b3SparseMat33& A, b3DenseVec3& e, u32& iterations, const b3DenseVec3& b) const
 {
+	//
+	b3Mat33* S = (b3Mat33*)m_allocator->Allocate(m_massCount * sizeof(b3Mat33));
+	b3Compute_S(S, m_massCount, m_types, m_contacts);
+
 	// dv = z
 	b3Compute_z(dv, m_massCount, m_types, m_contacts);
 
@@ -435,7 +448,7 @@ void b3SpringSolver::Solve_MCG(b3DenseVec3& dv, const b3SparseMat33& A, b3DenseV
 	// r = filter(b - Adv)
 	b3DenseVec3 r(m_massCount);
 	b3Sub(r, b, Adv);
-	b3Filter(r, r, m_massCount, m_types, m_contacts);
+	b3Filter(r, r, S, m_massCount);
 
 	// c = r
 	b3DenseVec3 c = r;
@@ -459,7 +472,7 @@ void b3SpringSolver::Solve_MCG(b3DenseVec3& dv, const b3SparseMat33& A, b3DenseV
 		// q = filter(A * c) 
 		b3DenseVec3 q(m_massCount);
 		A.Mul(q, c);
-		b3Filter(q, q, m_massCount, m_types, m_contacts);
+		b3Filter(q, q, S, m_massCount);
 
 		// alpha = epsNew / dot(c, q)
 		float32 alpha_den = b3Dot(c, q);
@@ -487,10 +500,12 @@ void b3SpringSolver::Solve_MCG(b3DenseVec3& dv, const b3SparseMat33& A, b3DenseV
 		b3DenseVec3 beta_c(m_massCount);
 		b3Mul(beta_c, beta, c);
 		b3Add(c, r, beta_c);
-		b3Filter(c, c, m_massCount, m_types, m_contacts);
+		b3Filter(c, c, S, m_massCount);
 
 		++iter;
 	}
+
+	m_allocator->Free(S);
 
 	iterations = iter;
 
@@ -522,6 +537,10 @@ static bool b3IsPD(const b3Mat33* diagA, u32 n)
 
 void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, const b3SparseMat33& A, b3DenseVec3& e, u32& iterations, const b3DenseVec3& b) const
 {
+	// S
+	b3Mat33* S = (b3Mat33*)m_allocator->Allocate(m_massCount * sizeof(b3Mat33));
+	b3Compute_S(S, m_massCount, m_types, m_contacts);
+
 	b3DenseVec3 r(m_massCount);
 	
 	b3DenseVec3 c(m_massCount);
@@ -563,18 +582,18 @@ void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, const b3SparseMat33& A, b3Dense
 	m_allocator->Free(diagA);
 	
 	// eps0 = dot( filter(b), P * filter(b) )
-	b3DenseVec3 filter_b(m_massCount);
-	b3Filter(filter_b, b, m_massCount, m_types, m_contacts);
+	b3DenseVec3 filtered_b(m_massCount);
+	b3Filter(filtered_b, b, S, m_massCount);
 
-	b3DenseVec3 P_filter_b(m_massCount);
+	b3DenseVec3 P_filtered_b(m_massCount);
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
-		P_filter_b[i][0] = P[i][0] * filter_b[i][0];
-		P_filter_b[i][1] = P[i][1] * filter_b[i][1];
-		P_filter_b[i][2] = P[i][2] * filter_b[i][2];
+		P_filtered_b[i][0] = P[i][0] * filtered_b[i][0];
+		P_filtered_b[i][1] = P[i][1] * filtered_b[i][1];
+		P_filtered_b[i][2] = P[i][2] * filtered_b[i][2];
 	}
 
-	float32 eps0 = b3Dot(filter_b, P_filter_b);
+	float32 eps0 = b3Dot(filtered_b, P_filtered_b);
 	
 	// r = filter(b - Adv)
 
@@ -582,7 +601,7 @@ void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, const b3SparseMat33& A, b3Dense
 	b3DenseVec3 Adv(m_massCount);
 	A.Mul(Adv, dv);
 	b3Sub(r, b, Adv);
-	b3Filter(r, r, m_massCount, m_types, m_contacts);
+	b3Filter(r, r, S, m_massCount);
 
 	// c = filter(P^-1 * r)
 	for (u32 i = 0; i < m_massCount; ++i)
@@ -591,7 +610,7 @@ void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, const b3SparseMat33& A, b3Dense
 		c[i][1] = inv_P[i][1] * r[i][1];
 		c[i][2] = inv_P[i][2] * r[i][2];
 	}
-	b3Filter(c, c, m_massCount, m_types, m_contacts);
+	b3Filter(c, c, S, m_massCount);
 	
 	// epsNew = dot(r, c)
 	float32 epsNew = b3Dot(r, c);
@@ -609,7 +628,7 @@ void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, const b3SparseMat33& A, b3Dense
 		// q = filter(A * c)
 		b3DenseVec3 q(m_massCount);
 		A.Mul(q, c);
-		b3Filter(q, q, m_massCount, m_types, m_contacts);
+		b3Filter(q, q, S, m_massCount);
 
 		// alpha = epsNew / dot(c, q)
 		float32 alpha = epsNew / b3Dot(c, q);
@@ -648,10 +667,12 @@ void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, const b3SparseMat33& A, b3Dense
 		{
 			c[i] = s[i] + beta * c[i];
 		}
-		b3Filter(c, c, m_massCount, m_types, m_contacts);
+		b3Filter(c, c, S, m_massCount);
 
 		++iter;
 	}
+
+	m_allocator->Free(S);
 
 	iterations = iter;
 
