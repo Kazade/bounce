@@ -35,6 +35,7 @@ public:
 		def.mesh = m_meshes + e_clothMesh;
 		def.density = 0.2f;
 		def.ks = 100000.0f;
+		def.kb = 1000000.0f;
 		def.kd = 100.0f;
 		def.gravity.Set(2.5f, 5.0f, -10.0f);
 
@@ -47,7 +48,7 @@ public:
 		{
 			if (m_aabb.Contains(def.mesh->vertices[i]))
 			{
-				m_cloth.SetType(i, e_staticMass);
+				m_cloth.SetType(i, b3MassType::e_staticMass);
 			}
 		}		
 	}

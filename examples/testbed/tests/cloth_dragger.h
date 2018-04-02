@@ -60,7 +60,7 @@ public:
 	b3Vec3 GetPointB() const
 	{
 		B3_ASSERT(m_isSelected);
-		return m_ray->origin + m_x * (m_ray->B() - m_ray->A());
+		return (1.0f - m_x) * m_ray->A() + m_x * m_ray->B();
 	}
 
 	bool StartDragging()
@@ -77,9 +77,9 @@ public:
 		b3Mesh* m = m_cloth->GetMesh();
 		b3Triangle* t = m->triangles + m_selection;
 
-		m_cloth->SetType(t->v1, e_staticMass);
-		m_cloth->SetType(t->v2, e_staticMass);
-		m_cloth->SetType(t->v3, e_staticMass);
+		m_cloth->SetType(t->v1, b3MassType::e_staticMass);
+		m_cloth->SetType(t->v2, b3MassType::e_staticMass);
+		m_cloth->SetType(t->v3, b3MassType::e_staticMass);
 
 		b3Vec3 v1 = m_cloth->GetPosition(t->v1);
 		b3Vec3 v2 = m_cloth->GetPosition(t->v2);
@@ -137,9 +137,9 @@ public:
 		b3Mesh* m = m_cloth->GetMesh();
 		b3Triangle* t = m->triangles + m_selection;
 
-		m_cloth->SetType(t->v1, e_dynamicMass);
-		m_cloth->SetType(t->v2, e_dynamicMass);
-		m_cloth->SetType(t->v3, e_dynamicMass);
+		m_cloth->SetType(t->v1, b3MassType::e_dynamicMass);
+		m_cloth->SetType(t->v2, b3MassType::e_dynamicMass);
+		m_cloth->SetType(t->v3, b3MassType::e_dynamicMass);
 	}
 
 private:
@@ -209,22 +209,26 @@ public:
 		def.mesh = m_meshes + e_clothMesh;
 		def.density = 0.2f;
 		def.ks = 10000.0f;
-		def.r = 0.2f;
 		def.gravity.Set(0.0f, -10.0f, 0.0f);
 
 		m_cloth.Initialize(def);
 
-		m_clothCapsule.m_centers[0].Set(0.0f, -2.0f, 2.0f);
-		m_clothCapsule.m_centers[1].Set(0.0f, -2.0f, -2.0f);
-		m_clothCapsule.m_radius = 2.0f;
-
-		m_clothCapsule.SetFriction(1.0f);
-
-		m_cloth.AddShape(&m_clothCapsule);
-
 		m_clothRay.origin.SetZero();
 		m_clothRay.direction.Set(0.0f, 0.0f, -1.0f);
 		m_clothRay.fraction = g_camera.m_zFar;
+
+		b3AABB3 aabb;
+		
+		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
+		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
+
+		for (u32 i = 0; i < def.mesh->vertexCount; ++i)
+		{
+			if (aabb.Contains(def.mesh->vertices[i]))
+			{
+				m_cloth.SetType(i, b3MassType::e_staticMass);
+			}
+		}
 	}
 
 	void Step()
@@ -244,7 +248,6 @@ public:
 		}
 
 		m_cloth.Step(dt);
-
 		m_cloth.Apply();
 
 		b3Shape** shapes = m_cloth.GetShapes();
@@ -307,8 +310,6 @@ public:
 
 	b3StackAllocator m_clothAllocator;
 	b3SpringCloth m_cloth;
-	b3CapsuleShape m_clothCapsule;
-
 	ClothDragger m_clothDragger;
 };
 

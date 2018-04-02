@@ -31,7 +31,7 @@ struct b3SparseMat33;
 struct b3MassContact;
 struct b3Spring;
 
-enum b3MassType;
+enum class b3MassType : u32;
 
 struct b3SpringSolverDef
 {

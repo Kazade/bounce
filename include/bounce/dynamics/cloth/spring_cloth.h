@@ -98,7 +98,7 @@ struct b3Spring
 
 // Static masses have zero mass and velocity, and therefore they can't move.
 // Dynamic masses have non-zero mass and can move due to internal and external forces.
-enum b3MassType
+enum class b3MassType : u32
 {
 	e_staticMass,
 	e_dynamicMass
@@ -247,7 +247,7 @@ inline void b3SpringCloth::SetType(u32 i, b3MassType type)
 	
 	m_f[i].SetZero();
 	
-	if (type == e_staticMass)
+	if (type == b3MassType::e_staticMass)
 	{
 		m_v[i].SetZero();
 		m_y[i].SetZero();
@@ -272,7 +272,7 @@ inline void b3SpringCloth::ApplyForce(u32 i, const b3Vec3& force)
 {
 	B3_ASSERT(i < m_massCount);
 	
-	if (m_types[i] != e_dynamicMass)
+	if (m_types[i] != b3MassType::e_dynamicMass)
 	{
 		return;
 	}

@@ -380,12 +380,12 @@ static void b3Filter(b3DenseVec3& out,
 	{
 		switch (types[i])
 		{
-		case e_staticMass:
+		case b3MassType::e_staticMass:
 		{
 			out[i].SetZero();
 			break;
 		}
-		case e_dynamicMass:
+		case b3MassType::e_dynamicMass:
 		{
 			if (contacts[i].lockN == true)
 			{

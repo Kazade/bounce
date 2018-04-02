@@ -193,7 +193,7 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 		m_m[i] = 0.0f;
 		m_inv_m[i] = 0.0f;
 		m_y[i].SetZero();
-		m_types[i] = e_staticMass;
+		m_types[i] = b3MassType::e_staticMass;
 	}
 
 	// Initialize mass
@@ -223,7 +223,7 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 	{
 		B3_ASSERT(m_m[i] > 0.0f);
 		m_inv_m[i] = 1.0f / m_m[i];
-		m_types[i] = e_dynamicMass;
+		m_types[i] = b3MassType::e_dynamicMass;
 	}
 
 	// Initialize springs
@@ -317,7 +317,7 @@ void b3SpringCloth::UpdateContacts()
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
 		// Static masses can't participate in collisions.
-		if (m_types[i] == e_staticMass)
+		if (m_types[i] == b3MassType::e_staticMass)
 		{
 			continue;
 		}
@@ -486,7 +486,7 @@ void b3SpringCloth::Step(float32 dt)
 	// Apply gravity
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
-		if (m_types[i] == e_dynamicMass)
+		if (m_types[i] == b3MassType::e_dynamicMass)
 		{
 			m_f[i] += m_gravity;
 		}
