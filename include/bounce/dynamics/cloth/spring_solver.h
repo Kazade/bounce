@@ -25,6 +25,9 @@
 class b3SpringCloth;
 class b3StackAllocator;
 
+struct b3DenseVec3;
+struct b3SparseMat33;
+
 struct b3MassContact;
 struct b3Spring;
 
@@ -43,25 +46,25 @@ public:
 
 	~b3SpringSolver();
 
-	void Solve(b3Vec3* constraintForces);
+	void Solve(b3DenseVec3& extraForces);
 
 	u32 GetIterations() const;
 private:
 	// Apply internal forces and store their unique derivatives.
-	void InitializeSpringForces();
+	void ApplySpringForces();
 
-	// Initialize b, from Ax = b
-	void Compute_b(b3Vec3* b) const;
+	// Compute A and b in Ax = b
+	void Compute_A_b(b3SparseMat33& A, b3DenseVec3& b) const;
 
 	// Solve Ax = b using the Modified Conjugate Gradient (MCG). 
 	// Output x and the residual error f.
-	void Solve_MCG(b3Vec3* x, b3Vec3* f, u32& iterations, const b3Vec3* b) const;
+	void Solve_MCG(b3DenseVec3& x, const b3SparseMat33& A, b3DenseVec3& f, u32& iterations, const b3DenseVec3& b) const;
 
 	// Solve Ax = b using MCG with Jacobi preconditioning.
 	// Output x and the residual error f.
 	// This method is slower than MCG because we have to compute the preconditioning 
 	// matrix P, but it can improve convergence.
-	void Solve_MPCG(b3Vec3* x, b3Vec3* f, u32& iterations, const b3Vec3* b) const;
+	void Solve_MPCG(b3DenseVec3& x, const b3SparseMat33& A, b3DenseVec3& f, u32& iterations, const b3DenseVec3& b) const;
 
 	b3SpringCloth * m_cloth;
 	float32 m_h;

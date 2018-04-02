@@ -18,11 +18,17 @@
 
 #include <bounce/dynamics/cloth/spring_cloth.h>
 #include <bounce/dynamics/cloth/spring_solver.h>
+#include <bounce/dynamics/cloth/dense_vec3.h>
+#include <bounce/dynamics/cloth/sparse_mat33.h>
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/collision/shapes/mesh.h>
 #include <bounce/common/memory/stack_allocator.h>
 
 #define B3_FORCE_THRESHOLD (0.1f)
+
+#define B3_CLOTH_BENDING 0
+
+#define B3_CLOTH_FRICTION 0
 
 b3SpringCloth::b3SpringCloth()
 {
@@ -95,7 +101,7 @@ static void b3FindEdges(b3UniqueEdge* uniqueEdges, u32& uniqueCount, b3SharedEdg
 		{
 			u32 t1v1 = i1s[j1];
 
-			u32 t1v2 = i1s[ b3NextIndex(j1) ];
+			u32 t1v2 = i1s[b3NextIndex(j1)];
 
 			u32 foundCount = 0;
 
@@ -107,7 +113,7 @@ static void b3FindEdges(b3UniqueEdge* uniqueEdges, u32& uniqueCount, b3SharedEdg
 				for (u32 j2 = 0; j2 < 3; ++j2)
 				{
 					u32 t2v1 = i2s[j2];
-					u32 t2v2 = i2s[ b3NextIndex(j2) ];
+					u32 t2v2 = i2s[b3NextIndex(j2)];
 
 					if (t1v1 == t2v2 && t1v2 == t2v1)
 					{
@@ -154,10 +160,10 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 	B3_ASSERT(def.density > 0.0f);
 
 	m_allocator = def.allocator;
-	
+
 	m_mesh = def.mesh;
 	m_r = def.r;
-	
+
 	m_gravity = def.gravity;
 
 	const b3Mesh* m = m_mesh;
@@ -177,8 +183,9 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 		m_contacts[i].Fn = 0.0f;
 		m_contacts[i].Ft1 = 0.0f;
 		m_contacts[i].Ft2 = 0.0f;
-		m_contacts[i].lockOnSurface = false;
-		m_contacts[i].slideOnSurface = false;
+		m_contacts[i].lockN = false;
+		m_contacts[i].lockT1 = false;
+		m_contacts[i].lockT2 = false;
 
 		m_x[i] = m->vertices[i];
 		m_v[i].SetZero();
@@ -201,7 +208,7 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 		float32 area = b3Area(p1, p2, p3);
 
 		B3_ASSERT(area > B3_EPSILON);
-		
+
 		float32 mass = def.density * area;
 
 		const float32 inv3 = 1.0f / 3.0f;
@@ -251,15 +258,15 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 		++m_springCount;
 	}
 
+#if B3_CLOTH_BENDING == 1
 	// Bending
-	/*
 	for (u32 i = 0; i < sharedCount; ++i)
 	{
 		b3SharedEdge* e = sharedEdges + i;
 
 		b3Vec3 p1 = m->vertices[e->nsv1];
 		b3Vec3 p2 = m->vertices[e->nsv2];
-		
+
 		b3Spring* S = m_springs + m_springCount;
 		S->type = e_bendSpring;
 		S->i1 = e->nsv1;
@@ -269,7 +276,8 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 		S->kd = def.kd;
 		++m_springCount;
 	}
-	*/
+
+#endif // #if B3_CLOTH_BENDING
 
 	m_allocator->Free(uniqueEdges);
 	m_allocator->Free(sharedEdges);
@@ -316,8 +324,7 @@ void b3SpringCloth::UpdateContacts()
 
 		b3MassContact* c = m_contacts + i;
 
-		bool wasLocked = c->lockOnSurface;
-		bool wasSliding = c->slideOnSurface;
+		bool wasLockedN = c->lockN;
 
 		b3Sphere s1;
 		s1.vertex = m_x[i];
@@ -354,8 +361,9 @@ void b3SpringCloth::UpdateContacts()
 			c->Fn = 0.0f;
 			c->Ft1 = 0.0f;
 			c->Ft2 = 0.0f;
-			c->lockOnSurface = false;
-			c->slideOnSurface = false;
+			c->lockN = false;
+			c->lockT1 = false;
+			c->lockT2 = false;
 			continue;
 		}
 
@@ -369,40 +377,99 @@ void b3SpringCloth::UpdateContacts()
 		m_y[i] -= s * n;
 
 		// Update contact state
-		if (wasLocked)
+		if (wasLockedN)
 		{
 			// Was the contact force attractive?
 			if (c->Fn < B3_FORCE_THRESHOLD)
 			{
 				// Terminate the contact.
-				c->lockOnSurface = false;
+				c->Fn = 0.0f;
+				c->Ft1 = 0.0f;
+				c->Ft2 = 0.0f;
+				c->lockN = false;
+				c->lockT1 = false;
+				c->lockT2 = false;
 				continue;
 			}
 
 			// Since the contact force was repulsive 
-			// maintain the acceleration constraint.
-			c->n = n;
+			// maintain the normal acceleration constraint.
 			c->j = bestIndex;
-			c->lockOnSurface = true;
+			c->n = n;
 		}
 		else
 		{
 			// The contact has began.
+			c->j = bestIndex;
 			c->n = n;
 			c->Fn = 0.0f;
 			c->Ft1 = 0.0f;
 			c->Ft2 = 0.0f;
-			c->j = bestIndex;
-			c->lockOnSurface = true;
-
-			// Relative velocity
-			b3Vec3 dv = m_v[i];
-			
-			b3MakeTangents(c->t1, c->t2, dv, n);
-			c->slideOnSurface = false;
-
-			continue;
+			c->lockN = true;
 		}
+
+#if B3_CLOTH_FRICTION == 1
+
+		// Apply friction impulses
+
+		// Note without a friction force, the tangential acceleration won't be 
+		// removed.
+
+		// Relative velocity
+		b3Vec3 dv = m_v[i];
+
+		b3MakeTangents(c->t1, c->t2, dv, n);
+
+		// Coefficients of friction for the solid
+		const float32 uk = shape->GetFriction();
+		const float32 us = 2.0f * uk;
+
+		float32 dvn = b3Dot(dv, n);
+		float32 normalImpulse = -m_inv_m[i] * dvn;
+
+		b3Vec3 ts[2];
+		ts[0] = c->t1;
+		ts[1] = c->t2;
+
+		bool lockT[2];
+
+		for (u32 k = 0; k < 2; ++k)
+		{
+			b3Vec3 t = ts[k];
+
+			float32 dvt = b3Dot(dv, t);
+			float32 tangentImpulse = -m_inv_m[i] * dvt;
+
+			float32 maxStaticImpulse = us * normalImpulse;
+			if (tangentImpulse * tangentImpulse > maxStaticImpulse * maxStaticImpulse)
+			{
+				lockT[k] = false;
+
+				// Dynamic friction
+				float32 maxDynamicImpulse = uk * normalImpulse;
+				if (tangentImpulse * tangentImpulse > maxDynamicImpulse * maxDynamicImpulse)
+				{
+					b3Vec3 P = tangentImpulse * t;
+
+					m_v[i] += m_m[i] * P;
+				}
+			}
+			else
+			{
+				lockT[k] = true;
+
+				// Static friction
+				b3Vec3 P = tangentImpulse * t;
+
+				m_v[i] += m_m[i] * P;
+			}
+		}
+
+		c->lockT1 = lockT[0];
+		c->lockT2 = lockT[1];
+
+#endif // #if B3_CLOTH_FRICTION
+
 	}
 }
 
@@ -426,6 +493,7 @@ void b3SpringCloth::Step(float32 dt)
 	}
 
 	// Integrate
+
 	b3SpringSolverDef solverDef;
 	solverDef.cloth = this;
 	solverDef.dt = dt;
@@ -434,30 +502,28 @@ void b3SpringCloth::Step(float32 dt)
 
 	// Extra constraint forces that should have been applied to satisfy the constraints
 	// todo Find the applied constraint forces.
-	b3Vec3* forces = (b3Vec3*)m_allocator->Allocate(m_massCount * sizeof(b3Vec3));
+	b3DenseVec3 forces(m_massCount);
 
 	solver.Solve(forces);
 
 	m_step.iterations = solver.GetIterations();
-	
+
 	// Store constraint forces for physics logic
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
 		b3Vec3 force = forces[i];
 
-		b3MassContact* contact = m_contacts + i;
+		b3MassContact* c = m_contacts + i;
 
 		// Signed normal force magnitude
-		contact->Fn = b3Dot(force, contact->n);
+		c->Fn = b3Dot(force, c->n);
 
 		// Signed tangent forces magnitude
-		contact->Ft1 = b3Dot(force, contact->t1);
-		contact->Ft2 = b3Dot(force, contact->t2);
+		c->Ft1 = b3Dot(force, c->t1);
+		c->Ft2 = b3Dot(force, c->t2);
 	}
 
-	m_allocator->Free(forces);
-
-	// Clear position correction
+	// Clear position alteration
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
 		m_y[i].SetZero();
@@ -484,7 +550,7 @@ void b3SpringCloth::Draw(b3Draw* draw) const
 
 	for (u32 i = 0; i < m->vertexCount; ++i)
 	{
-		if (m_contacts[i].lockOnSurface)
+		if (m_contacts[i].lockN)
 		{
 			if (m_contacts[i].Fn < B3_FORCE_THRESHOLD)
 			{

@@ -107,10 +107,10 @@ enum b3MassType
 // 
 struct b3MassContact
 {
+	u32 j;
 	b3Vec3 n, t1, t2;
 	float32 Fn, Ft1, Ft2;
-	u32 j;
-	bool lockOnSurface, slideOnSurface;
+	bool lockN, lockT1, lockT2;
 };
 
 // Time step statistics
@@ -186,7 +186,7 @@ protected:
 	// Update contacts. 
 	// This is where some contacts might be initiated or terminated.
 	void UpdateContacts();
-	
+
 	b3StackAllocator* m_allocator;
 
 	b3Mesh* m_mesh;
@@ -252,7 +252,7 @@ inline void b3SpringCloth::SetType(u32 i, b3MassType type)
 		m_v[i].SetZero();
 		m_y[i].SetZero();
 		
-		m_contacts[i].lockOnSurface = false;
+		m_contacts[i].lockN = false;
 	}
 }
 
