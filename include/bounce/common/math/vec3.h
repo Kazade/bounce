@@ -130,6 +130,12 @@ inline b3Vec3 operator*(float32 s, const b3Vec3& v)
 	return b3Vec3(s * v.x, s * v.y, s * v.z);
 }
 
+// Compute a scalar-vector product.
+inline b3Vec3 operator*(const b3Vec3& v, float32 s)
+{
+	return s * v;
+}
+
 // Inverse multiply a scalar-vector.
 inline b3Vec3 operator/(const b3Vec3& v, float32 s)
 {

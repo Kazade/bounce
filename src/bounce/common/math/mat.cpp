@@ -18,6 +18,15 @@
 
 #include <bounce/common/math/mat22.h>
 #include <bounce/common/math/mat33.h>
+#include <bounce/common/math/mat44.h>
+
+b3Mat22 b3Mat22_zero = b3Mat22(
+	b3Vec2(0.0f, 0.0f),
+	b3Vec2(0.0f, 0.0f));
+
+b3Mat22 b3Mat22_identity = b3Mat22(
+	b3Vec2(1.0f, 0.0f),
+	b3Vec2(0.0f, 1.0f));
 
 b3Mat33 b3Mat33_zero = b3Mat33(
 	b3Vec3(0.0f, 0.0f, 0.0f),

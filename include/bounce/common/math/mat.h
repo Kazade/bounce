@@ -19,9 +19,12 @@
 #ifndef B3_MAT_H
 #define B3_MAT_H
 
-#include <bounce/common/math/math.h>
 #include <bounce/common/math/mat22.h>
 #include <bounce/common/math/mat33.h>
+#include <bounce/common/math/mat44.h>
+
+// This header contain implementations for some small rectangular 
+// matrices.
 
 struct b3Mat23
 {
@@ -109,29 +112,6 @@ struct b3Mat34
 	b3Vec3 x, y, z, w;
 };
 
-struct b3Vec4
-{
-	b3Vec4() { }
-
-	b3Vec4(float32 _x, float32 _y, float32 _z, float32 _w)
-	{
-		x = _x;
-		y = _y;
-		z = _z;
-		w = _w;
-	}
-
-	void SetZero()
-	{
-		x = 0.0f;
-		y = 0.0f;
-		z = 0.0f;
-		w = 0.0f;
-	}
-
-	float32 x, y, z, w;
-};
-
 struct b3Mat43
 {
 	b3Mat43() { }
@@ -153,63 +133,6 @@ struct b3Mat43
 	b3Vec4 x, y, z;
 };
 
-struct b3Mat44
-{
-	b3Mat44() { }
-
-	b3Mat44(const b3Vec4& _x, const b3Vec4& _y, const b3Vec4& _z, const b3Vec4& _w)
-	{
-		x = _x;
-		y = _y;
-		z = _z;
-		w = _w;
-	}
-
-	void SetZero()
-	{
-		x.SetZero();
-		y.SetZero();
-		z.SetZero();
-		w.SetZero();
-	}
-
-	b3Vec4 x, y, z, w;
-};
-
-inline b3Vec4 operator+(const b3Vec4& a, const b3Vec4& b)
-{
-	return b3Vec4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
-}
-
-inline b3Vec4 operator-(const b3Vec4& a, const b3Vec4& b)
-{
-	return b3Vec4(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
-}
-
-// 1x1 * 1x4 = 1x1
-inline b3Vec4 operator*(float32 s, const b3Vec4& v)
-{
-	return b3Vec4(s * v.x, s * v.y, s * v.z, s * v.w);
-}
-
-// a * 4x4 = 4x4
-inline b3Mat44 operator*(float32 s, const b3Mat44& A)
-{
-	return b3Mat44(s * A.x, s * A.y, s * A.z, s * A.w);
-}
-
-// 4x4 * 4x1 = 4x1
-inline b3Vec4 operator*(const b3Mat44& A, const b3Vec4& v)
-{
-	return v.x * A.x + v.y * A.y + v.z * A.z + v.w * A.w;
-}
-
-// 4x4 * 4x4 = 4x4
-inline b3Mat44 operator*(const b3Mat44& A, const b3Mat44& B)
-{
-	return b3Mat44(A * B.x, A * B.y, A * B.z, A * B.w);
-}
-
 // a * 3x4 = 3x4
 inline b3Mat34 operator*(float32 s, const b3Mat34& A)
 {
@@ -226,24 +149,6 @@ inline b3Vec4 operator*(const b3Mat43& A, const b3Vec3& v)
 inline b3Vec3 operator*(const b3Mat34& A, const b3Vec4& v)
 {
 	return v.x * A.x + v.y * A.y + v.z * A.z + v.w * A.w;
-}
-
-// 1x4 * 4x1 = 1x1
-inline float32 operator*(const b3Vec4& A, const b3Vec4& B)
-{
-	return A.x * B.x + A.y * B.y + A.z * B.z + A.w * B.w;
-}
-
-// 3x1 * 1x1 = 3x1
-inline b3Vec3 operator*(const b3Vec3& v, float32 s)
-{
-	return s * v;
-}
-
-// 2x1 * 1x1 = 2x1
-inline b3Vec2 operator*(const b3Vec2& v, float32 s)
-{
-	return s * v;
 }
 
 // 1x3 * 3x1 = 1x1

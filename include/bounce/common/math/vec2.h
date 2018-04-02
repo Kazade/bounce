@@ -115,6 +115,12 @@ inline b3Vec2 operator*(float32 s, const b3Vec2& v)
 	return b3Vec2(s * v.x, s * v.y);
 }
 
+// Multiply a vector by a scalar.
+inline b3Vec2 operator*(const b3Vec2& v, float32 s)
+{
+	return s * v;
+}
+
 // Compute the dot product of two vectors.
 inline float32 b3Dot(const b3Vec2& a, const b3Vec2& b)
 {
