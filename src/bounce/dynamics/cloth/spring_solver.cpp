@@ -210,7 +210,6 @@ void b3SpringSolver::ApplySpringForces()
 		const b3Mat33 I = b3Mat33_identity;
 
 		float32 L3 = L * L * L;
-
 		b3Mat33 Jx11 = -ks * ((1.0f - L0 / L) * I + (L0 / L3) * b3Outer(dx, dx));
 
 		m_Jx[i] = Jx11;
@@ -441,13 +440,8 @@ void b3SpringSolver::Solve_MCG(b3DenseVec3& dv, const b3SparseMat33& A, b3DenseV
 	// dv = z
 	b3Compute_z(dv, m_massCount, m_types, m_contacts);
 
-	// Adv = A * dv 
-	b3DenseVec3 Adv(m_massCount);
-	A.Mul(Adv, dv);
-
 	// r = filter(b - Adv)
-	b3DenseVec3 r(m_massCount);
-	b3Sub(r, b, Adv);
+	b3DenseVec3 r = b - A * dv;
 	b3Filter(r, r, S, m_massCount);
 
 	// c = r
@@ -460,33 +454,27 @@ void b3SpringSolver::Solve_MCG(b3DenseVec3& dv, const b3SparseMat33& A, b3DenseV
 	float32 epsNew = eps0;
 
 	// [0, 1]
-	const float32 kTol = 10.0f * B3_EPSILON;
+	const float32 kTol = 0.02f;
 
 	// Limit number of iterations to prevent cycling.
-	const u32 kMaxIters = 10 * 10;
+	const u32 kMaxIters = 200;
 
 	// Main iteration loop.
 	u32 iter = 0;
 	while (iter < kMaxIters && epsNew > kTol * kTol * eps0)
 	{
 		// q = filter(A * c) 
-		b3DenseVec3 q(m_massCount);
-		A.Mul(q, c);
+		b3DenseVec3 q = A * c;
 		b3Filter(q, q, S, m_massCount);
-
+		
 		// alpha = epsNew / dot(c, q)
-		float32 alpha_den = b3Dot(c, q);
-		float32 alpha = epsNew / alpha_den;
+		float32 alpha = epsNew / b3Dot(c, q);
 
 		// dv = dv + alpha * c
-		b3DenseVec3 alpha_c(m_massCount);
-		b3Mul(alpha_c, alpha, c);
-		b3Add(dv, dv, alpha_c);
+		dv = dv + alpha * c;
 
 		// r = r - alpha * q 
-		b3DenseVec3 alpha_q(m_massCount);
-		b3Mul(alpha_q, alpha, q);
-		b3Sub(r, r, alpha_q);
+		r = r - alpha * q;
 
 		// epsOld = epsNew
 		float32 epsOld = epsNew;
@@ -497,9 +485,7 @@ void b3SpringSolver::Solve_MCG(b3DenseVec3& dv, const b3SparseMat33& A, b3DenseV
 		float32 beta = epsNew / epsOld;
 
 		// c = filter(r + beta * c) 
-		b3DenseVec3 beta_c(m_massCount);
-		b3Mul(beta_c, beta, c);
-		b3Add(c, r, beta_c);
+		c = r + beta * c;
 		b3Filter(c, c, S, m_massCount);
 
 		++iter;
@@ -509,9 +495,9 @@ void b3SpringSolver::Solve_MCG(b3DenseVec3& dv, const b3SparseMat33& A, b3DenseV
 
 	iterations = iter;
 
-	// f = A * dv - b
-	A.Mul(e, dv);
-	b3Sub(e, e, b);
+	// Residual error
+	// f = A * x - b
+	e = A * dv - b;
 }
 
 // Sylvester's Criterion
@@ -524,9 +510,7 @@ static bool b3IsPD(const b3Mat33* diagA, u32 n)
 		
 		float32 D = b3Det(a.x, a.y, a.z);
 
-		const float32 kTol = 0.0f;
-
-		if (D <= kTol)
+		if (D <= B3_EPSILON)
 		{
 			return false;
 		}
@@ -541,19 +525,13 @@ void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, const b3SparseMat33& A, b3Dense
 	b3Mat33* S = (b3Mat33*)m_allocator->Allocate(m_massCount * sizeof(b3Mat33));
 	b3Compute_S(S, m_massCount, m_types, m_contacts);
 
-	b3DenseVec3 r(m_massCount);
-	
-	b3DenseVec3 c(m_massCount);
-	
-	b3DenseVec3 s(m_massCount);
-
-	b3DenseVec3 inv_P(m_massCount);
-
 	// dv = z
 	b3Compute_z(dv, m_massCount, m_types, m_contacts);
 
 	// P = diag(A)^-1
 	b3DenseVec3 P(m_massCount);
+
+	b3DenseVec3 inv_P(m_massCount);
 
 	// diag(A)
 	b3Mat33* diagA = (b3Mat33*)m_allocator->Allocate(m_massCount * sizeof(b3Mat33));
@@ -566,7 +544,7 @@ void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, const b3SparseMat33& A, b3Dense
 	{
 		b3Mat33 D = diagA[i];
 
-		if (b3Det(D.x, D.y, D.z) <= 3.0f * B3_EPSILON)
+		if (b3Det(D.x, D.y, D.z) <= B3_EPSILON)
 		{
 			isPD = false;
 		}
@@ -596,14 +574,11 @@ void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, const b3SparseMat33& A, b3Dense
 	float32 eps0 = b3Dot(filtered_b, P_filtered_b);
 	
 	// r = filter(b - Adv)
-
-	// Adv = A * dv
-	b3DenseVec3 Adv(m_massCount);
-	A.Mul(Adv, dv);
-	b3Sub(r, b, Adv);
+	b3DenseVec3 r = b - A * dv;
 	b3Filter(r, r, S, m_massCount);
 
 	// c = filter(P^-1 * r)
+	b3DenseVec3 c(m_massCount);
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
 		c[i][0] = inv_P[i][0] * r[i][0];
@@ -616,36 +591,30 @@ void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, const b3SparseMat33& A, b3Dense
 	float32 epsNew = b3Dot(r, c);
 
 	// [0, 1]
-	const float32 kTol = 10.0f * B3_EPSILON;
+	const float32 kTol = 0.02f;
 
 	// Limit number of iterations to prevent cycling.
-	const u32 kMaxIters = 10 * 10;
+	const u32 kMaxIters = 200;
 
 	// Main iteration loop.
 	u32 iter = 0;
 	while (iter < kMaxIters && epsNew > kTol * kTol * eps0)
 	{
 		// q = filter(A * c)
-		b3DenseVec3 q(m_massCount);
-		A.Mul(q, c);
+		b3DenseVec3 q = A * c;
 		b3Filter(q, q, S, m_massCount);
 
 		// alpha = epsNew / dot(c, q)
 		float32 alpha = epsNew / b3Dot(c, q);
-
-		// x = x + alpha * c
-		for (u32 i = 0; i < m_massCount; ++i)
-		{
-			dv[i] = dv[i] + alpha * c[i];
-		}
+		
+		// dv = dv + alpha * c
+		dv = dv + alpha * c;
 
 		// r = r - alpha * q
-		for (u32 i = 0; i < m_massCount; ++i)
-		{
-			r[i] = r[i] - alpha * q[i];
-		}
+		r = r - alpha * q;
 
 		// s = inv_P * r
+		b3DenseVec3 s(m_massCount);
 		for (u32 i = 0; i < m_massCount; ++i)
 		{
 			s[i][0] = inv_P[i][0] * r[i][0];
@@ -663,10 +632,7 @@ void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, const b3SparseMat33& A, b3Dense
 		float32 beta = epsNew / epsOld;
 
 		// c = filter(s + beta * c)
-		for (u32 i = 0; i < m_massCount; ++i)
-		{
-			c[i] = s[i] + beta * c[i];
-		}
+		c = s + beta * c;
 		b3Filter(c, c, S, m_massCount);
 
 		++iter;
@@ -678,6 +644,5 @@ void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, const b3SparseMat33& A, b3Dense
 
 	// Residual error
 	// f = A * x - b
-	A.Mul(e, dv);
-	b3Sub(e, e, b);
+	e = A * dv - b;
 }
