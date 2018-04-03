@@ -50,7 +50,7 @@ struct b3SpringClothDef
 	// Cloth mesh	
 	b3Mesh* mesh;
 
-	// Cloth density in kg/m^2
+	// Cloth density in kg/m^3
 	float32 density;
 
 	// Streching stiffness
@@ -130,55 +130,59 @@ public:
 	b3SpringCloth();
 	~b3SpringCloth();
 
-	//
+	// Initialize this cloth from a definition.
 	void Initialize(const b3SpringClothDef& def);
 
-	//
+	// Return the cloth mesh used to initialize this cloth.
 	b3Mesh* GetMesh() const;
 
-	//
+	// Set the gravitational force applied to this cloth.
+	// This force is applied at each time step.
 	void SetGravity(const b3Vec3& gravity);
 
-	//
+	// Return the gravitational force applied to this cloth.
 	const b3Vec3& GetGravity() const;
 
-	//
+	// Set the type of a given point mass.
 	void SetType(u32 i, b3MassType type);
 
-	//
+	// Return the type of a given point mass.
 	b3MassType GetType(u32 i) const;
 
-	// Note, the position will be changed only after performing a time step.
+	// Set the position of a given point mass.
+	// This function will have effect on the position of the point mass 
+	// after performing a time step.
 	void SetPosition(u32 i, const b3Vec3& translation);
 
-	//
+	// Return the position of a given point mass.
 	const b3Vec3& GetPosition(u32 i) const;
 
-	//
+	// Apply a force to a given point mass.
 	void ApplyForce(u32 i, const b3Vec3& force);
 
-	//
-	float32 GetKineticEnergy() const;
+	// Return the kinetic (or dynamic) energy in this system.
+	float32 GetEnergy() const;
 	
-	//
+	// Add a shape to the list of shapes in this cloth. 
+	// The cloth will be able to respond to collisions with each shape in the list of shapes.
 	void AddShape(b3Shape* shape);
 
-	// 
+	// Return the number of shapes added to this cloth.
 	u32 GetShapeCount() const;
 
-	// 
+	// Return the list of shapes added to this cloth.
 	b3Shape** GetShapes();
 
-	// 
+	// Return the statistics of the last time step.
 	const b3SpringClothStep& GetStep() const;
 
-	//
+	// Perform a time step (marches time forward).
 	void Step(float32 dt);
 
-	//
+	// Set the positions of the mesh vertices to the positions of their associated point masses.
 	void Apply() const;
 
-	//
+	// Debug draw the cloth mesh.
 	void Draw(b3Draw* draw) const;
 protected:
 	friend class b3SpringSolver;
@@ -280,15 +284,14 @@ inline void b3SpringCloth::ApplyForce(u32 i, const b3Vec3& force)
 	m_f[i] += force;
 }
 
-inline float32 b3SpringCloth::GetKineticEnergy() const
+inline float32 b3SpringCloth::GetEnergy() const
 {
 	float32 E = 0.0f;
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
-		b3Vec3 P = m_m[i] * m_v[i];
-		E += b3Dot(P, m_v[i]);
+		E += m_m[i] * b3Dot(m_v[i], m_v[i]);
 	}
-	return E;
+	return 0.5f * E;
 }
 
 inline u32 b3SpringCloth::GetShapeCount() const
