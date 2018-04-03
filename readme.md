@@ -60,5 +60,3 @@ Bounce is released under the <b>zlib</b> license.
 #### Screenshots
 
 ![screenshot 1](/screenshots/a.png?raw=true)
-![screenshot 2](/screenshots/c.png?raw=true)
-![screenshot 3](/screenshots/b.png?raw=true)
