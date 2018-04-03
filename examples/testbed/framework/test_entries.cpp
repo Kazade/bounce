@@ -64,7 +64,7 @@
 #include <testbed/tests/cloth_dragger.h>
 #include <testbed/tests/rope_test.h>
 //#include <testbed/tests/tree_test.h>
-#include <testbed/tests/implicit_spring.h>
+#include <testbed/tests/mass_spring.h>
 
 TestEntry g_tests[] =
 {
@@ -114,6 +114,6 @@ TestEntry g_tests[] =
 	{ "Spring Cloth Dragging", &ClothDraggerTest::Create },
 	{ "Rope", &Rope::Create },
 	//{ "Tree", &Tree::Create },
-	{ "Implicit Spring", &ImplicitSpring::Create },
+	{ "Mass-Spring System", &MassSpring::Create },
 	{ NULL, NULL }
 };

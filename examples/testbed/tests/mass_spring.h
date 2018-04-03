@@ -16,17 +16,17 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef IMPLICIT_SPRING_H
-#define IMPLICIT_SPRING_H
+#ifndef MASS_SPRING_H
+#define MASS_SPRING_H
 
 extern DebugDraw* g_debugDraw;
 extern Camera g_camera;
 extern Settings g_settings;
 
-class ImplicitSpring : public Test
+class MassSpring : public Test
 {
 public:
-	ImplicitSpring()
+	MassSpring()
 	{
 		g_camera.m_zoom = 20.0f;
 
@@ -154,14 +154,19 @@ public:
 		b3Vec3_zero.SetZero();
 		g_debugDraw->DrawSegment(b3Vec3_zero, m_x, b3Color_white);
 
-		char text[64];
-		sprintf(text, "Iterations = %u", m_iterations);
-		g_debugDraw->DrawString(text, b3Color_white);
+		char text1[64];
+		sprintf(text1, "Iterations = %u", m_iterations);
+		g_debugDraw->DrawString(text1, b3Color_white);
+
+		char text2[64];
+		float32 E = 0.5f * b3Dot(m_v, m_v);
+		sprintf(text2, "E = %f", E);
+		g_debugDraw->DrawString(text2, b3Color_white);
 	}
 
 	static Test* Create()
 	{
-		return new ImplicitSpring();
+		return new MassSpring();
 	}
 
 	// State
