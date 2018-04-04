@@ -95,11 +95,11 @@ void b3SpringSolver::Solve(b3DenseVec3& f)
 
 		if (b3_enablePrecontitioning)
 		{
-			Solve_MPCG(x, A, f, m_iterations, b);
+			Solve_MPCG(x, f, m_iterations, A, b);
 		}
 		else
 		{
-			Solve_MCG(x, A, f, m_iterations, b);
+			Solve_MCG(x, f, m_iterations, A, b);
 		}
 
 		// Update state
@@ -431,7 +431,7 @@ static void b3Filter(b3DenseVec3& out,
 	}
 }
 
-void b3SpringSolver::Solve_MCG(b3DenseVec3& dv, const b3SparseMat33& A, b3DenseVec3& e, u32& iterations, const b3DenseVec3& b) const
+void b3SpringSolver::Solve_MCG(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b) const
 {
 	//
 	b3Mat33* S = (b3Mat33*)m_allocator->Allocate(m_massCount * sizeof(b3Mat33));
@@ -519,7 +519,7 @@ static bool b3IsPD(const b3Mat33* diagA, u32 n)
 	return true;
 }
 
-void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, const b3SparseMat33& A, b3DenseVec3& e, u32& iterations, const b3DenseVec3& b) const
+void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b) const
 {
 	// S
 	b3Mat33* S = (b3Mat33*)m_allocator->Allocate(m_massCount * sizeof(b3Mat33));

@@ -58,13 +58,13 @@ private:
 
 	// Solve Ax = b using the Modified Conjugate Gradient (MCG). 
 	// Output x and the residual error f.
-	void Solve_MCG(b3DenseVec3& x, const b3SparseMat33& A, b3DenseVec3& f, u32& iterations, const b3DenseVec3& b) const;
+	void Solve_MCG(b3DenseVec3& x, b3DenseVec3& f, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b) const;
 
 	// Solve Ax = b using MCG with Jacobi preconditioning.
 	// Output x and the residual error f.
 	// This method is slower than MCG because we have to compute the preconditioning 
 	// matrix P, but it can improve convergence.
-	void Solve_MPCG(b3DenseVec3& x, const b3SparseMat33& A, b3DenseVec3& f, u32& iterations, const b3DenseVec3& b) const;
+	void Solve_MPCG(b3DenseVec3& x, b3DenseVec3& f, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b) const;
 
 	b3SpringCloth * m_cloth;
 	float32 m_h;
