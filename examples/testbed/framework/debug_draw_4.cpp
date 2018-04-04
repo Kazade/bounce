@@ -18,7 +18,7 @@
 
 #include <testbed/framework/debug_draw.h> 
 
-#include <glad/glad.h>
+#include <glad_4/glad.h>
 #include <imgui/imgui.h>
 
 #include <stdio.h>
@@ -26,6 +26,7 @@
 
 extern Camera g_camera;
 extern DebugDraw* g_debugDraw;
+extern const char* g_logName;
 
 static B3_FORCE_INLINE b3Mat34 Convert34(const b3Transform& T)
 {
@@ -1398,7 +1399,7 @@ void DebugDraw::DrawString(const char* text, const b3Color& color, ...)
 {
 	va_list arg;
 	va_start(arg, text);
-	ImGui::Begin("Log", NULL, ImVec2(0, 0), 0.0f, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
+	ImGui::Begin(g_logName, NULL, ImVec2(0, 0), 0.0f, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
 	ImGui::TextColoredV(ImVec4(color.r, color.g, color.b, color.a), text, arg);
 	ImGui::End();
 	va_end(arg);

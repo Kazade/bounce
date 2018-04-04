@@ -19,13 +19,28 @@
 #if defined(__APPLE_CC__)
 #include <OpenGL/gl3.h>
 #else
-#include <glad/glad.h>
+
+#if defined(U_OPENGL_2)
+#include <glad_2/glad.h>
+#elif defined(U_OPENGL_4)
+#include <glad_4/glad.h>
+#else
+
+#endif
+
 #endif
 
 #include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw_gl3.h>
-#include <testbed/tests/test.h>
 
+#if defined(U_OPENGL_2)
+#include <imgui/imgui_impl_glfw_gl2.h>
+#elif defined(U_OPENGL_4)
+#include <imgui/imgui_impl_glfw_gl3.h>
+#else
+// error
+#endif
+
+#include <testbed/tests/test.h>
 #include <glfw/glfw3.h>
 
 GLFWwindow* g_window;
@@ -39,6 +54,7 @@ bool g_leftDown;
 bool g_rightDown;
 bool g_shiftDown;
 b3Vec2 g_ps0;
+const char* g_logName = { "log" };
 
 static void WindowSize(int w, int h)
 {
@@ -66,7 +82,7 @@ static void MouseMove(GLFWwindow* w, double x, double y)
 			// Negate angles to do positive rotations (CCW) of the world.
 			float32 angleY = 0.005f * B3_PI * -ny;
 			float32 angleX = 0.005f * B3_PI * -nx;
-			
+
 			b3Quat qx = b3QuatRotationX(angleY);
 			b3Quat qy = b3QuatRotationY(angleX);
 
@@ -119,7 +135,7 @@ static void MouseButton(GLFWwindow* w, int button, int action, int mods)
 				g_test->MouseLeftDown(pw);
 			}
 		}
-		
+
 		if (button == GLFW_MOUSE_BUTTON_RIGHT)
 		{
 			g_rightDown = true;
@@ -180,7 +196,7 @@ static void KeyButton(GLFWwindow* w, int button, int scancode, int action, int m
 		{
 			g_test->KeyDown(button);
 		}
-		
+
 		break;
 	}
 	case GLFW_RELEASE:
@@ -204,21 +220,104 @@ static void KeyButton(GLFWwindow* w, int button, int scancode, int action, int m
 	}
 }
 
+static inline bool ImGui_GLFW_GL_Init(GLFWwindow* w, bool install_callbacks)
+{
+
+#if defined(U_OPENGL_2)
+
+	return ImGui_ImplGlfwGL2_Init(g_window, false);
+
+#elif defined(U_OPENGL_4)
+
+	return ImGui_ImplGlfwGL3_Init(g_window, false);
+
+#else
+
+	// error
+
+#endif
+
+}
+
+static inline void ImGui_GLFW_GL_Shutdown()
+{
+
+#if defined(U_OPENGL_2)
+
+	ImGui_ImplGlfwGL2_Shutdown();
+
+#elif defined(U_OPENGL_4)
+
+	ImGui_ImplGlfwGL3_Shutdown();
+
+#else
+
+	// error
+
+#endif
+
+}
+
+static inline void ImGui_GLFW_GL_NewFrame()
+{
+
+#if defined(U_OPENGL_2)
+
+	ImGui_ImplGlfwGL2_NewFrame();
+
+#elif defined(U_OPENGL_4)
+	
+	ImGui_ImplGlfwGL3_NewFrame();
+
+#else
+
+	// error
+
+#endif
+
+}
+
+static inline void ImGui_GLFW_GL_RenderDrawData(ImDrawData* data)
+{
+
+#if defined(U_OPENGL_2)
+
+	ImGui_ImplGlfwGL2_RenderDrawData(data);
+
+#elif defined(U_OPENGL_4)
+
+	ImGui_ImplGlfwGL3_RenderDrawData(data);
+
+#else
+
+	// error
+
+#endif
+
+}
+
 static void Char(GLFWwindow* w, unsigned int codepoint)
 {
-	ImGui_ImplGlfwGL3_CharCallback(w, codepoint);
+	ImGui_ImplGlfw_CharCallback(w, codepoint);
 }
 
 static void CreateInterface()
 {
-	ImGui_ImplGlfwGL3_Init(g_window, false);
+	ImGui::CreateContext();
+
 	ImGuiIO& io = ImGui::GetIO();
 	io.Fonts[0].AddFontDefault();
+
+	ImGui_GLFW_GL_Init(g_window, false);
+
+	ImGui::StyleColorsDark();
 }
 
 static void DestroyInterface()
 {
-	ImGui_ImplGlfwGL3_Shutdown();
+	ImGui_GLFW_GL_Shutdown();
+
+	ImGui::DestroyContext();
 }
 
 static bool GetTestName(void*, int idx, const char** name)
@@ -232,7 +331,7 @@ static void Interface()
 	ImGui::SetNextWindowPos(ImVec2(g_camera.m_width - 250.0f, 0.0f));
 	ImGui::SetNextWindowSize(ImVec2(250.0f, g_camera.m_height));
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-	
+
 	ImGui::Begin("Controls", NULL, ImVec2(0.0f, 0.0f), 0.25f, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
 	ImGui::PushItemWidth(-1.0f);
@@ -271,7 +370,7 @@ static void Interface()
 	{
 		glfwSetWindowShouldClose(g_window, true);
 	}
-	
+
 	ImGui::Separator();
 
 	ImGui::Text("Step");
@@ -295,7 +394,7 @@ static void Interface()
 		g_settings.pause = true;
 		g_settings.singleStep = true;
 	}
-	
+
 	ImGui::Separator();
 
 	ImGui::Text("View");
@@ -321,7 +420,7 @@ static void Step()
 	if (g_settings.drawGrid)
 	{
 		b3Color color(0.2f, 0.2f, 0.2f, 1.0f);
-		
+
 		b3Vec3 pn(0.0f, 1.0f, 0.0f);
 		b3Vec3 p(0.0f, 0.0f, 0.0f);
 		g_debugDraw->DrawCircle(pn, p, 1.0f, color);
@@ -360,8 +459,8 @@ static void Step()
 		g_test = g_tests[g_settings.testID].create();
 		g_settings.pause = true;
 	}
-	
-	g_test->Step();	
+
+	g_test->Step();
 	g_debugDraw->Submit();
 }
 
@@ -389,9 +488,9 @@ static void Run()
 
 		glViewport(0, 0, width, height);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		
-		ImGui_ImplGlfwGL3_NewFrame();
-		
+
+		ImGui_GLFW_GL_NewFrame();
+
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
 		ImGui::SetNextWindowSize(ImVec2((float)g_camera.m_width, (float)g_camera.m_height));
 		ImGui::Begin("Overlay", NULL, ImVec2(0, 0), 0.0f, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
@@ -407,6 +506,7 @@ static void Run()
 		t1 = t;
 
 		ImGui::Render();
+		ImGui_GLFW_GL_RenderDrawData(ImGui::GetDrawData());
 
 		glfwSwapBuffers(g_window);
 
@@ -426,7 +526,7 @@ int main(int argc, char** args)
 		fprintf(stderr, "Failed to initialize GLFW\n");
 		return -1;
 	}
-	
+
 	// Create window
 	extern b3Version b3_version;
 	char title[256];
@@ -438,15 +538,15 @@ int main(int argc, char** args)
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #endif
-		
+
 	g_window = glfwCreateWindow(1024, 768, title, NULL, NULL);
 	if (g_window == NULL)
-	{		
+	{
 		fprintf(stderr, "Failed to open GLFW window\n");
 		glfwTerminate();
 		return -1;
 	}
-	
+
 	glfwMakeContextCurrent(g_window);
 	glfwSetCursorPosCallback(g_window, MouseMove);
 	glfwSetScrollCallback(g_window, MouseWheel);
@@ -454,7 +554,7 @@ int main(int argc, char** args)
 	glfwSetKeyCallback(g_window, KeyButton);
 	glfwSetCharCallback(g_window, Char);
 	glfwSwapInterval(1);
-	
+
 	if (gladLoadGL() == 0)
 	{
 		fprintf(stderr, "Failed to load OpenGL extensions\n");
@@ -464,7 +564,7 @@ int main(int argc, char** args)
 	}
 
 	printf("OpenGL %s, GLSL %s\n", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
-	
+
 	g_leftDown = false;
 	g_rightDown = false;
 	g_shiftDown = false;
@@ -507,6 +607,6 @@ int main(int argc, char** args)
 
 	// Destroy g_window
 	glfwTerminate();
-	
+
 	return 0;
 }

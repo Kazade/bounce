@@ -19,6 +19,36 @@ bin_dir = "/bin/"
 -- or "" to make --help work
 action = _ACTION or ""
 
+-- list of graphics APIs
+newoption 
+{
+   trigger     = "gfxapi",
+   value       = "API",
+   description = "Choose a graphics API",
+   allowed = 
+   {
+      { "opengl_2",    "OpenGL 2" },
+      { "opengl_4",    "OpenGL 4" }
+   }
+}
+
+-- defaults to OpenGL 4
+if not _OPTIONS["gfxapi"] then
+   _OPTIONS["gfxapi"] = "opengl_4"
+end
+
+-- convenience function
+-- for some reason configuration { x } is not working
+function is_gfxapi(x)
+	
+	if _OPTIONS["gfxapi"] == x then
+		return true		
+	else
+		return false
+	end
+	
+end
+
 -- premake main
 solution (solution_name)
 	location ( solution_dir .. "/" .. action )
@@ -32,22 +62,30 @@ solution (solution_name)
 		defines { "_DEBUG" }
 		symbols "On"
 		rtti "Off"
-		flags { "FloatFast" }
-			
+		floatingpoint "Fast" 
+		
     configuration "release"
 		targetdir ( solution_dir .. action .. bin_dir .. "%{cfg.platform}/%{cfg.buildcfg}/%{prj.name}" )
 		objdir ( "!" .. solution_dir .. action .. obj_dir .. "%{cfg.platform}/%{cfg.buildcfg}/%{prj.name}" )
 		defines { "NDEBUG" }
 		optimize "On"
 		rtti "Off"
-		flags { "FloatFast" }
-
+		floatingpoint "Fast" 
+		
 	configuration { "vs*" }		
 		defines { "_CRT_SECURE_NO_WARNINGS" } 
 	
 	configuration { "windows" }
 		defines { "_WIN32", "WIN32", "_WINDOWS" }
 
+	if is_gfxapi("opengl_2") then
+		defines { "U_OPENGL_2" }
+	end
+	
+	if is_gfxapi("opengl_4") then
+		defines { "U_OPENGL_4" }
+	end
+	
 	filter "language:C++"
 		buildoptions { "-std=c++11" }
 
@@ -71,18 +109,29 @@ solution (solution_name)
 		includedirs { external_dir }
 		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.c" }	
 
-		files 
-		{ 
-			external_dir .. "/glad/khrplatform.h",
-			external_dir .. "/glad/glad.h", 
-			external_dir .. "/glad/glad.c"
-		}
-
+		if is_gfxapi("opengl_2") then
+			files 
+			{ 
+				external_dir .. "/glad_2/khrplatform.h",
+				external_dir .. "/glad_2/glad.h", 
+				external_dir .. "/glad_2/glad.c",
+			}
+		end
+		
+		if is_gfxapi("opengl_4") then
+			files 
+			{ 
+				external_dir .. "/glad_4/khrplatform.h",
+				external_dir .. "/glad_4/glad.h", 
+				external_dir .. "/glad_4/glad.c",
+			}
+		end
+		
 		configuration { "not windows", "not macosx" }
 			files 
 			{ 
-				external_dir .. "/glad/glad_glx.h", 
-				external_dir .. "/glad/glad_glx.c"
+				external_dir .. "/glad_4/glad_glx.h", 
+				external_dir .. "/glad_4/glad_glx.c",
 			}	
 		 
 	project "glfw"
@@ -159,13 +208,38 @@ solution (solution_name)
 		location ( solution_dir .. action )
 		includedirs { external_dir } 
 		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.cpp" }		
-
+	
 		files 
 		{ 
-			external_dir .. "/imgui/**.h", 
-			external_dir .. "/imgui/**.cpp" 
+			external_dir .. "/imgui/imconfig.h", 
+			external_dir .. "/imgui/imgui.h", 
+			external_dir .. "/imgui/imgui_internal.h", 
+			
+			external_dir .. "/imgui/stb_rect_pack.h", 
+			external_dir .. "/imgui/stb_textedit.h", 
+			external_dir .. "/imgui/stb_truetype.h", 
+			
+			external_dir .. "/imgui/imgui.cpp",
+			external_dir .. "/imgui/imgui_demo.cpp",
+			external_dir .. "/imgui/imgui_draw.cpp" 
 		}
 
+		if is_gfxapi("opengl_2") then
+			files 
+			{ 
+				external_dir .. "/imgui/imgui_impl_glfw_gl2.h", 
+				external_dir .. "/imgui/imgui_impl_glfw_gl2.cpp" 
+			}
+		end
+		
+		if is_gfxapi("opengl_4") then
+			files 
+			{ 
+				external_dir .. "/imgui/imgui_impl_glfw_gl3.h", 
+				external_dir .. "/imgui/imgui_impl_glfw_gl3.cpp"
+			}
+		end
+		
 	project "rapidjson"
 		kind "StaticLib"
 		language "C++"
@@ -187,10 +261,30 @@ solution (solution_name)
 
 		files 
 		{ 
-			examples_inc_dir .. "/testbed/**.h", 
-			examples_src_dir .. "/testbed/**.cpp" 
+			examples_inc_dir .. "/testbed/framework/debug_draw.h", 
+			examples_inc_dir .. "/testbed/framework/profiler.h", 
+			examples_inc_dir .. "/testbed/tests/**.h", 
+			
+			examples_src_dir .. "/testbed/framework/profiler.cpp", 
+			examples_src_dir .. "/testbed/framework/test.cpp", 
+			examples_src_dir .. "/testbed/framework/test_entries.cpp", 
+			examples_src_dir .. "/testbed/framework/main.cpp" 
 		}
-
+		
+		if is_gfxapi("opengl_2") then
+			files 
+			{ 
+				examples_src_dir .. "/testbed/framework/debug_draw_2.cpp" 
+			}			
+		end
+		
+		if is_gfxapi("opengl_4") then
+			files 
+			{ 
+				examples_src_dir .. "/testbed/framework/debug_draw_4.cpp" 
+			}			
+		end
+		
 		links { "glfw", "glad", "imgui", "bounce" }
 
 		configuration { "windows" }
@@ -219,8 +313,9 @@ solution (solution_name)
 		}
 
 		links { "bounce" }
+
 -- build
-if os.is "windows" then
+if os.istarget("windows") then
 	
     newaction
     {
