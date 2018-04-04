@@ -37,6 +37,7 @@
 #include <bounce/collision/shapes/hull.h>
 #include <bounce/collision/shapes/box_hull.h>
 #include <bounce/collision/shapes/mesh.h>
+#include <bounce/collision/shapes/grid_mesh.h>
 
 #include <bounce/dynamics/joints/mouse_joint.h>
 #include <bounce/dynamics/joints/spring_joint.h>
