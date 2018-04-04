@@ -77,8 +77,13 @@ public:
 		b3Mesh* m = m_cloth->GetMesh();
 		b3Triangle* t = m->triangles + m_selection;
 
+		m_t1 = m_cloth->GetType(t->v1);
 		m_cloth->SetType(t->v1, b3MassType::e_staticMass);
+
+		m_t2 = m_cloth->GetType(t->v2);
 		m_cloth->SetType(t->v2, b3MassType::e_staticMass);
+		
+		m_t3 = m_cloth->GetType(t->v3);
 		m_cloth->SetType(t->v3, b3MassType::e_staticMass);
 
 		b3Vec3 v1 = m_cloth->GetPosition(t->v1);
@@ -137,9 +142,9 @@ public:
 		b3Mesh* m = m_cloth->GetMesh();
 		b3Triangle* t = m->triangles + m_selection;
 
-		m_cloth->SetType(t->v1, b3MassType::e_dynamicMass);
-		m_cloth->SetType(t->v2, b3MassType::e_dynamicMass);
-		m_cloth->SetType(t->v3, b3MassType::e_dynamicMass);
+		m_cloth->SetType(t->v1, m_t1);
+		m_cloth->SetType(t->v2, m_t2);
+		m_cloth->SetType(t->v3, m_t3);
 	}
 
 private:
@@ -195,6 +200,7 @@ private:
 	b3SpringCloth * m_cloth;
 	u32 m_selection;
 	float32 m_u, m_v;
+	b3MassType m_t1, m_t2, m_t3;
 };
 
 class ClothDraggerTest : public Test
@@ -206,7 +212,7 @@ public:
 
 		b3SpringClothDef def;
 		def.allocator = &m_clothAllocator;
-		def.mesh = m_meshes + e_clothMesh;
+		def.mesh = &m_clothMesh;
 		def.density = 0.2f;
 		def.ks = 10000.0f;
 		def.gravity.Set(0.0f, -10.0f, 0.0f);
@@ -218,9 +224,8 @@ public:
 		m_clothRay.fraction = g_camera.m_zFar;
 
 		b3AABB3 aabb;
-		
-		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
-		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
+		aabb.m_lower.Set(-5.0f, -1.0f, -4.0f);
+		aabb.m_upper.Set(5.0f, 1.0f, -2.0f);
 
 		for (u32 i = 0; i < def.mesh->vertexCount; ++i)
 		{
@@ -309,7 +314,9 @@ public:
 	Ray3 m_clothRay;
 
 	b3StackAllocator m_clothAllocator;
+	b3GridMesh<5, 5> m_clothMesh;
 	b3SpringCloth m_cloth;
+	
 	ClothDragger m_clothDragger;
 };
 
