@@ -29,26 +29,37 @@ extern DebugDraw* g_debugDraw;
 extern Camera g_camera;
 extern Profiler* g_profiler;
 
-static void BuildGrid(b3Mesh* mesh, u32 w, u32 h, bool randomY = false)
+void BuildGrid(b3Mesh* mesh, u32 w, u32 h, bool randomY = false)
 {
-	b3Vec3 t;
-	t.x = -0.5f * float32(w);
-	t.y = 0.0f;
-	t.z = -0.5f * float32(h);
+	if (w == 0 && h == 0)
+	{
+		mesh->vertexCount = 0;
+		mesh->triangleCount = 0;
+		return;
+	}
 
-	mesh->vertexCount = w * h;
+	// Square to vertex count
+	w += 1;
+	h += 1;
+
+	b3Vec3 t;
+	t.x = -0.5f * float32(w) + 0.5f;
+	t.y = 0.0f;
+	t.z = -0.5f * float32(h) + 0.5f;
+	
+	mesh->vertexCount = h * w;
 	mesh->vertices = (b3Vec3*)b3Alloc(mesh->vertexCount * sizeof(b3Vec3));
 
-	for (u32 i = 0; i < w; ++i)
+	for (u32 i = 0; i < h; ++i)
 	{
-		for (u32 j = 0; j < h; ++j)
+		for (u32 j = 0; j < w; ++j)
 		{
 			u32 v1 = i * w + j;
 
 			b3Vec3 v;
-			v.x = float32(i);
+			v.x = float32(j);
 			v.y = randomY ? RandomFloat(0.0f, 1.0f) : 0.0f;
-			v.z = float32(j);
+			v.z = float32(i);
 
 			v += t;
 
@@ -56,13 +67,13 @@ static void BuildGrid(b3Mesh* mesh, u32 w, u32 h, bool randomY = false)
 		}
 	}
 
-	mesh->triangleCount = 2 * (w - 1) * (h - 1);
+	mesh->triangleCount = 2 * (h - 1) * (w - 1);
 	mesh->triangles = (b3Triangle*)b3Alloc(mesh->triangleCount * sizeof(b3Triangle));
 
 	u32 triangleCount = 0;
-	for (u32 i = 0; i < w - 1; ++i)
+	for (u32 i = 0; i < h - 1; ++i)
 	{
-		for (u32 j = 0; j < h - 1; ++j)
+		for (u32 j = 0; j < w - 1; ++j)
 		{
 			u32 v1 = i * w + j;
 			u32 v2 = (i + 1) * w + j;
