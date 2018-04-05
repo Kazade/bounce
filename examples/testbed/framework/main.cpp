@@ -339,8 +339,6 @@ static void Interface()
 	ImGui::Text("Test");
 	if (ImGui::Combo("##Test", &g_settings.testID, GetTestName, NULL, g_testCount, g_testCount))
 	{
-		delete g_test;
-		g_test = g_tests[g_settings.testID].create();
 		g_settings.lastTestID = -1;
 	}
 
