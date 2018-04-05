@@ -45,17 +45,6 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 	b3Mat33 I;
 	I.SetZero();
 
-	// Pick reference point not too away from the origin 
-	// to minimize floating point rounding errors.
-	b3Vec3 p1(0.0f, 0.0f, 0.0f);
-	
-	// Put it inside the hull.
-	for (u32 i = 0; i < m_hull->vertexCount; ++i)
-	{
-		p1 += m_hull->vertices[i];
-	}
-	p1 *= 1.0f / float32(m_hull->vertexCount);
-
 	const float32 inv4 = 0.25f;
 	const float32 inv6 = 1.0f / 6.0f;
 	const float32 inv60 = 1.0f / 60.0f;
@@ -63,8 +52,7 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 
 	b3Vec3 diag(0.0f, 0.0f, 0.0f);
 	b3Vec3 off_diag(0.0f, 0.0f, 0.0f);
-
-	// Triangulate convex polygons
+	
 	for (u32 i = 0; i < m_hull->faceCount; ++i)
 	{
 		const b3Face* face = m_hull->GetFace(i);
@@ -82,9 +70,9 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 			b3Vec3 p3 = m_hull->vertices[i2];
 			b3Vec3 p4 = m_hull->vertices[i3];
 			
-			b3Vec3 e1 = p2 - p1;
-			b3Vec3 e2 = p3 - p1;
-			b3Vec3 e3 = p4 - p1;
+			b3Vec3 e1 = p2;
+			b3Vec3 e2 = p3;
+			b3Vec3 e3 = p4;
 			
 			float32 D = b3Det(e1, e2, e3);
 
@@ -122,18 +110,19 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 	B3_ASSERT(volume > B3_EPSILON);
 	float32 inv_volume = 1.0f / volume;
 	center *= inv_volume;
-	massData->center = center + p1;
 
-	// Inertia tensor relative to the local origin (p1)
-	diag = inv_volume * diag;
-	off_diag = inv_volume * off_diag;
-	
+	diag *= inv_volume;
+	off_diag *= inv_volume;
+
 	I.x.Set(diag.y + diag.z, -off_diag.z, -off_diag.y);
 	I.y.Set(-off_diag.z, diag.x + diag.z, -off_diag.x);
 	I.z.Set(-off_diag.y, -off_diag.x, diag.x + diag.y);
 
+	// Center of mass 
+	massData->center = center;
+
+	// Inertia tensor relative to the local origin
 	massData->I = massData->mass * I;
-	massData->I = massData->I + massData->mass * b3Steiner(p1);
 }
 
 void b3HullShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const
