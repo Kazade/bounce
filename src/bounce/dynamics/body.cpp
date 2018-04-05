@@ -229,7 +229,7 @@ void b3Body::ResetMass()
 		{
 			continue;
 		}
-		
+	
 		b3MassData massData;
 		s->ComputeMass(&massData, s->m_density);
 		
@@ -247,6 +247,10 @@ void b3Body::ResetMass()
 		// Shift inertia about the body origin into the body local center of mass.
 		m_I = m_I - m_mass * b3Steiner(localCenter);
 		
+		B3_ASSERT(m_I.x.x > 0.0f);
+		B3_ASSERT(m_I.y.y > 0.0f);
+		B3_ASSERT(m_I.z.z > 0.0f);
+
 		// Compute inverse inertia about the body local center of mass.
 		m_invI = b3Inverse(m_I);
 
@@ -360,6 +364,11 @@ void b3Body::SetMassData(const b3MassData* massData)
 	{
 		m_invMass = 1.0f / m_mass;
 		m_I = massData->I - m_mass * b3Steiner(massData->center);
+		
+		B3_ASSERT(m_I.x.x > 0.0f);
+		B3_ASSERT(m_I.y.y > 0.0f);
+		B3_ASSERT(m_I.z.z > 0.0f);
+
 		m_invI = b3Inverse(m_I);
 		m_worldInvI = b3RotateToFrame(m_invI, m_xf.rotation);
 
@@ -411,7 +420,8 @@ void b3Body::SetMassData(const b3MassData* massData)
 	// Move center of mass.
 	b3Vec3 oldCenter = m_sweep.worldCenter;
 	m_sweep.localCenter = massData->center;
-	m_sweep.worldCenter0 = m_sweep.worldCenter = b3Mul(m_xf, m_sweep.localCenter);
+	m_sweep.worldCenter = b3Mul(m_xf, m_sweep.localCenter);
+	m_sweep.worldCenter0 = m_sweep.worldCenter;
 
 	// Update center of mass velocity.
 	m_linearVelocity += b3Cross(m_angularVelocity, m_sweep.worldCenter - oldCenter);
