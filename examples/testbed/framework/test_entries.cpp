@@ -63,8 +63,8 @@
 #include <testbed/tests/spring_cloth_collision_test.h>
 #include <testbed/tests/cloth_dragger.h>
 #include <testbed/tests/rope_test.h>
-//#include <testbed/tests/tree_test.h>
 #include <testbed/tests/mass_spring.h>
+#include <testbed/tests/shift_center.h>
 
 TestEntry g_tests[] =
 {
@@ -113,7 +113,7 @@ TestEntry g_tests[] =
 	{ "Spring Cloth Collision", &SpringClothCollision::Create },
 	{ "Spring Cloth Dragging", &ClothDraggerTest::Create },
 	{ "Rope", &Rope::Create },
-	//{ "Tree", &Tree::Create },
 	{ "Mass-Spring System", &MassSpring::Create },
+	{ "Shift Center", &ShiftCenter::Create },
 	{ NULL, NULL }
 };
