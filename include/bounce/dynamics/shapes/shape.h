@@ -64,15 +64,16 @@ struct b3ShapeDef
 	float32 friction;
 };
 
+// This structure stores the mass-related data of a shape.
 struct b3MassData 
 {
-	// The center of mass of the shape relative to the shape's origin. 
+	// The position of the shape's centroid relative to the shape's origin. 
 	b3Vec3 center;
 
-	// The mass of the shape in kilograms.
+	// The mass of the shape, typically in kg.
 	float32 mass;
 
-	// The rotational inertia of the shape about the shape's center of mass.
+	// The rotational inertia of the shape about the local origin.
 	b3Mat33 I;
 };
 
