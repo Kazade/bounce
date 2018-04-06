@@ -27,6 +27,9 @@ public:
 		b3BodyDef bdef;
 		bdef.type = e_dynamicBody;
 		bdef.position.Set(0.0f, 0.0f, 0.0f);
+		bdef.fixedRotationX = true;
+		bdef.fixedRotationY = true;
+		bdef.fixedRotationZ = true;
 
 		m_body = m_world.CreateBody(bdef);
 
@@ -40,13 +43,6 @@ public:
 		sdef.density = 1.0f;
 
 		m_body->CreateShape(sdef);
-
-		b3MassData data;
-		m_body->GetMassData(&data);
-
-		data.I.SetZero();
-
-		m_body->SetMassData(&data);
 
 		b3Vec3 g(0.0f, 0.0f, 0.0f);
 		m_world.SetGravity(g);
