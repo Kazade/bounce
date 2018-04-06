@@ -202,6 +202,32 @@ void b3Body::SynchronizeShapes()
 	}
 }
 
+bool b3Body::ShouldCollide(const b3Body* other) const
+{
+	if (m_type != e_dynamicBody && other->m_type != e_dynamicBody)
+	{
+		// At least one body should be kinematic or dynamic.
+		return false;
+	}
+
+	// Check if there are joints that connects
+	// this body with the other body and if the joint was configured 
+	// to let not their collision occur.
+	for (b3JointEdge* je = m_jointEdges.m_head; je; je = je->m_next)
+	{
+		b3Joint* j = je->joint;
+		if (je->other == other)
+		{
+			if (j->m_collideLinked == false)
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 void b3Body::ResetMass() 
 {
 	m_mass = 0.0f;
@@ -312,32 +338,6 @@ void b3Body::ResetMass()
 
 	// Update center of mass velocity.
 	m_linearVelocity += b3Cross(m_angularVelocity, m_sweep.worldCenter - oldCenter);
-}
-
-bool b3Body::ShouldCollide(const b3Body* other) const
-{
-	if (m_type != e_dynamicBody && other->m_type != e_dynamicBody)
-	{
-		// At least one body should be kinematic or dynamic.
-		return false;
-	}
-
-	// Check if there are joints that connects
-	// this body with the other body and if the joint was configured 
-	// to let not their collision occur.
-	for (b3JointEdge* je = m_jointEdges.m_head; je; je = je->m_next)
-	{
-		b3Joint* j = je->joint;
-		if (je->other == other)
-		{
-			if (j->m_collideLinked == false)
-			{
-				return false;
-			}
-		}
-	}
-
-	return true;
 }
 
 void b3Body::GetMassData(b3MassData* data) const
