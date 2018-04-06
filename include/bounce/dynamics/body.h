@@ -197,10 +197,15 @@ public:
 	// Get the rotational inertia of the body about the center of mass. Typically in kg/m^3.
 	const b3Mat33& GetInertia() const;
 
-	// Get this body mass data.
+	// Get this body mass data. 
+	// However, the mass data returned by this function contains the mass of the body, 
+	// the body local center of mass, and the rotational inertia about the body local center of mass.
 	void GetMassData(b3MassData* data) const;
 
 	// Set this body mass data.
+	// The supplied mass data must have the new mass of the body, local center of mass of the body,
+	// and rotational inertia of the body about the body origin. The last requirement must be fulfilled
+	// because the given inertia is shifted to the given local center of mass inside this function.
 	void SetMassData(const b3MassData* data);
 
 	// Recalculate this body mass data based on all of its shapes.
