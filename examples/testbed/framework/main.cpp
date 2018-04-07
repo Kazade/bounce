@@ -415,6 +415,15 @@ static void Interface()
 
 static void Step()
 {
+	if (g_settings.pause)
+	{
+		g_debugDraw->DrawString("*PAUSED*", b3Color_white);
+	}
+	else
+	{
+		g_debugDraw->DrawString("*PLAYING*", b3Color_white);
+	}
+
 	if (g_settings.drawGrid)
 	{
 		b3Color color(0.2f, 0.2f, 0.2f, 1.0f);

@@ -119,14 +119,6 @@ public:
 class Test : public b3ContactListener
 {
 public:
-	enum Meshes
-	{
-		e_gridMesh,
-		e_terrainMesh,
-		e_clothMesh,
-		e_maxMeshes,
-	};
-
 	Test();
 	virtual ~Test();
 
@@ -146,12 +138,13 @@ public:
 	virtual void Dump() { }
 
 	b3World m_world;
-	b3RayCastSingleOutput m_rayHit; // ray hit local space
+	b3RayCastSingleOutput m_rayHit; 
 	b3MouseJoint* m_mouseJoint;
-
+	
+	b3BoxHull m_boxHull;
+	
 	b3BoxHull m_groundHull;
-	b3BoxHull m_boxHull;	
-	b3Mesh m_meshes[e_maxMeshes];
+	b3GridMesh<50, 50> m_groundMesh;
 };
 
 #endif

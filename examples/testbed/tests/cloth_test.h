@@ -31,7 +31,7 @@ public:
 		g_camera.m_zoom = 25.0f;
 
 		b3ClothDef def;
-		def.mesh = m_meshes + e_clothMesh;
+		def.mesh = &m_clothMesh;
 		def.density = 0.2f;
 		def.gravity.Set(2.5f, 5.0f, -10.0f);
 		def.k1 = 0.2f;
@@ -81,6 +81,7 @@ public:
 		return new Cloth();
 	}
 
+	b3GridMesh<10, 10> m_clothMesh;
 	b3Cloth m_cloth;
 	b3AABB3 m_aabb;
 };

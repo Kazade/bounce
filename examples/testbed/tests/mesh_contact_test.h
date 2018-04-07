@@ -24,12 +24,20 @@ class MeshContactTest : public Test
 public:
 	MeshContactTest()
 	{
+		// Transform grid into a terrain
+		for (u32 i = 0; i < m_terrainMesh.vertexCount; ++i)
+		{
+			m_terrainMesh.vertices[i].y = RandomFloat(0.0f, 1.0f);
+		}
+
+		m_terrainMesh.BuildTree();
+
 		{
 			b3BodyDef bd;
 			m_ground = m_world.CreateBody(bd);
 
 			b3MeshShape ms;
-			ms.m_mesh = m_meshes + e_gridMesh;
+			ms.m_mesh = &m_groundMesh;
 
 			b3ShapeDef sd;
 			sd.shape = &ms;
@@ -130,7 +138,7 @@ public:
 			if (key == GLFW_KEY_G)
 			{
 				b3MeshShape ms;
-				ms.m_mesh = m_meshes + e_gridMesh;
+				ms.m_mesh = &m_groundMesh;
 
 				b3ShapeDef sd;
 				sd.shape = &ms;
@@ -141,7 +149,7 @@ public:
 			if (key == GLFW_KEY_T)
 			{
 				b3MeshShape ms;
-				ms.m_mesh = m_meshes + e_terrainMesh;
+				ms.m_mesh = &m_terrainMesh;
 
 				b3ShapeDef sd;
 				sd.shape = &ms;
@@ -169,6 +177,8 @@ public:
 		return new MeshContactTest();
 	}
 
+	b3GridMesh<25, 25> m_terrainMesh;
+	
 	b3Body* m_ground;
 	b3Body* m_body;
 };

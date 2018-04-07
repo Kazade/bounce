@@ -32,7 +32,7 @@ public:
 
 		b3SpringClothDef def;
 		def.allocator = &m_clothAllocator;
-		def.mesh = m_meshes + e_clothMesh;
+		def.mesh = &m_clothMesh;
 		def.density = 0.2f;
 		def.ks = 1000.0f;
 		def.kd = 0.0f;
@@ -94,6 +94,7 @@ public:
 		return new SpringClothCollision();
 	}
 
+	b3GridMesh<10, 10> m_clothMesh;
 	b3StackAllocator m_clothAllocator;
 	b3CapsuleShape m_clothCapsule;
 	b3SpringCloth m_cloth;

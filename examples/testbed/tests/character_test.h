@@ -29,7 +29,7 @@ public:
 			b3Body* ground = m_world.CreateBody(bdef);
 
 			b3MeshShape ms;
-			ms.m_mesh = m_meshes + e_gridMesh;
+			ms.m_mesh = &m_groundMesh;
 
 			b3ShapeDef sd;
 			sd.shape = &ms;

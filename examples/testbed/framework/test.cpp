@@ -29,80 +29,6 @@ extern DebugDraw* g_debugDraw;
 extern Camera g_camera;
 extern Profiler* g_profiler;
 
-void BuildGrid(b3Mesh* mesh, u32 w, u32 h, bool randomY = false)
-{
-	if (w == 0 && h == 0)
-	{
-		mesh->vertexCount = 0;
-		mesh->triangleCount = 0;
-		return;
-	}
-
-	// Square to vertex count
-	w += 1;
-	h += 1;
-
-	b3Vec3 t;
-	t.x = -0.5f * float32(w) + 0.5f;
-	t.y = 0.0f;
-	t.z = -0.5f * float32(h) + 0.5f;
-	
-	mesh->vertexCount = h * w;
-	mesh->vertices = (b3Vec3*)b3Alloc(mesh->vertexCount * sizeof(b3Vec3));
-
-	for (u32 i = 0; i < h; ++i)
-	{
-		for (u32 j = 0; j < w; ++j)
-		{
-			u32 v1 = i * w + j;
-
-			b3Vec3 v;
-			v.x = float32(j);
-			v.y = randomY ? RandomFloat(0.0f, 1.0f) : 0.0f;
-			v.z = float32(i);
-
-			v += t;
-
-			mesh->vertices[v1] = v;
-		}
-	}
-
-	mesh->triangleCount = 2 * (h - 1) * (w - 1);
-	mesh->triangles = (b3Triangle*)b3Alloc(mesh->triangleCount * sizeof(b3Triangle));
-
-	u32 triangleCount = 0;
-	for (u32 i = 0; i < h - 1; ++i)
-	{
-		for (u32 j = 0; j < w - 1; ++j)
-		{
-			u32 v1 = i * w + j;
-			u32 v2 = (i + 1) * w + j;
-			u32 v3 = (i + 1) * w + (j + 1);
-			u32 v4 = i * w + (j + 1);
-
-			B3_ASSERT(triangleCount < mesh->triangleCount);
-			b3Triangle* t1 = mesh->triangles + triangleCount;
-			++triangleCount;
-
-			t1->v1 = v3;
-			t1->v2 = v2;
-			t1->v3 = v1;
-
-			B3_ASSERT(triangleCount < mesh->triangleCount);
-			b3Triangle* t2 = mesh->triangles + triangleCount;
-			++triangleCount;
-
-			t2->v1 = v1;
-			t2->v2 = v4;
-			t2->v3 = v3;
-		}
-	}
-
-	B3_ASSERT(triangleCount == mesh->triangleCount);
-
-	mesh->BuildTree();
-}
-
 Test::Test()
 {
 	b3_allocCalls = 0;
@@ -114,15 +40,15 @@ Test::Test()
 	b3_convexCacheHits = 0;
 	b3_debugDraw = g_debugDraw;
 
-	m_world.SetContactListener(this);
-
-	b3Quat q_y(b3Vec3(0.0f, 1.0f, 0.0f), 0.15f * B3_PI);
-	b3Quat q_x(b3Quat(b3Vec3(1.0f, 0.0f, 0.0f), -0.15f * B3_PI));
+	b3Quat q_y = b3QuatRotationY(0.15f * B3_PI);
+	b3Quat q_x = b3QuatRotationX(-0.15f * B3_PI);
 
 	g_camera.m_q = q_y * q_x;
 	g_camera.m_zoom = 50.0f;
 	g_camera.m_center.SetZero();
-	
+
+	m_world.SetContactListener(this);
+
 	m_rayHit.shape = NULL;
 	m_mouseJoint = NULL;
 
@@ -133,20 +59,23 @@ Test::Test()
 		m_groundHull.SetTransform(m);
 	}
 
-	m_boxHull.SetIdentity();
+	{
+		m_boxHull.SetIdentity();
+	}
 
-	BuildGrid(m_meshes + e_gridMesh, 50, 50);
-	BuildGrid(m_meshes + e_terrainMesh, 50, 50, true);
-	BuildGrid(m_meshes + e_clothMesh, 10, 10);
+	m_groundMesh.BuildTree();
 }
 
 Test::~Test()
 {
-	for (u32 i = 0; i < e_maxMeshes; ++i)
-	{
-		b3Free(m_meshes[i].vertices);
-		b3Free(m_meshes[i].triangles);
-	}
+	b3_allocCalls = 0;
+	b3_gjkCalls = 0;
+	b3_gjkIters = 0;
+	b3_gjkMaxIters = 0;
+	b3_convexCache = false;
+	b3_convexCalls = 0;
+	b3_convexCacheHits = 0;
+	b3_debugDraw = nullptr;
 }
 
 void Test::BeginContact(b3Contact* contact)
@@ -231,13 +160,8 @@ void Test::Step()
 	}
 
 	// Draw Statistics
-	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-	ImGui::Begin("Log", NULL, ImVec2(0, 0), 0.0f, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
-
-	if (g_settings.pause)
-	{
-		ImGui::Text("*PAUSED*");
-	}
+	extern const char* g_logName;
+	ImGui::Begin(g_logName, NULL, ImVec2(0, 0), 0.0f, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
 
 	if (g_settings.drawStats)
 	{

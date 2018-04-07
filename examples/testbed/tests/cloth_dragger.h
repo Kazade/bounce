@@ -314,7 +314,7 @@ public:
 	Ray3 m_clothRay;
 
 	b3StackAllocator m_clothAllocator;
-	b3GridMesh<5, 5> m_clothMesh;
+	b3GridMesh<10, 10> m_clothMesh;
 	b3SpringCloth m_cloth;
 	
 	ClothDragger m_clothDragger;
