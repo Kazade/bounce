@@ -374,7 +374,7 @@ void b3Cloth::Draw(b3Draw* draw) const
 	
 	for (u32 i = 0; i < m->vertexCount; ++i)
 	{
-		draw->DrawPoint(m_ps[i].p, 2.0f, b3Color_green);
+		draw->DrawPoint(m_ps[i].p, 6.0f, b3Color_green);
 	}
 
 	for (u32 i = 0; i < m->triangleCount; ++i)
