@@ -136,7 +136,7 @@ void Test::Step()
 	drawFlags += g_settings.drawContactPoints * b3Draw::e_contactPointsFlag;
 	drawFlags += g_settings.drawContactNormals * b3Draw::e_contactNormalsFlag;
 	drawFlags += g_settings.drawContactTangents * b3Draw::e_contactTangentsFlag;
-	drawFlags += g_settings.drawContactAreas * b3Draw::e_contactAreasFlag;
+	drawFlags += g_settings.drawContactPolygons * b3Draw::e_contactPolygonsFlag;
 
 	g_debugDraw->SetFlags(drawFlags);
 	m_world.DebugDraw();

@@ -54,7 +54,7 @@ public :
 		e_contactPointsFlag = 0x0008,
 		e_contactNormalsFlag = 0x0010,
 		e_contactTangentsFlag = 0x0020,
-		e_contactAreasFlag = 0x0040,
+		e_contactPolygonsFlag = 0x0040,
 		e_aabbsFlag = 0x0080,
 	};
 

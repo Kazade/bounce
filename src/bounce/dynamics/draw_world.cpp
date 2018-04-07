@@ -130,7 +130,7 @@ void b3World::DebugDraw() const
 					b3_debugDraw->DrawSegment(p, p + t2, b3Color_yellow);
 				}
 
-				if (flags & b3Draw::e_contactAreasFlag)
+				if (flags & b3Draw::e_contactPolygonsFlag)
 				{
 					b3_debugDraw->DrawSolidPolygon(wm.normal, points, m->pointCount, b3Color_pink);
 				}

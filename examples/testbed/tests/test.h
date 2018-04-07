@@ -53,7 +53,7 @@ struct Settings
 		drawContactPoints = true;
 		drawContactNormals = false;
 		drawContactTangents = false;
-		drawContactAreas = false;
+		drawContactPolygons = false;
 		drawStats = false;
 		drawProfile = false;
 		drawGrid = true;
@@ -84,7 +84,7 @@ struct Settings
 	bool drawContactPoints;
 	bool drawContactNormals;
 	bool drawContactTangents;
-	bool drawContactAreas;
+	bool drawContactPolygons;
 	bool drawStats;
 	bool drawProfile;
 	bool drawGrid;

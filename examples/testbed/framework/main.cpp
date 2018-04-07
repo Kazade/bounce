@@ -405,7 +405,7 @@ static void Interface()
 	ImGui::Checkbox("Contact Points", &g_settings.drawContactPoints);
 	ImGui::Checkbox("Contact Normals", &g_settings.drawContactNormals);
 	ImGui::Checkbox("Contact Tangents", &g_settings.drawContactTangents);
-	ImGui::Checkbox("Contact Areas", &g_settings.drawContactAreas);
+	ImGui::Checkbox("Contact Polygons", &g_settings.drawContactPolygons);
 	ImGui::Checkbox("Statistics", &g_settings.drawStats);
 	ImGui::Checkbox("Profile", &g_settings.drawProfile);
 
