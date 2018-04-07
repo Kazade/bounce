@@ -35,18 +35,17 @@ public:
 		def.mesh = &m_clothMesh;
 		def.density = 0.2f;
 		def.ks = 100000.0f;
-		def.kb = 1000000.0f;
-		def.kd = 100.0f;
 		def.gravity.Set(2.5f, 5.0f, -10.0f);
 
 		m_cloth.Initialize(def);
 
-		m_aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
-		m_aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
+		b3AABB3 aabb;
+		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
+		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
 
 		for (u32 i = 0; i < def.mesh->vertexCount; ++i)
 		{
-			if (m_aabb.Contains(def.mesh->vertices[i]))
+			if (aabb.Contains(def.mesh->vertices[i]))
 			{
 				m_cloth.SetType(i, b3MassType::e_staticMass);
 			}
@@ -87,7 +86,6 @@ public:
 	b3GridMesh<10, 10> m_clothMesh;
 	b3StackAllocator m_clothAllocator;
 	b3SpringCloth m_cloth;
-	b3AABB3 m_aabb;
 };
 
 #endif

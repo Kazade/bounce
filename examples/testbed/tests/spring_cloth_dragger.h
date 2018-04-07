@@ -16,8 +16,8 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef CLOTH_DRAGGER_TESH_H
-#define CLOTH_DRAGGER_TESH_H
+#ifndef SPRING_CLOTH_DRAGGER_TESH_H
+#define SPRING_CLOTH_DRAGGER_TESH_H
 
 extern DebugDraw* g_debugDraw;
 extern Camera g_camera;
@@ -203,10 +203,10 @@ private:
 	b3MassType m_t1, m_t2, m_t3;
 };
 
-class ClothDraggerTest : public Test
+class SpringClothDraggerTest : public Test
 {
 public:
-	ClothDraggerTest() : m_clothDragger(&m_clothRay, &m_cloth)
+	SpringClothDraggerTest() : m_clothDragger(&m_clothRay, &m_cloth)
 	{
 		g_camera.m_zoom = 25.0f;
 
@@ -214,18 +214,14 @@ public:
 		def.allocator = &m_clothAllocator;
 		def.mesh = &m_clothMesh;
 		def.density = 0.2f;
-		def.ks = 10000.0f;
-		def.gravity.Set(0.0f, -10.0f, 0.0f);
+		def.ks = 100000.0f;
+		def.gravity.Set(2.5f, 5.0f, -10.0f);
 
 		m_cloth.Initialize(def);
 
-		m_clothRay.origin.SetZero();
-		m_clothRay.direction.Set(0.0f, 0.0f, -1.0f);
-		m_clothRay.fraction = g_camera.m_zFar;
-
 		b3AABB3 aabb;
-		aabb.m_lower.Set(-5.0f, -1.0f, -4.0f);
-		aabb.m_upper.Set(5.0f, 1.0f, -2.0f);
+		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
+		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
 
 		for (u32 i = 0; i < def.mesh->vertexCount; ++i)
 		{
@@ -234,6 +230,10 @@ public:
 				m_cloth.SetType(i, b3MassType::e_staticMass);
 			}
 		}
+
+		m_clothRay.origin.SetZero();
+		m_clothRay.direction.Set(0.0f, 0.0f, -1.0f);
+		m_clothRay.fraction = g_camera.m_zFar;
 	}
 
 	void Step()
@@ -308,7 +308,7 @@ public:
 
 	static Test* Create()
 	{
-		return new ClothDraggerTest();
+		return new SpringClothDraggerTest();
 	}
 
 	Ray3 m_clothRay;
