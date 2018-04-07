@@ -80,7 +80,7 @@ void b3World::DebugDraw() const
 	{
 		u32 manifoldCount = c->m_manifoldCount;
 		const b3Manifold* manifolds = c->m_manifolds;
-		
+
 		for (u32 i = 0; i < manifoldCount; ++i)
 		{
 			const b3Manifold* m = manifolds + i;
@@ -98,14 +98,14 @@ void b3World::DebugDraw() const
 
 				b3Vec3 n = wmp->normal;
 				b3Vec3 p = wmp->point;
-				
+
 				points[j] = p;
 
 				if (flags & b3Draw::e_contactPointsFlag)
 				{
 					b3_debugDraw->DrawPoint(p, 4.0f, mp->persisting ? b3Color_green : b3Color_red);
 				}
-				
+
 				if (flags & b3Draw::e_contactNormalsFlag)
 				{
 					b3_debugDraw->DrawSegment(p, p + n, b3Color_white);
@@ -118,7 +118,7 @@ void b3World::DebugDraw() const
 				b3Vec3 n = wm.normal;
 				t1 = wm.tangent1;
 				t2 = wm.tangent2;
-				
+
 				if (flags & b3Draw::e_contactNormalsFlag)
 				{
 					b3_debugDraw->DrawSegment(p, p + n, b3Color_yellow);
@@ -130,9 +130,12 @@ void b3World::DebugDraw() const
 					b3_debugDraw->DrawSegment(p, p + t2, b3Color_yellow);
 				}
 
-				if (flags & b3Draw::e_contactPolygonsFlag)
+				if (m->pointCount > 2)
 				{
-					b3_debugDraw->DrawSolidPolygon(wm.normal, points, m->pointCount, b3Color_pink);
+					if (flags & b3Draw::e_contactPolygonsFlag)
+					{
+						b3_debugDraw->DrawSolidPolygon(wm.normal, points, m->pointCount, b3Color_pink);
+					}
 				}
 			}
 		}
@@ -169,7 +172,7 @@ void b3World::DrawShape(const b3Transform& xf, const b3Shape* shape) const
 		{
 			const b3HalfEdge* edge = hull->GetEdge(i);
 			const b3HalfEdge* twin = hull->GetEdge(i + 1);
-			
+
 			b3Vec3 p1 = xf * hull->vertices[edge->origin];
 			b3Vec3 p2 = xf * hull->vertices[twin->origin];
 
@@ -252,5 +255,5 @@ void b3World::DrawJoint(const b3Joint* joint) const
 
 void b3World::DrawContact(const b3Contact* c) const
 {
-    B3_NOT_USED(c);
+	B3_NOT_USED(c);
 }
