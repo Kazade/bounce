@@ -485,12 +485,12 @@ void b3SpringCloth::Step(float32 dt)
 	// Update contacts
 	UpdateContacts();
 
-	// Apply gravity
+	// Apply gravity forces
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
 		if (m_types[i] == b3MassType::e_dynamicMass)
 		{
-			m_f[i] += m_gravity;
+			m_f[i] += m_m[i] * m_gravity;
 		}
 	}
 

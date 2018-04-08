@@ -65,7 +65,7 @@ struct b3SpringClothDef
 	// Mass radius
 	float32 r;
 	
-	// Force due to gravity
+	// Acceleration due to gravity (m/s^2)
 	b3Vec3 gravity;
 };
 
@@ -136,11 +136,11 @@ public:
 	// Return the cloth mesh used to initialize this cloth.
 	b3Mesh* GetMesh() const;
 
-	// Set the gravitational force applied to this cloth.
-	// This force is applied at each time step.
+	// Set the gravitational acceleration applied to this cloth.
+	// Units are m/s^2.
 	void SetGravity(const b3Vec3& gravity);
 
-	// Return the gravitational force applied to this cloth.
+	// Return the gravitational acceleration applied to this cloth.
 	const b3Vec3& GetGravity() const;
 
 	// Set the type of a given point mass.
