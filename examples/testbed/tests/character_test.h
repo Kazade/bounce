@@ -83,8 +83,7 @@ public:
 				b3Vec3 n = point - xf.position;
 				n.Normalize();
 				
-				m_character->ApplyForceToCenter(100.0f * n, true);
-				g_debugDraw->DrawSolidCircle(normal, point + (0.05f * normal), 5.0f, b3Color(0.5f, 0.5f, 1.0f, 0.5f));
+				m_character->ApplyForceToCenter(1000.0f * n, true);
 			}
 		}
 
