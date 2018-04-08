@@ -40,9 +40,11 @@
 // error
 #endif
 
+#include <testbed/framework/testbed_listener.h>
 #include <testbed/tests/test.h>
 #include <glfw/glfw3.h>
 
+//
 GLFWwindow* g_window;
 Settings g_settings;
 Test* g_test;
@@ -50,11 +52,26 @@ u32 g_testCount;
 Camera g_camera;
 DebugDraw* g_debugDraw;
 Profiler* g_profiler;
+TestbedListener g_testbedListener;
+ProfilerListener* g_profilerListener = &g_testbedListener;
+RecorderProfiler g_recorderProfiler;
 bool g_leftDown;
 bool g_rightDown;
 bool g_shiftDown;
 b3Vec2 g_ps0;
 const char* g_logName = { "log" };
+
+// These two functions below implement Bounce's profiling interfaces.
+// If you're not concerned with profiling then just define two slut functions.
+bool b3PushProfileScope(const char* name)
+{
+	return g_profiler->PushEvent(name);
+}
+
+void b3PopProfileScope()
+{
+	g_profiler->PopEvent();
+}
 
 static void WindowSize(int w, int h)
 {

@@ -26,6 +26,7 @@
 
 #include <testbed/framework/debug_draw.h>
 #include <testbed/framework/profiler.h>
+#include <testbed/framework/recorder_profiler.h>
 
 inline float32 RandomFloat(float32 a, float32 b)
 {

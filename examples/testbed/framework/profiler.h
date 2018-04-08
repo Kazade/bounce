@@ -20,64 +20,94 @@
 #define PROFILER_H
 
 #include <bounce/common/math/math.h>
+#include <bounce/common/time.h>
+#include <bounce/common/template/queue.h>
 #include <bounce/common/template/array.h>
 
-enum ProfileType
+// This defines the maximum number of profiler events that can be 
+// queued per frame until the function Profiler::Flush is called.
+#define MAX_PROFILER_EVENTS 256
+
+class ProfilerListener;
+
+// A time-stamped profiler event.
+struct ProfilerEvent
 {
-	e_begin,
-	e_end
-};
-
-void ProfileBeginEvents();
-
-void ProfileEvent(i32 tid, i32 pid, const char* name, float64 time, ProfileType type);
-void ProfileEvent(i32 tid, i32 pid, const char* name, float64 elapsed);
-
-void ProfileEndEvents();
-
-void ProfileBegin();
-void ProfileEnd();
-
-struct ProfileRecord
-{
-	float64 elapsed;
-	float64 maxElapsed;
+	i32 tid;
+	i32 pid;
 	const char* name;
+	float64 t0;
+	float64 t1;
+	ProfilerEvent* parent;
 };
 
+// A single-threaded event-based profiler.
 class Profiler
 {
 public:
-	void Clear()
+	Profiler();
+	
+	~Profiler();
+
+	// Must be called before profiling. 
+	void Begin();
+
+	// Must be called after profiling.
+	// The function will report all events in this profiler 
+	// to the given event listener in the correct calling order.
+	// This function also flushes the profiler.
+	void End(ProfilerListener* listener);
+
+	// Add a profiler event to the queue.
+	// Return true if the even has been added to the event queue 
+	// or false if the queue is full.
+	bool PushEvent(const char* name);
+	
+	// Remove the top profiler event.
+	void PopEvent();
+private:
+	b3Time m_time;
+	b3BoundedQueue<ProfilerEvent, MAX_PROFILER_EVENTS> m_events;
+	ProfilerEvent* m_top;
+};
+
+// Any implementation of this interface passed to Profiler::End will listen to profile events.
+class ProfilerListener
+{
+public:
+	virtual ~ProfilerListener() { }
+
+	// This function is called when profiling has began.
+	virtual void BeginEvents() { }
+
+	// This function is called when profiling has ended.
+	virtual void EndEvents() { }
+	
+	// This function is called when a profiler event begins.
+	virtual void BeginEvent(i32 tid, i32 pid, const char* name, float64 time) 
 	{
-		for (u32 i = 0; i < m_records.Count(); ++i)
-		{
-			m_records[i].elapsed = 0;
-		}
+		B3_NOT_USED(tid);
+		B3_NOT_USED(pid);
+		B3_NOT_USED(name);
+		B3_NOT_USED(time);
 	}
 
-	void Add(const char* name, float64 elapsed)
+	// This function is called when a profiler event ends.
+	virtual void EndEvent(i32 tid, i32 pid, const char* name, float64 time)
 	{
-		for (u32 i = 0; i < m_records.Count(); ++i)
-		{
-			ProfileRecord& r = m_records[i];
-			if (r.name == name)
-			{
-				r.elapsed += elapsed;
-				r.maxElapsed = b3Max(r.maxElapsed, r.elapsed);
-				return;
-			}
-		}
-
-		ProfileRecord r;
-		r.elapsed = elapsed;
-		r.maxElapsed = 0;
-		r.name = name;
-
-		m_records.PushBack(r);
+		B3_NOT_USED(tid);
+		B3_NOT_USED(pid);
+		B3_NOT_USED(name);
+		B3_NOT_USED(time);
 	}
 
-	b3StackArray<ProfileRecord, 256> m_records;
+	// This function is called when a profiler event ends.
+	// However it supplies the duration of the last begin and end events.
+	virtual void Duration(const char* name, float64 duration)
+	{
+		B3_NOT_USED(name);
+		B3_NOT_USED(duration);
+	}
 };
 
 #endif

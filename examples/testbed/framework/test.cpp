@@ -28,6 +28,8 @@ extern Settings g_settings;
 extern DebugDraw* g_debugDraw;
 extern Camera g_camera;
 extern Profiler* g_profiler;
+extern ProfilerListener* g_profilerListener;
+extern RecorderProfiler g_recorderProfiler;
 
 Test::Test()
 {
@@ -117,13 +119,13 @@ void Test::Step()
 	b3_convexCacheHits = 0;
 
 	// Step
-	ProfileBegin();
+	g_profiler->Begin();
 
 	m_world.SetSleeping(g_settings.sleep);
 	m_world.SetWarmStart(g_settings.warmStart);
 	m_world.Step(dt, g_settings.velocityIterations, g_settings.positionIterations);
 
-	ProfileEnd();
+	g_profiler->End(g_profilerListener);
 	
 	g_debugDraw->Submit();
 
@@ -191,14 +193,14 @@ void Test::Step()
 
 	if (g_settings.drawProfile)
 	{
-		for (u32 i = 0; i < g_profiler->m_records.Count(); ++i)
+		const b3Array<ProfilerRecord>& records = g_recorderProfiler.GetRecords();
+		for (u32 i = 0; i < records.Count(); ++i)
 		{
-			const ProfileRecord& r = g_profiler->m_records[i];
+			const ProfilerRecord& r = records[i];
+			
 			ImGui::Text("%s %.4f (%.4f) [ms]", r.name, r.elapsed, r.maxElapsed);
 		}
 	}
-	
-	g_profiler->Clear();
 
 	ImGui::End();
 }
