@@ -16,45 +16,46 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef SPRING_CLOTH_COLLISION_H
-#define SPRING_CLOTH_COLLISION_H
+#ifndef SPRING_CLOTH_H
+#define SPRING_CLOTH_H
 
 extern DebugDraw* g_debugDraw;
 extern Camera g_camera;
 extern Settings g_settings;
 
-class SpringClothCollision : public SpringClothTest
+class SpringCloth : public SpringClothTest
 {
 public:
-	SpringClothCollision()
+	SpringCloth() 
 	{
 		b3SpringClothDef def;
 		def.allocator = &m_clothAllocator;
 		def.mesh = &m_clothMesh;
 		def.density = 0.2f;
-		def.ks = 1000.0f;
-		def.kd = 0.0f;
-		def.r = 0.2f;
+		def.ks = 100000.0f;
 		def.gravity.Set(0.0f, -10.0f, 0.0f);
 
 		m_cloth.Initialize(def);
 
-		m_clothCapsule.m_centers[0].Set(0.0f, -2.0f, 2.0f);
-		m_clothCapsule.m_centers[1].Set(0.0f, -2.0f, -2.0f);
-		m_clothCapsule.m_radius = 2.0f;
-		
-		m_clothCapsule.SetFriction(1.0f);
+		b3AABB3 aabb;
+		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
+		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
 
-		m_cloth.AddShape(&m_clothCapsule);
+		for (u32 i = 0; i < def.mesh->vertexCount; ++i)
+		{
+			if (aabb.Contains(def.mesh->vertices[i]))
+			{
+				m_cloth.SetType(i, b3MassType::e_staticMass);
+			}
+		}		
 	}
 
 	static Test* Create()
 	{
-		return new SpringClothCollision();
+		return new SpringCloth();
 	}
 
 	b3GridMesh<10, 10> m_clothMesh;
-	b3CapsuleShape m_clothCapsule;
 };
 
 #endif

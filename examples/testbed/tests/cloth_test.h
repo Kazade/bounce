@@ -33,7 +33,7 @@ public:
 		b3ClothDef def;
 		def.mesh = &m_clothMesh;
 		def.density = 0.2f;
-		def.gravity.Set(2.5f, 5.0f, -10.0f);
+		def.gravity.Set(0.0f, -10.0f, 0.0f);
 		def.k1 = 0.2f;
 		def.k2 = 0.1f;
 		def.kd = 0.005f;
