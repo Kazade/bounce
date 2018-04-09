@@ -1148,6 +1148,16 @@ void DebugDraw::DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const 
 	DrawTriangle(p2, p3, p3, edgeColor);
 }
 
+void DebugDraw::DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const b3Color& color1, const b3Vec3& p2, const b3Color& color2, const b3Vec3& p3, const b3Color& color3)
+{
+	m_triangles->Vertex(p1, color1, normal);
+	m_triangles->Vertex(p2, color2, normal);
+	m_triangles->Vertex(p3, color3, normal);
+
+	b3Color edgeColor(0.0f, 0.0f, 0.0f, 1.0f);
+	DrawTriangle(p2, p3, p3, edgeColor);
+}
+
 void DebugDraw::DrawPolygon(const b3Vec3* vertices, u32 count, const b3Color& color)
 {
 	b3Vec3 p1 = vertices[count - 1];
