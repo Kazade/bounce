@@ -20,6 +20,7 @@
 #define B3_SPRING_CLOTH_H
 
 #include <bounce/common/math/mat33.h>
+#include <bounce/common/template/array.h>
 
 #define B3_CLOTH_SHAPE_CAPACITY 32
 
@@ -163,6 +164,10 @@ public:
 	// Return the kinetic (or dynamic) energy in this system.
 	float32 GetEnergy() const;
 	
+	// Return the tension forces (due to springs) of each point mass.
+	// Units are kg * m / s^2
+	void GetTension(b3Array<b3Vec3>& tensions) const;
+
 	// Add a shape to the list of shapes in this cloth. 
 	// The cloth will be able to respond to collisions with each shape in the list of shapes.
 	void AddShape(b3Shape* shape);

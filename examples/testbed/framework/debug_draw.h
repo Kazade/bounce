@@ -91,6 +91,8 @@ public:
 
 	void DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const b3Vec3& p2, const b3Vec3& p3, const b3Color& color);
 
+	void DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const b3Color& color1, const b3Vec3& p2, const b3Color& color2, const b3Vec3& p3, const b3Color& color3);
+	
 	void DrawPolygon(const b3Vec3* vertices, u32 count, const b3Color& color);
 	
 	void DrawSolidPolygon(const b3Vec3& normal, const b3Vec3* vertices, u32 count, const b3Color& color);

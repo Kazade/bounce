@@ -297,6 +297,70 @@ void b3SpringCloth::AddShape(b3Shape* shape)
 	m_shapes[m_shapeCount++] = shape;
 }
 
+void b3SpringCloth::GetTension(b3Array<b3Vec3>& T) const
+{
+	B3_ASSERT(T.Count() == 0);
+
+	T.Resize(m_massCount);
+
+	for (u32 i = 0; i < T.Count(); ++i)
+	{
+		T[i].SetZero();
+	}
+
+	// T = F - mg
+	for (u32 i = 0; i < m_springCount; ++i)
+	{
+		b3Spring* S = m_springs + i;
+
+		b3SpringType type = S->type;
+		u32 i1 = S->i1;
+		u32 i2 = S->i2;
+		float32 L0 = S->L0;
+		float32 ks = S->ks;
+		float32 kd = S->kd;
+
+		b3Vec3 x1 = m_x[i1];
+		b3Vec3 v1 = m_v[i1];
+
+		b3Vec3 x2 = m_x[i2];
+		b3Vec3 v2 = m_v[i2];
+
+		// Strech
+		b3Vec3 dx = x1 - x2;
+		float32 L = b3Length(dx);
+
+		float32 s = 1.0f;
+		if (L > 0.0f)
+		{
+			s -= L0 / L;
+		}
+
+		b3Vec3 sf1 = -ks * s * dx;
+		b3Vec3 sf2 = -sf1;
+
+		T[i1] += sf1;
+		T[i2] += sf2;
+
+		// Damping
+		b3Vec3 dv = v1 - v2;
+
+		b3Vec3 df1 = -kd * dv;
+		b3Vec3 df2 = -df1;
+
+		T[i1] += df1;
+		T[i2] += df2;
+	}
+
+	for (u32 i = 0; i < T.Count(); ++i)
+	{
+		if (m_types[i] == b3MassType::e_staticMass)
+		{
+			T[i].SetZero();
+		}
+	}
+}
+
 static B3_FORCE_INLINE void b3MakeTangents(b3Vec3& t1, b3Vec3& t2, const b3Vec3& dv, const b3Vec3& n)
 {
 	t1 = dv - b3Dot(dv, n) * n;
