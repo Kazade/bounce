@@ -22,7 +22,7 @@ Model::Model()
 {
 	g_debugDraw = &m_debugDraw;
 	g_camera = &m_camera;
-	g_overlayName = "overlay";
+	g_overlayName = "Overlay";
 	g_profiler = &m_profiler;
 	g_profilerListener = &m_profilerListener;
 	g_settings = &m_settings;
