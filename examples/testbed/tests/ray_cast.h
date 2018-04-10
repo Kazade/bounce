@@ -26,7 +26,6 @@ public:
 	{
 		{
 			b3BodyDef bdef;
-			bdef.type = b3BodyType::e_staticBody;
 			b3Body* body = m_world.CreateBody(bdef);
 
 			b3HullShape hs;
@@ -40,9 +39,8 @@ public:
 
 		{
 			b3BodyDef bdef;
-			bdef.type = b3BodyType::e_staticBody;
 			bdef.position.Set(0.0f, 2.0f, 10.0f);
-			bdef.orientation = b3Quat(b3Vec3(0.0f, 1.0f, 0.0f), 0.25f * B3_PI);
+			bdef.orientation = b3QuatRotationY(0.25f * B3_PI);
 
 			b3Body* body = m_world.CreateBody(bdef);
 
@@ -57,19 +55,12 @@ public:
 
 		{
 			b3BodyDef bdef;
-			bdef.type = b3BodyType::e_staticBody;
 			bdef.position.Set(-10.0f, 6.0f, -10.0f);
-			bdef.orientation = b3Quat(b3Vec3(0.0f, 1.0f, 0.0f), 0.25f * B3_PI);
+			bdef.orientation = b3QuatRotationY(0.25f * B3_PI);
 
 			b3Body* body = m_world.CreateBody(bdef);
 			
-			static b3BoxHull boxHull;
-			{
-				b3Transform xf;
-				xf.position.SetZero();
-				xf.rotation = b3Diagonal(2.0f, 4.0f, 0.5f);
-				boxHull.SetTransform(xf);
-			}
+			static b3BoxHull boxHull(2.0f, 4.0f, 0.5f);
 
 			b3HullShape hs;
 			hs.m_hull = &boxHull;
@@ -82,9 +73,8 @@ public:
 
 		{
 			b3BodyDef bdef;
-			bdef.type = b3BodyType::e_staticBody;
 			bdef.position.Set(10.0f, 2.0f, 0.0f);
-			bdef.orientation = b3Quat(b3Vec3(0.0f, 1.0f, 0.0f), 0.20f * B3_PI);
+			bdef.orientation = b3QuatRotationY(0.20f * B3_PI);
 
 			b3Body* body = m_world.CreateBody(bdef);
 
@@ -92,19 +82,15 @@ public:
 			hs.m_hull = &b3BoxHull_identity;
 
 			b3ShapeDef sdef;
-			sdef.density = 0.0f;
-			sdef.friction = 0.0f;
 			sdef.shape = &hs;
-			sdef.userData = NULL;
 
 			b3Shape* shape = body->CreateShape(sdef);
 		}
 
 		{
 			b3BodyDef bdef;
-			bdef.type = b3BodyType::e_staticBody;
 			bdef.position.Set(-10.0f, 2.0f, 14.0f);
-			bdef.orientation = b3Quat(b3Vec3(0.0f, 1.0f, 0.0f), 0.05f * B3_PI);
+			bdef.orientation = b3QuatRotationY(0.05f * B3_PI);
 
 			b3Body* body = m_world.CreateBody(bdef);
 
@@ -112,19 +98,15 @@ public:
 			hs.m_hull = &b3BoxHull_identity;
 
 			b3ShapeDef sdef;
-			sdef.density = 0.0f;
-			sdef.friction = 0.0f;
 			sdef.shape = &hs;
-			sdef.userData = NULL;
 
 			b3Shape* shape = body->CreateShape(sdef);
 		}
 
 		{
 			b3BodyDef bdef;
-			bdef.type = b3BodyType::e_staticBody;
 			bdef.position.Set(-14.0f, 2.0f, 5.0f);
-			bdef.orientation = b3Quat(b3Vec3(0.0f, 1.0f, 0.0f), -0.05f * B3_PI);
+			bdef.orientation = b3QuatRotationY(-0.05f * B3_PI);
 
 			b3Body* body = m_world.CreateBody(bdef);
 
@@ -132,19 +114,15 @@ public:
 			hs.m_hull = &b3BoxHull_identity;
 
 			b3ShapeDef sdef;
-			sdef.density = 0.0f;
-			sdef.friction = 0.0f;
 			sdef.shape = &hs;
-			sdef.userData = NULL;
 
 			b3Shape* shape = body->CreateShape(sdef);
 		}
 
 		{
 			b3BodyDef bdef;
-			bdef.type = b3BodyType::e_staticBody;
 			bdef.position.Set(20.0f, 2.0f, 5.0f);
-			bdef.orientation = b3Quat(b3Vec3(0.0f, 1.0f, 0.0f), -0.05f * B3_PI);
+			bdef.orientation = b3QuatRotationY(-0.05f * B3_PI);
 
 			b3Body* body = m_world.CreateBody(bdef);
 
@@ -152,37 +130,30 @@ public:
 			hs.m_hull = &b3BoxHull_identity;
 
 			b3ShapeDef sdef;
-			sdef.density = 0.0f;
-			sdef.friction = 0.0f;
 			sdef.shape = &hs;
-			sdef.userData = NULL;
 
 			b3Shape* shape = body->CreateShape(sdef);
 		}
 		
 		{
 			b3BodyDef bdef;
-			bdef.type = b3BodyType::e_staticBody;
 			bdef.position.Set(12.0f, 2.0f, 5.0f);
-			bdef.orientation = b3Quat(b3Vec3(0.0f, 1.0f, 0.0f), -0.35f * B3_PI);
+			bdef.orientation = b3QuatRotationY(-0.35f * B3_PI);
 
 			b3Body* body = m_world.CreateBody(bdef);
 
 			b3SphereShape hs;
+			hs.m_center.SetZero();
 			hs.m_radius = 2.5f;
 
 			b3ShapeDef sdef;
-			sdef.density = 0.0f;
-			sdef.friction = 0.0f;
 			sdef.shape = &hs;
-			sdef.userData = NULL;
 
 			b3Shape* shape = body->CreateShape(sdef);
 		}
 
 		{
 			b3BodyDef bdef;
-			bdef.type = b3BodyType::e_staticBody;
 			bdef.position.Set(0.0f, 1.0f, -12.0f);
 
 			b3Body* body = m_world.CreateBody(bdef);
@@ -193,10 +164,7 @@ public:
 			hs.m_radius = 3.0f;
 
 			b3ShapeDef sdef;
-			sdef.density = 0.0f;
-			sdef.friction = 0.0f;
 			sdef.shape = &hs;
-			sdef.userData = NULL;
 
 			b3Shape* shape = body->CreateShape(sdef);
 		}
@@ -213,30 +181,30 @@ public:
 		b3RayCastSingleOutput out;
 		if (m_world.RayCastSingle(&out, p1, p2))
 		{
-			g_debugDraw->DrawSegment(p1, out.point, b3Color(0.0f, 1.0f, 0.0f));
-			g_debugDraw->DrawPoint(out.point, 4.0f, b3Color(1.0f, 0.0f, 0.0f));
-			g_debugDraw->DrawSegment(out.point, out.normal, b3Color(1.0f, 1.0f, 1.0f));
-			g_debugDraw->DrawSolidCircle(out.normal, out.point + 0.05f * out.normal, 1.0f, b3Color(1.0f, 1.0f, 1.0f));
+			g_debugDraw->DrawSegment(p1, out.point, b3Color_green);
+			
+			g_debugDraw->DrawPoint(out.point, 4.0f, b3Color_red);
+			g_debugDraw->DrawSegment(out.point, out.point + out.normal, b3Color_white);
+			
+			g_debugDraw->DrawSolidCircle(out.normal, out.point + 0.025f * out.normal, 1.0f, b3Color_white);
 		}
 		else
 		{
-			g_debugDraw->DrawSegment(p1, p2, b3Color(0.0f, 1.0f, 0.0f));
+			g_debugDraw->DrawSegment(p1, p2, b3Color_green);
 		}
 	}
 
 	void Step()
 	{
 		float32 dt = g_settings->inv_hertz;
+		b3Quat dq = b3QuatRotationY(0.05f * B3_PI * dt);
 		
-		b3Quat q(b3Vec3(0.0f, 1.0f, 0.0f), dt * 0.05f * B3_PI);
-		
-		m_p1 = b3Mul(q, m_p1);
-		m_p2 = b3Mul(q, m_p2);
-
-		m_p12 = b3Mul(q, m_p12);
-		m_p22 = b3Mul(q, m_p22);
-
+		m_p1 = b3Mul(dq, m_p1);
+		m_p2 = b3Mul(dq, m_p2);
 		CastRay(m_p1, m_p2);
+
+		m_p12 = b3Mul(dq, m_p12);
+		m_p22 = b3Mul(dq, m_p22);
 		CastRay(m_p12, m_p22);
 
 		Test::Step();
