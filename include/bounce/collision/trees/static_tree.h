@@ -19,7 +19,6 @@
 #ifndef B3_STATIC_TREE_H
 #define B3_STATIC_TREE_H
 
-#include <bounce/common/draw.h>
 #include <bounce/common/template/stack.h>
 #include <bounce/collision/shapes/aabb3.h>
 #include <bounce/collision/collision.h>
@@ -55,7 +54,7 @@ public:
 	void RayCast(T* callback, const b3RayCastInput& input) const;
 
 	// Draw this tree.
-	void Draw(b3Draw* draw) const;
+	void Draw() const;
 
 	u32 GetSize() const;
 private :

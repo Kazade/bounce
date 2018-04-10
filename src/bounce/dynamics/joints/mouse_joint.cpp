@@ -109,12 +109,12 @@ void b3MouseJoint::SetTarget(const b3Vec3& target)
 	GetBodyB()->SetAwake(true);
 }
 
-void b3MouseJoint::Draw(b3Draw* draw) const 
+void b3MouseJoint::Draw() const 
 {
 	b3Vec3 a = GetAnchorA();
 	b3Vec3 b = GetAnchorB();
 
-	draw->DrawPoint(a, 4.0f, b3Color_green);
-	draw->DrawPoint(b, 4.0f, b3Color_red);
-	draw->DrawSegment(a, b, b3Color_yellow);
+	b3Draw_draw->DrawPoint(a, 4.0f, b3Color_green);
+	b3Draw_draw->DrawPoint(b, 4.0f, b3Color_red);
+	b3Draw_draw->DrawSegment(a, b, b3Color_yellow);
 }

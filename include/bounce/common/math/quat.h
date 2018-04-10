@@ -141,6 +141,9 @@ struct b3Quat
 	float32 x, y, z, w;
 };
 
+// Identity quaternion
+extern const b3Quat b3Quat_identity;
+
 // Add two quaternions.
 inline b3Quat operator+(const b3Quat& a, const b3Quat& b)
 {

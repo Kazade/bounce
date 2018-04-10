@@ -21,74 +21,6 @@
 
 #include <bounce/quickhull/qh_hull.h>
 
-extern DebugDraw* g_debugDraw;
-extern Camera g_camera;
-extern Settings g_settings;
-
-inline b3Vec3 ComputeCentroid(const b3Hull& h)
-{
-	b3Vec3 c(0.0f, 0.0f, 0.0f);
-	float32 volume = 0.0f;
-	
-	// Pick reference point not too away from the origin 
-	// to minimize floating point rounding errors.
-	b3Vec3 p1(0.0f, 0.0f, 0.0f);
-	// Put it inside the hull.
-	for (u32 i = 0; i < h.vertexCount; ++i)
-	{
-		p1 += h.vertices[i];
-	}
-	p1 *= 1.0f / float32(h.vertexCount);
-
-	const float32 inv4 = 0.25f;
-	const float32 inv6 = 1.0f / 6.0f;
-	const float32 inv60 = 1.0f / 60.0f;
-	const float32 inv120 = 1.0f / 120.0f;
-
-	b3Vec3 diag(0.0f, 0.0f, 0.0f);
-	b3Vec3 offDiag(0.0f, 0.0f, 0.0f);
-
-	// Triangulate convex polygons
-	for (u32 i = 0; i < h.faceCount; ++i)
-	{
-		const b3Face* face = h.GetFace(i);
-		const b3HalfEdge* begin = h.GetEdge(face->edge);
-
-		const b3HalfEdge* edge = h.GetEdge(begin->next);
-		do
-		{
-			u32 i1 = begin->origin;
-			u32 i2 = edge->origin;
-			const b3HalfEdge* next = h.GetEdge(edge->next);
-			u32 i3 = next->origin;
-
-			b3Vec3 p2 = h.vertices[i1];
-			b3Vec3 p3 = h.vertices[i2];
-			b3Vec3 p4 = h.vertices[i3];
-
-			b3Vec3 e1 = p2 - p1;
-			b3Vec3 e2 = p3 - p1;
-			b3Vec3 e3 = p4 - p1;
-
-			float32 D = b3Det(e1, e2, e3);
-			
-			float32 tetraVolume = inv6 * D;
-			volume += tetraVolume;
-			
-			// Volume weighted centroid
-			c += tetraVolume * inv4 * (e1 + e2 + e3);
-
-			edge = next;
-		} while (h.GetEdge(edge->next) != begin);
-	}
-
-	// Centroid
-	B3_ASSERT(volume > B3_EPSILON);
-	c *= 1.0f / volume;
-	c += p1;
-	return c;
-}
-
 struct Pair
 {
 	void* key;
@@ -259,7 +191,7 @@ inline b3Hull ConvertHull(const qhHull& hull)
 	out.faceCount = faceCount;
 	out.faces = faces;
 	out.planes = planes;
-	out.centroid = ComputeCentroid(out);
+	out.centroid = out.GetCentroid();
 	out.Validate();
 	return out;
 }
@@ -347,8 +279,6 @@ class QuickhullTest : public Test
 public:
 	QuickhullTest()
 	{
-		g_camera.m_zoom = 15.0f;
-
 		b3BoxHull box;
 		box.SetIdentity();
 

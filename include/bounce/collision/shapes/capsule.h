@@ -21,20 +21,38 @@
 
 #include <bounce/common/math/vec3.h>
 
-struct b3Segment
+struct b3Capsule
 {
+	//
+	b3Capsule() { }
+
+	// 
+	b3Capsule(const b3Vec3& v1, const b3Vec3& v2, float32 r)
+	{
+		vertices[0] = v1;
+		vertices[1] = v2;
+		radius = r;
+	}
+
+	//
+	~b3Capsule() { }
+
 	b3Vec3 vertices[2];
-	
+	float32 radius;
+
 	const b3Vec3& GetVertex(u32 index) const;
 	u32 GetSupportVertex(const b3Vec3& direction) const;
 };
 
-inline const b3Vec3& b3Segment::GetVertex(u32 index) const
+// Unit capsule centered at the origin
+extern const b3Capsule b3Capsule_identity;
+
+inline const b3Vec3& b3Capsule::GetVertex(u32 index) const
 {
 	return vertices[index];
 }
 
-inline u32 b3Segment::GetSupportVertex(const b3Vec3& d) const
+inline u32 b3Capsule::GetSupportVertex(const b3Vec3& d) const
 {
 	if (b3Dot(d, vertices[0]) > b3Dot(d, vertices[1]))
 	{

@@ -24,10 +24,6 @@ class VaryingFriction : public Test
 public:
 	VaryingFriction()
 	{
-		g_camera.m_zoom = 200.0f;
-		g_camera.m_q = b3Quat(b3Vec3(1.0f, 0.0f, 0.0f), -0.1f * B3_PI);
-		g_camera.m_q = b3Quat(b3Vec3(0.0f, 1.0f, 0.0f), -0.1f * B3_PI) * g_camera.m_q;
-
 		{
 			b3BodyDef bdef;	
 			b3Body* ground = m_world.CreateBody(bdef);
@@ -35,9 +31,9 @@ public:
 			b3HullShape hs;
 			hs.m_hull = &m_groundHull;
 
-			b3ShapeDef sdef;
-			sdef.shape = &hs;
-			ground->CreateShape(sdef);
+			b3ShapeDef sd;
+			sd.shape = &hs;
+			ground->CreateShape(sd);
 		}
 
 		static b3BoxHull rampHull;
@@ -59,10 +55,10 @@ public:
 			b3HullShape hs;
 			hs.m_hull = &rampHull;
 
-			b3ShapeDef sdef;
-			sdef.shape = &hs;
-			sdef.friction = 0.4f;
-			ramp->CreateShape(sdef);
+			b3ShapeDef sd;
+			sd.shape = &hs;
+			sd.friction = 0.4f;
+			ramp->CreateShape(sd);
 		}
 
 		{
@@ -75,10 +71,10 @@ public:
 			b3HullShape hs;
 			hs.m_hull = &rampHull;
 
-			b3ShapeDef sdef;
-			sdef.shape = &hs;
-			sdef.friction = 0.3f;
-			ramp->CreateShape(sdef);
+			b3ShapeDef sd;
+			sd.shape = &hs;
+			sd.friction = 0.3f;
+			ramp->CreateShape(sd);
 		}
 
 		{
@@ -91,10 +87,10 @@ public:
 			b3HullShape hs;
 			hs.m_hull = &rampHull;
 
-			b3ShapeDef sdef;
-			sdef.shape = &hs;
-			sdef.friction = 0.2f;
-			ramp->CreateShape(sdef);
+			b3ShapeDef sd;
+			sd.shape = &hs;
+			sd.friction = 0.2f;
+			ramp->CreateShape(sd);
 		}
 
 		{
@@ -107,10 +103,10 @@ public:
 			b3HullShape hs;
 			hs.m_hull = &rampHull;
 
-			b3ShapeDef sdef;
-			sdef.shape = &hs;
-			sdef.friction = 0.1f;
-			ramp->CreateShape(sdef);
+			b3ShapeDef sd;
+			sd.shape = &hs;
+			sd.friction = 0.1f;
+			ramp->CreateShape(sd);
 		}
 
 		{
@@ -120,14 +116,14 @@ public:
 			b3Body* body = m_world.CreateBody(bd);
 
 			b3HullShape hs;
-			hs.m_hull = &m_boxHull;
+			hs.m_hull = &b3BoxHull_identity;
 
-			b3ShapeDef sdef;
-			sdef.density = 1.0f;
-			sdef.friction = 0.2f;
-			sdef.shape = &hs;
+			b3ShapeDef sd;
+			sd.density = 1.0f;
+			sd.friction = 0.2f;
+			sd.shape = &hs;
 
-			body->CreateShape(sdef);
+			body->CreateShape(sd);
 		}
 
 		{
@@ -137,14 +133,14 @@ public:
 			b3Body* body = m_world.CreateBody(bd);
 
 			b3HullShape hs;
-			hs.m_hull = &m_boxHull;
+			hs.m_hull = &b3BoxHull_identity;
 
-			b3ShapeDef sdef;
-			sdef.density = 1.0f;
-			sdef.friction = 0.5f;
-			sdef.shape = &hs;
+			b3ShapeDef sd;
+			sd.density = 1.0f;
+			sd.friction = 0.5f;
+			sd.shape = &hs;
 
-			body->CreateShape(sdef);
+			body->CreateShape(sd);
 		}
 
 		{
@@ -154,14 +150,14 @@ public:
 			b3Body* body = m_world.CreateBody(bd);
 
 			b3HullShape hs;
-			hs.m_hull = &m_boxHull;
+			hs.m_hull = &b3BoxHull_identity;
 
-			b3ShapeDef sdef;
-			sdef.density = 1.0f;
-			sdef.friction = 0.8f;
-			sdef.shape = &hs;
+			b3ShapeDef sd;
+			sd.density = 1.0f;
+			sd.friction = 0.8f;
+			sd.shape = &hs;
 
-			body->CreateShape(sdef);
+			body->CreateShape(sd);
 		}
 	}
 

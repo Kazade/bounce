@@ -19,17 +19,11 @@
 #ifndef DISTANCE_H
 #define DISTANCE_H
 
-extern DebugDraw* g_debugDraw;
-extern Camera g_camera;
-extern Settings g_settings;
-
 class Distance : public Test
 {
 public:
 	Distance()
 	{	
-		g_camera.m_zoom = 25.0f;
-		
 		m_xfA.SetIdentity();
 		m_xfA.position.Set(-5.0f, 0.0f, 0.0f);
 		m_xfA.rotation.SetIdentity();
@@ -40,7 +34,7 @@ public:
 		m_xfB.SetIdentity();
 		m_xfB.position.Set(5.0f, 0.0f, 0.0f);
 		m_xfB.rotation.SetIdentity();
-		m_shapeB.m_hull = &m_boxHull;
+		m_shapeB.m_hull = &b3BoxHull_identity;
 
 		m_proxyA.Set(&m_shapeA, 0);
 		m_proxyB.Set(&m_shapeB, 0);

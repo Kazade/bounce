@@ -16,27 +16,44 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
+#include <bounce/common/math/vec2.h>
+#include <bounce/common/math/vec3.h>
+
 #include <bounce/common/math/mat22.h>
 #include <bounce/common/math/mat33.h>
 #include <bounce/common/math/mat44.h>
+#include <bounce/common/math/transform.h>
 
-b3Mat22 b3Mat22_zero = b3Mat22(
+const b3Vec2 b3Vec2_zero(0.0f, 0.0f);
+const b3Vec2 b3Vec2_x(1.0f, 0.0f);
+const b3Vec2 b3Vec2_y(0.0f, 1.0f);
+
+const b3Vec3 b3Vec3_zero(0.0f, 0.0f, 0.0f);
+const b3Vec3 b3Vec3_x(1.0f, 0.0f, 0.0f);
+const b3Vec3 b3Vec3_y(0.0f, 1.0f, 0.0f);
+const b3Vec3 b3Vec3_z(0.0f, 0.0f, 1.0f);
+
+const b3Mat22 b3Mat22_zero(
 	b3Vec2(0.0f, 0.0f),
 	b3Vec2(0.0f, 0.0f));
 
-b3Mat22 b3Mat22_identity = b3Mat22(
+const b3Mat22 b3Mat22_identity(
 	b3Vec2(1.0f, 0.0f),
 	b3Vec2(0.0f, 1.0f));
 
-b3Mat33 b3Mat33_zero = b3Mat33(
+const b3Mat33 b3Mat33_zero(
 	b3Vec3(0.0f, 0.0f, 0.0f),
 	b3Vec3(0.0f, 0.0f, 0.0f),
 	b3Vec3(0.0f, 0.0f, 0.0f));
 
-b3Mat33 b3Mat33_identity = b3Mat33(
+const b3Mat33 b3Mat33_identity(
 	b3Vec3(1.0f, 0.0f, 0.0f),
 	b3Vec3(0.0f, 1.0f, 0.0f),
 	b3Vec3(0.0f, 0.0f, 1.0f));
+
+const b3Transform b3Transform_identity(b3Mat33_identity, b3Vec3_zero);
+
+const b3Quat b3Quat_identity(0.0f, 0.0f, 0.0f, 1.0f);
 
 b3Vec2 b3Mat22::Solve(const b3Vec2& b) const
 {

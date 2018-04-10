@@ -81,7 +81,7 @@ public:
 	void SetConeAngle(float32 angle);
 
 	// Draw this joint.
-	void Draw(b3Draw* draw) const;
+	void Draw() const;
 private:
 	friend class b3Joint;
 	friend class b3Body;

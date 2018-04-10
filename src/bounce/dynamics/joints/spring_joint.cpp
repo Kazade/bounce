@@ -252,12 +252,13 @@ bool b3SpringJoint::SolvePositionConstraints(const b3SolverData* data)
 	return b3Abs(C) < B3_LINEAR_SLOP;
 }
 
-void b3SpringJoint::Draw(b3Draw* draw) const 
+void b3SpringJoint::Draw() const 
 {
 	b3Vec3 a = GetBodyA()->GetWorldPoint(m_localAnchorA);
-	b3Vec3 b = GetBodyB()->GetWorldPoint(m_localAnchorB);
+	b3Draw_draw->DrawPoint(a, 4.0f, b3Color_red);
 	
-	draw->DrawPoint(a, 4.0f, b3Color_red);
-	draw->DrawPoint(b, 4.0f, b3Color_green);
-	draw->DrawSegment(a, b, b3Color_yellow);
+	b3Vec3 b = GetBodyB()->GetWorldPoint(m_localAnchorB);
+	b3Draw_draw->DrawPoint(b, 4.0f, b3Color_green);
+
+	b3Draw_draw->DrawSegment(a, b, b3Color_yellow);
 }

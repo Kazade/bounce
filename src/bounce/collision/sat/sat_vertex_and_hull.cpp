@@ -20,17 +20,17 @@
 #include <bounce/collision/shapes/sphere.h>
 #include <bounce/collision/shapes/hull.h>
 
-float32 b3ProjectVertex(const b3Vec3& hull, const b3Plane& plane)
+float32 b3ProjectVertex(const b3Sphere* hull, const b3Plane& plane)
 {
-	b3Vec3 support = hull;
+	b3Vec3 support = hull->GetVertex(hull->GetSupportVertex(-plane.normal));
 	return b3Distance(support, plane);
 }
 
-b3FaceQuery b3QueryFaceSeparation(const b3Transform& xf1, const b3Vec3& hull,
+b3FaceQuery b3QueryFaceSeparation(const b3Transform& xf1, const b3Sphere* hull,
 	const b3Transform& xf2, const b3Hull* hull2)
 {
 	// Perform computations in the local space of the second hull.
-	b3Vec3 support = b3MulT(xf2, b3Mul(xf1, hull));
+	b3Vec3 support = b3MulT(xf2, b3Mul(xf1, hull->vertex));
 
 	u32 maxIndex = 0;
 	float32 maxSeparation = -B3_MAX_FLOAT;

@@ -23,7 +23,6 @@
 #include <bounce/collision/collision.h>
 
 struct b3Mesh;
-class b3Draw;
 
 struct b3ClothDef
 {
@@ -110,7 +109,7 @@ public:
 		return m_ps;
 	}
 
-	void Draw(b3Draw* draw) const;
+	void Draw() const;
 private:
 	void SolveC1();
 	void SolveC2();

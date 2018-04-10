@@ -19,16 +19,12 @@
 #ifndef COLLIDE_H
 #define COLLIDE_H
 
-extern DebugDraw* g_debugDraw;
-extern Camera g_camera;
-extern Settings g_settings;
-
 class Collide : public Test
 {
 public:
 	Collide()
 	{
-		g_camera.m_zoom = 25.0f;
+
 	}
 
 	void Step()
@@ -48,19 +44,19 @@ public:
 			wm.Initialize(&manifold, m_shapeA->m_radius, m_xfA, m_shapeB->m_radius, m_xfB);
 
 			b3Vec3 pw = wm.points[i].point;
-			b3Vec2 ps = g_camera.ConvertWorldToScreen(pw);
+			b3Vec2 ps = g_camera->ConvertWorldToScreen(pw);
 			
 			g_debugDraw->DrawPoint(pw, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
 			g_debugDraw->DrawSegment(pw, pw + wm.points[i].normal, b3Color(1.0f, 1.0f, 1.0f));
 		}
 
-		if (g_settings.drawFaces)
+		if (g_settings->drawFaces)
 		{
 			g_debugDraw->DrawShape(m_shapeA, b3Color(1.0f, 1.0f, 1.0f, 0.5f), m_xfA);
 			g_debugDraw->DrawShape(m_shapeB, b3Color(1.0f, 1.0f, 1.0f, 0.5f), m_xfB);
 		}
 		
-		if (g_settings.drawVerticesEdges)
+		if (g_settings->drawVerticesEdges)
 		{
 			m_world.DrawShape(m_xfA, m_shapeA);
 			m_world.DrawShape(m_xfB, m_shapeB);

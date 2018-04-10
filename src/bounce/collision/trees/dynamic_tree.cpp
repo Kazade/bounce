@@ -17,6 +17,7 @@
 */
 
 #include <bounce/collision/trees/dynamic_tree.h>
+#include <bounce/common/draw.h>
 
 b3DynamicTree::b3DynamicTree() 
 {
@@ -362,7 +363,7 @@ void b3DynamicTree::Validate(i32 nodeID) const
 	}
 }
 
-void b3DynamicTree::Draw(b3Draw* draw) const
+void b3DynamicTree::Draw() const
 {
 	if (m_nodeCount == 0)
 	{
@@ -385,11 +386,11 @@ void b3DynamicTree::Draw(b3Draw* draw) const
 		const b3Node* node = m_nodes + nodeIndex;
 		if (node->IsLeaf())
 		{
-			draw->DrawAABB(node->aabb, b3Color_pink);
+			b3Draw_draw->DrawAABB(node->aabb, b3Color_pink);
 		}
 		else
 		{
-			draw->DrawAABB(node->aabb, b3Color_red);
+			b3Draw_draw->DrawAABB(node->aabb, b3Color_red);
 			
 			stack.Push(node->child1);
 			stack.Push(node->child2);

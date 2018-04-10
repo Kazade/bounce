@@ -30,14 +30,13 @@
 	#include <testbed\framework\json_profiler.h>
 #endif
 
-extern RecorderProfiler g_recorderProfiler;
 
 class TestbedListener : public ProfilerListener
 {
 public:
 	void BeginEvents() override
 	{
-		g_recorderProfiler.BeginEvents();
+		m_recorderProfiler.BeginEvents();
 
 #if (PROFILE_JSON == 1)
 		m_jsonListener.BeginEvents();
@@ -47,7 +46,7 @@ public:
 
 	void EndEvents() override
 	{
-		g_recorderProfiler.EndEvents();
+		m_recorderProfiler.EndEvents();
 
 #if (PROFILE_JSON == 1)
 		m_jsonListener.EndEvents();
@@ -73,8 +72,10 @@ public:
 
 	void Duration(const char* name, float64 time) override
 	{
-		g_recorderProfiler.Add(name, time);
+		m_recorderProfiler.Add(name, time);
 	}
+
+	RecorderProfiler m_recorderProfiler;
 
 #if (PROFILE_JSON == 1)
 	JsonProfiler m_jsonListener;

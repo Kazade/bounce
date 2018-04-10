@@ -24,7 +24,6 @@
 #include <bounce/common/template/list.h>
 #include <bounce/dynamics/time_step.h>
 
-class b3Draw;
 class b3Body;
 class b3Joint;
 struct b3SolverData;
@@ -114,6 +113,12 @@ public:
 	virtual void Dump() const
 	{
 		b3Log("Dump feature not implemented for this joint type.\n");
+	}
+
+	// Draw this joint.
+	virtual void Draw() const
+	{
+		b3Log("Draw feature not implemented for this joint type.\n");
 	}
 
 	// Get the next joint in the world joint list.

@@ -19,10 +19,6 @@
 #ifndef SPRING_CLOTH_TESH_H
 #define SPRING_CLOTH_TESH_H
 
-extern DebugDraw* g_debugDraw;
-extern Camera g_camera;
-extern Settings g_settings;
-
 class ClothDragger
 {
 public:
@@ -208,28 +204,16 @@ class SpringClothTest : public Test
 public:
 	SpringClothTest() : m_clothDragger(&m_clothRay, &m_cloth)
 	{
-		g_camera.m_zoom = 25.0f;
+		g_camera->m_zoom = 25.0f;
 
 		m_clothRay.origin.SetZero();
 		m_clothRay.direction.Set(0.0f, 0.0f, -1.0f);
-		m_clothRay.fraction = g_camera.m_zFar;
+		m_clothRay.fraction = g_camera->m_zFar;
 	}
 
 	void Step()
 	{
-		float32 dt = g_settings.hertz > 0.0f ? 1.0f / g_settings.hertz : 0.0f;
-
-		if (g_settings.pause)
-		{
-			if (g_settings.singleStep)
-			{
-				g_settings.singleStep = false;
-			}
-			else
-			{
-				dt = 0.0f;
-			}
-		}
+		float32 dt = g_settings->inv_hertz;
 
 		m_cloth.Step(dt);
 		m_cloth.Apply();
@@ -245,13 +229,11 @@ public:
 			g_debugDraw->DrawShape(s, b3Color_white, xf);
 		}
 
-		m_cloth.Draw(g_debugDraw);
+		m_cloth.Draw();
 
 		b3SpringClothStep step = m_cloth.GetStep();
 
-		char text[256];
-		sprintf(text, "Iterations = %u", step.iterations);
-		g_debugDraw->DrawString(text, b3Color_white);
+		g_debugDraw->DrawString(b3Color_white, "Iterations = %u", step.iterations);
 
 		if (m_clothDragger.IsSelected() == true)
 		{

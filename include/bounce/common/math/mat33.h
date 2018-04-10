@@ -90,8 +90,8 @@ struct b3Mat33
 };
 
 // Usefull constants.
-extern b3Mat33 b3Mat33_zero;
-extern b3Mat33 b3Mat33_identity;
+extern const b3Mat33 b3Mat33_zero;
+extern const b3Mat33 b3Mat33_identity;
 
 // Add two matrices.
 inline b3Mat33 operator+(const b3Mat33& A, const b3Mat33& B) 

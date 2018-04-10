@@ -257,17 +257,33 @@ solution (solution_name)
 		language "C++"
 		location ( solution_dir .. action )
 		includedirs { external_dir, bounce_inc_dir, examples_inc_dir }
-		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.cpp" }
+		vpaths { [""] = "testbed" }
 
 		files 
 		{ 
 			examples_inc_dir .. "/testbed/framework/debug_draw.h", 
 			examples_inc_dir .. "/testbed/framework/profiler.h", 
+			examples_inc_dir .. "/testbed/framework/recorder_profiler.h", 
+			examples_inc_dir .. "/testbed/framework/json_profiler.h", 
+			examples_inc_dir .. "/testbed/framework/testbed_listener.h", 
+			
+			examples_inc_dir .. "/testbed/framework/model.h", 
+			examples_inc_dir .. "/testbed/framework/view.h", 
+			examples_inc_dir .. "/testbed/framework/controller.h", 
+			
 			examples_inc_dir .. "/testbed/tests/**.h", 
 			
 			examples_src_dir .. "/testbed/framework/profiler.cpp", 
+			examples_src_dir .. "/testbed/framework/recorder_profiler.cpp", 
+			examples_src_dir .. "/testbed/framework/json_profiler.cpp", 
+			
+			examples_inc_dir .. "/testbed/framework/model.cpp", 
+			examples_inc_dir .. "/testbed/framework/view.cpp", 
+			examples_inc_dir .. "/testbed/framework/controller.cpp", 
+			
 			examples_src_dir .. "/testbed/framework/test.cpp", 
 			examples_src_dir .. "/testbed/framework/test_entries.cpp", 
+			
 			examples_src_dir .. "/testbed/framework/main.cpp" 
 		}
 		

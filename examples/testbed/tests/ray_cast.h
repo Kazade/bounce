@@ -19,8 +19,6 @@
 #ifndef RAY_CAST_H
 #define RAY_CAST_H
 
-extern Settings g_settings;
-
 class RayCast : public Test
 {
 public:
@@ -49,7 +47,7 @@ public:
 			b3Body* body = m_world.CreateBody(bdef);
 
 			b3HullShape hs;
-			hs.m_hull = &m_boxHull;
+			hs.m_hull = &b3BoxHull_identity;
 
 			b3ShapeDef sdef;
 			sdef.shape = &hs;
@@ -91,7 +89,7 @@ public:
 			b3Body* body = m_world.CreateBody(bdef);
 
 			b3HullShape hs;
-			hs.m_hull = &m_boxHull;
+			hs.m_hull = &b3BoxHull_identity;
 
 			b3ShapeDef sdef;
 			sdef.density = 0.0f;
@@ -111,7 +109,7 @@ public:
 			b3Body* body = m_world.CreateBody(bdef);
 
 			b3HullShape hs;
-			hs.m_hull = &m_boxHull;
+			hs.m_hull = &b3BoxHull_identity;
 
 			b3ShapeDef sdef;
 			sdef.density = 0.0f;
@@ -131,7 +129,7 @@ public:
 			b3Body* body = m_world.CreateBody(bdef);
 
 			b3HullShape hs;
-			hs.m_hull = &m_boxHull;
+			hs.m_hull = &b3BoxHull_identity;
 
 			b3ShapeDef sdef;
 			sdef.density = 0.0f;
@@ -151,7 +149,7 @@ public:
 			b3Body* body = m_world.CreateBody(bdef);
 
 			b3HullShape hs;
-			hs.m_hull = &m_boxHull;
+			hs.m_hull = &b3BoxHull_identity;
 
 			b3ShapeDef sdef;
 			sdef.density = 0.0f;
@@ -228,7 +226,8 @@ public:
 
 	void Step()
 	{
-		float32 dt = g_settings.hertz > 0.0f ? 1.0f / g_settings.hertz : 0.0f;
+		float32 dt = g_settings->inv_hertz;
+		
 		b3Quat q(b3Vec3(0.0f, 1.0f, 0.0f), dt * 0.05f * B3_PI);
 		
 		m_p1 = b3Mul(q, m_p1);

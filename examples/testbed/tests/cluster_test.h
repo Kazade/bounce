@@ -21,16 +21,11 @@
 
 #include <bounce/dynamics/contacts/contact_cluster.h>
 
-extern DebugDraw* g_debugDraw;
-extern Camera g_camera;
-
 class Cluster : public Test
 {
 public:
 	Cluster()
 	{
-		g_camera.m_zoom = 10.0f;
-
 		// Initialize observations
 		for (u32 i = 0; i < 90; ++i)
 		{

@@ -21,10 +21,6 @@
 
 #include <testbed/tests/quickhull_test.h>
 
-extern DebugDraw* g_debugDraw;
-extern Camera g_camera;
-extern Settings g_settings;
-
 class GyroTest : public Test
 {
 public:

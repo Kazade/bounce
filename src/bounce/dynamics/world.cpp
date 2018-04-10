@@ -32,7 +32,6 @@ b3World::b3World() : m_bodyBlocks(sizeof(b3Body))
 {
 	b3_allocCalls = 0;
 	b3_maxAllocCalls = 0;
-	m_debugDraw = NULL;
 
 	m_flags = e_clearForcesFlag;
 	m_sleeping = false;

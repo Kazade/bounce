@@ -58,10 +58,10 @@ void b3CollideSphereAndHull(b3Manifold& manifold,
 		return;
 	}
 
-	const b3Vec3& hull1 = s1->m_center;
+	const b3Sphere hull1(s1->m_center, 0.0f);
 	const b3Hull* hull2 = s2->m_hull;
 
-	b3FaceQuery faceQuery = b3QueryFaceSeparation(xf1, hull1, xf2, hull2);
+	b3FaceQuery faceQuery = b3QueryFaceSeparation(xf1, &hull1, xf2, hull2);
 	if (faceQuery.separation > totalRadius)
 	{
 		return;
@@ -70,7 +70,7 @@ void b3CollideSphereAndHull(b3Manifold& manifold,
 	b3Plane localPlane2 = hull2->planes[faceQuery.index];
 	b3Plane plane2 = xf2 * localPlane2;
 	
-	b3Vec3 c1 = xf1 * hull1;
+	b3Vec3 c1 = xf1 * hull1.vertex;
 	b3Vec3 c2 = b3ClosestPointOnPlane(c1, plane2);
 	
 	// Ensure normal orientation to shape 2

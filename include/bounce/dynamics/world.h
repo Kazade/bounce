@@ -117,13 +117,11 @@ public:
 	const b3List2<b3Contact>& GetContactList() const;
 	b3List2<b3Contact>& GetContactList();
 
-	// Debug draw the physics entities that belong to this world.
-	// The user must implement the debug draw interface b3Draw and b3_debugDraw must have been 
-	// set to the user implementation.
-	void DebugDraw() const;
+	// Draw the entities in this world.
+	void Draw() const;
+	
+	// Draw a shape.
 	void DrawShape(const b3Transform& xf, const b3Shape* shape) const;
-	void DrawJoint(const b3Joint* joint) const;
-	void DrawContact(const b3Contact* contact) const;
 private :
 	enum b3Flags 
 	{
@@ -144,7 +142,6 @@ private :
 	bool m_warmStarting;
 	u32 m_flags;
 	b3Vec3 m_gravity;
-	b3Draw* m_debugDraw;
 
 	b3StackAllocator m_stackAllocator;
 	b3BlockPool m_bodyBlocks;

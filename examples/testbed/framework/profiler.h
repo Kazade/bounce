@@ -71,6 +71,8 @@ private:
 	ProfilerEvent* m_top;
 };
 
+extern Profiler* g_profiler;
+
 // Any implementation of this interface passed to Profiler::End will listen to profile events.
 class ProfilerListener
 {
@@ -109,5 +111,7 @@ public:
 		B3_NOT_USED(duration);
 	}
 };
+
+extern ProfilerListener* g_profilerListener;
 
 #endif

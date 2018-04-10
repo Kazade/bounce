@@ -16,52 +16,28 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef CLOTH_H
-#define CLOTH_H
+#ifndef VIEW_H
+#define VIEW_H
 
-class Cloth : public Test
+struct GLFWwindow;
+class Model;
+
+class View
 {
 public:
-	Cloth()
-	{
-		b3ClothDef def;
-		def.mesh = &m_clothMesh;
-		def.density = 0.2f;
-		def.gravity.Set(0.0f, -10.0f, 0.0f);
-		def.k1 = 0.2f;
-		def.k2 = 0.1f;
-		def.kd = 0.005f;
-		def.r = 1.0f;
+	View(GLFWwindow* window, Model* model);
 
-		m_cloth.Initialize(def);
+	~View();
 
-		b3AABB3 aabb;
-		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
-		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
+	void Command_PreDraw();
 
-		b3Particle* vs = m_cloth.GetVertices();
-		for (u32 i = 0; i < m_cloth.GetVertexCount(); ++i)
-		{
-			if (aabb.Contains(vs[i].p))
-			{
-				vs[i].im = 0.0f;
-			}
-		}
-	}
+	void Command_Draw();
 
-	void Step()
-	{
-		m_cloth.Step(g_settings->inv_hertz, g_settings->positionIterations);
-		m_cloth.Draw();
-	}
+	void Command_PostDraw();
+private:
+	GLFWwindow * m_window;
 
-	static Test* Create()
-	{
-		return new Cloth();
-	}
-
-	b3GridMesh<10, 10> m_clothMesh;
-	b3Cloth m_cloth;
+	Model* m_model;
 };
 
 #endif

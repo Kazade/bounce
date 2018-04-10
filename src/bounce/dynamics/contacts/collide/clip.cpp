@@ -21,7 +21,7 @@
 #include <bounce/collision/shapes/hull.h>
 
 void b3BuildEdge(b3ClipVertex vOut[2],
-	const b3Segment* hull)
+	const b3Capsule* hull)
 {
 	vOut[0].position = hull->vertices[0];
 	vOut[0].pair = b3MakePair(0, B3_NULL_EDGE, 0, B3_NULL_EDGE);
@@ -150,7 +150,7 @@ void b3ClipPolygonToPlane(b3ClipPolygon& pOut,
 
 // Clip a segment to edge side planes.
 u32 b3ClipEdgeToFace(b3ClipVertex vOut[2],
-	const b3ClipVertex vIn[2], const b3Segment* hull)
+	const b3ClipVertex vIn[2], const b3Capsule* hull)
 {
 	// Start from somewhere.
 	vOut[0] = vIn[0];

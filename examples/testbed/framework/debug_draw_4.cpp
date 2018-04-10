@@ -24,99 +24,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-extern Camera g_camera;
-extern DebugDraw* g_debugDraw;
-extern const char* g_logName;
-
-static B3_FORCE_INLINE b3Mat34 Convert34(const b3Transform& T)
-{
-	return b3Mat34(T.rotation.x, T.rotation.y, T.rotation.z, T.position);
-}
-
-static B3_FORCE_INLINE b3Mat44 Convert44(const b3Transform& T)
-{
-	return b3Mat44(
-		b3Vec4(T.rotation.x.x, T.rotation.x.y, T.rotation.x.z, 0.0f),
-		b3Vec4(T.rotation.y.x, T.rotation.y.y, T.rotation.y.z, 0.0f),
-		b3Vec4(T.rotation.z.x, T.rotation.z.y, T.rotation.z.z, 0.0f),
-		b3Vec4(T.position.x, T.position.y, T.position.z, 1.0f));
-}
-
-b3Mat44 Camera::BuildProjectionMatrix() const
-{
-	float32 t = tan(0.5f * m_fovy);
-	float32 sy = 1.0f / t;
-
-	float32 aspect = m_width / m_height;
-	float32 sx = 1.0f / (aspect * t);
-
-	float32 invRange = 1.0f / (m_zNear - m_zFar);
-	float32 sz = invRange * (m_zNear + m_zFar);
-	float32 tz = invRange *  m_zNear * m_zFar;
-
-	b3Mat44 m;
-	m.x = b3Vec4(sx, 0.0f, 0.0f, 0.0f);
-	m.y = b3Vec4(0.0f, sy, 0.0f, 0.0f);
-	m.z = b3Vec4(0.0f, 0.0f, sz, -1.0f);
-	m.w = b3Vec4(0.0f, 0.0f, tz, 0.0f);
-	return m;
-}
-
-b3Transform Camera::BuildWorldTransform() const
-{
-	b3Transform xf;
-	xf.rotation = b3QuatMat33(m_q);
-	xf.position = (m_zoom * xf.rotation.z) - m_center;
-	return xf;
-}
-
-b3Mat44 Camera::BuildWorldMatrix() const
-{
-	b3Transform xf = BuildWorldTransform();
-	return Convert44(xf);
-}
-
-b3Transform Camera::BuildViewTransform() const
-{
-	b3Transform xf;
-	xf.rotation = b3QuatMat33(m_q);
-	xf.position = (m_zoom * xf.rotation.z) - m_center;
-	return b3Inverse(xf);
-}
-
-b3Mat44 Camera::BuildViewMatrix() const
-{
-	b3Transform xf = BuildViewTransform();
-	return Convert44(xf);
-}
-
-b3Vec2 Camera::ConvertWorldToScreen(const b3Vec3& pw) const
-{
-	b3Vec2 ps;
-	ps.SetZero();
-	return ps;
-}
-
-Ray3 Camera::ConvertScreenToWorld(const b3Vec2& ps) const
-{
-	// Essential Math, page 250.
-	float32 t = tan(0.5f * m_fovy);
-	float32 aspect = m_width / m_height;
-
-	b3Vec3 pv;
-	pv.x = 2.0f * aspect * ps.x / m_width - aspect;
-	pv.y = -2.0f * ps.y / m_height + 1.0f;
-	pv.z = -1.0f / t;
-
-	b3Transform xf = BuildWorldTransform();
-	b3Vec3 pw = xf * pv;
-
-	Ray3 rw;
-	rw.direction = b3Normalize(pw - xf.position);
-	rw.origin = xf.position;
-	rw.fraction = m_zFar;
-	return rw;
-}
+// 
+DebugDraw* g_debugDraw = nullptr;
+Camera* g_camera = nullptr;
+const char* g_overlayName = nullptr;
 
 #define BUFFER_OFFSET(i) ((char*)NULL + (i))
 
@@ -297,8 +208,8 @@ struct DrawPoints
 
 		glUseProgram(m_programId);
 
-		b3Mat44 m1 = g_camera.BuildViewMatrix();
-		b3Mat44 m2 = g_camera.BuildProjectionMatrix();
+		b3Mat44 m1 = g_camera->BuildViewMatrix();
+		b3Mat44 m2 = g_camera->BuildProjectionMatrix();
 		b3Mat44 m = m2 * m1;
 
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
@@ -428,8 +339,8 @@ struct DrawLines
 
 		glUseProgram(m_programId);
 
-		b3Mat44 m1 = g_camera.BuildViewMatrix();
-		b3Mat44 m2 = g_camera.BuildProjectionMatrix();
+		b3Mat44 m1 = g_camera->BuildViewMatrix();
+		b3Mat44 m2 = g_camera->BuildProjectionMatrix();
 		b3Mat44 m = m2 * m1;
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
 
@@ -566,8 +477,8 @@ struct DrawTriangles
 
 		glUseProgram(m_programId);
 
-		b3Mat44 m1 = g_camera.BuildViewMatrix();
-		b3Mat44 m2 = g_camera.BuildProjectionMatrix();
+		b3Mat44 m1 = g_camera->BuildViewMatrix();
+		b3Mat44 m2 = g_camera->BuildProjectionMatrix();
 		b3Mat44 m = m2 * m1;
 
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
@@ -739,12 +650,12 @@ struct DrawWire
 	{
 		glUseProgram(m_programId);
 
-		b3Mat44 m1 = Convert44(xf);
+		b3Mat44 m1 = MakeMat44(xf);
 		m1.x = radius * m1.x;
 		m1.y = radius * m1.y;
 		m1.z = radius * m1.z;
-		b3Mat44 m2 = g_camera.BuildViewMatrix();
-		b3Mat44 m3 = g_camera.BuildProjectionMatrix();
+		b3Mat44 m2 = g_camera->BuildViewMatrix();
+		b3Mat44 m3 = g_camera->BuildProjectionMatrix();
 		b3Mat44 m = m3 * m2 * m1;
 
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
@@ -1027,13 +938,13 @@ struct DrawSolid
 	{
 		glUseProgram(m_programId);
 
-		b3Mat44 m1 = Convert44(xf);
+		b3Mat44 m1 = MakeMat44(xf);
 		m1.x = radius * m1.x;
 		m1.y = height * m1.y;
 		m1.z = radius * m1.z;
 
-		b3Mat44 m2 = g_camera.BuildViewMatrix();
-		b3Mat44 m3 = g_camera.BuildProjectionMatrix();
+		b3Mat44 m2 = g_camera->BuildViewMatrix();
+		b3Mat44 m3 = g_camera->BuildProjectionMatrix();
 		b3Mat44 m = m3 * m2 * m1;
 
 		glUniform4fv(m_colorUniform, 1, &c.r);
@@ -1061,13 +972,13 @@ struct DrawSolid
 	{
 		glUseProgram(m_programId);
 
-		b3Mat44 m1 = Convert44(xf);
+		b3Mat44 m1 = MakeMat44(xf);
 		m1.x = radius * m1.x;
 		m1.y = radius * m1.y;
 		m1.z = radius * m1.z;
 
-		b3Mat44 m2 = g_camera.BuildViewMatrix();
-		b3Mat44 m3 = g_camera.BuildProjectionMatrix();
+		b3Mat44 m2 = g_camera->BuildViewMatrix();
+		b3Mat44 m3 = g_camera->BuildProjectionMatrix();
 		b3Mat44 m = m3 * m2 * m1;
 
 		glUniform4fv(m_colorUniform, 1, &c.r);
@@ -1145,7 +1056,7 @@ void DebugDraw::DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const 
 	m_triangles->Vertex(p3, color, normal);
 
 	b3Color edgeColor(0.0f, 0.0f, 0.0f, 1.0f);
-	DrawTriangle(p2, p3, p3, edgeColor);
+	DrawTriangle(p1, p2, p3, edgeColor);
 }
 
 void DebugDraw::DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const b3Color& color1, const b3Vec3& p2, const b3Color& color2, const b3Vec3& p3, const b3Color& color3)
@@ -1155,7 +1066,7 @@ void DebugDraw::DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const 
 	m_triangles->Vertex(p3, color3, normal);
 
 	b3Color edgeColor(0.0f, 0.0f, 0.0f, 1.0f);
-	DrawTriangle(p2, p3, p3, edgeColor);
+	DrawTriangle(p1, p2, p3, edgeColor);
 }
 
 void DebugDraw::DrawPolygon(const b3Vec3* vertices, u32 count, const b3Color& color)
@@ -1405,14 +1316,19 @@ void DebugDraw::DrawAABB(const b3AABB3& aabb, const b3Color& color)
 	DrawSegment(vs[1], vs[7], color);
 }
 
-void DebugDraw::DrawString(const char* text, const b3Color& color, ...)
+void DebugDraw::DrawString(const b3Color& color, const char* text, ...)
 {
-	va_list arg;
-	va_start(arg, text);
-	ImGui::Begin(g_logName, NULL, ImVec2(0, 0), 0.0f, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
-	ImGui::TextColoredV(ImVec4(color.r, color.g, color.b, color.a), text, arg);
+	va_list args;
+	va_start(args, text);
+
+	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width, g_camera->m_height));
+
+	ImGui::Begin(g_overlayName, NULL, ImVec2(0.0f, 0.0f), 0.0f, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
+	ImGui::TextColoredV(ImVec4(color.r, color.g, color.b, color.a), text, args);
 	ImGui::End();
-	va_end(arg);
+
+	va_end(args);
 }
 
 void DebugDraw::DrawSphere(const b3SphereShape* s, const b3Color& c, const b3Transform& xf)

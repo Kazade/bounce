@@ -46,6 +46,12 @@ struct b3Mat22
 	b3Vec2 x, y;
 };
 
+// Zero matrix
+extern const b3Mat22 b3Mat22_zero;
+
+// Identity matrix
+extern const b3Mat22 b3Mat22_identity;
+
 // Multiply a matrix times a vector.
 inline b3Vec2 operator*(const b3Mat22& A, const b3Vec2& v)
 {

@@ -30,9 +30,6 @@ public:
 
 	Jenga()
 	{
-		g_camera.m_center.Set(2.0f, -2.0f, 0.0f);
-		g_camera.m_zoom = 60.0f;
-
 		{
 			b3BodyDef bd;
 			b3Body* body = m_world.CreateBody(bd);

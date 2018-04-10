@@ -20,13 +20,13 @@
 #include <bounce/collision/shapes/capsule.h>
 #include <bounce/collision/shapes/hull.h>
 
-float32 b3ProjectEdge(const b3Segment* hull, const b3Plane& plane)
+float32 b3ProjectEdge(const b3Capsule* hull, const b3Plane& plane)
 {
 	b3Vec3 support = hull->GetVertex(hull->GetSupportVertex(-plane.normal));
 	return b3Distance(support, plane);
 }
 
-b3FaceQuery b3QueryFaceSeparation(const b3Transform& xf1, const b3Segment* hull1,
+b3FaceQuery b3QueryFaceSeparation(const b3Transform& xf1, const b3Capsule* hull1,
 	const b3Transform& xf2, const b3Hull* hull2)
 {
 	// Perform computations in the local space of the first hull.
@@ -95,7 +95,7 @@ float32 b3ProjectEdge(const b3Vec3& P1, const b3Vec3& E1,
 	return b3Dot(N, P2 - P1);
 }
 
-b3EdgeQuery b3QueryEdgeSeparation(const b3Transform& xf1, const b3Segment* hull1, const b3Transform& xf2, const b3Hull* hull2)
+b3EdgeQuery b3QueryEdgeSeparation(const b3Transform& xf1, const b3Capsule* hull1, const b3Transform& xf2, const b3Hull* hull2)
 {
 	// Query minimum edge separation.
 	u32 maxIndex = 0;

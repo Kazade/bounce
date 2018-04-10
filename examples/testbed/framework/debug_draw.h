@@ -27,29 +27,34 @@ struct DrawTriangles;
 struct DrawWire;
 struct DrawSolid;
 
+//
 struct Ray3
 {
-	b3Vec3 A() const
-	{
-		return origin;
-	}
-
-	b3Vec3 B() const
-	{
-		return origin + fraction * direction;
-	}
+	b3Vec3 A() const;
+	b3Vec3 B() const;
 
 	b3Vec3 direction;
 	b3Vec3 origin;
 	float32 fraction;
 };
 
+inline b3Vec3 Ray3::A() const
+{
+	return origin;
+}
+
+inline b3Vec3 Ray3::B() const
+{
+	return origin + fraction * direction;
+}
+
+//
 class Camera
 {
 public:
 	Camera()
 	{
-		m_center.Set(0.0f, 5.0f, 0.0f);
+		m_center.SetZero();
 		m_q.SetIdentity();
 		m_width = 1024.0f;
 		m_height = 768.0f;
@@ -77,6 +82,92 @@ public:
 	float32 m_zFar;
 };
 
+inline b3Mat44 MakeMat44(const b3Transform& T)
+{
+	return b3Mat44(
+		b3Vec4(T.rotation.x.x, T.rotation.x.y, T.rotation.x.z, 0.0f),
+		b3Vec4(T.rotation.y.x, T.rotation.y.y, T.rotation.y.z, 0.0f),
+		b3Vec4(T.rotation.z.x, T.rotation.z.y, T.rotation.z.z, 0.0f),
+		b3Vec4(T.position.x, T.position.y, T.position.z, 1.0f));
+}
+
+inline b3Mat44 Camera::BuildProjectionMatrix() const
+{
+	float32 t = tan(0.5f * m_fovy);
+	float32 sy = 1.0f / t;
+
+	float32 aspect = m_width / m_height;
+	float32 sx = 1.0f / (aspect * t);
+
+	float32 invRange = 1.0f / (m_zNear - m_zFar);
+	float32 sz = invRange * (m_zNear + m_zFar);
+	float32 tz = invRange * m_zNear * m_zFar;
+
+	b3Mat44 m;
+	m.x = b3Vec4(sx, 0.0f, 0.0f, 0.0f);
+	m.y = b3Vec4(0.0f, sy, 0.0f, 0.0f);
+	m.z = b3Vec4(0.0f, 0.0f, sz, -1.0f);
+	m.w = b3Vec4(0.0f, 0.0f, tz, 0.0f);
+	return m;
+}
+
+inline b3Transform Camera::BuildWorldTransform() const
+{
+	b3Transform xf;
+	xf.rotation = b3QuatMat33(m_q);
+	xf.position = (m_zoom * xf.rotation.z) - m_center;
+	return xf;
+}
+
+inline b3Mat44 Camera::BuildWorldMatrix() const
+{
+	b3Transform xf = BuildWorldTransform();
+	return MakeMat44(xf);
+}
+
+inline b3Transform Camera::BuildViewTransform() const
+{
+	b3Transform xf;
+	xf.rotation = b3QuatMat33(m_q);
+	xf.position = (m_zoom * xf.rotation.z) - m_center;
+	return b3Inverse(xf);
+}
+
+inline b3Mat44 Camera::BuildViewMatrix() const
+{
+	b3Transform xf = BuildViewTransform();
+	return MakeMat44(xf);
+}
+
+inline b3Vec2 Camera::ConvertWorldToScreen(const b3Vec3& pw) const
+{
+	b3Vec2 ps;
+	ps.SetZero();
+	return ps;
+}
+
+inline Ray3 Camera::ConvertScreenToWorld(const b3Vec2& ps) const
+{
+	// Essential Math, page 250.
+	float32 t = tan(0.5f * m_fovy);
+	float32 aspect = m_width / m_height;
+
+	b3Vec3 pv;
+	pv.x = 2.0f * aspect * ps.x / m_width - aspect;
+	pv.y = -2.0f * ps.y / m_height + 1.0f;
+	pv.z = -1.0f / t;
+
+	b3Transform xf = BuildWorldTransform();
+	b3Vec3 pw = xf * pv;
+
+	Ray3 rw;
+	rw.direction = b3Normalize(pw - xf.position);
+	rw.origin = xf.position;
+	rw.fraction = m_zFar;
+	return rw;
+}
+
+//
 class DebugDraw : public b3Draw
 {
 public:
@@ -114,8 +205,8 @@ public:
 	void DrawTransform(const b3Transform& xf);
 
 	//
-	void DrawString(const char* string, const b3Color& color, ...);
-
+	void DrawString(const b3Color& color, const char* string, ...);
+	
 	void DrawSphere(const b3SphereShape* s, const b3Color& c, const b3Transform& xf);
 
 	void DrawCapsule(const b3CapsuleShape* s, const b3Color& c, const b3Transform& xf);
@@ -138,5 +229,9 @@ private:
 	DrawWire* m_wire;
 	DrawSolid* m_solid;
 };
+
+extern DebugDraw* g_debugDraw;
+extern Camera* g_camera;
+extern const char* g_overlayName;
 
 #endif

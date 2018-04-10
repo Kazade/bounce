@@ -24,8 +24,6 @@ class MultiplePendulum : public Test
 public:
 	MultiplePendulum()
 	{
-		g_camera.m_zoom = 10.0f;
-
 		b3Vec3 axis(0.0f, 0.0f, 1.0f);
 
 		b3Body* bs[6];

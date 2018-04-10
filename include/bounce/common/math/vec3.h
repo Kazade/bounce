@@ -106,6 +106,18 @@ struct b3Vec3
 	float32 x, y, z;
 };
 
+// Zero vector
+extern const b3Vec3 b3Vec3_zero;
+
+// Right vector
+extern const b3Vec3 b3Vec3_x;
+
+// Up vector 
+extern const b3Vec3 b3Vec3_y;
+
+// Forward vector 
+extern const b3Vec3 b3Vec3_z;
+
 // Negate a vector.
 inline b3Vec3 operator-(const b3Vec3& v) 
 {

@@ -21,10 +21,6 @@
 
 #include <testbed/tests/quickhull_test.h>
 
-extern DebugDraw* g_debugDraw;
-extern Camera g_camera;
-extern Settings g_settings;
-
 class Tumbler : public Test
 {
 public:
@@ -35,10 +31,6 @@ public:
 
 	Tumbler()
 	{
-		g_camera.m_center.Set(0.0f, 10.0f, 0.0f);
-		g_camera.m_q.SetIdentity();
-		g_camera.m_zoom = 150.0f;
-
 		{
 			b3BodyDef bd;
 			b3Body* ground = m_world.CreateBody(bd);

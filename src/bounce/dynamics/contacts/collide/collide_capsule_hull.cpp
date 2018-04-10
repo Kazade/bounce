@@ -94,13 +94,11 @@ static void b3BuildFaceContact(b3Manifold& manifold,
 	const b3Transform& xf2, u32 index2, const b3HullShape* s2)
 {
 	// Clip edge 1 against the side planes of the face 2.
-	b3Segment segment1;
-	segment1.vertices[0] = xf1 * s1->m_centers[0];
-	segment1.vertices[1] = xf1 * s1->m_centers[1];
+	const b3Capsule hull1(xf1 * s1->m_centers[0], xf1 * s1->m_centers[1], 0.0f);
 	float32 r1 = s1->m_radius;
 
 	b3ClipVertex edge1[2];
-	b3BuildEdge(edge1, &segment1);
+	b3BuildEdge(edge1, &hull1);
 	
 	const b3Hull* hull2 = s2->m_hull;
 	float32 r2 = s2->m_radius;
@@ -162,10 +160,7 @@ void b3CollideCapsuleAndHull(b3Manifold& manifold,
 		return;
 	}
 
-	b3Segment hull1;
-	hull1.vertices[0] = s1->m_centers[0];
-	hull1.vertices[1] = s1->m_centers[1];
-	
+	const b3Capsule hull1(s1->m_centers[0], s1->m_centers[1], 0.0f);
 	const b3Hull* hull2 = s2->m_hull;
 
 	if (gjk.distance > B3_EPSILON)

@@ -16,52 +16,44 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef CLOTH_H
-#define CLOTH_H
+#ifndef CONTROLLER_H
+#define CONTROLLER_H
 
-class Cloth : public Test
+#include <bounce/common/math/vec2.h>
+
+class Model;
+class View;
+
+class Controller
 {
 public:
-	Cloth()
-	{
-		b3ClothDef def;
-		def.mesh = &m_clothMesh;
-		def.density = 0.2f;
-		def.gravity.Set(0.0f, -10.0f, 0.0f);
-		def.k1 = 0.2f;
-		def.k2 = 0.1f;
-		def.kd = 0.005f;
-		def.r = 1.0f;
+	Controller(Model* model, View* view);
 
-		m_cloth.Initialize(def);
+	~Controller();
 
-		b3AABB3 aabb;
-		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
-		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
+	void Event_SetWindowSize(u32 w, u32 h);
+	
+	void Event_Press_Key(int button);
+	void Event_Release_Key(int button);
 
-		b3Particle* vs = m_cloth.GetVertices();
-		for (u32 i = 0; i < m_cloth.GetVertexCount(); ++i)
-		{
-			if (aabb.Contains(vs[i].p))
-			{
-				vs[i].im = 0.0f;
-			}
-		}
-	}
+	void Event_Press_Mouse(int button);
+	void Event_Release_Mouse(int button);
 
-	void Step()
-	{
-		m_cloth.Step(g_settings->inv_hertz, g_settings->positionIterations);
-		m_cloth.Draw();
-	}
+	void Event_Move_Cursor(float32 x, float32 y);
+	void Event_Scroll(float32 dx, float32 dy);
+private:
+	friend class Model;
+	friend class View;
 
-	static Test* Create()
-	{
-		return new Cloth();
-	}
+	Model* m_model;
+	View* m_view;
 
-	b3GridMesh<10, 10> m_clothMesh;
-	b3Cloth m_cloth;
+	bool m_leftDown;
+	bool m_rightDown;
+	bool m_shiftDown;
+	b3Vec2 m_ps0;
+
+	// Ray3 m_ray0;
 };
 
 #endif

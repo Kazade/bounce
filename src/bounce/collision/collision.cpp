@@ -16,52 +16,12 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef CLOTH_H
-#define CLOTH_H
+#include <bounce/collision/shapes/sphere.h>
+#include <bounce/collision/shapes/capsule.h>
+#include <bounce/collision/shapes/box_hull.h>
 
-class Cloth : public Test
-{
-public:
-	Cloth()
-	{
-		b3ClothDef def;
-		def.mesh = &m_clothMesh;
-		def.density = 0.2f;
-		def.gravity.Set(0.0f, -10.0f, 0.0f);
-		def.k1 = 0.2f;
-		def.k2 = 0.1f;
-		def.kd = 0.005f;
-		def.r = 1.0f;
+const b3Sphere b3Sphere_identity(b3Vec3_zero, 1.0f); 
 
-		m_cloth.Initialize(def);
+const b3Capsule b3Capsule_identity(b3Vec3(0.0f, -0.5f, 0.0f), b3Vec3(0.0f, 0.5f, 0.0f), 1.0f);
 
-		b3AABB3 aabb;
-		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
-		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
-
-		b3Particle* vs = m_cloth.GetVertices();
-		for (u32 i = 0; i < m_cloth.GetVertexCount(); ++i)
-		{
-			if (aabb.Contains(vs[i].p))
-			{
-				vs[i].im = 0.0f;
-			}
-		}
-	}
-
-	void Step()
-	{
-		m_cloth.Step(g_settings->inv_hertz, g_settings->positionIterations);
-		m_cloth.Draw();
-	}
-
-	static Test* Create()
-	{
-		return new Cloth();
-	}
-
-	b3GridMesh<10, 10> m_clothMesh;
-	b3Cloth m_cloth;
-};
-
-#endif
+const b3BoxHull b3BoxHull_identity(1.0f, 1.0f, 1.0f);

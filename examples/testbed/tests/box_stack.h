@@ -31,9 +31,6 @@ public:
 
 	BoxStack()
 	{
-		g_camera.m_center.Set(2.5f, -2.0f, 5.5f);
-		g_camera.m_zoom = 40.0f;
-
 		{
 			b3BodyDef bdef;
 			bdef.type = b3BodyType::e_staticBody;
@@ -51,14 +48,6 @@ public:
 		}
 
 		b3Vec3 boxScale(1.0f, 1.0f, 1.0f);
-
-		static b3BoxHull boxHull;
-
-		b3Transform m;
-		m.rotation = b3Diagonal(boxScale.x, boxScale.y, boxScale.z);
-		m.position.SetZero();
-
-		boxHull.SetTransform(m);
 
 		b3Vec3 stackOrigin(0.0f, 4.05f, 0.0f);
 
@@ -81,7 +70,7 @@ public:
 					b3Body* body = m_world.CreateBody(bdef);
 
 					b3HullShape hs;
-					hs.m_hull = &boxHull;
+					hs.m_hull = &b3BoxHull_identity;
 
 					b3ShapeDef sdef;
 					sdef.density = 0.1f;

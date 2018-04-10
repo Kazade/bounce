@@ -31,6 +31,13 @@ struct b3Transform
 	// Default ctor does nothing for performance.
 	b3Transform() { }
 	
+	// Set this transform from a rotation matrix and a translation vector.
+	b3Transform(const b3Mat33& _rotation, const b3Vec3& _translation)
+	{
+		rotation = _rotation;
+		position = _translation;
+	}
+	
 	// Set this transform from a rotation quaternion and a translation vector.
 	b3Transform(const b3Quat& _rotation, const b3Vec3& _translation)
 	{
@@ -48,6 +55,9 @@ struct b3Transform
 	b3Mat33 rotation;
 	b3Vec3 position; // in fact a translation
 };
+
+// Identity transformation
+extern const b3Transform b3Transform_identity;
 
 // Multiply a transform times a vector.
 inline b3Vec3 b3Mul(const b3Transform& T, const b3Vec3& v)

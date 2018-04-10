@@ -19,10 +19,6 @@
 #ifndef SPRING_CLOTH_H
 #define SPRING_CLOTH_H
 
-extern DebugDraw* g_debugDraw;
-extern Camera g_camera;
-extern Settings g_settings;
-
 class SpringCloth : public SpringClothTest
 {
 public:

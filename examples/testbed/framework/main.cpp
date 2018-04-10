@@ -16,166 +16,53 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#if defined(__APPLE_CC__)
-#include <OpenGL/gl3.h>
+#if defined (U_OPENGL_2)
+	#include <glad_2/glad.h>
+#elif defined (U_OPENGL_4)
+	#include <glad_4/glad.h>
 #else
-
-#if defined(U_OPENGL_2)
-#include <glad_2/glad.h>
-#elif defined(U_OPENGL_4)
-#include <glad_4/glad.h>
-#else
-
+	// error
 #endif
 
-#endif
-
-#include <imgui/imgui.h>
-
-#if defined(U_OPENGL_2)
-#include <imgui/imgui_impl_glfw_gl2.h>
-#elif defined(U_OPENGL_4)
-#include <imgui/imgui_impl_glfw_gl3.h>
-#else
-// error
-#endif
-
-#include <testbed/framework/testbed_listener.h>
-#include <testbed/tests/test.h>
-#include <glfw/glfw3.h>
+#include <testbed/framework/model.h>
+#include <testbed/framework/view.h>
+#include <testbed/framework/controller.h>
 
 //
 GLFWwindow* g_window;
-Settings g_settings;
-Test* g_test;
-u32 g_testCount;
-Camera g_camera;
-DebugDraw* g_debugDraw;
-Profiler* g_profiler;
-TestbedListener g_testbedListener;
-ProfilerListener* g_profilerListener = &g_testbedListener;
-RecorderProfiler g_recorderProfiler;
-bool g_leftDown;
-bool g_rightDown;
-bool g_shiftDown;
-b3Vec2 g_ps0;
-const char* g_logName = { "log" };
 
-// These two functions below implement Bounce's profiling interfaces.
-// If you're not concerned with profiling then just define two slut functions.
-bool b3PushProfileScope(const char* name)
+//
+Model* g_model;
+View* g_view;
+Controller* g_controller;
+
+static void WindowSize(GLFWwindow* ww, int w, int h)
 {
-	return g_profiler->PushEvent(name);
+	g_controller->Event_SetWindowSize(u32(w), u32(h));
 }
 
-void b3PopProfileScope()
+static void CursorMove(GLFWwindow* w, double x, double y)
 {
-	g_profiler->PopEvent();
+	g_controller->Event_Move_Cursor(float32(x), float32(y));
 }
 
-static void WindowSize(int w, int h)
+static void WheelScroll(GLFWwindow* w, double dx, double dy)
 {
-	g_camera.m_width = float32(w);
-	g_camera.m_height = float32(h);
-}
-
-static void MouseMove(GLFWwindow* w, double x, double y)
-{
-	b3Vec2 ps;
-	ps.Set(float32(x), float32(y));
-
-	b3Vec2 dp = ps - g_ps0;
-	g_ps0 = ps;
-
-	Ray3 pw = g_camera.ConvertScreenToWorld(ps);
-
-	float32 nx = b3Clamp(dp.x, -1.0f, 1.0f);
-	float32 ny = b3Clamp(dp.y, -1.0f, 1.0f);
-
-	if (g_shiftDown)
-	{
-		if (g_leftDown)
-		{
-			// Negate angles to do positive rotations (CCW) of the world.
-			float32 angleY = 0.005f * B3_PI * -ny;
-			float32 angleX = 0.005f * B3_PI * -nx;
-
-			b3Quat qx = b3QuatRotationX(angleY);
-			b3Quat qy = b3QuatRotationY(angleX);
-
-			g_camera.m_q = g_camera.m_q * qx;
-			g_camera.m_q = qy * g_camera.m_q;
-			g_camera.m_q.Normalize();
-		}
-
-		if (g_rightDown)
-		{
-			b3Transform xf = g_camera.BuildWorldTransform();
-			g_camera.m_center += 0.2f * nx * xf.rotation.x;
-			g_camera.m_center += 0.2f * -ny * xf.rotation.y;
-		}
-	}
-	else
-	{
-		g_test->MouseMove(pw);
-	}
-}
-
-static void MouseWheel(GLFWwindow* w, double dx, double dy)
-{
-	float32 n = b3Clamp(float32(dy), -1.0f, 1.0f);
-	if (g_shiftDown)
-	{
-		g_camera.m_zoom += 0.5f * -n;
-	}
+	g_controller->Event_Scroll(float32(dx), float32(dy));
 }
 
 static void MouseButton(GLFWwindow* w, int button, int action, int mods)
 {
-	double x, y;
-	glfwGetCursorPos(w, &x, &y);
-	b3Vec2 p;
-	p.Set(float32(x), float32(y));
-
-	Ray3 pw = g_camera.ConvertScreenToWorld(p);
-
 	switch (action)
 	{
 	case GLFW_PRESS:
 	{
-		if (button == GLFW_MOUSE_BUTTON_LEFT)
-		{
-			g_leftDown = true;
-
-			if (g_shiftDown == false)
-			{
-				g_test->MouseLeftDown(pw);
-			}
-		}
-
-		if (button == GLFW_MOUSE_BUTTON_RIGHT)
-		{
-			g_rightDown = true;
-		}
-
+		g_controller->Event_Press_Mouse(button);
 		break;
 	}
 	case GLFW_RELEASE:
 	{
-		if (button == GLFW_MOUSE_BUTTON_LEFT)
-		{
-			g_leftDown = false;
-
-			if (g_shiftDown == false)
-			{
-				g_test->MouseLeftUp(pw);
-			}
-		}
-
-		if (button == GLFW_MOUSE_BUTTON_RIGHT)
-		{
-			g_rightDown = false;
-		}
+		g_controller->Event_Release_Mouse(button);
 		break;
 	}
 	default:
@@ -191,43 +78,13 @@ static void KeyButton(GLFWwindow* w, int button, int scancode, int action, int m
 	{
 	case GLFW_PRESS:
 	{
-		if (button == GLFW_KEY_LEFT_SHIFT)
-		{
-			g_shiftDown = true;
-			g_test->KeyDown(button);
-		}
-
-		if (g_shiftDown)
-		{
-			if (button == GLFW_KEY_DOWN)
-			{
-				g_camera.m_zoom += 0.2f;
-			}
-
-			if (button == GLFW_KEY_UP)
-			{
-				g_camera.m_zoom -= 0.2f;
-			}
-		}
-		else
-		{
-			g_test->KeyDown(button);
-		}
-
+		g_controller->Event_Press_Key(button);
+		
 		break;
 	}
 	case GLFW_RELEASE:
 	{
-		if (button == GLFW_KEY_LEFT_SHIFT)
-		{
-			g_shiftDown = false;
-		}
-
-		if (g_shiftDown == false)
-		{
-			g_test->KeyUp(button);
-		}
-
+		g_controller->Event_Release_Key(button);
 		break;
 	}
 	default:
@@ -237,303 +94,34 @@ static void KeyButton(GLFWwindow* w, int button, int scancode, int action, int m
 	}
 }
 
-static inline bool ImGui_GLFW_GL_Init(GLFWwindow* w, bool install_callbacks)
-{
-
-#if defined(U_OPENGL_2)
-
-	return ImGui_ImplGlfwGL2_Init(g_window, false);
-
-#elif defined(U_OPENGL_4)
-
-	return ImGui_ImplGlfwGL3_Init(g_window, false);
-
-#else
-
-	// error
-
-#endif
-
-}
-
-static inline void ImGui_GLFW_GL_Shutdown()
-{
-
-#if defined(U_OPENGL_2)
-
-	ImGui_ImplGlfwGL2_Shutdown();
-
-#elif defined(U_OPENGL_4)
-
-	ImGui_ImplGlfwGL3_Shutdown();
-
-#else
-
-	// error
-
-#endif
-
-}
-
-static inline void ImGui_GLFW_GL_NewFrame()
-{
-
-#if defined(U_OPENGL_2)
-
-	ImGui_ImplGlfwGL2_NewFrame();
-
-#elif defined(U_OPENGL_4)
-	
-	ImGui_ImplGlfwGL3_NewFrame();
-
-#else
-
-	// error
-
-#endif
-
-}
-
-static inline void ImGui_GLFW_GL_RenderDrawData(ImDrawData* data)
-{
-
-#if defined(U_OPENGL_2)
-
-	ImGui_ImplGlfwGL2_RenderDrawData(data);
-
-#elif defined(U_OPENGL_4)
-
-	ImGui_ImplGlfwGL3_RenderDrawData(data);
-
-#else
-
-	// error
-
-#endif
-
-}
-
-static void Char(GLFWwindow* w, unsigned int codepoint)
-{
-	ImGui_ImplGlfw_CharCallback(w, codepoint);
-}
-
-static void CreateInterface()
-{
-	ImGui::CreateContext();
-
-	ImGuiIO& io = ImGui::GetIO();
-	io.Fonts[0].AddFontDefault();
-
-	ImGui_GLFW_GL_Init(g_window, false);
-
-	ImGui::StyleColorsDark();
-}
-
-static void DestroyInterface()
-{
-	ImGui_GLFW_GL_Shutdown();
-
-	ImGui::DestroyContext();
-}
-
-static bool GetTestName(void*, int idx, const char** name)
-{
-	*name = g_tests[idx].name;
-	return true;
-}
-
-static void Interface()
-{
-	ImGui::SetNextWindowPos(ImVec2(g_camera.m_width - 250.0f, 0.0f));
-	ImGui::SetNextWindowSize(ImVec2(250.0f, g_camera.m_height));
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-
-	ImGui::Begin("Controls", NULL, ImVec2(0.0f, 0.0f), 0.25f, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-
-	ImGui::PushItemWidth(-1.0f);
-
-	ImGui::Text("Test");
-	if (ImGui::Combo("##Test", &g_settings.testID, GetTestName, NULL, g_testCount, g_testCount))
-	{
-		g_settings.lastTestID = -1;
-	}
-
-	ImVec2 buttonSize = ImVec2(-1, 0);
-	if (ImGui::Button("Restart", buttonSize))
-	{
-		g_settings.lastTestID = -1;
-	}
-	if (ImGui::Button("Previous", buttonSize))
-	{
-		g_settings.testID = b3Clamp(g_settings.testID - 1, 0, int(g_testCount) - 1);
-		g_settings.lastTestID = -1;
-	}
-	if (ImGui::Button("Next", buttonSize))
-	{
-		g_settings.testID = b3Clamp(g_settings.testID + 1, 0, int(g_testCount) - 1);
-		g_settings.lastTestID = -1;
-	}
-	if (ImGui::Button("Dump", buttonSize))
-	{
-		if (g_test)
-		{
-			g_test->Dump();
-		}
-	}
-	if (ImGui::Button("Exit", buttonSize))
-	{
-		glfwSetWindowShouldClose(g_window, true);
-	}
-
-	ImGui::Separator();
-
-	ImGui::Text("Step");
-
-	ImGui::Text("Hertz");
-	ImGui::SliderFloat("##Hertz", &g_settings.hertz, 0.0f, 240.0f, "%.1f");
-	ImGui::Text("Velocity Iterations");
-	ImGui::SliderInt("##Velocity Iterations", &g_settings.velocityIterations, 0, 50);
-	ImGui::Text("Position Iterations");
-	ImGui::SliderInt("#Position Iterations", &g_settings.positionIterations, 0, 50);
-	ImGui::Checkbox("Sleep", &g_settings.sleep);
-	ImGui::Checkbox("Convex Cache", &g_settings.convexCache);
-	ImGui::Checkbox("Warm Start", &g_settings.warmStart);
-
-	if (ImGui::Button("Play/Pause", buttonSize))
-	{
-		g_settings.pause = !g_settings.pause;
-	}
-	if (ImGui::Button("Single Step", buttonSize))
-	{
-		g_settings.pause = true;
-		g_settings.singleStep = true;
-	}
-
-	ImGui::Separator();
-
-	ImGui::Text("View");
-	ImGui::Checkbox("Grid", &g_settings.drawGrid);
-	ImGui::Checkbox("Vertices and Edges", &g_settings.drawVerticesEdges);
-	ImGui::Checkbox("Faces", &g_settings.drawFaces);
-	ImGui::Checkbox("Center of Masses", &g_settings.drawCenterOfMasses);
-	ImGui::Checkbox("Bounding Boxes", &g_settings.drawBounds);
-	ImGui::Checkbox("Joints", &g_settings.drawJoints);
-	ImGui::Checkbox("Contact Points", &g_settings.drawContactPoints);
-	ImGui::Checkbox("Contact Normals", &g_settings.drawContactNormals);
-	ImGui::Checkbox("Contact Tangents", &g_settings.drawContactTangents);
-	ImGui::Checkbox("Contact Polygons", &g_settings.drawContactPolygons);
-	ImGui::Checkbox("Statistics", &g_settings.drawStats);
-	ImGui::Checkbox("Profile", &g_settings.drawProfile);
-
-	ImGui::End();
-	ImGui::PopStyleVar();
-}
-
-static void Step()
-{
-	if (g_settings.pause)
-	{
-		g_debugDraw->DrawString("*PAUSED*", b3Color_white);
-	}
-	else
-	{
-		g_debugDraw->DrawString("*PLAYING*", b3Color_white);
-	}
-
-	if (g_settings.drawGrid)
-	{
-		b3Color color(0.2f, 0.2f, 0.2f, 1.0f);
-
-		b3Vec3 pn(0.0f, 1.0f, 0.0f);
-		b3Vec3 p(0.0f, 0.0f, 0.0f);
-		g_debugDraw->DrawCircle(pn, p, 1.0f, color);
-
-		int n = 20;
-
-		b3Vec3 t;
-		t.x = -0.5f * float32(n);
-		t.y = 0.0f;
-		t.z = -0.5f * float32(n);
-
-		for (int i = 0; i < n; i += 1)
-		{
-			for (int j = 0; j < n; j += 1)
-			{
-				b3Vec3 vs[4];
-				vs[0] = b3Vec3((float)i, 0.0f, (float)j);
-				vs[1] = b3Vec3((float)i, 0.0f, (float)j + 1);
-				vs[2] = b3Vec3((float)i + 1, 0.0f, (float)j + 1);
-				vs[3] = b3Vec3((float)i + 1, 0.0f, (float)j);
-
-				for (u32 k = 0; k < 4; ++k)
-				{
-					vs[k] += t;
-				}
-
-				g_debugDraw->DrawPolygon(vs, 4, color);
-			}
-		}
-	}
-
-	if (g_settings.testID != g_settings.lastTestID)
-	{
-		delete g_test;
-		g_settings.lastTestID = g_settings.testID;
-		g_test = g_tests[g_settings.testID].create();
-		g_settings.pause = true;
-	}
-
-	g_test->Step();
-	g_debugDraw->Submit();
-}
-
 static void Run()
 {
-	glFrontFace(GL_CCW);
-	glCullFace(GL_BACK);
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	int w, h;
+	glfwGetWindowSize(g_window, &w, &h);
+	g_controller->Event_SetWindowSize(u32(w), u32(h));
 
-	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-	glClearDepth(1.0f);
-
-	double t1 = glfwGetTime();
 	double frameTime = 0.0;
 
 	while (glfwWindowShouldClose(g_window) == 0)
 	{
-		int width, height;
-		glfwGetWindowSize(g_window, &width, &height);
-		g_camera.m_width = float32(width);
-		g_camera.m_height = float32(height);
+		double time1 = glfwGetTime();
+		
+		g_view->Command_PreDraw();
 
-		glViewport(0, 0, width, height);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		g_view->Command_Draw();
 
-		ImGui_GLFW_GL_NewFrame();
+		g_debugDraw->DrawString(b3Color_yellow, "%.2f (ms)", 1000.0 * frameTime);
 
-		ImGui::SetNextWindowPos(ImVec2(0, 0));
-		ImGui::SetNextWindowSize(ImVec2((float)g_camera.m_width, (float)g_camera.m_height));
-		ImGui::Begin("Overlay", NULL, ImVec2(0, 0), 0.0f, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
-		ImGui::SetCursorPos(ImVec2(5, (float)g_camera.m_height - 20));
-		ImGui::Text("%.1f ms", 1000.0 * frameTime);
-		ImGui::End();
+		g_model->Command_Step();
 
-		Interface();
-		Step();
+		g_view->Command_PostDraw();
 
-		double t = glfwGetTime();
-		frameTime = t - t1;
-		t1 = t;
-
-		ImGui::Render();
-		ImGui_GLFW_GL_RenderDrawData(ImGui::GetDrawData());
+		double time2 = glfwGetTime();
+		
+		double fraction = 0.9;
+		frameTime = fraction * frameTime + (1.0 - fraction) * (time2 - time1);
 
 		glfwSwapBuffers(g_window);
-
 		glfwPollEvents();
 	}
 }
@@ -542,7 +130,8 @@ int main(int argc, char** args)
 {
 #if defined(_WIN32)
 	// Report memory leaks
-	_CrtSetDbgFlag(_CRTDBG_LEAK_CHECK_DF | _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG));
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF | _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG));
+	//_CrtSetBreakAlloc(x);
 #endif
 
 	if (glfwInit() == 0)
@@ -556,28 +145,22 @@ int main(int argc, char** args)
 	char title[256];
 	sprintf(title, "Bounce Testbed Version %d.%d.%d", b3_version.major, b3_version.minor, b3_version.revision);
 
-#if defined(__APPLE__)
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-#endif
-
 	g_window = glfwCreateWindow(1024, 768, title, NULL, NULL);
 	if (g_window == NULL)
 	{
-		fprintf(stderr, "Failed to open GLFW window\n");
+		fprintf(stderr, "Failed to create GLFW window\n");
 		glfwTerminate();
 		return -1;
 	}
-
-	glfwMakeContextCurrent(g_window);
-	glfwSetCursorPosCallback(g_window, MouseMove);
-	glfwSetScrollCallback(g_window, MouseWheel);
+	
+	glfwSetWindowSizeCallback(g_window, WindowSize);
+	glfwSetCursorPosCallback(g_window, CursorMove);
+	glfwSetScrollCallback(g_window, WheelScroll);
 	glfwSetMouseButtonCallback(g_window, MouseButton);
 	glfwSetKeyCallback(g_window, KeyButton);
-	glfwSetCharCallback(g_window, Char);
 	glfwSwapInterval(1);
+
+	glfwMakeContextCurrent(g_window);
 
 	if (gladLoadGL() == 0)
 	{
@@ -589,48 +172,27 @@ int main(int argc, char** args)
 
 	printf("OpenGL %s, GLSL %s\n", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
 
-	g_leftDown = false;
-	g_rightDown = false;
-	g_shiftDown = false;
-	g_ps0.SetZero();
+	// 
+	g_model = new Model();
+	g_view = new View(g_window, g_model);
+	g_controller = new Controller(g_model, g_view);
 
-	// Create UI
-	CreateInterface();
-
-	// Create profiler
-	g_profiler = new Profiler();
-
-	// Create renderer
-	g_debugDraw = new DebugDraw();
-
-	// Run the testbed
-	g_testCount = 0;
-	while (g_tests[g_testCount].create != NULL)
-	{
-		++g_testCount;
-	}
-	g_test = NULL;
-
+	// Run
 	Run();
 
-	// Destroy the last test
-	if (g_test)
-	{
-		delete g_test;
-		g_test = NULL;
-	}
+	//
+	delete g_controller;
+	g_controller = nullptr;
 
-	// Destroy renderer
-	delete g_debugDraw;
+	delete g_view;
+	g_view = nullptr;
 
-	// Destroy profiler
-	delete g_profiler;
+	delete g_model;
+	g_model = nullptr;
 
-	// Destroy UI
-	DestroyInterface();
-
-	// Destroy g_window
+	// 
 	glfwTerminate();
+	g_window = nullptr;
 
 	return 0;
 }

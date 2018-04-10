@@ -19,9 +19,6 @@
 #ifndef PENDULUM_H
 #define PENDULUM_H
 
-extern Settings g_settings;
-extern DebugDraw* g_debugDraw;
-
 class SinglePendulum : public Test
 {
 public:
@@ -40,19 +37,7 @@ public:
 
 	void Step()
 	{
-		float32 h = g_settings.hertz > 0.0f ? 1.0f / g_settings.hertz : 0.0f;
-		
-		if (g_settings.pause)
-		{
-			if (g_settings.singleStep)
-			{
-				g_settings.singleStep = false;
-			}
-			else
-			{
-				h = 0.0f;
-			}
-		}
+		float32 h = g_settings->inv_hertz;
 
 		// Solution (acceleration)
 		float32 omega_dot = -m_g / m_r * sin(m_theta);
@@ -83,9 +68,8 @@ public:
 		// Lagrangian
 		float32 L = T - V;
 
-		static char s[256];
-		sprintf(s, "T = %f \nV = %f \nL = %f", T, V, L);
-		g_debugDraw->DrawString(s, b3Color_white);
+		//
+		g_debugDraw->DrawString(b3Color_white, "T = %f \nV = %f \nL = %f", T, V, L);
 	}
 
 	static Test* Create()

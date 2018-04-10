@@ -117,6 +117,11 @@ public :
 	u32 m_flags;
 };
 
+// The debug drawer interface used by Bounce. 
+// You should set this to an implementation 
+// before calling any function that uses the interface.
+extern b3Draw* b3Draw_draw;
+
 inline void b3Draw::SetFlags(u32 flags)
 {
 	m_flags = flags;

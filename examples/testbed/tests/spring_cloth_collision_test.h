@@ -19,10 +19,6 @@
 #ifndef SPRING_CLOTH_COLLISION_H
 #define SPRING_CLOTH_COLLISION_H
 
-extern DebugDraw* g_debugDraw;
-extern Camera g_camera;
-extern Settings g_settings;
-
 class SpringClothCollision : public SpringClothTest
 {
 public:

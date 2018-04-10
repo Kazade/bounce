@@ -21,8 +21,6 @@
 
 #include <bounce/common/math/transform.h>
 
-class b3Draw;
-
 struct b3RopeBody;
 
 //
@@ -86,7 +84,7 @@ public:
 	void Step(float32 dt);
 
 	//
-	void Draw(b3Draw* draw) const;
+	void Draw() const;
 private:
 	//
 	float32 m_kd1, m_kd2;

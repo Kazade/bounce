@@ -23,6 +23,7 @@
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/collision/shapes/mesh.h>
 #include <bounce/common/memory/stack_allocator.h>
+#include <bounce/common/draw.h>
 
 #define B3_FORCE_THRESHOLD (0.1f)
 
@@ -610,7 +611,7 @@ void b3SpringCloth::Apply() const
 	}
 }
 
-void b3SpringCloth::Draw(b3Draw* draw) const
+void b3SpringCloth::Draw() const
 {
 	const b3Mesh* m = m_mesh;
 
@@ -620,16 +621,16 @@ void b3SpringCloth::Draw(b3Draw* draw) const
 		{
 			if (m_contacts[i].Fn < B3_FORCE_THRESHOLD)
 			{
-				draw->DrawPoint(m_x[i], 6.0f, b3Color_yellow);
+				b3Draw_draw->DrawPoint(m_x[i], 6.0f, b3Color_yellow);
 			}
 			else
 			{
-				draw->DrawPoint(m_x[i], 6.0f, b3Color_red);
+				b3Draw_draw->DrawPoint(m_x[i], 6.0f, b3Color_red);
 			}
 		}
 		else
 		{
-			draw->DrawPoint(m_x[i], 6.0f, b3Color_green);
+			b3Draw_draw->DrawPoint(m_x[i], 6.0f, b3Color_green);
 		}
 	}
 
@@ -646,7 +647,7 @@ void b3SpringCloth::Draw(b3Draw* draw) const
 
 		b3Vec3 n2 = -n1;
 
-		draw->DrawSolidTriangle(n1, v1, v2, v3, b3Color_blue);
-		draw->DrawSolidTriangle(n2, v1, v3, v2, b3Color_blue);
+		b3Draw_draw->DrawSolidTriangle(n1, v1, v2, v3, b3Color_blue);
+		b3Draw_draw->DrawSolidTriangle(n2, v1, v3, v2, b3Color_blue);
 	}
 }

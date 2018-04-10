@@ -23,12 +23,28 @@
 
 struct b3Sphere
 {
+	//
+	b3Sphere() { }
+	
+	//
+	b3Sphere(const b3Vec3& v, float32 r)
+	{
+		vertex = v;
+		radius = r;
+	}
+
+	//
+	~b3Sphere() { }
+
 	b3Vec3 vertex;
 	float32 radius;
 	
 	const b3Vec3& GetVertex(u32 index) const;
 	u32 GetSupportVertex(const b3Vec3& direction) const;
 };
+
+// Unit sphere centered at origin
+extern const b3Sphere b3Sphere_identity;
 
 inline const b3Vec3& b3Sphere::GetVertex(u32 index) const
 {

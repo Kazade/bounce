@@ -57,6 +57,9 @@ struct b3Hull
 	b3Plane GetEdgeSidePlane(u32 index) const;
 	
 	u32 GetSize() const;
+	
+	b3Vec3 GetCentroid() const;
+
 	void Validate() const;
 	void Validate(const b3Face* face) const;
 	void Validate(const b3HalfEdge* edge) const;

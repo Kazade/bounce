@@ -24,11 +24,6 @@ class ConeTest : public Test
 public:
 	ConeTest()
 	{
-		g_camera.m_zoom = 15.0f;
-		g_camera.m_q = b3Quat(b3Vec3(0.0f, 1.0f, 0.0f), 0.15f * B3_PI);
-		g_camera.m_q = g_camera.m_q * b3Quat(b3Vec3(1.0f, 0.0f, 0.0f), -0.2f * B3_PI);
-		g_camera.m_center.Set(0.0f, 0.0f, 0.0f);
-
 		b3Body* ref;
 		b3Body* head;
 		

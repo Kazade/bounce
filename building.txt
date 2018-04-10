@@ -5,8 +5,8 @@ Put premake into bounce/.
 
 Visual Studio 2017
 
-Ensure you have installed the Visual Studio 2015 libraries
-Say { premake5 vs2017 } on a command line.
+Ensure you have installed the Visual Studio 2015 libraries.
+Say { premake5 vs2017 } on a command line. 
 Open build/vs2017/bounce.sln.
 Set testbed as the startup project.
 In the testbed debugging properties, set the Working Directory to ..\..\examples\testbed.

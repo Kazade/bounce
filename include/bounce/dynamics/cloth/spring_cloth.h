@@ -25,7 +25,6 @@
 #define B3_CLOTH_SHAPE_CAPACITY 32
 
 class b3StackAllocator;
-class b3Draw;
 
 class b3Shape;
 
@@ -188,7 +187,7 @@ public:
 	void Apply() const;
 
 	// Debug draw the cloth mesh.
-	void Draw(b3Draw* draw) const;
+	void Draw() const;
 protected:
 	friend class b3SpringSolver;
 	

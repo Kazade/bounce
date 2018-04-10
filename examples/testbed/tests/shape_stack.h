@@ -89,7 +89,7 @@ public:
 			b3Body* body = m_world.CreateBody(bd);
 
 			b3HullShape hull;
-			hull.m_hull = &m_boxHull;
+			hull.m_hull = &b3BoxHull_identity;
 			
 			b3ShapeDef sd;
 			sd.shape = &hull;

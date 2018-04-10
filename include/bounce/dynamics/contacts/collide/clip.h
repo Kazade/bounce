@@ -75,11 +75,11 @@ struct b3ClipPlane
 };
 
 struct b3Hull;
-struct b3Segment;
+struct b3Capsule;
 
 // Build a clip edge for an edge.
 void b3BuildEdge(b3ClipVertex vOut[2],
-	const b3Segment* hull);
+	const b3Capsule* hull);
 
 // Build a clip polygon given an index to the polygon face.
 void b3BuildPolygon(b3ClipPolygon& pOut,
@@ -99,7 +99,7 @@ void b3ClipPolygonToPlane(b3ClipPolygon& pOut,
 // Clip a segment by a hull face (side planes).
 // Return the number of output points.
 u32 b3ClipEdgeToFace(b3ClipVertex vOut[2],
-	const b3ClipVertex vIn[2], const b3Segment* hull);
+	const b3ClipVertex vIn[2], const b3Capsule* hull);
 
 // Clip a segment by a hull face (side planes).
 // Return the number of output points.

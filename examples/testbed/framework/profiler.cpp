@@ -18,6 +18,9 @@
 
 #include <testbed/framework/profiler.h>
 
+Profiler* g_profiler = nullptr;
+ProfilerListener* g_profilerListener = nullptr;
+
 Profiler::Profiler()
 {
 	m_top = nullptr;

@@ -19,8 +19,6 @@
 #ifndef ROPE_TEST_H
 #define ROPE_TEST_H
 
-extern Settings g_settings;
-
 class Rope : public Test
 {
 public:
@@ -31,8 +29,6 @@ public:
 
 	Rope()
 	{
-		g_camera.m_zoom = 30.0f;
-
 		b3Vec3 vs[e_count];
 		float32 ms[e_count];
 		
@@ -89,22 +85,8 @@ public:
 
 	void Step()
 	{
-		float32 dt = g_settings.hertz > 0.0f ? 1.0f / g_settings.hertz : 0.0f;
-
-		if (g_settings.pause)
-		{
-			if (g_settings.singleStep)
-			{
-				g_settings.singleStep = false;
-			}
-			else
-			{
-				dt = 0.0f;
-			}
-		}
-
-		m_rope.Step(dt);
-		m_rope.Draw(g_debugDraw);
+		m_rope.Step(g_settings->inv_hertz);
+		m_rope.Draw();
 	}
 
 	static Test* Create()

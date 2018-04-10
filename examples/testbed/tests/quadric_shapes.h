@@ -21,19 +21,11 @@
 
 #include <testbed/tests/quickhull_test.h>
 
-extern DebugDraw* g_debugDraw;
-extern Camera g_camera;
-extern Settings g_settings;
-
 class QuadricShapes : public Test
 {
 public:
 	QuadricShapes()
 	{
-		g_camera.m_center.Set(2.0f, -2.0f, 0.0f);
-		g_camera.m_zoom = 20.0f;
-		g_settings.drawCenterOfMasses = true;
-
 		{
 			b3BodyDef bd;
 			b3Body* ground = m_world.CreateBody(bd);

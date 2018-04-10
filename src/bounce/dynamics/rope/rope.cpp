@@ -170,12 +170,13 @@ void b3Rope::Initialize(const b3RopeDef& def)
 
 		b3Vec3 d = -b->m_X_J_j.position;
 
-		b3Vec3 w1(1.0f, 0.0f, 0.0f);
-		b3Vec3 w2(0.0f, 1.0f, 0.0f);
-		b3Vec3 w3(0.0f, 0.0f, 1.0f);
-
+		b3Vec3 w1(b3Vec3_x);
 		b3Vec3 v1 = b3Cross(w1, d);
+		
+		b3Vec3 w2(b3Vec3_y);
 		b3Vec3 v2 = b3Cross(w2, d);
+		
+		b3Vec3 w3(b3Vec3_z);
 		b3Vec3 v3 = b3Cross(w3, d);
 		
 		b->m_S[0].w = w1;
@@ -468,7 +469,7 @@ void b3Rope::Step(float32 h)
 	}
 }
 
-void b3Rope::Draw(b3Draw* draw) const
+void b3Rope::Draw() const
 {
 	if (m_count == 0)
 	{
@@ -478,8 +479,8 @@ void b3Rope::Draw(b3Draw* draw) const
 	{
 		b3RopeBody* b = m_links;
 		
-		draw->DrawTransform(b->m_X);
-		draw->DrawSolidSphere(b->m_X.position, 0.2f, b3Color_green);
+		b3Draw_draw->DrawTransform(b->m_X);
+		b3Draw_draw->DrawSolidSphere(b->m_X.position, 0.2f, b3Color_green);
 	}
 
 	for (u32 i = 1; i < m_count; ++i)
@@ -490,13 +491,13 @@ void b3Rope::Draw(b3Draw* draw) const
 		b3Transform X_J = b0->m_X * b3Inverse(b->m_X_i_J);
 		b3Transform X_J0 = b->m_X * b->m_X_J_j;
 		
-		draw->DrawTransform(X_J);
-		draw->DrawPoint(X_J.position, 5.0f, b3Color_red);
+		b3Draw_draw->DrawTransform(X_J);
+		b3Draw_draw->DrawPoint(X_J.position, 5.0f, b3Color_red);
 
-		draw->DrawTransform(X_J0);
-		draw->DrawPoint(X_J0.position, 5.0f, b3Color_red);
+		b3Draw_draw->DrawTransform(X_J0);
+		b3Draw_draw->DrawPoint(X_J0.position, 5.0f, b3Color_red);
 
-		draw->DrawTransform(b->m_X);
-		draw->DrawSolidSphere(b->m_X.position, 0.2f, b3Color_green);
+		b3Draw_draw->DrawTransform(b->m_X);
+		b3Draw_draw->DrawSolidSphere(b->m_X.position, 0.2f, b3Color_green);
 	}
 }

@@ -22,14 +22,18 @@ extern u32 b3_allocCalls, b3_maxAllocCalls;
 extern u32 b3_gjkCalls, b3_gjkIters, b3_gjkMaxIters;
 extern bool b3_convexCache;
 extern u32 b3_convexCalls, b3_convexCacheHits;
-extern b3Draw* b3_debugDraw;
 
-extern Settings g_settings;
-extern DebugDraw* g_debugDraw;
-extern Camera g_camera;
-extern Profiler* g_profiler;
-extern ProfilerListener* g_profilerListener;
-extern RecorderProfiler g_recorderProfiler;
+bool b3PushProfileScope(const char* name)
+{
+	return g_profiler->PushEvent(name);
+}
+
+void b3PopProfileScope()
+{
+	g_profiler->PopEvent();
+}
+
+Settings* g_settings = nullptr;
 
 Test::Test()
 {
@@ -37,34 +41,17 @@ Test::Test()
 	b3_gjkCalls = 0;
 	b3_gjkIters = 0;
 	b3_gjkMaxIters = 0;
-	b3_convexCache = g_settings.convexCache;
+	b3_convexCache = g_settings->convexCache;
 	b3_convexCalls = 0;
 	b3_convexCacheHits = 0;
-	b3_debugDraw = g_debugDraw;
-
-	b3Quat q_y = b3QuatRotationY(0.15f * B3_PI);
-	b3Quat q_x = b3QuatRotationX(-0.15f * B3_PI);
-
-	g_camera.m_q = q_y * q_x;
-	g_camera.m_zoom = 50.0f;
-	g_camera.m_center.SetZero();
+	b3Draw_draw = g_debugDraw;
 
 	m_world.SetContactListener(this);
 
 	m_rayHit.shape = NULL;
 	m_mouseJoint = NULL;
 
-	{
-		b3Transform m;
-		m.position.SetZero();
-		m.rotation = b3Diagonal(50.0f, 1.0f, 50.0f);
-		m_groundHull.SetTransform(m);
-	}
-
-	{
-		m_boxHull.SetIdentity();
-	}
-
+	m_groundHull.Set(50.0f, 1.0f, 50.0f);
 	m_groundMesh.BuildTree();
 }
 
@@ -77,71 +64,42 @@ Test::~Test()
 	b3_convexCache = false;
 	b3_convexCalls = 0;
 	b3_convexCacheHits = 0;
-	b3_debugDraw = nullptr;
-}
-
-void Test::BeginContact(b3Contact* contact)
-{
-}
-
-void Test::EndContact(b3Contact* contact)
-{
-
-}
-
-void Test::PreSolve(b3Contact* contact)
-{
-
+	b3Draw_draw = nullptr;
 }
 
 void Test::Step()
 {
-	float32 dt = g_settings.hertz > 0.0f ? 1.0f / g_settings.hertz : 0.0f;
-
-	if (g_settings.pause)
-	{
-		if (g_settings.singleStep)
-		{
-			g_settings.singleStep = false;
-		}
-		else
-		{
-			dt = 0.0f;
-		}
-	}
-
 	b3_allocCalls = 0;
 	b3_gjkCalls = 0;
 	b3_gjkIters = 0;
 	b3_gjkMaxIters = 0;
-	b3_convexCache = g_settings.convexCache;
+	b3_convexCache = g_settings->convexCache;
 	b3_convexCalls = 0;
 	b3_convexCacheHits = 0;
 
+	float32 dt = g_settings->inv_hertz;
+
 	// Step
-	g_profiler->Begin();
+	m_world.SetSleeping(g_settings->sleep);
+	m_world.SetWarmStart(g_settings->warmStart);
+	m_world.Step(dt, g_settings->velocityIterations, g_settings->positionIterations);
 
-	m_world.SetSleeping(g_settings.sleep);
-	m_world.SetWarmStart(g_settings.warmStart);
-	m_world.Step(dt, g_settings.velocityIterations, g_settings.positionIterations);
-
-	g_profiler->End(g_profilerListener);
-	
 	g_debugDraw->Submit();
 
 	// Draw World
 	u32 drawFlags = 0;
-	drawFlags += g_settings.drawBounds * b3Draw::e_aabbsFlag;
-	drawFlags += g_settings.drawVerticesEdges * b3Draw::e_shapesFlag;
-	drawFlags += g_settings.drawCenterOfMasses * b3Draw::e_centerOfMassesFlag;
-	drawFlags += g_settings.drawJoints * b3Draw::e_jointsFlag;
-	drawFlags += g_settings.drawContactPoints * b3Draw::e_contactPointsFlag;
-	drawFlags += g_settings.drawContactNormals * b3Draw::e_contactNormalsFlag;
-	drawFlags += g_settings.drawContactTangents * b3Draw::e_contactTangentsFlag;
-	drawFlags += g_settings.drawContactPolygons * b3Draw::e_contactPolygonsFlag;
+	drawFlags += g_settings->drawBounds * b3Draw::e_aabbsFlag;
+	drawFlags += g_settings->drawVerticesEdges * b3Draw::e_shapesFlag;
+	drawFlags += g_settings->drawCenterOfMasses * b3Draw::e_centerOfMassesFlag;
+	drawFlags += g_settings->drawJoints * b3Draw::e_jointsFlag;
+	drawFlags += g_settings->drawContactPoints * b3Draw::e_contactPointsFlag;
+	drawFlags += g_settings->drawContactNormals * b3Draw::e_contactNormalsFlag;
+	drawFlags += g_settings->drawContactTangents * b3Draw::e_contactTangentsFlag;
+	drawFlags += g_settings->drawContactPolygons * b3Draw::e_contactPolygonsFlag;
 
 	g_debugDraw->SetFlags(drawFlags);
-	m_world.DebugDraw();
+	
+	m_world.Draw();
 	
 	if (m_mouseJoint)
 	{
@@ -156,20 +114,16 @@ void Test::Step()
 
 	g_debugDraw->Submit();
 	
-	if (g_settings.drawFaces)
+	if (g_settings->drawFaces)
 	{
 		g_debugDraw->Draw(m_world);
 	}
 
-	// Draw Statistics
-	extern const char* g_logName;
-	ImGui::Begin(g_logName, NULL, ImVec2(0, 0), 0.0f, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
-
-	if (g_settings.drawStats)
+	if (g_settings->drawStats)
 	{
-		ImGui::Text("Bodies %d", m_world.GetBodyList().m_count);
-		ImGui::Text("Joints %d", m_world.GetJointList().m_count);
-		ImGui::Text("Contacts %d", m_world.GetContactList().m_count);
+		g_debugDraw->DrawString(b3Color_white, "Bodies %d", m_world.GetBodyList().m_count);
+		g_debugDraw->DrawString(b3Color_white, "Joints %d", m_world.GetJointList().m_count);
+		g_debugDraw->DrawString(b3Color_white, "Contacts %d", m_world.GetContactList().m_count);
 
 		float32 avgGjkIters = 0.0f;
 		if (b3_gjkCalls > 0)
@@ -177,8 +131,8 @@ void Test::Step()
 			avgGjkIters = float32(b3_gjkIters) / float32(b3_gjkCalls);
 		}
 
-		ImGui::Text("GJK Calls %d", b3_gjkCalls);
-		ImGui::Text("GJK Iterations %d (%d) (%f)", b3_gjkIters, b3_gjkMaxIters, avgGjkIters);
+		g_debugDraw->DrawString(b3Color_white, "GJK Calls %d", b3_gjkCalls);
+		g_debugDraw->DrawString(b3Color_white, "GJK Iterations %d (%d) (%f)", b3_gjkIters, b3_gjkMaxIters, avgGjkIters);
 
 		float32 convexCacheHitRatio = 0.0f;
 		if (b3_convexCalls > 0)
@@ -186,23 +140,10 @@ void Test::Step()
 			convexCacheHitRatio = float32(b3_convexCacheHits) / float32(b3_convexCalls);
 		}
 
-		ImGui::Text("Convex Calls %d", b3_convexCalls);
-		ImGui::Text("Convex Cache Hits %d (%f)", b3_convexCacheHits, convexCacheHitRatio);
-		ImGui::Text("Frame Allocations %d (%d)", b3_allocCalls, b3_maxAllocCalls);
+		g_debugDraw->DrawString(b3Color_white, "Convex Calls %d", b3_convexCalls);
+		g_debugDraw->DrawString(b3Color_white, "Convex Cache Hits %d (%f)", b3_convexCacheHits, convexCacheHitRatio);
+		g_debugDraw->DrawString(b3Color_white, "Frame Allocations %d (%d)", b3_allocCalls, b3_maxAllocCalls);
 	}
-
-	if (g_settings.drawProfile)
-	{
-		const b3Array<ProfilerRecord>& records = g_recorderProfiler.GetRecords();
-		for (u32 i = 0; i < records.Count(); ++i)
-		{
-			const ProfilerRecord& r = records[i];
-			
-			ImGui::Text("%s %.4f (%.4f) [ms]", r.name, r.elapsed, r.maxElapsed);
-		}
-	}
-
-	ImGui::End();
 }
 
 void Test::MouseMove(const Ray3& pw)

@@ -24,8 +24,6 @@ class MultipleShapes : public Test
 public:
 	MultipleShapes()
 	{
-		g_settings.drawCenterOfMasses = true;
-
 		{
 			b3BodyDef bd;
 			b3Body* body = m_world.CreateBody(bd);

@@ -346,10 +346,10 @@ void b3ConeJoint::SetConeAngle(float32 angle)
 	}
 }
 
-void b3ConeJoint::Draw(b3Draw* draw) const
+void b3ConeJoint::Draw() const
 {
 	b3Transform xfA = GetFrameA();
-	draw->DrawTransform(xfA);
+	b3Draw_draw->DrawTransform(xfA);
 	b3Transform xfB = GetFrameB();
-	draw->DrawTransform(xfB);
+	b3Draw_draw->DrawTransform(xfB);
 }

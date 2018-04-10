@@ -31,6 +31,12 @@ struct b3BoxHull : public b3Hull
 	// Does nothing for performance.
 	b3BoxHull() { }
 
+	// Construct this box from three extents and centered at the origin.
+	b3BoxHull(float32 ex, float32 ey, float32 ez)
+	{
+		Set(ex, ey, ez);
+	}
+		
 	// Set this box to the unit box centered at the origin.
 	void SetIdentity()
 	{
@@ -173,5 +179,7 @@ struct b3BoxHull : public b3Hull
 		Validate();
 	}
 };
+
+extern const b3BoxHull b3BoxHull_identity;
 
 #endif

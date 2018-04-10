@@ -23,7 +23,7 @@
 #include <bounce/collision/shapes/capsule.h>
 
 // Compute the closest point on a segment to a point. 
-static b3Vec3 b3ClosestPoint(const b3Vec3& Q, const b3Segment& hull)
+static b3Vec3 b3ClosestPoint(const b3Vec3& Q, const b3Capsule& hull)
 {
 	b3Vec3 A = hull.vertices[0];
 	b3Vec3 B = hull.vertices[1];
@@ -56,7 +56,7 @@ static b3Vec3 b3ClosestPoint(const b3Vec3& Q, const b3Segment& hull)
 
 // Compute the closest points between two line segments.
 static void b3ClosestPoints(b3Vec3& C1, b3Vec3& C2,
-	const b3Segment& hull1, const b3Segment& hull2)
+	const b3Capsule& hull1, const b3Capsule& hull2)
 {
 	b3Vec3 P1 = hull1.vertices[0];
 	b3Vec3 Q1 = hull1.vertices[1];
@@ -136,7 +136,7 @@ static void b3ClosestPoints(b3Vec3& C1, b3Vec3& C2,
 	C1 = b3ClosestPoint(C2, hull1);
 }
 
-static bool b3AreParalell(const b3Segment& hull1, const b3Segment& hull2)
+static bool b3AreParalell(const b3Capsule& hull1, const b3Capsule& hull2)
 {
 	b3Vec3 E1 = hull1.vertices[1] - hull1.vertices[0];
 	float32 L1 = b3Length(E1);
@@ -162,11 +162,11 @@ void b3CollideCapsuleAndCapsule(b3Manifold& manifold,
 	const b3Transform& xf1, const b3CapsuleShape* s1,
 	const b3Transform& xf2, const b3CapsuleShape* s2)
 {
-	b3Segment hull1;
+	b3Capsule hull1;
 	hull1.vertices[0] = xf1 * s1->m_centers[0];
 	hull1.vertices[1] = xf1 * s1->m_centers[1];
 	
-	b3Segment hull2;
+	b3Capsule hull2;
 	hull2.vertices[0] = xf2 * s2->m_centers[0];
 	hull2.vertices[1] = xf2 * s2->m_centers[1];
 	

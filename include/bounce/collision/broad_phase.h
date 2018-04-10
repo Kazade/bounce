@@ -77,7 +77,7 @@ public:
 	void FindNewPairs(T* callback);
 
 	// Draw the proxy AABBs.
-	void Draw(b3Draw* draw) const;
+	void Draw() const;
 private :
 	friend class b3DynamicTree;
 	
@@ -189,9 +189,9 @@ inline void b3BroadPhase::FindNewPairs(T* callback)
 	}
 }
 
-inline void b3BroadPhase::Draw(b3Draw* draw) const
+inline void b3BroadPhase::Draw() const
 {
-	m_tree.Draw(draw);
+	m_tree.Draw();
 }
 
 #endif

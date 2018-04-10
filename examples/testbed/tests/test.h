@@ -36,11 +36,13 @@ inline float32 RandomFloat(float32 a, float32 b)
 	return a + r;
 }
 
+// Test settings
 struct Settings
 {
 	Settings()
 	{
 		hertz = 60.0f;
+		inv_hertz = 1.0f / hertz;
 		velocityIterations = 8;
 		positionIterations = 2;
 		sleep = false;
@@ -69,7 +71,7 @@ struct Settings
 	bool pause;
 	bool singleStep;
 
-	float32 hertz;
+	float32 hertz, inv_hertz;
 	int velocityIterations;
 	int positionIterations;
 	bool sleep;
@@ -91,16 +93,7 @@ struct Settings
 	bool drawGrid;
 };
 
-class Test;
-
-struct TestEntry
-{
-	typedef Test* (*TestCreate)();
-	const char* name;
-	TestCreate create;
-};
-
-extern TestEntry g_tests[];
+extern Settings* g_settings;
 
 class RayCastListener : public b3RayCastListener
 {
@@ -123,11 +116,14 @@ public:
 	Test();
 	virtual ~Test();
 
-	virtual void BeginContact(b3Contact* contact);
-	virtual void EndContact(b3Contact* contact);
-	virtual void PreSolve(b3Contact* contact);
+	virtual void BeginContact(b3Contact* contact) { }
+	virtual void EndContact(b3Contact* contact) { }
+	virtual void PreSolve(b3Contact* contact) { }
 
 	virtual void Step();
+
+	virtual void Dump() { }
+	
 	virtual void RayHit();
 
 	virtual void MouseMove(const Ray3& pw);
@@ -136,16 +132,22 @@ public:
 	virtual void KeyDown(int button) { }
 	virtual void KeyUp(int button) { }
 
-	virtual void Dump() { }
-
 	b3World m_world;
 	b3RayCastSingleOutput m_rayHit; 
 	b3MouseJoint* m_mouseJoint;
-	
-	b3BoxHull m_boxHull;
-	
+
 	b3BoxHull m_groundHull;
 	b3GridMesh<50, 50> m_groundMesh;
 };
+
+struct TestEntry
+{
+	typedef Test* (*TestCreate)();
+	const char* name;
+	TestCreate create;
+};
+
+extern TestEntry g_tests[];
+extern u32 g_testCount;
 
 #endif

@@ -368,13 +368,13 @@ void b3Cloth::SolveC2()
 	}
 }
 
-void b3Cloth::Draw(b3Draw* draw) const
+void b3Cloth::Draw() const
 {
 	const b3Mesh* m = m_mesh;
 	
 	for (u32 i = 0; i < m->vertexCount; ++i)
 	{
-		draw->DrawPoint(m_ps[i].p, 6.0f, b3Color_green);
+		b3Draw_draw->DrawPoint(m_ps[i].p, 6.0f, b3Color_green);
 	}
 
 	for (u32 i = 0; i < m->triangleCount; ++i)
@@ -394,7 +394,7 @@ void b3Cloth::Draw(b3Draw* draw) const
 
 		b3Vec3 n2 = -n1;
 
-		draw->DrawSolidTriangle(n1, v1, v2, v3, b3Color_blue);
-		draw->DrawSolidTriangle(n2, v1, v3, v2, b3Color_blue);
+		b3Draw_draw->DrawSolidTriangle(n1, v1, v2, v3, b3Color_blue);
+		b3Draw_draw->DrawSolidTriangle(n2, v1, v3, v2, b3Color_blue);
 	}
 }

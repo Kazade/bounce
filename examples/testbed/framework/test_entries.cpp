@@ -118,3 +118,17 @@ TestEntry g_tests[] =
 	{ "Shift Center", &ShiftCenter::Create },
 	{ NULL, NULL }
 };
+
+//
+static u32 TestCount()
+{
+	u32 count = 0;
+	while (g_tests[count].create != NULL)
+	{
+		++count;
+	}
+	return count;
+}
+
+// Count the tests
+u32 g_testCount = TestCount();

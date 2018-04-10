@@ -19,10 +19,6 @@
 #ifndef TENSION_MAPPING_H
 #define TENSION_MAPPING_H
 
-extern DebugDraw* g_debugDraw;
-extern Camera g_camera;
-extern Settings g_settings;
-
 // Hot/Cold color map
 // See http://paulbourke.net/miscellaneous/colourspace/
 static inline b3Color Color(float32 x, float32 a, float32 b)
@@ -88,19 +84,7 @@ public:
 
 	void Step()
 	{
-		float32 dt = g_settings.hertz > 0.0f ? 1.0f / g_settings.hertz : 0.0f;
-
-		if (g_settings.pause)
-		{
-			if (g_settings.singleStep)
-			{
-				g_settings.singleStep = false;
-			}
-			else
-			{
-				dt = 0.0f;
-			}
-		}
+		float32 dt = g_settings->inv_hertz;
 
 		m_cloth.Step(dt);
 		m_cloth.Apply();
@@ -141,9 +125,7 @@ public:
 
 		b3SpringClothStep step = m_cloth.GetStep();
 
-		char text[256];
-		sprintf(text, "Iterations = %u", step.iterations);
-		g_debugDraw->DrawString(text, b3Color_white);
+		g_debugDraw->DrawString(b3Color_white, "Iterations = %u", step.iterations);
 
 		if (m_clothDragger.IsSelected() == true)
 		{

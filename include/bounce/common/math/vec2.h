@@ -91,6 +91,15 @@ struct b3Vec2
 	float32 x, y;
 };
 
+// Zero vector 
+extern const b3Vec2 b3Vec2_zero;
+
+// Left vector 
+extern const b3Vec2 b3Vec2_x;
+
+// Right vector 
+extern const b3Vec2 b3Vec2_y;
+
 // Negate a vector.
 inline b3Vec2 operator-(const b3Vec2& v)
 {

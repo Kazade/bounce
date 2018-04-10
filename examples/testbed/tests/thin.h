@@ -31,9 +31,6 @@ public:
 
 	Thin()
 	{
-		g_camera.m_center.Set(2.5f, -2.0f, 5.5f);
-		g_camera.m_zoom = 40.0f;
-
 		{
 			b3BodyDef bdef;
 			bdef.type = b3BodyType::e_staticBody;

@@ -114,7 +114,7 @@ public:
 			if (key == GLFW_KEY_H)
 			{
 				b3HullShape hull;
-				hull.m_hull = &m_boxHull;
+				hull.m_hull = &b3BoxHull_identity;
 
 				b3ShapeDef sd;
 				sd.shape = &hull;
@@ -163,13 +163,11 @@ public:
 	{
 		Test::Step();
 
-		b3Color color(1.0f, 1.0f, 1.0f);
-		
-		g_debugDraw->DrawString("S - Sphere", color);
-		g_debugDraw->DrawString("C - Capsule", color);
-		g_debugDraw->DrawString("H - Hull", color);
-		g_debugDraw->DrawString("G - Grid", color);
-		g_debugDraw->DrawString("T - Terrain", color);
+		g_debugDraw->DrawString(b3Color_white, "S - Sphere");
+		g_debugDraw->DrawString(b3Color_white, "C - Capsule");
+		g_debugDraw->DrawString(b3Color_white, "H - Hull");
+		g_debugDraw->DrawString(b3Color_white, "G - Grid");
+		g_debugDraw->DrawString(b3Color_white, "T - Terrain");
 	}
 
 	static Test* Create()

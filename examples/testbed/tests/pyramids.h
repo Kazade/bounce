@@ -30,8 +30,6 @@ public:
 
 	Pyramids()
 	{
-		g_camera.m_zoom = 100.0f;
-
 		{
 			b3BodyDef bd;
 			b3Body* ground = m_world.CreateBody(bd);
@@ -74,7 +72,7 @@ public:
 					b3Body* body = m_world.CreateBody(bd);
 
 					b3HullShape hs;
-					hs.m_hull = &m_boxHull;
+					hs.m_hull = &b3BoxHull_identity;
 
 					b3ShapeDef sd;
 					sd.shape = &hs;

@@ -24,8 +24,6 @@ class BodyTypes : public Test
 public:
 	BodyTypes()
 	{
-		g_camera.m_zoom = 50.0f;
-
 		{
 			b3BodyDef bd;
 			b3Body* ground = m_world.CreateBody(bd);
@@ -66,12 +64,11 @@ public:
 	{
 		Test::Step();
 
-		b3Color color(1.0f, 1.0f, 1.0f);
-		g_debugDraw->DrawString("S - Static", color);
-		g_debugDraw->DrawString("D - Dynamic", color);
-		g_debugDraw->DrawString("K - Kinematic", color);
-		g_debugDraw->DrawString("Space - Throw Bomb", color);
-		g_debugDraw->DrawString("Arrows - Apply Force/Velocity/Position", color);
+		g_debugDraw->DrawString(b3Color_white, "S - Static");
+		g_debugDraw->DrawString(b3Color_white, "D - Dynamic");
+		g_debugDraw->DrawString(b3Color_white, "K - Kinematic");
+		g_debugDraw->DrawString(b3Color_white, "Space - Throw Bomb");
+		g_debugDraw->DrawString(b3Color_white, "Arrows - Apply Force/Velocity/Position");
 	}
 
 	void KeyDown(int button) 

@@ -19,17 +19,11 @@
 #ifndef MASS_SPRING_H
 #define MASS_SPRING_H
 
-extern DebugDraw* g_debugDraw;
-extern Camera g_camera;
-extern Settings g_settings;
-
 class MassSpring : public Test
 {
 public:
 	MassSpring()
 	{
-		g_camera.m_zoom = 20.0f;
-
 		m_x.Set(0.0f, 5.0f, 0.0f);
 
 		m_v.SetZero();
@@ -132,36 +126,18 @@ public:
 
 	void Step()
 	{
-		float32 h = g_settings.hertz > 0.0f ? 1.0f / g_settings.hertz : 0.0f;
-
-		if (g_settings.pause)
-		{
-			if (g_settings.singleStep)
-			{
-				g_settings.singleStep = false;
-			}
-			else
-			{
-				h = 0.0f;
-			}
-		}
+		float32 h = g_settings->inv_hertz;
 
 		Solve(h);
 
 		g_debugDraw->DrawSolidSphere(m_x, 0.25f, b3Color_white);
 		
-		b3Vec3 b3Vec3_zero;
-		b3Vec3_zero.SetZero();
 		g_debugDraw->DrawSegment(b3Vec3_zero, m_x, b3Color_white);
 
-		char text1[64];
-		sprintf(text1, "Iterations = %u", m_iterations);
-		g_debugDraw->DrawString(text1, b3Color_white);
+		g_debugDraw->DrawString(b3Color_white, "Iterations = %u", m_iterations);
 
-		char text2[64];
 		float32 E = 0.5f * b3Dot(m_v, m_v);
-		sprintf(text2, "E = %f", E);
-		g_debugDraw->DrawString(text2, b3Color_white);
+		g_debugDraw->DrawString(b3Color_white, "E = %f", E);
 	}
 
 	static Test* Create()

@@ -157,12 +157,13 @@ b3Vec3 b3SphereJoint::GetAnchorB() const
 	return GetBodyB()->GetWorldPoint(m_localAnchorB);
 }
 
-void b3SphereJoint::Draw(b3Draw* draw) const
+void b3SphereJoint::Draw() const
 {
 	b3Vec3 a = GetAnchorA();
-	b3Vec3 b = GetAnchorB();
+	b3Draw_draw->DrawPoint(a, 4.0f, b3Color_red);
 	
-	draw->DrawPoint(a, 4.0f, b3Color_red);
-	draw->DrawPoint(b, 4.0f, b3Color_green);
-	draw->DrawSegment(a, b, b3Color_yellow);
+	b3Vec3 b = GetAnchorB();
+	b3Draw_draw->DrawPoint(b, 4.0f, b3Color_green);
+	
+	b3Draw_draw->DrawSegment(a, b, b3Color_yellow);
 }
