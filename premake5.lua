@@ -271,6 +271,8 @@ solution (solution_name)
 			examples_inc_dir .. "/testbed/framework/view.h", 
 			examples_inc_dir .. "/testbed/framework/controller.h", 
 			
+			examples_src_dir .. "/testbed/framework/test.h", 
+			
 			examples_inc_dir .. "/testbed/tests/**.h", 
 			
 			examples_src_dir .. "/testbed/framework/profiler.cpp", 

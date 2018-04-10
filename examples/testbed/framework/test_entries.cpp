@@ -16,7 +16,7 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <testbed/tests/test.h>
+#include <testbed/framework/test.h>
 #include <testbed/tests/quickhull_test.h>
 #include <testbed/tests/cluster_test.h>
 #include <testbed/tests/distance_test.h>

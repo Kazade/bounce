@@ -16,7 +16,7 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <testbed/tests/test.h>
+#include <testbed/framework/test.h>
 
 extern u32 b3_allocCalls, b3_maxAllocCalls;
 extern u32 b3_gjkCalls, b3_gjkIters, b3_gjkMaxIters;

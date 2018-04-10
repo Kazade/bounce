@@ -21,7 +21,7 @@
 
 #include <testbed/framework/debug_draw.h>
 #include <testbed/framework/testbed_listener.h>
-#include <testbed/tests/test.h>
+#include <testbed/framework/test.h>
 
 class Model
 {
