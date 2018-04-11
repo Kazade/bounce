@@ -1313,7 +1313,7 @@ void DebugDraw::DrawString(const b3Color& color, const char* text, ...)
 	va_list args;
 	va_start(args, text);
 
-	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+	ImGui::SetNextWindowPos(ImVec2(0.0f, 20.0f));
 	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width, g_camera->m_height));
 	
 	ImGui::Begin(g_overlayName, NULL, ImVec2(0.0f, 0.0f), 0.0f, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);

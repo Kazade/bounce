@@ -39,9 +39,7 @@ Model::Model()
 	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
 	glClearDepth(1.0f);
 
-	m_camera.m_q = b3QuatRotationX(-0.125f * B3_PI);
-	m_camera.m_center.SetZero();
-	m_camera.m_zoom = 20.0f;
+	Action_DefaultCamera();
 }
 
 Model::~Model()
@@ -64,6 +62,8 @@ void Model::Command_Step()
 		m_settings.lastTestID = m_settings.testID;
 		m_test = g_tests[m_settings.testID].create();
 		m_settings.pause = true;
+
+		Action_DefaultCamera();
 	}
 	
 	glViewport(0, 0, GLsizei(m_camera.m_width), GLsizei(m_camera.m_height));

@@ -116,14 +116,10 @@ public:
 	Test();
 	virtual ~Test();
 
-	virtual void BeginContact(b3Contact* contact) { }
-	virtual void EndContact(b3Contact* contact) { }
-	virtual void PreSolve(b3Contact* contact) { }
+	virtual void Save() { }
 
 	virtual void Step();
 
-	virtual void Dump() { }
-	
 	virtual void RayHit();
 
 	virtual void MouseMove(const Ray3& pw);
@@ -131,6 +127,10 @@ public:
 	virtual void MouseLeftUp(const Ray3& pw);
 	virtual void KeyDown(int button) { }
 	virtual void KeyUp(int button) { }
+
+	virtual void BeginContact(b3Contact* contact) { }
+	virtual void EndContact(b3Contact* contact) { }
+	virtual void PreSolve(b3Contact* contact) { }
 
 	b3World m_world;
 	b3RayCastSingleOutput m_rayHit; 

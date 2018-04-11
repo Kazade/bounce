@@ -30,13 +30,15 @@ public:
 
 	~Model();
 
+	void Action_SaveTest();
+	
 	void Action_SelectTest(int selection);
 	void Action_RestartTest();
 	void Action_PreviousTest();
 	void Action_NextTest();
-	void Action_DumpTest();
 	void Action_PlayPause();
 	void Action_SingleStep();
+	void Action_DefaultCamera();
 	void Action_LeftCamera();
 	void Action_RightCamera();
 	void Action_BottomCamera();
@@ -92,9 +94,9 @@ inline void Model::Action_NextTest()
 	m_settings.lastTestID = -1;
 }
 
-inline void Model::Action_DumpTest()
+inline void Model::Action_SaveTest()
 {
-	m_test->Dump();
+	m_test->Save();
 }
 
 inline void Model::Action_PlayPause()
@@ -106,6 +108,13 @@ inline void Model::Action_SingleStep()
 {
 	m_settings.pause = true;
 	m_settings.singleStep = true;
+}
+
+inline void Model::Action_DefaultCamera()
+{
+	m_camera.m_q = b3QuatRotationX(-0.125f * B3_PI);
+	m_camera.m_center.SetZero();
+	m_camera.m_zoom = 20.0f;
 }
 
 inline void Model::Action_LeftCamera()

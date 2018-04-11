@@ -2280,7 +2280,7 @@ static void ShowExampleAppMainMenuBar()
 {
     if (ImGui::BeginMainMenuBar())
     {
-        if (ImGui::BeginMenu("File"))
+		if (ImGui::BeginMenu("File"))
         {
             ShowExampleMenuFile();
             ImGui::EndMenu();

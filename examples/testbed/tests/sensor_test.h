@@ -43,13 +43,7 @@ public:
 			
 			b3Body* body = m_world.CreateBody(bd);
 			
-			static b3BoxHull boxHull;
-			{
-				b3Transform xf;
-				xf.position.SetZero();
-				xf.rotation = b3Diagonal(2.0f, 4.0f, 0.5f);
-				boxHull.SetTransform(xf);
-			}
+			static b3BoxHull boxHull(2.0f, 4.0f, 0.5f);
 
 			b3HullShape hs;
 			hs.m_hull = &boxHull;
@@ -64,7 +58,7 @@ public:
 			b3BodyDef bd;
 			bd.type = b3BodyType::e_dynamicBody;
 			bd.position.Set(0.0f, 4.0f, 10.0f);
-			bd.linearVelocity.Set(0.0f, 0.0f, -5.0f);
+			bd.linearVelocity.Set(0.0f, 0.0f, -20.0f);
 
 			m_character = m_world.CreateBody(bd);
 

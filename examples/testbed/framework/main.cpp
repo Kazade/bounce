@@ -110,7 +110,7 @@ static void Run()
 
 		g_view->Command_Draw();
 
-		g_debugDraw->DrawString(b3Color_yellow, "%.2f (ms)", 1000.0 * frameTime);
+		g_debugDraw->DrawString(b3Color_yellow, "%.2f [ms]", 1000.0 * frameTime);
 
 		g_model->Command_Step();
 
@@ -141,11 +141,7 @@ int main(int argc, char** args)
 	}
 
 	// Create window
-	extern b3Version b3_version;
-	char title[256];
-	sprintf(title, "Bounce Testbed Version %d.%d.%d", b3_version.major, b3_version.minor, b3_version.revision);
-
-	g_window = glfwCreateWindow(1024, 768, title, NULL, NULL);
+	g_window = glfwCreateWindow(1024, 768, "Bounce Testbed", NULL, NULL);
 	if (g_window == NULL)
 	{
 		fprintf(stderr, "Failed to create GLFW window\n");

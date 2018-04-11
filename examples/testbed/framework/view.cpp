@@ -20,9 +20,9 @@
 #include <testbed/framework/model.h>
 
 #if defined (U_OPENGL_2)
-	#include <imgui/imgui_impl_glfw_gl2.h>
+#include <imgui/imgui_impl_glfw_gl2.h>
 #elif defined (U_OPENGL_4)
-	#include <imgui/imgui_impl_glfw_gl3.h>
+#include <imgui/imgui_impl_glfw_gl3.h>
 #else
 
 #endif
@@ -119,11 +119,13 @@ View::View(GLFWwindow* window, Model* model)
 	ImGui::CreateContext();
 
 	ImGuiIO& io = ImGui::GetIO();
+
+	io.IniFilename = NULL;
 	io.Fonts[0].AddFontDefault();
 
 	ImGui_GLFW_GL_Init(m_window, false);
 
-	ImGui::StyleColorsLight();
+	ImGui::StyleColorsDark();
 }
 
 View::~View()
@@ -143,33 +145,116 @@ void View::Command_Draw()
 {
 	Camera& camera = m_model->m_camera;
 	Settings& settings = m_model->m_settings;
-	
+
 	ImVec2 buttonSize(-1.0f, 0.0f);
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+
+	bool openAbout = false;
+	if (ImGui::BeginMainMenuBar())
+	{
+
+		if (ImGui::BeginMenu("File"))
+		{
+			if (ImGui::MenuItem("Save"))
+			{
+				m_model->Action_SaveTest();
+			}
+
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Exit", "Alt+F4"))
+			{
+				glfwSetWindowShouldClose(m_window, true);
+			}
+
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("View"))
+		{
+			ImGui::MenuItem("Reference Grid", "", &settings.drawGrid);
+			ImGui::MenuItem("Vertices and Edges", "", &settings.drawVerticesEdges);
+			ImGui::MenuItem("Faces", "", &settings.drawFaces);
+
+			ImGui::Separator();
+
+			ImGui::MenuItem("Center of Masses", "", &settings.drawCenterOfMasses);
+			ImGui::MenuItem("Bounding Boxes", "", &settings.drawBounds);
+			ImGui::MenuItem("Joints", "", &settings.drawJoints);
+			ImGui::MenuItem("Contact Points", "", &settings.drawContactPoints);
+			ImGui::MenuItem("Contact Normals", "", &settings.drawContactNormals);
+			ImGui::MenuItem("Contact Tangents", "", &settings.drawContactTangents);
+			ImGui::MenuItem("Contact Polygons", "", &settings.drawContactPolygons);
+
+			ImGui::Separator();
+
+			ImGui::MenuItem("Statistics", "", &settings.drawStats);
+			ImGui::MenuItem("Profile", "", &settings.drawProfile);
+
+			ImGui::EndMenu();
+		}
+		
+		if (ImGui::BeginMenu("Tools"))
+		{
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Help"))
+		{
+			if (ImGui::MenuItem("About"))
+			{
+				openAbout = true;
+			}
+
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMainMenuBar();
+	}
+
+	if (openAbout)
+	{
+		ImGui::OpenPopup("About Bounce Testbed");
+		openAbout = false;
+	}
+
+	if (ImGui::BeginPopupModal("About Bounce Testbed", NULL, ImGuiWindowFlags_Popup | ImGuiWindowFlags_NoResize))
+	{
+		extern b3Version b3_version;
+		
+		ImGui::Text("Bounce Testbed");
+		ImGui::Text("Version %d.%d.%d", b3_version.major, b3_version.minor, b3_version.revision);
+		ImGui::Text("Copyright (c) Irlan Robson");
+		ImGui::Text("https://github.com/irlanrobson/bounce");
+		
+		if (ImGui::Button("OK", buttonSize))
+		{
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
+	}
 
 	ImGui::SetNextWindowPos(ImVec2(camera.m_width - 250.0f, 0.0f));
 	ImGui::SetNextWindowSize(ImVec2(250.0f, camera.m_height));
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 
-	ImGui::Begin("Controller", NULL, ImVec2(0.0f, 0.0f), 0.25f, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+	ImGui::Begin("Test", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
 	ImGui::PushItemWidth(-1.0f);
-	
-	ImGui::Separator();
-	
-	ImGui::Text("Test");
-
-	ImGui::Separator();
 	
 	if (ImGui::Combo("##Test", &settings.testID, GetTestName, NULL, g_testCount, g_testCount))
 	{
 		m_model->Action_SelectTest(settings.testID);
 	}
 
+	ImGui::Separator();
+
 	if (ImGui::Button("Restart", buttonSize))
 	{
 		m_model->Action_RestartTest();
 	}
-	
+
 	if (ImGui::Button("Previous", buttonSize))
 	{
 		m_model->Action_PreviousTest();
@@ -179,23 +264,36 @@ void View::Command_Draw()
 	{
 		m_model->Action_NextTest();
 	}
+
+	ImGui::Separator();
 	
-	if (ImGui::Button("Dump", buttonSize))
+	if (ImGui::Button("Play/Pause", buttonSize))
 	{
-		m_model->Action_DumpTest();
+		m_model->Action_PlayPause();
 	}
 
-	if (ImGui::Button("Exit", buttonSize))
+	if (ImGui::Button("Single Step", buttonSize))
 	{
-		glfwSetWindowShouldClose(m_window, true);
+		m_model->Action_SingleStep();
 	}
 
 	ImGui::Separator();
 
-	ImGui::Text("Step");
+	ImGui::Text("Camera");
 
 	ImGui::Separator();
 	
+	if (ImGui::Button("Restart##Camera", buttonSize))
+	{
+		m_model->Action_DefaultCamera();
+	}
+
+	ImGui::Separator();
+
+	ImGui::Text("Settings");
+
+	ImGui::Separator();
+
 	ImGui::Text("Hertz");
 	ImGui::SliderFloat("##Hertz", &settings.hertz, 0.0f, 240.0f, "%.1f");
 	ImGui::Text("Velocity Iterations");
@@ -206,74 +304,16 @@ void View::Command_Draw()
 	ImGui::Checkbox("Convex Cache", &settings.convexCache);
 	ImGui::Checkbox("Warm Start", &settings.warmStart);
 
-	if (ImGui::Button("Play/Pause", buttonSize))
-	{
-		m_model->Action_PlayPause();
-	}
+	ImGui::PopItemWidth();
 	
-	if (ImGui::Button("Single Step", buttonSize))
-	{
-		m_model->Action_SingleStep();
-	}
-
-	ImGui::Separator();
-
-	ImGui::Text("View");
-	
-	ImGui::Separator();
-	
-	ImGui::Checkbox("Reference Grid", &settings.drawGrid);
-	ImGui::Checkbox("Vertices and Edges", &settings.drawVerticesEdges);
-	ImGui::Checkbox("Faces", &settings.drawFaces);
-	ImGui::Checkbox("Center of Masses", &settings.drawCenterOfMasses);
-	ImGui::Checkbox("Bounding Boxes", &settings.drawBounds);
-	ImGui::Checkbox("Joints", &settings.drawJoints);
-	ImGui::Checkbox("Contact Points", &settings.drawContactPoints);
-	ImGui::Checkbox("Contact Normals", &settings.drawContactNormals);
-	ImGui::Checkbox("Contact Tangents", &settings.drawContactTangents);
-	ImGui::Checkbox("Contact Polygons", &settings.drawContactPolygons);
-	ImGui::Checkbox("Statistics", &settings.drawStats);
-	ImGui::Checkbox("Profile", &settings.drawProfile);
-	
-	ImGui::Separator();
-
-	if (ImGui::Button("Left", buttonSize))
-	{
-		m_model->Action_LeftCamera();
-	}
-
-	if (ImGui::Button("Right", buttonSize))
-	{
-		m_model->Action_RightCamera();
-	}
-
-	if (ImGui::Button("Bottom", buttonSize))
-	{
-		m_model->Action_BottomCamera();
-	}
-
-	if (ImGui::Button("Top", buttonSize))
-	{
-		m_model->Action_TopCamera();
-	}
-
-	if (ImGui::Button("Back", buttonSize))
-	{
-		m_model->Action_BackCamera();
-	}
-
-	if (ImGui::Button("Front", buttonSize))
-	{
-		m_model->Action_FrontCamera();
-	}
-
 	ImGui::End();
+
 	ImGui::PopStyleVar();
 }
 
 void View::Command_PostDraw()
 {
 	ImGui::Render();
-	
+
 	ImGui_GLFW_GL_RenderDrawData(ImGui::GetDrawData());
 }
