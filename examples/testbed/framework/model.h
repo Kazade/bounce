@@ -113,50 +113,55 @@ inline void Model::Action_SingleStep()
 inline void Model::Action_DefaultCamera()
 {
 	m_camera.m_q = b3QuatRotationX(-0.125f * B3_PI);
+	
+	b3Quat d = b3QuatRotationY(0.125f * B3_PI);
+	
+	m_camera.m_q = d * m_camera.m_q;
+	m_camera.m_q.Normalize();
 	m_camera.m_center.SetZero();
-	m_camera.m_zoom = 20.0f;
+	m_camera.m_zoom = 50.0f;
 }
 
 inline void Model::Action_LeftCamera()
 {
-	m_camera.m_q.Set(b3Vec3(0.0f, 1.0f, 0.0f), 0.5f * B3_PI);
+	m_camera.m_q = b3QuatRotationX(0.5f * B3_PI);
 	m_camera.m_center.SetZero();
-	m_camera.m_zoom = 20.0f;
+	m_camera.m_zoom = 50.0f;
 }
 
 inline void Model::Action_RightCamera()
 {
-	m_camera.m_q.Set(b3Vec3(0.0f, 1.0f, 0.0f), -0.5f * B3_PI);
+	m_camera.m_q = b3QuatRotationX(-0.5f * B3_PI);
 	m_camera.m_center.SetZero();
-	m_camera.m_zoom = 20.0f;
+	m_camera.m_zoom = 50.0f;
 }
 
 inline void Model::Action_BottomCamera()
 {
-	m_camera.m_q.Set(b3Vec3(1.0f, 0.0f, 0.0f), 0.5f * B3_PI);
+	m_camera.m_q = b3QuatRotationX(0.5f * B3_PI);
 	m_camera.m_center.SetZero();
-	m_camera.m_zoom = 20.0f;
+	m_camera.m_zoom = 50.0f;
 }
 
 inline void Model::Action_TopCamera()
 {
-	m_camera.m_q.Set(b3Vec3(1.0f, 0.0f, 0.0f), -0.5f * B3_PI);
+	m_camera.m_q = b3QuatRotationX(-0.5f * B3_PI);
 	m_camera.m_center.SetZero();
-	m_camera.m_zoom = 20.0f;
+	m_camera.m_zoom = 50.0f;
 }
 
 inline void Model::Action_BackCamera()
 {
-	m_camera.m_q.Set(b3Vec3(0.0f, 1.0f, 0.0f), -B3_PI);
+	m_camera.m_q = b3QuatRotationX(-B3_PI);
 	m_camera.m_center.SetZero();
-	m_camera.m_zoom = 20.0f;
+	m_camera.m_zoom = 50.0f;
 }
 
 inline void Model::Action_FrontCamera()
 {
 	m_camera.m_q.SetIdentity();
 	m_camera.m_center.SetZero();
-	m_camera.m_zoom = 20.0f;
+	m_camera.m_zoom = 50.0f;
 }
 
 inline void Model::Command_Press_Key(int button)

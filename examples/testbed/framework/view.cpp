@@ -139,6 +139,8 @@ View::~View()
 void View::Command_PreDraw()
 {
 	ImGui_GLFW_GL_NewFrame();
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 }
 
 void View::Command_Draw()
@@ -146,14 +148,9 @@ void View::Command_Draw()
 	Camera& camera = m_model->m_camera;
 	Settings& settings = m_model->m_settings;
 
-	ImVec2 buttonSize(-1.0f, 0.0f);
-
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-
 	bool openAbout = false;
 	if (ImGui::BeginMainMenuBar())
 	{
-
 		if (ImGui::BeginMenu("File"))
 		{
 			if (ImGui::MenuItem("Save"))
@@ -194,7 +191,7 @@ void View::Command_Draw()
 
 			ImGui::EndMenu();
 		}
-		
+
 		if (ImGui::BeginMenu("Tools"))
 		{
 			ImGui::EndMenu();
@@ -216,18 +213,19 @@ void View::Command_Draw()
 	if (openAbout)
 	{
 		ImGui::OpenPopup("About Bounce Testbed");
-		openAbout = false;
 	}
+
+	ImVec2 buttonSize(-1.0f, 0.0f);
 
 	if (ImGui::BeginPopupModal("About Bounce Testbed", NULL, ImGuiWindowFlags_Popup | ImGuiWindowFlags_NoResize))
 	{
 		extern b3Version b3_version;
-		
+
 		ImGui::Text("Bounce Testbed");
 		ImGui::Text("Version %d.%d.%d", b3_version.major, b3_version.minor, b3_version.revision);
 		ImGui::Text("Copyright (c) Irlan Robson");
 		ImGui::Text("https://github.com/irlanrobson/bounce");
-		
+
 		if (ImGui::Button("OK", buttonSize))
 		{
 			ImGui::CloseCurrentPopup();
@@ -236,83 +234,100 @@ void View::Command_Draw()
 		ImGui::EndPopup();
 	}
 
-	ImGui::SetNextWindowPos(ImVec2(camera.m_width - 250.0f, 0.0f));
-	ImGui::SetNextWindowSize(ImVec2(250.0f, camera.m_height));
+	ImGui::SetNextWindowPos(ImVec2(0.0f, 20.0f));
+	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width, 20.0f));
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0.0f, 0.0f));
 
-	ImGui::Begin("Test", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+	ImGui::Begin("##ToolBar", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar);
+
+	if (ImGui::BeginMenuBar())
+	{
+		ImGui::PushItemWidth(250.0f);
+
+		ImGui::Separator();
+		
+		if (ImGui::Combo("##Test", &settings.testID, GetTestName, NULL, g_testCount, g_testCount))
+		{
+			m_model->Action_SelectTest(settings.testID);
+		}
+
+		ImGui::PopItemWidth();
+
+		ImVec2 menuButtonSize(100.0f, 0.0f);
+
+		ImGui::Separator();
+
+		if (ImGui::Button("Previous", menuButtonSize))
+		{
+			m_model->Action_PreviousTest();
+		}
+
+		if (ImGui::Button("Next", menuButtonSize))
+		{
+			m_model->Action_NextTest();
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::Button("Play/Pause", menuButtonSize))
+		{
+			m_model->Action_PlayPause();
+		}
+
+		if (ImGui::Button("Single Step", menuButtonSize))
+		{
+			m_model->Action_SingleStep();
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::Button("Restart", menuButtonSize))
+		{
+			m_model->Action_RestartTest();
+		}
+
+		ImGui::Separator();
+
+		if (ImGui::Button("Reset Camera", menuButtonSize))
+		{
+			m_model->Action_DefaultCamera();
+		}
+
+		ImGui::EndMenuBar();
+	}
+
+	ImGui::End();
+	
+	ImGui::PopStyleVar();
+
+	ImGui::SetNextWindowPos(ImVec2(camera.m_width - 250.0f, 40.0f));
+	ImGui::SetNextWindowSize(ImVec2(250.0f, camera.m_height - 40.0f));
+	ImGui::Begin("Test Settings", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
 	ImGui::PushItemWidth(-1.0f);
-	
-	if (ImGui::Combo("##Test", &settings.testID, GetTestName, NULL, g_testCount, g_testCount))
-	{
-		m_model->Action_SelectTest(settings.testID);
-	}
-
-	ImGui::Separator();
-
-	if (ImGui::Button("Restart", buttonSize))
-	{
-		m_model->Action_RestartTest();
-	}
-
-	if (ImGui::Button("Previous", buttonSize))
-	{
-		m_model->Action_PreviousTest();
-	}
-
-	if (ImGui::Button("Next", buttonSize))
-	{
-		m_model->Action_NextTest();
-	}
-
-	ImGui::Separator();
-	
-	if (ImGui::Button("Play/Pause", buttonSize))
-	{
-		m_model->Action_PlayPause();
-	}
-
-	if (ImGui::Button("Single Step", buttonSize))
-	{
-		m_model->Action_SingleStep();
-	}
-
-	ImGui::Separator();
-
-	ImGui::Text("Camera");
-
-	ImGui::Separator();
-	
-	if (ImGui::Button("Restart##Camera", buttonSize))
-	{
-		m_model->Action_DefaultCamera();
-	}
-
-	ImGui::Separator();
-
-	ImGui::Text("Settings");
-
-	ImGui::Separator();
 
 	ImGui::Text("Hertz");
 	ImGui::SliderFloat("##Hertz", &settings.hertz, 0.0f, 240.0f, "%.1f");
+
 	ImGui::Text("Velocity Iterations");
 	ImGui::SliderInt("##Velocity Iterations", &settings.velocityIterations, 0, 50);
+
 	ImGui::Text("Position Iterations");
-	ImGui::SliderInt("#Position Iterations", &settings.positionIterations, 0, 50);
+	ImGui::SliderInt("##Position Iterations", &settings.positionIterations, 0, 50);
+
 	ImGui::Checkbox("Sleep", &settings.sleep);
 	ImGui::Checkbox("Convex Cache", &settings.convexCache);
 	ImGui::Checkbox("Warm Start", &settings.warmStart);
 
 	ImGui::PopItemWidth();
-	
-	ImGui::End();
 
-	ImGui::PopStyleVar();
+	ImGui::End();
 }
 
 void View::Command_PostDraw()
 {
+	ImGui::PopStyleVar();
+
 	ImGui::Render();
 
 	ImGui_GLFW_GL_RenderDrawData(ImGui::GetDrawData());
