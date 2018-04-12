@@ -85,7 +85,7 @@ public:
 
 	void Step()
 	{
-		m_rope.Step(g_settings->inv_hertz);
+		m_rope.Step(g_testSettings->inv_hertz);
 		m_rope.Draw();
 	}
 

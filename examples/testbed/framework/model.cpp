@@ -20,12 +20,13 @@
 
 Model::Model()
 {
-	g_debugDraw = &m_debugDraw;
-	g_camera = &m_camera;
-	g_overlayName = "Overlay";
-	g_profiler = &m_profiler;
-	g_profilerListener = &m_profilerListener;
 	g_settings = &m_settings;
+	g_testSettings = &m_testSettings;
+	g_draw = &m_draw;
+	g_camera = &m_camera;
+	g_profiler = &m_profiler;
+	g_profilerRecorder = &m_profilerListener.m_recorderProfiler;
+	g_profilerListener = &m_profilerListener;
 
 	m_test = nullptr;
 
@@ -44,38 +45,44 @@ Model::Model()
 
 Model::~Model()
 {
-	g_debugDraw = nullptr;
+	g_testSettings = nullptr;
+	g_draw = nullptr;
 	g_camera = nullptr;
-	g_overlayName = nullptr;
 	g_profiler = nullptr;
+	g_profilerRecorder = nullptr;
 	g_profilerListener = nullptr;
-	g_settings = nullptr;
+	g_testSettings = nullptr;
 
 	delete m_test;
 }
 
 void Model::Command_Step()
 {
+	g_drawFlags = 0;
+	g_drawFlags += m_settings.drawPoints * DrawFlags::e_pointsFlag;
+	g_drawFlags += m_settings.drawLines * DrawFlags::e_linesFlag;
+	g_drawFlags += m_settings.drawTriangles * DrawFlags::e_trianglesFlag;
+
+	glViewport(0, 0, GLsizei(m_camera.m_width), GLsizei(m_camera.m_height));
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	if (m_settings.testID != m_settings.lastTestID)
 	{
 		delete m_test;
 		m_settings.lastTestID = m_settings.testID;
 		m_test = g_tests[m_settings.testID].create();
+		
 		m_settings.pause = true;
-
 		Action_DefaultCamera();
 	}
 	
-	glViewport(0, 0, GLsizei(m_camera.m_width), GLsizei(m_camera.m_height));
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 	if (m_settings.pause)
 	{
-		m_debugDraw.DrawString(b3Color_white, "*PAUSED*");
+		m_draw.DrawString(b3Color_white, "*PAUSED*");
 	}
 	else
 	{
-		m_debugDraw.DrawString(b3Color_white, "*PLAYING*");
+		m_draw.DrawString(b3Color_white, "*PLAYING*");
 	}
 
 	if (m_settings.drawGrid)
@@ -84,7 +91,7 @@ void Model::Command_Step()
 
 		b3Vec3 pn(0.0f, 1.0f, 0.0f);
 		b3Vec3 p(0.0f, 0.0f, 0.0f);
-		m_debugDraw.DrawCircle(pn, p, 1.0f, color);
+		m_draw.DrawCircle(pn, p, 1.0f, color);
 
 		int n = 20;
 
@@ -108,13 +115,13 @@ void Model::Command_Step()
 				vs[2] += t;
 				vs[3] += t;
 
-				m_debugDraw.DrawPolygon(vs, 4, color);
+				m_draw.DrawPolygon(vs, 4, color);
 			}
 		}
 	}
 
 	//
-	m_settings.inv_hertz = m_settings.hertz != 0.0f ? 1.0f / m_settings.hertz : 0.0f;
+	m_testSettings.inv_hertz = m_testSettings.hertz != 0.0f ? 1.0f / m_testSettings.hertz : 0.0f;
 
 	if (m_settings.pause)
 	{
@@ -124,25 +131,11 @@ void Model::Command_Step()
 		}
 		else
 		{
-			m_settings.inv_hertz = 0.0f;
+			m_testSettings.inv_hertz = 0.0f;
 		}
 	}
-
-	m_profiler.Begin();
 
 	m_test->Step();
 
-	m_profiler.End(g_profilerListener);
-
-	if (m_settings.drawProfile)
-	{
-		const b3Array<ProfilerRecord>& records = m_profilerListener.m_recorderProfiler.GetRecords();
-		for (u32 i = 0; i < records.Count(); ++i)
-		{
-			const ProfilerRecord& r = records[i];
-			m_debugDraw.DrawString(b3Color_white, "%s %.4f (%.4f) [ms]", r.name, r.elapsed, r.maxElapsed);
-		}
-	}
-
-	m_debugDraw.Submit();
+	m_draw.Flush();
 }

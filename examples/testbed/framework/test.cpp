@@ -17,6 +17,7 @@
 */
 
 #include <testbed/framework/test.h>
+#include <testbed/framework/model.h>
 
 extern u32 b3_allocCalls, b3_maxAllocCalls;
 extern u32 b3_gjkCalls, b3_gjkIters, b3_gjkMaxIters;
@@ -34,22 +35,24 @@ void b3PopProfileScope()
 }
 
 Settings* g_settings = nullptr;
+TestSettings* g_testSettings = nullptr;
 
-Test::Test()
+Test::Test() : m_bodyDragger(&m_bodyRay, &m_world)
 {
 	b3_allocCalls = 0;
 	b3_gjkCalls = 0;
 	b3_gjkIters = 0;
 	b3_gjkMaxIters = 0;
-	b3_convexCache = g_settings->convexCache;
+	b3_convexCache = g_testSettings->convexCache;
 	b3_convexCalls = 0;
 	b3_convexCacheHits = 0;
-	b3Draw_draw = g_debugDraw;
+	b3Draw_draw = g_draw;
 
 	m_world.SetContactListener(this);
 
-	m_rayHit.shape = NULL;
-	m_mouseJoint = NULL;
+	m_bodyRay.origin.SetZero();
+	m_bodyRay.direction.Set(0.0f, 0.0f, -1.0f);
+	m_bodyRay.fraction = g_camera->m_zFar;
 
 	m_groundHull.Set(50.0f, 1.0f, 50.0f);
 	m_groundMesh.BuildTree();
@@ -73,57 +76,44 @@ void Test::Step()
 	b3_gjkCalls = 0;
 	b3_gjkIters = 0;
 	b3_gjkMaxIters = 0;
-	b3_convexCache = g_settings->convexCache;
+	b3_convexCache = g_testSettings->convexCache;
 	b3_convexCalls = 0;
 	b3_convexCacheHits = 0;
 
-	float32 dt = g_settings->inv_hertz;
-
 	// Step
-	m_world.SetSleeping(g_settings->sleep);
-	m_world.SetWarmStart(g_settings->warmStart);
-	m_world.Step(dt, g_settings->velocityIterations, g_settings->positionIterations);
+	float32 dt = g_testSettings->inv_hertz;
 
-	g_debugDraw->Submit();
+	m_world.SetSleeping(g_testSettings->sleep);
+	m_world.SetWarmStart(g_testSettings->warmStart);
+	m_world.Step(dt, g_testSettings->velocityIterations, g_testSettings->positionIterations);
 
-	// Draw World
+	// Draw
 	u32 drawFlags = 0;
-	drawFlags += g_settings->drawBounds * b3Draw::e_aabbsFlag;
-	drawFlags += g_settings->drawVerticesEdges * b3Draw::e_shapesFlag;
-	drawFlags += g_settings->drawCenterOfMasses * b3Draw::e_centerOfMassesFlag;
-	drawFlags += g_settings->drawJoints * b3Draw::e_jointsFlag;
-	drawFlags += g_settings->drawContactPoints * b3Draw::e_contactPointsFlag;
-	drawFlags += g_settings->drawContactNormals * b3Draw::e_contactNormalsFlag;
-	drawFlags += g_settings->drawContactTangents * b3Draw::e_contactTangentsFlag;
-	drawFlags += g_settings->drawContactPolygons * b3Draw::e_contactPolygonsFlag;
+	drawFlags += g_testSettings->drawBounds * b3Draw::e_aabbsFlag;
+	drawFlags += g_testSettings->drawShapes * b3Draw::e_shapesFlag;
+	drawFlags += g_testSettings->drawCenterOfMasses * b3Draw::e_centerOfMassesFlag;
+	drawFlags += g_testSettings->drawJoints * b3Draw::e_jointsFlag;
+	drawFlags += g_testSettings->drawContactPoints * b3Draw::e_contactPointsFlag;
+	drawFlags += g_testSettings->drawContactNormals * b3Draw::e_contactNormalsFlag;
+	drawFlags += g_testSettings->drawContactTangents * b3Draw::e_contactTangentsFlag;
+	drawFlags += g_testSettings->drawContactPolygons * b3Draw::e_contactPolygonsFlag;
 
-	g_debugDraw->SetFlags(drawFlags);
+	g_draw->SetFlags(drawFlags);
 	
 	m_world.Draw();
-	
-	if (m_mouseJoint)
-	{
-		b3Shape* shape = m_rayHit.shape;
-		b3Body* body = shape->GetBody();
 
-		b3Vec3 n = body->GetWorldVector(m_rayHit.normal);
-		b3Vec3 p = body->GetWorldPoint(m_rayHit.point);
-		
-		g_debugDraw->DrawSolidCircle(n, p + 0.05f * n, 1.0f, b3Color_white);
-	}
+	g_draw->Flush();
 
-	g_debugDraw->Submit();
-	
-	if (g_settings->drawFaces)
+	if (g_settings->drawTriangles)
 	{
-		g_debugDraw->Draw(m_world);
+		g_draw->DrawSolidShapes(m_world);
 	}
 
 	if (g_settings->drawStats)
 	{
-		g_debugDraw->DrawString(b3Color_white, "Bodies %d", m_world.GetBodyList().m_count);
-		g_debugDraw->DrawString(b3Color_white, "Joints %d", m_world.GetJointList().m_count);
-		g_debugDraw->DrawString(b3Color_white, "Contacts %d", m_world.GetContactList().m_count);
+		g_draw->DrawString(b3Color_white, "Bodies %d", m_world.GetBodyList().m_count);
+		g_draw->DrawString(b3Color_white, "Joints %d", m_world.GetJointList().m_count);
+		g_draw->DrawString(b3Color_white, "Contacts %d", m_world.GetContactList().m_count);
 
 		float32 avgGjkIters = 0.0f;
 		if (b3_gjkCalls > 0)
@@ -131,8 +121,8 @@ void Test::Step()
 			avgGjkIters = float32(b3_gjkIters) / float32(b3_gjkCalls);
 		}
 
-		g_debugDraw->DrawString(b3Color_white, "GJK Calls %d", b3_gjkCalls);
-		g_debugDraw->DrawString(b3Color_white, "GJK Iterations %d (%d) (%f)", b3_gjkIters, b3_gjkMaxIters, avgGjkIters);
+		g_draw->DrawString(b3Color_white, "GJK Calls %d", b3_gjkCalls);
+		g_draw->DrawString(b3Color_white, "GJK Iterations %d (%d) (%f)", b3_gjkIters, b3_gjkMaxIters, avgGjkIters);
 
 		float32 convexCacheHitRatio = 0.0f;
 		if (b3_convexCalls > 0)
@@ -140,84 +130,39 @@ void Test::Step()
 			convexCacheHitRatio = float32(b3_convexCacheHits) / float32(b3_convexCalls);
 		}
 
-		g_debugDraw->DrawString(b3Color_white, "Convex Calls %d", b3_convexCalls);
-		g_debugDraw->DrawString(b3Color_white, "Convex Cache Hits %d (%f)", b3_convexCacheHits, convexCacheHitRatio);
-		g_debugDraw->DrawString(b3Color_white, "Frame Allocations %d (%d)", b3_allocCalls, b3_maxAllocCalls);
+		g_draw->DrawString(b3Color_white, "Convex Calls %d", b3_convexCalls);
+		g_draw->DrawString(b3Color_white, "Convex Cache Hits %d (%f)", b3_convexCacheHits, convexCacheHitRatio);
+		g_draw->DrawString(b3Color_white, "Frame Allocations %d (%d)", b3_allocCalls, b3_maxAllocCalls);
 	}
 }
 
 void Test::MouseMove(const Ray3& pw)
 {
-	if (m_mouseJoint)
-	{
-		float32 t = m_rayHit.fraction;
-		float32 w1 = 1.0f - t;
-		float32 w2 = t;
+	m_bodyRay = pw;
 
-		b3Vec3 target = w1 * pw.A() + w2 * pw.B();
-		m_mouseJoint->SetTarget(target);
+	if (m_bodyDragger.IsSelected() == true)
+	{
+		m_bodyDragger.Drag();
 	}
 }
 
 void Test::MouseLeftDown(const Ray3& pw)
 {
-	// Clear the current hit
-	m_rayHit.shape = NULL;
-	if (m_mouseJoint)
+	if (m_bodyDragger.IsSelected() == false)
 	{
-		b3Body* groundBody = m_mouseJoint->GetBodyA();
-		
-		m_world.DestroyJoint(m_mouseJoint);
-		m_mouseJoint = NULL;
-		
-		m_world.DestroyBody(groundBody);
-	}
-
-	// Perform the ray cast
-	b3Vec3 p1 = pw.A();
-	b3Vec3 p2 = pw.B();
-
-	b3RayCastSingleOutput out;
-	if (m_world.RayCastSingle(&out, p1, p2))
-	{
-		b3Shape* shape = out.shape;
-		b3Body* body = shape->GetBody();
-		
-		m_rayHit.shape = out.shape;
-		m_rayHit.point = body->GetLocalPoint(out.point);
-		m_rayHit.normal = body->GetLocalVector(out.normal);
-		m_rayHit.fraction = out.fraction;
-
-		RayHit();
+		if (m_bodyDragger.StartDragging() == true)
+		{
+			BeginDragging();
+		}
 	}
 }
 
 void Test::MouseLeftUp(const Ray3& pw)
 {
-	m_rayHit.shape = NULL;
-	if (m_mouseJoint)
+	if (m_bodyDragger.IsSelected() == true)
 	{
-		b3Body* groundBody = m_mouseJoint->GetBodyA();		
-		
-		m_world.DestroyJoint(m_mouseJoint);
-		m_mouseJoint = NULL;
-		
-		m_world.DestroyBody(groundBody);
+		m_bodyDragger.StopDragging();
+
+		EndDragging();
 	}
-}
-
-void Test::RayHit()
-{
-	b3BodyDef bdef;
-	b3Body* bodyA = m_world.CreateBody(bdef);
-	b3Body* bodyB = m_rayHit.shape->GetBody();
-	
-	b3MouseJointDef def;
-	def.bodyA = bodyA;
-	def.bodyB = bodyB;
-	def.target = bodyB->GetWorldPoint(m_rayHit.point);
-	def.maxForce = 2000.0f * bodyB->GetMass();
-
-	m_mouseJoint = (b3MouseJoint*)m_world.CreateJoint(def);
-	bodyB->SetAwake(true);
 }

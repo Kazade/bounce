@@ -37,7 +37,7 @@ public:
 
 	void Step()
 	{
-		float32 h = g_settings->inv_hertz;
+		float32 h = g_testSettings->inv_hertz;
 
 		// Solution (acceleration)
 		float32 omega_dot = -m_g / m_r * sin(m_theta);
@@ -53,11 +53,11 @@ public:
 		c.x = m_r * sin(m_theta);
 		c.y = m_r * cos(m_theta);
 		c.z = 0.0f;
-		g_debugDraw->DrawSolidSphere(c, 1.0f, b3Color_white);
+		g_draw->DrawSolidSphere(c, 1.0f, b3Color_white);
 
 		b3Vec3 pole;
 		pole.SetZero();
-		g_debugDraw->DrawSegment(pole, c, b3Color_white);
+		g_draw->DrawSegment(pole, c, b3Color_white);
 
 		// Kinetic energy
 		float32 T = 0.5f * m_I * m_omega * m_omega;
@@ -69,7 +69,7 @@ public:
 		float32 L = T - V;
 
 		//
-		g_debugDraw->DrawString(b3Color_white, "T = %f \nV = %f \nL = %f", T, V, L);
+		g_draw->DrawString(b3Color_white, "T = %f \nV = %f \nL = %f", T, V, L);
 	}
 
 	static Test* Create()

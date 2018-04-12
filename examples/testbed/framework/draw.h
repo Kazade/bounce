@@ -16,8 +16,8 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef DEBUG_DRAW_H
-#define DEBUG_DRAW_H
+#ifndef DRAW_H
+#define DRAW_H
 
 #include <bounce/bounce.h>
 
@@ -168,12 +168,19 @@ inline Ray3 Camera::ConvertScreenToWorld(const b3Vec2& ps) const
 }
 
 //
-class DebugDraw : public b3Draw
+enum DrawFlags
+{
+	e_pointsFlag = 0x0001,
+	e_linesFlag = 0x0002,
+	e_trianglesFlag = 0x0004
+};
+
+class Draw : public b3Draw
 {
 public:
-	DebugDraw();
-	~DebugDraw();
-
+	Draw();
+	~Draw();
+	
 	void DrawPoint(const b3Vec3& p, float32 size, const b3Color& color);
 
 	void DrawSegment(const b3Vec3& p1, const b3Vec3& p2, const b3Color& color);
@@ -203,35 +210,40 @@ public:
 	void DrawAABB(const b3AABB3& aabb, const b3Color& color);
 
 	void DrawTransform(const b3Transform& xf);
-
-	//
+	
 	void DrawString(const b3Color& color, const char* string, ...);
 	
-	void DrawSphere(const b3SphereShape* s, const b3Color& c, const b3Transform& xf);
+	void DrawSolidSphere(const b3SphereShape* s, const b3Color& c, const b3Transform& xf);
 
-	void DrawCapsule(const b3CapsuleShape* s, const b3Color& c, const b3Transform& xf);
+	void DrawSolidCapsule(const b3CapsuleShape* s, const b3Color& c, const b3Transform& xf);
 	
-	void DrawHull(const b3HullShape* s, const b3Color& c, const b3Transform& xf);
+	void DrawSolidHull(const b3HullShape* s, const b3Color& c, const b3Transform& xf);
 	
-	void DrawMesh(const b3MeshShape* s, const b3Color& c, const b3Transform& xf);
+	void DrawSolidMesh(const b3MeshShape* s, const b3Color& c, const b3Transform& xf);
 
-	void DrawShape(const b3Shape* s, const b3Color& c, const b3Transform& xf);
+	void DrawSolidShape(const b3Shape* s, const b3Color& c, const b3Transform& xf);
 
-	void Draw(const b3World& world);
+	void DrawSolidShapes(const b3World& world);
 
-	void Submit();
+	void Flush();
 private:
-	friend struct DrawShapes;
+	friend struct DrawPoints;
+	friend struct DrawLines;
+	friend struct DrawTriangles;
 
 	DrawPoints* m_points;
 	DrawLines* m_lines;
 	DrawTriangles* m_triangles;
+
+	friend struct DrawWire;
+	friend struct DrawSolid;
+
 	DrawWire* m_wire;
 	DrawSolid* m_solid;
 };
 
-extern DebugDraw* g_debugDraw;
 extern Camera* g_camera;
-extern const char* g_overlayName;
+extern Draw* g_draw;
+extern u32 g_drawFlags;
 
 #endif

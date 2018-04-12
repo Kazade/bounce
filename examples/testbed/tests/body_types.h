@@ -64,11 +64,11 @@ public:
 	{
 		Test::Step();
 
-		g_debugDraw->DrawString(b3Color_white, "S - Static");
-		g_debugDraw->DrawString(b3Color_white, "D - Dynamic");
-		g_debugDraw->DrawString(b3Color_white, "K - Kinematic");
-		g_debugDraw->DrawString(b3Color_white, "Space - Throw Bomb");
-		g_debugDraw->DrawString(b3Color_white, "Arrows - Apply Force/Velocity/Position");
+		g_draw->DrawString(b3Color_white, "S - Static");
+		g_draw->DrawString(b3Color_white, "D - Dynamic");
+		g_draw->DrawString(b3Color_white, "K - Kinematic");
+		g_draw->DrawString(b3Color_white, "Space - Throw Bomb");
+		g_draw->DrawString(b3Color_white, "Arrows - Apply Force/Velocity/Position");
 	}
 
 	void KeyDown(int button) 

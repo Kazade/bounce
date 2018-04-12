@@ -47,4 +47,6 @@ private:
 	b3StackArray<ProfilerRecord, 256> m_records;
 };
 
+extern RecorderProfiler* g_profilerRecorder;
+
 #endif

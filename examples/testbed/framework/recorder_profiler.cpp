@@ -18,6 +18,8 @@
 
 #include <testbed/framework/recorder_profiler.h>
 
+RecorderProfiler* g_profilerRecorder = nullptr;
+
 void RecorderProfiler::BeginEvents()
 {
 	for (u32 i = 0; i < m_records.Count(); ++i)

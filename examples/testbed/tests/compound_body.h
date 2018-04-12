@@ -16,13 +16,13 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef MULTIPLE_SHAPES_H
-#define MULTIPLE_SHAPES_H
+#ifndef COMPOUND_BODY_H
+#define COMPOUND_BODY_H
 
-class MultipleShapes : public Test
+class CompoundBody : public Test
 {
 public:
-	MultipleShapes()
+	CompoundBody()
 	{
 		{
 			b3BodyDef bd;
@@ -76,7 +76,7 @@ public:
 			b3BodyDef bd;
 			bd.type = e_dynamicBody;
 			bd.position.Set(0.0f, 0.0f, 0.0f);
-			bd.angularVelocity.Set(0.0f, 200.0f * B3_PI, 0.0f);
+			bd.angularVelocity.Set(0.0f, 2.0f * B3_PI, 0.0f);
 
 			b3Body* body = m_world.CreateBody(bd);
 
@@ -105,7 +105,7 @@ public:
 
 	static Test* Create()
 	{
-		return new MultipleShapes();
+		return new CompoundBody();
 	}
 
 	b3BoxHull m_box1;

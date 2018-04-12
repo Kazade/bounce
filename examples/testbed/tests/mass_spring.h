@@ -126,18 +126,18 @@ public:
 
 	void Step()
 	{
-		float32 h = g_settings->inv_hertz;
+		float32 h = g_testSettings->inv_hertz;
 
 		Solve(h);
 
-		g_debugDraw->DrawSolidSphere(m_x, 0.25f, b3Color_white);
+		g_draw->DrawSolidSphere(m_x, 0.25f, b3Color_white);
 		
-		g_debugDraw->DrawSegment(b3Vec3_zero, m_x, b3Color_white);
+		g_draw->DrawSegment(b3Vec3_zero, m_x, b3Color_white);
 
-		g_debugDraw->DrawString(b3Color_white, "Iterations = %u", m_iterations);
+		g_draw->DrawString(b3Color_white, "Iterations = %u", m_iterations);
 
 		float32 E = 0.5f * b3Dot(m_v, m_v);
-		g_debugDraw->DrawString(b3Color_white, "E = %f", E);
+		g_draw->DrawString(b3Color_white, "E = %f", E);
 	}
 
 	static Test* Create()

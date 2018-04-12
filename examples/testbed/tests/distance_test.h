@@ -51,22 +51,22 @@ public:
 			for (u32 i = 0; i < featurePair.count1; ++i)
 			{
 				u32 index = featurePair.index1[i];
-				g_debugDraw->DrawPoint(m_xfA * m_proxyA.GetVertex(index), 4.0f, b3Color(1.0f, 1.0f, 0.0f));
+				g_draw->DrawPoint(m_xfA * m_proxyA.GetVertex(index), 4.0f, b3Color(1.0f, 1.0f, 0.0f));
 			}
 
 			for (u32 i = 0; i < featurePair.count2; ++i)
 			{
 				u32 index = featurePair.index2[i];
-				g_debugDraw->DrawPoint(m_xfB * m_proxyB.GetVertex(index), 4.0f, b3Color(1.0f, 1.0f, 0.0f));
+				g_draw->DrawPoint(m_xfB * m_proxyB.GetVertex(index), 4.0f, b3Color(1.0f, 1.0f, 0.0f));
 			}
 		}
 		
-		g_debugDraw->DrawPoint(out.point1, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
-		g_debugDraw->DrawPoint(out.point2, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
-		g_debugDraw->DrawSegment(out.point1, out.point2, b3Color(1.0f, 1.0f, 1.0f));
+		g_draw->DrawPoint(out.point1, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
+		g_draw->DrawPoint(out.point2, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
+		g_draw->DrawSegment(out.point1, out.point2, b3Color(1.0f, 1.0f, 1.0f));
 
-		g_debugDraw->DrawTransform(m_xfA);
-		g_debugDraw->DrawTransform(m_xfB);
+		g_draw->DrawTransform(m_xfA);
+		g_draw->DrawTransform(m_xfB);
 		
 		m_world.DrawShape(m_xfA, &m_shapeA);
 		m_world.DrawShape(m_xfB, &m_shapeB);

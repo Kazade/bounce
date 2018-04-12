@@ -51,7 +51,7 @@ public:
 
 	void Step()
 	{
-		m_cloth.Step(g_settings->inv_hertz, g_settings->positionIterations);
+		m_cloth.Step(g_testSettings->inv_hertz, g_testSettings->positionIterations);
 		m_cloth.Draw();
 	}
 

@@ -204,8 +204,6 @@ class SpringClothTest : public Test
 public:
 	SpringClothTest() : m_clothDragger(&m_clothRay, &m_cloth)
 	{
-		g_camera->m_zoom = 25.0f;
-
 		m_clothRay.origin.SetZero();
 		m_clothRay.direction.Set(0.0f, 0.0f, -1.0f);
 		m_clothRay.fraction = g_camera->m_zFar;
@@ -213,7 +211,7 @@ public:
 
 	void Step()
 	{
-		float32 dt = g_settings->inv_hertz;
+		float32 dt = g_testSettings->inv_hertz;
 
 		m_cloth.Step(dt);
 		m_cloth.Apply();
@@ -226,18 +224,18 @@ public:
 			b3Transform xf;
 			xf.SetIdentity();
 
-			g_debugDraw->DrawShape(s, b3Color_white, xf);
+			g_draw->DrawSolidShape(s, b3Color_white, xf);
 		}
 
 		m_cloth.Draw();
 
 		b3SpringClothStep step = m_cloth.GetStep();
 
-		g_debugDraw->DrawString(b3Color_white, "Iterations = %u", step.iterations);
+		g_draw->DrawString(b3Color_white, "Iterations = %u", step.iterations);
 
 		if (m_clothDragger.IsSelected() == true)
 		{
-			g_debugDraw->DrawSegment(m_clothDragger.GetPointA(), m_clothDragger.GetPointB(), b3Color_white);
+			g_draw->DrawSegment(m_clothDragger.GetPointA(), m_clothDragger.GetPointB(), b3Color_white);
 		}
 	}
 

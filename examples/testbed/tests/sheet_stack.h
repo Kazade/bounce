@@ -16,10 +16,10 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef THIN_H
-#define THIN_H
+#ifndef SHEET_STACK_H
+#define SHEET_STACK_H
 
-class Thin : public Test
+class SheetStack : public Test
 {
 public:
 	enum
@@ -29,7 +29,7 @@ public:
 		e_depthCount = 1
 	};
 
-	Thin()
+	SheetStack()
 	{
 		{
 			b3BodyDef bdef;
@@ -47,21 +47,11 @@ public:
 			b3Shape* shape = body->CreateShape(sdef);
 		}
 		
-		static b3BoxHull thinHull;
-
-		{
-			b3Transform xf;
-			xf.position.SetZero();
-			xf.rotation = b3Diagonal(4.05f, 2.0f * B3_LINEAR_SLOP, 4.05f);
-			
-			thinHull.SetTransform(xf);
-		}
+		static b3Vec3 sheetExtents(4.05f, 2.0f * B3_LINEAR_SLOP, 4.05f);
+		static b3BoxHull sheetHull(sheetExtents.x, sheetExtents.y, sheetExtents.z);
 
 		b3Vec3 stackOrigin;
 		stackOrigin.Set(0.0f, 4.05f, 0.0f);
-
-		b3Vec3 boxScale;
-		boxScale.Set(4.05f, 2.05f, 4.05f);
 
 		for (u32 i = 0; i < e_rowCount; ++i)
 		{
@@ -72,15 +62,15 @@ public:
 					b3BodyDef bdef;
 					bdef.type = b3BodyType::e_dynamicBody;
 
-					bdef.position.x = float32(i) * boxScale.x;
-					bdef.position.y = 1.5f * float32(j) * boxScale.y;
-					bdef.position.z = float32(k) * boxScale.z;
+					bdef.position.x = float32(i) * sheetExtents.x;
+					bdef.position.y = float32(j) * 50.0f * sheetExtents.y;
+					bdef.position.z = float32(k) * sheetExtents.z;
 					bdef.position += stackOrigin;
 
 					b3Body* body = m_world.CreateBody(bdef);
 
 					b3HullShape hs;
-					hs.m_hull = &thinHull;
+					hs.m_hull = &sheetHull;
 
 					b3ShapeDef sdef;
 					sdef.shape = &hs;
@@ -95,7 +85,7 @@ public:
 
 	static Test* Create()
 	{
-		return new Thin();
+		return new SheetStack();
 	}
 };
 

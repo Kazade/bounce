@@ -24,7 +24,6 @@
 #elif defined (U_OPENGL_4)
 #include <imgui/imgui_impl_glfw_gl3.h>
 #else
-
 #endif
 
 static bool GetTestName(void* userData, int idx, const char** name)
@@ -147,6 +146,7 @@ void View::Command_Draw()
 {
 	Camera& camera = m_model->m_camera;
 	Settings& settings = m_model->m_settings;
+	TestSettings& testSettings = m_model->m_testSettings;
 
 	bool openAbout = false;
 	if (ImGui::BeginMainMenuBar())
@@ -170,24 +170,29 @@ void View::Command_Draw()
 
 		if (ImGui::BeginMenu("View"))
 		{
-			ImGui::MenuItem("Reference Grid", "", &settings.drawGrid);
-			ImGui::MenuItem("Vertices and Edges", "", &settings.drawVerticesEdges);
-			ImGui::MenuItem("Faces", "", &settings.drawFaces);
-
-			ImGui::Separator();
-
-			ImGui::MenuItem("Center of Masses", "", &settings.drawCenterOfMasses);
-			ImGui::MenuItem("Bounding Boxes", "", &settings.drawBounds);
-			ImGui::MenuItem("Joints", "", &settings.drawJoints);
-			ImGui::MenuItem("Contact Points", "", &settings.drawContactPoints);
-			ImGui::MenuItem("Contact Normals", "", &settings.drawContactNormals);
-			ImGui::MenuItem("Contact Tangents", "", &settings.drawContactTangents);
-			ImGui::MenuItem("Contact Polygons", "", &settings.drawContactPolygons);
-
-			ImGui::Separator();
-
-			ImGui::MenuItem("Statistics", "", &settings.drawStats);
 			ImGui::MenuItem("Profile", "", &settings.drawProfile);
+			ImGui::MenuItem("Statistics", "", &settings.drawStats);
+
+			ImGui::Separator();
+
+			ImGui::MenuItem("Points", "", &settings.drawPoints);
+			ImGui::MenuItem("Lines", "", &settings.drawLines);
+			ImGui::MenuItem("Triangles", "", &settings.drawTriangles);
+
+			ImGui::Separator();
+			
+			ImGui::MenuItem("Reference Grid", "", &settings.drawGrid);
+
+			ImGui::Separator();
+
+			ImGui::MenuItem("Center of Masses", "", &testSettings.drawCenterOfMasses);
+			ImGui::MenuItem("Bounding Boxes", "", &testSettings.drawBounds);
+			ImGui::MenuItem("Shapes", "", &testSettings.drawShapes);
+			ImGui::MenuItem("Joints", "", &testSettings.drawJoints);
+			ImGui::MenuItem("Contact Points", "", &testSettings.drawContactPoints);
+			ImGui::MenuItem("Contact Normals", "", &testSettings.drawContactNormals);
+			ImGui::MenuItem("Contact Tangents", "", &testSettings.drawContactTangents);
+			ImGui::MenuItem("Contact Polygons", "", &testSettings.drawContactPolygons);
 
 			ImGui::EndMenu();
 		}
@@ -307,17 +312,17 @@ void View::Command_Draw()
 	ImGui::PushItemWidth(-1.0f);
 
 	ImGui::Text("Hertz");
-	ImGui::SliderFloat("##Hertz", &settings.hertz, 0.0f, 240.0f, "%.1f");
+	ImGui::SliderFloat("##Hertz", &testSettings.hertz, 0.0f, 240.0f, "%.1f");
 
 	ImGui::Text("Velocity Iterations");
-	ImGui::SliderInt("##Velocity Iterations", &settings.velocityIterations, 0, 50);
+	ImGui::SliderInt("##Velocity Iterations", &testSettings.velocityIterations, 0, 50);
 
 	ImGui::Text("Position Iterations");
-	ImGui::SliderInt("##Position Iterations", &settings.positionIterations, 0, 50);
+	ImGui::SliderInt("##Position Iterations", &testSettings.positionIterations, 0, 50);
 
-	ImGui::Checkbox("Sleep", &settings.sleep);
-	ImGui::Checkbox("Convex Cache", &settings.convexCache);
-	ImGui::Checkbox("Warm Start", &settings.warmStart);
+	ImGui::Checkbox("Sleep", &testSettings.sleep);
+	ImGui::Checkbox("Convex Cache", &testSettings.convexCache);
+	ImGui::Checkbox("Warm Start", &testSettings.warmStart);
 
 	ImGui::PopItemWidth();
 

@@ -19,9 +19,42 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-#include <testbed/framework/debug_draw.h>
+#include <testbed/framework/draw.h>
 #include <testbed/framework/testbed_listener.h>
 #include <testbed/framework/test.h>
+
+struct Settings
+{
+	Settings()
+	{
+		lastTestID = -1;
+		testID = 0;
+		pause = false;
+		singleStep = false;
+		drawPoints = true;
+		drawLines = true;
+		drawTriangles = true;
+		drawGrid = true;
+		drawProfile = false;
+		drawStats = false;
+	}
+
+	int lastTestID;
+	int testID;
+
+	bool pause;
+	bool singleStep;
+
+	bool drawPoints;
+	bool drawLines;
+	bool drawTriangles;
+	bool drawGrid;
+	bool drawProfile;
+	bool drawStats;
+};
+
+//
+extern Settings* g_settings;
 
 class Model
 {
@@ -62,12 +95,15 @@ private:
 	friend class View;
 	friend class Controller;
 
-	DebugDraw m_debugDraw;
+	// UI State
+	Settings m_settings; 
+	TestSettings m_testSettings;
+
+	// App State
+	Draw m_draw;
 	Camera m_camera;
 	Profiler m_profiler;
 	TestbedListener m_profilerListener;
-
-	Settings m_settings;
 	Test* m_test;
 };
 

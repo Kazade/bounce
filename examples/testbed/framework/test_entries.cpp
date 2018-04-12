@@ -28,11 +28,11 @@
 #include <testbed/tests/hull_collision_2.h>
 #include <testbed/tests/linear_motion.h>
 #include <testbed/tests/angular_motion.h>
+#include <testbed/tests/gyro_motion.h>
 #include <testbed/tests/initial_overlap.h>
 #include <testbed/tests/capsule_and_hull_contact_1.h>
 #include <testbed/tests/quadric_shapes.h>
-#include <testbed/tests/multiple_shapes.h>
-#include <testbed/tests/gyro_test.h>
+#include <testbed/tests/compound_body.h>
 #include <testbed/tests/spring.h>
 #include <testbed/tests/weld_test.h>
 #include <testbed/tests/cone_test.h>
@@ -44,14 +44,14 @@
 #include <testbed/tests/sphere_stack.h>
 #include <testbed/tests/capsule_stack.h>
 #include <testbed/tests/box_stack.h>
+#include <testbed/tests/sheet_stack.h>
 #include <testbed/tests/shape_stack.h>
 #include <testbed/tests/jenga.h>
-#include <testbed/tests/thin.h>
 #include <testbed/tests/pyramid.h>
 #include <testbed/tests/pyramids.h>
 #include <testbed/tests/ray_cast.h>
 #include <testbed/tests/sensor_test.h>
-#include <testbed/tests/character_test.h>
+#include <testbed/tests/point_click.h>
 #include <testbed/tests/body_types.h>
 #include <testbed/tests/varying_friction.h>
 #include <testbed/tests/varying_restitution.h>
@@ -78,12 +78,12 @@ TestEntry g_tests[] =
 	{ "Hull Collision (1)", &HullAndHull::Create },
 	{ "Hull Collision (2)", &HullAndHull2::Create },
 	{ "Capsule and Hull Contact (1)", &CapsuleAndHullContact1::Create },
+	{ "Mesh Contact Test", &MeshContactTest::Create },
 	{ "Linear Motion", &LinearMotion::Create },
 	{ "Angular Motion", &AngularMotion::Create },
-	{ "Multiple Shapes", &MultipleShapes::Create },
+	{ "Gyroscopic Motion", &GyroMotion::Create },
+	{ "Compound Body", &CompoundBody::Create },
 	{ "Quadric Shapes", &QuadricShapes::Create },
-	{ "Thin Boxes", &Thin::Create },
-	{ "Gyroscopic Test", &GyroTest::Create },
 	{ "Springs", &Spring::Create },
 	{ "Weld Test", &WeldTest::Create },
 	{ "Cone Test", &ConeTest::Create },
@@ -91,17 +91,17 @@ TestEntry g_tests[] =
 	{ "Hinge Chain", &HingeChain::Create },
 	{ "Ragdoll", &Ragdoll::Create },
 	{ "Newton's Cradle", &NewtonCradle::Create },
-	{ "Mesh Contact Test", &MeshContactTest::Create },
 	{ "Sphere Stack", &SphereStack::Create },
 	{ "Capsule Stack", &CapsuleStack::Create },
 	{ "Box Stack", &BoxStack::Create },
+	{ "Sheet Stack", &SheetStack::Create },
 	{ "Shape Stack", &ShapeStack::Create },
 	{ "Jenga", &Jenga::Create },
 	{ "Box Pyramid", &Pyramid::Create },
 	{ "Box Pyramid Rows", &Pyramids::Create },
 	{ "Ray Cast", &RayCast::Create },
 	{ "Sensor Test", &SensorTest::Create },
-	{ "Character Test", &Character::Create },
+	{ "Point & Click", &PointClick::Create },
 	{ "Body Types", &BodyTypes::Create },
 	{ "Varying Friction", &VaryingFriction::Create },
 	{ "Varying Restitution", &VaryingRestitution::Create },

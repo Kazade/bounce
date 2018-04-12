@@ -16,13 +16,13 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef CHARACTER_H
-#define CHARACTER_H
+#ifndef POINT_CLICK_H
+#define POINT_CLICK_H
 
-class Character : public Test
+class PointClick : public Test
 {
 public:
-	Character()
+	PointClick()
 	{
 		{
 			b3BodyDef bdef;
@@ -59,31 +59,28 @@ public:
 		}
 	}
 
-	void RayHit()
+	void BeginDragging()
 	{
-		if (m_rayHit.shape)
+		if (m_bodyDragger.GetBody() == m_character)
 		{
-			if (m_rayHit.shape->GetBody() != m_character)
-			{
-				Test::RayHit();
-			}
+			m_bodyDragger.StopDragging();
 		}
 	}
 
 	void Step()
 	{
-		if (m_rayHit.shape)
+		if (m_bodyDragger.IsSelected())
 		{
-			if (m_rayHit.shape->GetBody() != m_character)
+			if (m_bodyDragger.GetBody() != m_character)
 			{
-				b3Vec3 point = m_rayHit.point;
-				b3Vec3 normal = m_rayHit.normal;
-
-				const b3Transform& xf = m_character->GetTransform();
-				b3Vec3 n = point - xf.position;
-				n.Normalize();
+				b3Vec3 p1 = m_character->GetPosition();
+				b3Vec3 p2 = m_bodyDragger.GetPointA();
 				
-				m_character->ApplyForceToCenter(1000.0f * n, true);
+				b3Vec3 n = b3Normalize(p2 - p1);
+				const float32 k = 1000.0f;
+				b3Vec3 f = k * n;
+
+				m_character->ApplyForceToCenter(f, true);
 			}
 		}
 
@@ -92,7 +89,7 @@ public:
 
 	static Test* Create()
 	{
-		return new Character();
+		return new PointClick();
 	}
 
 	b3Body* m_character;

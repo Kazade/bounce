@@ -99,27 +99,34 @@ static void Run()
 	int w, h;
 	glfwGetWindowSize(g_window, &w, &h);
 	g_controller->Event_SetWindowSize(u32(w), u32(h));
-
-	double frameTime = 0.0;
-
+	
 	while (glfwWindowShouldClose(g_window) == 0)
 	{
-		double time1 = glfwGetTime();
+		g_profiler->Begin();
+
+		g_profiler->PushEvent("Frame");
 		
 		g_view->Command_PreDraw();
 
-		g_view->Command_Draw();
+		if (g_settings->drawProfile)
+		{
+			const b3Array<ProfilerRecord>& records = g_profilerRecorder->GetRecords();
+			for (u32 i = 0; i < records.Count(); ++i)
+			{
+				const ProfilerRecord& r = records[i];
+				g_draw->DrawString(b3Color_white, "%s %.4f (%.4f) [ms]", r.name, r.elapsed, r.maxElapsed);
+			}
+		}
 
-		g_debugDraw->DrawString(b3Color_yellow, "%.2f [ms]", 1000.0 * frameTime);
+		g_view->Command_Draw();
 
 		g_model->Command_Step();
 
 		g_view->Command_PostDraw();
 
-		double time2 = glfwGetTime();
+		g_profiler->PopEvent();
 		
-		double fraction = 0.9;
-		frameTime = fraction * frameTime + (1.0 - fraction) * (time2 - time1);
+		g_profiler->End(g_profilerListener);
 
 		glfwSwapBuffers(g_window);
 		glfwPollEvents();

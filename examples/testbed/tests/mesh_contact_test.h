@@ -163,11 +163,11 @@ public:
 	{
 		Test::Step();
 
-		g_debugDraw->DrawString(b3Color_white, "S - Sphere");
-		g_debugDraw->DrawString(b3Color_white, "C - Capsule");
-		g_debugDraw->DrawString(b3Color_white, "H - Hull");
-		g_debugDraw->DrawString(b3Color_white, "G - Grid");
-		g_debugDraw->DrawString(b3Color_white, "T - Terrain");
+		g_draw->DrawString(b3Color_white, "S - Sphere");
+		g_draw->DrawString(b3Color_white, "C - Capsule");
+		g_draw->DrawString(b3Color_white, "H - Hull");
+		g_draw->DrawString(b3Color_white, "G - Grid");
+		g_draw->DrawString(b3Color_white, "T - Terrain");
 	}
 
 	static Test* Create()

@@ -181,22 +181,20 @@ public:
 		b3RayCastSingleOutput out;
 		if (m_world.RayCastSingle(&out, p1, p2))
 		{
-			g_debugDraw->DrawSegment(p1, out.point, b3Color_green);
+			g_draw->DrawSegment(p1, out.point, b3Color_green);
 			
-			g_debugDraw->DrawPoint(out.point, 4.0f, b3Color_red);
-			g_debugDraw->DrawSegment(out.point, out.point + out.normal, b3Color_white);
-			
-			g_debugDraw->DrawSolidCircle(out.normal, out.point + 0.025f * out.normal, 1.0f, b3Color_white);
+			g_draw->DrawPoint(out.point, 4.0f, b3Color_red);
+			g_draw->DrawSegment(out.point, out.point + out.normal, b3Color_white);
 		}
 		else
 		{
-			g_debugDraw->DrawSegment(p1, p2, b3Color_green);
+			g_draw->DrawSegment(p1, p2, b3Color_green);
 		}
 	}
 
 	void Step()
 	{
-		float32 dt = g_settings->inv_hertz;
+		float32 dt = g_testSettings->inv_hertz;
 		b3Quat dq = b3QuatRotationY(0.05f * B3_PI * dt);
 		
 		m_p1 = b3Mul(dq, m_p1);

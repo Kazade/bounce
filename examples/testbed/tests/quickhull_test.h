@@ -317,7 +317,7 @@ public:
 
 	void Step()
 	{
-		m_qhull.Draw(g_debugDraw);
+		m_qhull.Draw(g_draw);
 	}
 
 	static Test* Create()

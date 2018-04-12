@@ -261,7 +261,7 @@ solution (solution_name)
 
 		files 
 		{ 
-			examples_inc_dir .. "/testbed/framework/debug_draw.h", 
+			examples_inc_dir .. "/testbed/framework/draw.h", 
 			examples_inc_dir .. "/testbed/framework/profiler.h", 
 			examples_inc_dir .. "/testbed/framework/recorder_profiler.h", 
 			examples_inc_dir .. "/testbed/framework/json_profiler.h", 
@@ -275,6 +275,7 @@ solution (solution_name)
 			
 			examples_inc_dir .. "/testbed/tests/**.h", 
 			
+			examples_src_dir .. "/testbed/framework/draw.cpp", 
 			examples_src_dir .. "/testbed/framework/profiler.cpp", 
 			examples_src_dir .. "/testbed/framework/recorder_profiler.cpp", 
 			examples_src_dir .. "/testbed/framework/json_profiler.cpp", 
@@ -292,14 +293,14 @@ solution (solution_name)
 		if is_gfxapi("opengl_2") then
 			files 
 			{ 
-				examples_src_dir .. "/testbed/framework/debug_draw_2.cpp" 
+				examples_src_dir .. "/testbed/framework/draw_gl2.h" 
 			}			
 		end
 		
 		if is_gfxapi("opengl_4") then
 			files 
 			{ 
-				examples_src_dir .. "/testbed/framework/debug_draw_4.cpp" 
+				examples_src_dir .. "/testbed/framework/draw_gl4.h" 
 			}			
 		end
 		

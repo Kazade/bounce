@@ -16,15 +16,15 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef GYRO_TEST_H
-#define GYRO_TEST_H
+#ifndef GYRO_MOTION_H
+#define GYRO_MOTION_H
 
 #include <testbed/tests/quickhull_test.h>
 
-class GyroTest : public Test
+class GyroMotion : public Test
 {
 public:
-	GyroTest()
+	GyroMotion()
 	{
 		{
 			b3StackArray<b3Vec3, 32> points;
@@ -63,10 +63,7 @@ public:
 			b3Body* body = m_world.CreateBody(bdef);
 
 			{
-				b3Transform xf;
-				xf.position.SetZero();
-				xf.rotation = b3Diagonal(1.0f, 0.5f, 7.0f);
-				m_rotorBox.SetTransform(xf);
+				m_rotorBox.Set(1.0f, 0.5f, 7.0f);
 
 				b3HullShape hull;
 				hull.m_hull = &m_rotorBox;
@@ -93,7 +90,7 @@ public:
 		m_world.SetGravity(b3Vec3(0.0f, 0.0f, 0.0f));
 	}
 
-	~GyroTest()
+	~GyroMotion()
 	{
 		{
 			b3Free(m_cylinderHull.vertices);
@@ -105,7 +102,7 @@ public:
 
 	static Test* Create()
 	{
-		return new GyroTest();
+		return new GyroMotion();
 	}
 
 	b3BoxHull m_rotorBox;

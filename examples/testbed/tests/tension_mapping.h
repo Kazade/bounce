@@ -84,7 +84,7 @@ public:
 
 	void Step()
 	{
-		float32 dt = g_settings->inv_hertz;
+		float32 dt = g_testSettings->inv_hertz;
 
 		m_cloth.Step(dt);
 		m_cloth.Apply();
@@ -119,17 +119,17 @@ public:
 
 			b3Vec3 n2 = -n1;
 
-			g_debugDraw->DrawSolidTriangle(n1, v1, c1, v2, c2, v3, c3);
-			g_debugDraw->DrawSolidTriangle(n2, v1, c1, v3, c3, v2, c2);
+			g_draw->DrawSolidTriangle(n1, v1, c1, v2, c2, v3, c3);
+			g_draw->DrawSolidTriangle(n2, v1, c1, v3, c3, v2, c2);
 		}
 
 		b3SpringClothStep step = m_cloth.GetStep();
 
-		g_debugDraw->DrawString(b3Color_white, "Iterations = %u", step.iterations);
+		g_draw->DrawString(b3Color_white, "Iterations = %u", step.iterations);
 
 		if (m_clothDragger.IsSelected() == true)
 		{
-			g_debugDraw->DrawSegment(m_clothDragger.GetPointA(), m_clothDragger.GetPointB(), b3Color_white);
+			g_draw->DrawSegment(m_clothDragger.GetPointA(), m_clothDragger.GetPointB(), b3Color_white);
 		}
 	}
 

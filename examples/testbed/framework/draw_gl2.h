@@ -16,18 +16,15 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <testbed/framework/debug_draw.h> 
+#ifndef DRAW_GL2_H
+#define DRAW_GL2_H
 
-#include <glad_4/glad.h>
-#include <imgui/imgui.h>
+#include <testbed/framework/draw.h> 
+
+#include <glad_2/glad.h>
 
 #include <stdio.h>
 #include <stdarg.h>
-
-// 
-DebugDraw* g_debugDraw = nullptr;
-Camera* g_camera = nullptr;
-const char* g_overlayName = nullptr;
 
 #define BUFFER_OFFSET(i) ((char*)NULL + (i))
 
@@ -104,7 +101,6 @@ static GLuint CreateShaderProgram(const char* vs, const char* fs)
 	GLuint programId = glCreateProgram();
 	glAttachShader(programId, vsId);
 	glAttachShader(programId, fsId);
-	glBindFragDataLocation(programId, 0, "color");
 	glLinkProgram(programId);
 
 	glDeleteShader(vsId);
@@ -122,12 +118,12 @@ struct DrawPoints
 	DrawPoints()
 	{
 		const char* vs = \
-			"#version 400\n"
+			"#version 120\n"
 			"uniform mat4 projectionMatrix;\n"
-			"layout(location = 0) in vec3 v_position;\n"
-			"layout(location = 1) in vec4 v_color;\n"
-			"layout(location = 2) in float v_size;\n"
-			"out vec4 f_color;\n"
+			"attribute vec3 v_position;\n"
+			"attribute vec4 v_color;\n"
+			"attribute float v_size;\n"
+			"varying vec4 f_color;\n"
 			"void main()\n"
 			"{\n"
 			"	f_color = v_color;\n"
@@ -136,44 +132,32 @@ struct DrawPoints
 			"}\n";
 
 		const char* fs = \
-			"#version 400\n"
-			"in vec4 f_color;\n"
-			"out vec4 color;\n"
+			"#version 120\n"
+			"varying vec4 f_color;\n"
 			"void main(void)\n"
 			"{\n"
-			"	color = f_color;\n"
+			"	gl_FragColor = f_color;\n"
 			"}\n";
 
 		m_programId = CreateShaderProgram(vs, fs);
 		m_projectionUniform = glGetUniformLocation(m_programId, "projectionMatrix");
-		m_vertexAttribute = 0;
-		m_colorAttribute = 1;
-		m_sizeAttribute = 2;
+		m_vertexAttribute = glGetAttribLocation(m_programId, "v_position");
+		m_colorAttribute = glGetAttribLocation(m_programId, "v_color");
+		m_sizeAttribute = glGetAttribLocation(m_programId, "v_size");
 
 		glGenBuffers(3, m_vboIds);
 
-		glGenVertexArrays(1, &m_vaoId);
-
-		glBindVertexArray(m_vaoId);
-		glEnableVertexAttribArray(m_vertexAttribute);
-		glEnableVertexAttribArray(m_colorAttribute);
-		glEnableVertexAttribArray(m_sizeAttribute);
-
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
-		glVertexAttribPointer(m_vertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Vec3), m_vertices, GL_DYNAMIC_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
-		glVertexAttribPointer(m_colorAttribute, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Color), m_colors, GL_DYNAMIC_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[2]);
-		glVertexAttribPointer(m_sizeAttribute, 1, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(float32), m_sizes, GL_DYNAMIC_DRAW);
 
 		AssertGL();
 
-		glBindVertexArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 		m_count = 0;
@@ -181,7 +165,6 @@ struct DrawPoints
 
 	~DrawPoints()
 	{
-		glDeleteVertexArrays(1, &m_vaoId);
 		glDeleteProgram(m_programId);
 		glDeleteBuffers(3, m_vboIds);
 	}
@@ -190,7 +173,7 @@ struct DrawPoints
 	{
 		if (m_count == e_vertexCapacity)
 		{
-			Submit();
+			Flush();
 		}
 
 		m_vertices[m_count] = v;
@@ -199,10 +182,16 @@ struct DrawPoints
 		++m_count;
 	}
 
-	void Submit()
+	void Flush()
 	{
 		if (m_count == 0)
 		{
+			return;
+		}
+
+		if ((g_drawFlags & DrawFlags::e_pointsFlag) == 0)
+		{
+			m_count = 0;
 			return;
 		}
 
@@ -214,25 +203,34 @@ struct DrawPoints
 
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
 
-		glBindVertexArray(m_vaoId);
-
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Vec3), m_vertices);
+		glVertexAttribPointer(m_vertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glEnableVertexAttribArray(m_vertexAttribute);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Color), m_colors);
+		glEnableVertexAttribArray(m_colorAttribute);
+		glVertexAttribPointer(m_colorAttribute, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[2]);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(float32), m_sizes);
+		glEnableVertexAttribArray(m_sizeAttribute);
+		glVertexAttribPointer(m_sizeAttribute, 1, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
-		glEnable(GL_PROGRAM_POINT_SIZE);
+		glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 		glDrawArrays(GL_POINTS, 0, m_count);
-		glDisable(GL_PROGRAM_POINT_SIZE);
+		glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
+		glDisableVertexAttribArray(m_sizeAttribute);
+
+		glDisableVertexAttribArray(m_colorAttribute);
+
+		glDisableVertexAttribArray(m_vertexAttribute);
 
 		AssertGL();
 
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
 		glUseProgram(0);
 
 		m_count = 0;
@@ -255,7 +253,6 @@ struct DrawPoints
 	GLuint m_sizeAttribute;
 
 	GLuint m_vboIds[3];
-	GLuint m_vaoId;
 };
 
 struct DrawLines
@@ -263,11 +260,11 @@ struct DrawLines
 	DrawLines()
 	{
 		const char* vs = \
-			"#version 400\n"
+			"#version 120\n"
 			"uniform mat4 projectionMatrix;\n"
-			"layout(location = 0) in vec3 v_position;\n"
-			"layout(location = 1) in vec4 v_color;\n"
-			"out vec4 f_color;\n"
+			"attribute vec3 v_position;\n"
+			"attribute vec4 v_color;\n"
+			"varying vec4 f_color;\n"
 			"void main(void)\n"
 			"{\n"
 			"	f_color = v_color;\n"
@@ -275,37 +272,28 @@ struct DrawLines
 			"}\n";
 
 		const char* fs = \
-			"#version 400\n"
-			"in vec4 f_color;\n"
-			"out vec4 color;\n"
+			"#version 120\n"
+			"varying vec4 f_color;\n"
 			"void main(void)\n"
 			"{\n"
-			"	color = f_color;\n"
+			"	gl_FragColor = f_color;\n"
 			"}\n";
 
 		m_programId = CreateShaderProgram(vs, fs);
 		m_projectionUniform = glGetUniformLocation(m_programId, "projectionMatrix");
-		m_vertexAttribute = 0;
-		m_colorAttribute = 1;
+		m_vertexAttribute = glGetAttribLocation(m_programId, "v_position");
+		m_colorAttribute = glGetAttribLocation(m_programId, "v_color");
 
-		glGenVertexArrays(1, &m_vaoId);
 		glGenBuffers(2, m_vboIds);
 
-		glBindVertexArray(m_vaoId);
-		glEnableVertexAttribArray(m_vertexAttribute);
-		glEnableVertexAttribArray(m_colorAttribute);
-
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
-		glVertexAttribPointer(m_vertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Vec3), m_vertices, GL_DYNAMIC_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
-		glVertexAttribPointer(m_colorAttribute, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Color), m_colors, GL_DYNAMIC_DRAW);
 
 		AssertGL();
-
-		glBindVertexArray(0);
+		
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 		m_count = 0;
@@ -314,7 +302,6 @@ struct DrawLines
 	~DrawLines()
 	{
 		glDeleteProgram(m_programId);
-		glDeleteVertexArrays(1, &m_vaoId);
 		glDeleteBuffers(2, m_vboIds);
 	}
 
@@ -322,7 +309,7 @@ struct DrawLines
 	{
 		if (m_count == e_vertexCapacity)
 		{
-			Submit();
+			Flush();
 		}
 
 		m_vertices[m_count] = v;
@@ -330,10 +317,16 @@ struct DrawLines
 		++m_count;
 	}
 
-	void Submit()
+	void Flush()
 	{
 		if (m_count == 0)
 		{
+			return;
+		}
+
+		if ((g_drawFlags & DrawFlags::e_linesFlag) == 0)
+		{
+			m_count = 0;
 			return;
 		}
 
@@ -344,19 +337,24 @@ struct DrawLines
 		b3Mat44 m = m2 * m1;
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
 
-		glBindVertexArray(m_vaoId);
-
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Vec3), m_vertices);
+		glVertexAttribPointer(m_vertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glEnableVertexAttribArray(m_vertexAttribute);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Color), m_colors);
+		glEnableVertexAttribArray(m_colorAttribute);
+		glVertexAttribPointer(m_colorAttribute, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
 		glDrawArrays(GL_LINES, 0, m_count);
 
 		AssertGL();
 
-		glBindVertexArray(0);
+		glDisableVertexAttribArray(m_colorAttribute);
+		
+		glEnableVertexAttribArray(m_vertexAttribute);
+
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glUseProgram(0);
 
@@ -378,7 +376,6 @@ struct DrawLines
 	GLuint m_colorAttribute;
 
 	GLuint m_vboIds[2];
-	GLuint m_vaoId;
 };
 
 struct DrawTriangles
@@ -386,12 +383,12 @@ struct DrawTriangles
 	DrawTriangles()
 	{
 		const char* vs = \
-			"#version 400\n"
+			"#version 120\n"
 			"uniform mat4 projectionMatrix;\n"
-			"layout(location = 0) in vec3 v_position;\n"
-			"layout(location = 1) in vec4 v_color;\n"
-			"layout(location = 2) in vec3 v_normal;\n"
-			"out vec4 f_color;\n"
+			"attribute vec3 v_position;\n"
+			"attribute vec4 v_color;\n"
+			"attribute vec3 v_normal;\n"
+			"varying vec4 f_color;\n"
 			"void main(void)\n"
 			"{\n"
 			"	vec3 La = vec3(0.5f, 0.5f, 0.5f);\n"
@@ -406,43 +403,32 @@ struct DrawTriangles
 			"}\n";
 
 		const char* fs = \
-			"#version 400\n"
-			"in vec4 f_color;\n"
-			"out vec4 color;\n"
+			"#version 120\n"
+			"varying vec4 f_color;\n"
 			"void main(void)\n"
 			"{\n"
-			"	color = f_color;\n"
+			"	gl_FragColor = f_color;\n"
 			"}\n";
 
 		m_programId = CreateShaderProgram(vs, fs);
 		m_projectionUniform = glGetUniformLocation(m_programId, "projectionMatrix");
-		m_vertexAttribute = 0;
-		m_colorAttribute = 1;
-		m_normalAttribute = 2;
+		m_vertexAttribute = glGetAttribLocation(m_programId, "v_position");
+		m_colorAttribute = glGetAttribLocation(m_programId, "v_color");
+		m_normalAttribute = glGetAttribLocation(m_programId, "v_normal");
 
-		glGenVertexArrays(1, &m_vaoId);
 		glGenBuffers(3, m_vboIds);
-
-		glBindVertexArray(m_vaoId);
-
+		
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
 		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Vec3), m_vertices, GL_DYNAMIC_DRAW);
-		glVertexAttribPointer(m_vertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-		glEnableVertexAttribArray(m_vertexAttribute);
-
+		
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
 		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Color), m_colors, GL_DYNAMIC_DRAW);
-		glVertexAttribPointer(m_colorAttribute, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-		glEnableVertexAttribArray(m_colorAttribute);
-
+		
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[2]);
 		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(b3Vec3), m_normals, GL_DYNAMIC_DRAW);
-		glVertexAttribPointer(m_normalAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-		glEnableVertexAttribArray(m_normalAttribute);
-
+		
 		AssertGL();
 
-		glBindVertexArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 		m_count = 0;
@@ -451,7 +437,6 @@ struct DrawTriangles
 	~DrawTriangles()
 	{
 		glDeleteProgram(m_programId);
-		glDeleteVertexArrays(1, &m_vaoId);
 		glDeleteBuffers(3, m_vboIds);
 	}
 
@@ -459,7 +444,7 @@ struct DrawTriangles
 	{
 		if (m_count == e_vertexCapacity)
 		{
-			Submit();
+			Flush();
 		}
 
 		m_vertices[m_count] = v;
@@ -468,10 +453,16 @@ struct DrawTriangles
 		++m_count;
 	}
 
-	void Submit()
+	void Flush()
 	{
 		if (m_count == 0)
 		{
+			return;
+		}
+		
+		if ((g_drawFlags & DrawFlags::e_trianglesFlag) == 0)
+		{
+			m_count = 0;
 			return;
 		}
 
@@ -483,23 +474,32 @@ struct DrawTriangles
 
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
 
-		glBindVertexArray(m_vaoId);
-
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Vec3), m_vertices);
+		glVertexAttribPointer(m_vertexAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glEnableVertexAttribArray(m_vertexAttribute);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Color), m_colors);
+		glVertexAttribPointer(m_colorAttribute, 4, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glEnableVertexAttribArray(m_colorAttribute);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[2]);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Vec3), m_normals);
+		glVertexAttribPointer(m_normalAttribute, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
+		glEnableVertexAttribArray(m_normalAttribute);
 
 		glDrawArrays(GL_TRIANGLES, 0, m_count);
 
 		AssertGL();
 
+		glDisableVertexAttribArray(m_normalAttribute);
+
+		glDisableVertexAttribArray(m_colorAttribute);
+
+		glDisableVertexAttribArray(m_vertexAttribute);
+
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
 		glUseProgram(0);
 
 		m_count = 0;
@@ -522,7 +522,6 @@ struct DrawTriangles
 	GLuint m_normalAttribute;
 
 	GLuint m_vboIds[3];
-	GLuint m_vaoId;
 };
 
 struct DrawWireSphere
@@ -615,11 +614,11 @@ struct DrawWire
 	DrawWire()
 	{
 		const char* vs = \
-			"#version 400\n"
+			"#version 120\n"
 			"uniform vec4 color;\n"
 			"uniform mat4 projectionMatrix;\n"
-			"layout(location = 0) in vec3 v_position;\n"
-			"out vec4 f_color;\n"
+			"attribute vec3 v_position;\n"
+			"varying vec4 f_color;\n"
 			"void main(void)\n"
 			"{\n"
 			"	f_color = color;\n"
@@ -627,18 +626,17 @@ struct DrawWire
 			"}\n";
 
 		const char* fs = \
-			"#version 400\n"
-			"in vec4 f_color;\n"
-			"out vec4 color;\n"
+			"#version 120\n"
+			"varying vec4 f_color;\n"
 			"void main(void)\n"
 			"{\n"
-			"	color = f_color;\n"
+			"	gl_FragColor = f_color;\n"
 			"}\n";
 
 		m_programId = CreateShaderProgram(vs, fs);
 		m_colorUniform = glGetUniformLocation(m_programId, "color");
 		m_projectionUniform = glGetUniformLocation(m_programId, "projectionMatrix");
-		m_vertexAttribute = 0;
+		m_vertexAttribute = glGetAttribLocation(m_programId, "v_position");
 	}
 
 	~DrawWire()
@@ -648,6 +646,11 @@ struct DrawWire
 
 	void DrawSphere(float32 radius, const b3Color& c, const b3Transform& xf)
 	{
+		if ((g_drawFlags & DrawFlags::e_linesFlag) == 0)
+		{
+			return;
+		}
+
 		glUseProgram(m_programId);
 
 		b3Mat44 m1 = MakeMat44(xf);
@@ -666,6 +669,8 @@ struct DrawWire
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_sphere.m_iboId);
 		glDrawElements(GL_LINES, m_sphere.e_indexCount, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+
+		glDisableVertexAttribArray(m_vertexAttribute);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -892,13 +897,13 @@ struct DrawSolid
 	DrawSolid()
 	{
 		const char* vs = \
-			"#version 400\n"
+			"#version 120\n"
 			"uniform vec4 color;\n"
 			"uniform mat4 modelMatrix;\n"
 			"uniform mat4 projectionMatrix;\n"
-			"layout(location = 0) in vec3 v_position;\n"
-			"layout(location = 1) in vec3 v_normal;\n"
-			"out vec4 f_color;\n"
+			"attribute vec3 v_position;\n"
+			"attribute vec3 v_normal;\n"
+			"varying vec4 f_color;\n"
 			"void main(void)\n"
 			"{\n"
 			"	vec3 f_normal = normalize( ( modelMatrix * vec4(v_normal, 0.0f) ).xyz );\n"
@@ -914,20 +919,19 @@ struct DrawSolid
 			"}\n";
 
 		const char* fs = \
-			"#version 400\n"
-			"in vec4 f_color;\n"
-			"out vec4 color;\n"
+			"#version 120\n"
+			"varying vec4 f_color;\n"
 			"void main(void)\n"
 			"{\n"
-			"	color = f_color;\n"
+			"	gl_FragColor = f_color;\n"
 			"}\n";
 
 		m_programId = CreateShaderProgram(vs, fs);
 		m_colorUniform = glGetUniformLocation(m_programId, "color");
 		m_modelUniform = glGetUniformLocation(m_programId, "modelMatrix");
 		m_projectionUniform = glGetUniformLocation(m_programId, "projectionMatrix");
-		m_vertexAttribute = 0;
-		m_normalAttribute = 1;
+		m_vertexAttribute = glGetAttribLocation(m_programId, "v_position");
+		m_normalAttribute = glGetAttribLocation(m_programId, "v_normal");
 	}
 
 	~DrawSolid()
@@ -936,6 +940,11 @@ struct DrawSolid
 
 	void DrawCylinder(float32 radius, float32 height, const b3Color& c, const b3Transform& xf)
 	{
+		if ((g_drawFlags & DrawFlags::e_trianglesFlag) == 0)
+		{
+			return;
+		}
+
 		glUseProgram(m_programId);
 
 		b3Mat44 m1 = MakeMat44(xf);
@@ -962,6 +971,10 @@ struct DrawSolid
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_cylinder.m_iboId);
 		glDrawElements(GL_TRIANGLES, m_cylinder.e_vertexCount, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
 
+		glDisableVertexAttribArray(m_normalAttribute);
+
+		glDisableVertexAttribArray(m_vertexAttribute);
+
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -970,6 +983,11 @@ struct DrawSolid
 
 	void DrawSphere(float32 radius, const b3Color& c, const b3Transform& xf)
 	{
+		if ((g_drawFlags & DrawFlags::e_trianglesFlag) == 0)
+		{
+			return;
+		}
+
 		glUseProgram(m_programId);
 
 		b3Mat44 m1 = MakeMat44(xf);
@@ -996,6 +1014,10 @@ struct DrawSolid
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_sphere.m_iboId);
 		glDrawElements(GL_TRIANGLES, m_sphere.e_indexCount, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
 
+		glDisableVertexAttribArray(m_normalAttribute);
+
+		glDisableVertexAttribArray(m_vertexAttribute);
+
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -1013,494 +1035,4 @@ struct DrawSolid
 	DrawSolidCylinder m_cylinder;
 };
 
-DebugDraw::DebugDraw()
-{
-	m_points = new DrawPoints();
-	m_lines = new DrawLines();
-	m_triangles = new DrawTriangles();
-	m_wire = new DrawWire();
-	m_solid = new DrawSolid();
-}
-
-DebugDraw::~DebugDraw()
-{
-	delete m_points;
-	delete m_lines;
-	delete m_triangles;
-	delete m_wire;
-	delete m_solid;
-}
-
-void DebugDraw::DrawPoint(const b3Vec3& p, float32 size, const b3Color& color)
-{
-	m_points->Vertex(p, size, color);
-}
-
-void DebugDraw::DrawSegment(const b3Vec3& p1, const b3Vec3& p2, const b3Color& color)
-{
-	m_lines->Vertex(p1, color);
-	m_lines->Vertex(p2, color);
-}
-
-void DebugDraw::DrawTriangle(const b3Vec3& p1, const b3Vec3& p2, const b3Vec3& p3, const b3Color& color)
-{
-	DrawSegment(p1, p2, color);
-	DrawSegment(p2, p3, color);
-	DrawSegment(p3, p1, color);
-}
-
-void DebugDraw::DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const b3Vec3& p2, const b3Vec3& p3, const b3Color& color)
-{
-	m_triangles->Vertex(p1, color, normal);
-	m_triangles->Vertex(p2, color, normal);
-	m_triangles->Vertex(p3, color, normal);
-
-	b3Color edgeColor(0.0f, 0.0f, 0.0f, 1.0f);
-	DrawTriangle(p1, p2, p3, edgeColor);
-}
-
-void DebugDraw::DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const b3Color& color1, const b3Vec3& p2, const b3Color& color2, const b3Vec3& p3, const b3Color& color3)
-{
-	m_triangles->Vertex(p1, color1, normal);
-	m_triangles->Vertex(p2, color2, normal);
-	m_triangles->Vertex(p3, color3, normal);
-
-	b3Color edgeColor(0.0f, 0.0f, 0.0f, 1.0f);
-	DrawTriangle(p1, p2, p3, edgeColor);
-}
-
-void DebugDraw::DrawPolygon(const b3Vec3* vertices, u32 count, const b3Color& color)
-{
-	b3Vec3 p1 = vertices[count - 1];
-	for (u32 i = 0; i < count; ++i)
-	{
-		b3Vec3 p2 = vertices[i];
-
-		m_lines->Vertex(p1, color);
-		m_lines->Vertex(p2, color);
-
-		p1 = p2;
-	}
-}
-
-void DebugDraw::DrawSolidPolygon(const b3Vec3& normal, const b3Vec3* vertices, u32 count, const b3Color& color)
-{
-	b3Color fillColor(color.r, color.g, color.b, color.a);
-
-	b3Vec3 p1 = vertices[0];
-	for (u32 i = 1; i < count - 1; ++i)
-	{
-		b3Vec3 p2 = vertices[i];
-		b3Vec3 p3 = vertices[i + 1];
-
-		m_triangles->Vertex(p1, fillColor, normal);
-		m_triangles->Vertex(p2, fillColor, normal);
-		m_triangles->Vertex(p3, fillColor, normal);
-	}
-
-	b3Color frameColor(0.5f * color.r, 0.5f * color.g, 0.5f * color.b, 1.0f);
-	DrawPolygon(vertices, count, frameColor);
-}
-
-void DebugDraw::DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
-{
-	// Build a tangent vector to normal.
-	b3Vec3 u = b3Cross(normal, b3Vec3(1.0f, 0.0f, 0.0f));
-	b3Vec3 v = b3Cross(normal, b3Vec3(0.0f, 1.0f, 0.0f));
-
-	// Handle edge cases (zero cross product).
-	b3Vec3 n1;
-	if (b3LengthSquared(u) > b3LengthSquared(v))
-	{
-		n1 = u;
-	}
-	else
-	{
-		n1 = v;
-	}
-
-	n1.Normalize();
-
-	// Build a quaternion to rotate the tangent about the normal.
-	u32 kEdgeCount = 20;
-	float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
-	b3Quat q(normal, kAngleInc);
-
-	b3Vec3 p1 = center + radius * n1;
-	for (u32 i = 0; i < kEdgeCount; ++i)
-	{
-		b3Vec3 n2 = b3Mul(q, n1);
-		b3Vec3 p2 = center + radius * n2;
-
-		m_lines->Vertex(p1, color);
-		m_lines->Vertex(p2, color);
-
-		n1 = n2;
-		p1 = p2;
-	}
-}
-
-void DebugDraw::DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
-{
-	b3Color fillColor(color.r, color.g, color.b, color.a);
-	b3Color frameColor(0.5f * color.r, 0.5f * color.g, 0.5f * color.b, 1.0f);
-
-	// Build a tangent vector to normal.
-	b3Vec3 u = b3Cross(normal, b3Vec3(1.0f, 0.0f, 0.0f));
-	b3Vec3 v = b3Cross(normal, b3Vec3(0.0f, 1.0f, 0.0f));
-
-	// Handle edge cases (zero cross product).
-	b3Vec3 n1;
-	if (b3LengthSquared(u) > b3LengthSquared(v))
-	{
-		n1 = u;
-	}
-	else
-	{
-		n1 = v;
-	}
-
-	n1.Normalize();
-
-	// Build a quaternion to rotate the tangent about the normal.
-	const u32 kEdgeCount = 20;
-	const float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
-	b3Quat q(normal, kAngleInc);
-
-	b3Vec3 p1 = center + radius * n1;
-	for (u32 i = 0; i < kEdgeCount; ++i)
-	{
-		b3Vec3 n2 = b3Mul(q, n1);
-		b3Vec3 p2 = center + radius * n2;
-
-		m_triangles->Vertex(center, fillColor, normal);
-		m_triangles->Vertex(p1, fillColor, normal);
-		m_triangles->Vertex(p2, fillColor, normal);
-
-		m_lines->Vertex(p1, frameColor);
-		m_lines->Vertex(p2, frameColor);
-
-		n1 = n2;
-		p1 = p2;
-	}
-}
-
-void DebugDraw::DrawSphere(const b3Vec3& center, float32 radius, const b3Color& color)
-{
-	b3Transform xf;
-	xf.SetIdentity();
-	xf.position = center;
-
-	m_wire->DrawSphere(radius, color, xf);
-}
-
-void DebugDraw::DrawSolidSphere(const b3Vec3& center, float32 radius, const b3Color& color)
-{
-	b3Transform xf;
-	xf.SetIdentity();
-	xf.position = center;
-
-	m_solid->DrawSphere(radius, color, xf);
-}
-
-void DebugDraw::DrawCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const b3Color& color)
-{
-	float32 height = b3Length(c1 - c2);
-
-	{
-		b3Transform xfc;
-		xfc.rotation.SetIdentity();
-		xfc.position = c1;
-		m_wire->DrawSphere(radius, color, xfc);
-	}
-
-	if (height > 0.0f)
-	{
-		DrawSegment(c1, c2, color);
-		
-		{
-			b3Transform xfc;
-			xfc.rotation.SetIdentity();
-			xfc.position = c2;
-			m_wire->DrawSphere(radius, color, xfc);
-		}
-	}
-}
-
-void DebugDraw::DrawSolidCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const b3Color& c)
-{
-	float32 height = b3Length(c1 - c2);
-
-	{
-		b3Transform xfc;
-		xfc.rotation.SetIdentity();
-		xfc.position = c1;
-		m_solid->DrawSphere(radius, c, xfc);
-	}
-
-	if (height > 0.0f)
-	{
-		{
-			b3Mat33 R;
-			R.y = (1.0f / height) * (c1 - c2);
-			R.z = b3Perp(R.y);
-			R.x = b3Cross(R.y, R.z);
-
-			b3Transform xfc;
-			xfc.position = 0.5f * (c1 + c2);
-			xfc.rotation = R;
-
-			m_solid->DrawCylinder(radius, height, c, xfc);
-		}
-
-		{
-			b3Transform xfc;
-			xfc.rotation.SetIdentity();
-			xfc.position = c2;
-			m_solid->DrawSphere(radius, c, xfc);
-		}
-	}
-}
-
-void DebugDraw::DrawTransform(const b3Transform& xf)
-{
-	float32 lenght = 1.0f;
-
-	b3Color red(1.0f, 0.0f, 0.0f, 1.0f);
-	b3Color green(0.0f, 1.0f, 0.0f, 1.0f);
-	b3Color blue(0.0f, 0.0f, 1.0f, 1.0f);
-
-	b3Vec3 position = xf.position;
-	b3Mat33 rotation = xf.rotation;
-
-	b3Vec3 A = position + lenght * rotation.x;
-	b3Vec3 B = position + lenght * rotation.y;
-	b3Vec3 C = position + lenght * rotation.z;
-
-	DrawSegment(position, A, red);
-	DrawSegment(position, B, green);
-	DrawSegment(position, C, blue);
-}
-
-void DebugDraw::DrawAABB(const b3AABB3& aabb, const b3Color& color)
-{
-	b3Vec3 lower = aabb.m_lower;
-	b3Vec3 upper = aabb.m_upper;
-
-	b3Vec3 vs[8];
-
-	vs[0] = lower;
-	vs[1] = b3Vec3(lower.x, upper.y, lower.z);
-	vs[2] = b3Vec3(upper.x, upper.y, lower.z);
-	vs[3] = b3Vec3(upper.x, lower.y, lower.z);
-
-	vs[4] = upper;
-	vs[5] = b3Vec3(upper.x, lower.y, upper.z);
-	vs[6] = b3Vec3(lower.x, lower.y, upper.z);
-	vs[7] = b3Vec3(lower.x, upper.y, upper.z);
-
-	DrawSegment(vs[0], vs[1], color);
-	DrawSegment(vs[1], vs[2], color);
-	DrawSegment(vs[2], vs[3], color);
-	DrawSegment(vs[3], vs[0], color);
-
-	DrawSegment(vs[4], vs[5], color);
-	DrawSegment(vs[5], vs[6], color);
-	DrawSegment(vs[6], vs[7], color);
-	DrawSegment(vs[7], vs[4], color);
-
-	DrawSegment(vs[2], vs[4], color);
-	DrawSegment(vs[5], vs[3], color);
-
-	DrawSegment(vs[6], vs[0], color);
-	DrawSegment(vs[1], vs[7], color);
-}
-
-void DebugDraw::DrawString(const b3Color& color, const char* text, ...)
-{
-	va_list args;
-	va_start(args, text);
-
-	ImGui::SetNextWindowPos(ImVec2(0.0f, 40.0f));
-	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width, g_camera->m_height));
-
-	ImGui::Begin(g_overlayName, NULL, ImVec2(0.0f, 0.0f), 0.0f, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
-	ImGui::TextColoredV(ImVec4(color.r, color.g, color.b, color.a), text, args);
-	ImGui::End();
-
-	va_end(args);
-}
-
-void DebugDraw::DrawSphere(const b3SphereShape* s, const b3Color& c, const b3Transform& xf)
-{
-	b3Transform xfc;
-	xfc.rotation = xf.rotation;
-	xfc.position = xf * s->m_center;
-	m_solid->DrawSphere(s->m_radius, c, xfc);
-}
-
-void DebugDraw::DrawCapsule(const b3CapsuleShape* s, const b3Color& c, const b3Transform& xf)
-{
-	b3Vec3 c1 = s->m_centers[0];
-	b3Vec3 c2 = s->m_centers[1];
-	float32 height = b3Length(c1 - c2);
-	float32 radius = s->m_radius;
-
-	{
-		b3Transform xfc;
-		xfc.rotation = xf.rotation;
-		xfc.position = xf * c1;
-		m_solid->DrawSphere(radius, c, xfc);
-	}
-
-	if (height > 0.0f)
-	{
-		{
-			b3Mat33 R;
-			R.y = (1.0f / height) * (c1 - c2);
-			R.z = b3Perp(R.y);
-			R.x = b3Cross(R.y, R.z);
-
-			b3Transform xfc;
-			xfc.position = xf * (0.5f * (c1 + c2));
-			xfc.rotation = xf.rotation * R;
-
-			m_solid->DrawCylinder(radius, height, c, xfc);
-		}
-
-		{
-			b3Transform xfc;
-			xfc.rotation = xf.rotation;
-			xfc.position = xf * c2;
-			m_solid->DrawSphere(radius, c, xfc);
-		}
-	}
-}
-
-void DebugDraw::DrawHull(const b3HullShape* s, const b3Color& c, const b3Transform& xf)
-{
-	const b3Hull* hull = s->m_hull;
-
-	for (u32 i = 0; i < hull->faceCount; ++i)
-	{
-		const b3Face* face = hull->GetFace(i);
-		const b3HalfEdge* begin = hull->GetEdge(face->edge);
-
-		b3Vec3 n = xf.rotation * hull->planes[i].normal;
-
-		const b3HalfEdge* edge = hull->GetEdge(begin->next);
-		do
-		{
-			u32 i1 = begin->origin;
-			u32 i2 = edge->origin;
-			const b3HalfEdge* next = hull->GetEdge(edge->next);
-			u32 i3 = next->origin;
-
-			b3Vec3 p1 = xf * hull->vertices[i1];
-			b3Vec3 p2 = xf * hull->vertices[i2];
-			b3Vec3 p3 = xf * hull->vertices[i3];
-
-			m_triangles->Vertex(p1, c, n);
-			m_triangles->Vertex(p2, c, n);
-			m_triangles->Vertex(p3, c, n);
-
-			edge = next;
-		} while (hull->GetEdge(edge->next) != begin);
-	}
-}
-
-void DebugDraw::DrawMesh(const b3MeshShape* s, const b3Color& c, const b3Transform& xf)
-{
-	const b3Mesh* mesh = s->m_mesh;
-	for (u32 i = 0; i < mesh->triangleCount; ++i)
-	{
-		const b3Triangle* t = mesh->triangles + i;
-
-		b3Vec3 p1 = xf * mesh->vertices[t->v1];
-		b3Vec3 p2 = xf * mesh->vertices[t->v2];
-		b3Vec3 p3 = xf * mesh->vertices[t->v3];
-
-		b3Vec3 n1 = b3Cross(p2 - p1, p3 - p1);
-		n1.Normalize();
-
-		m_triangles->Vertex(p1, c, n1);
-		m_triangles->Vertex(p2, c, n1);
-		m_triangles->Vertex(p3, c, n1);
-
-		b3Vec3 n2 = -n1;
-
-		m_triangles->Vertex(p1, c, n2);
-		m_triangles->Vertex(p3, c, n2);
-		m_triangles->Vertex(p2, c, n2);
-	}
-}
-
-void DebugDraw::DrawShape(const b3Shape* s, const b3Color& c, const b3Transform& xf)
-{
-	switch (s->GetType())
-	{
-	case e_sphereShape:
-	{
-		DrawSphere((b3SphereShape*)s, c, xf);
-		break;
-	}
-	case e_capsuleShape:
-	{
-		DrawCapsule((b3CapsuleShape*)s, c, xf);
-		break;
-	}
-	case e_hullShape:
-	{
-		DrawHull((b3HullShape*)s, c, xf);
-		break;
-	}
-	case e_meshShape:
-	{
-		DrawMesh((b3MeshShape*)s, c, xf);
-		break;
-	}
-	default:
-	{
-		break;
-	}
-	}
-}
-
-void DebugDraw::Draw(const b3World& world)
-{
-	for (b3Body* b = world.GetBodyList().m_head; b; b = b->GetNext())
-	{
-		b3Color c;
-		if (b->IsAwake() == false)
-		{
-			c = b3Color(0.5f, 0.25f, 0.25f, 1.0f);
-		}
-		else if (b->GetType() == e_staticBody)
-		{
-			c = b3Color(0.5f, 0.5f, 0.5f, 1.0f);
-		}
-		else if (b->GetType() == e_dynamicBody)
-		{
-			c = b3Color(1.0f, 0.5f, 0.5f, 1.0f);
-		}
-		else
-		{
-			c = b3Color(0.5f, 0.5f, 1.0f, 1.0f);
-		}
-
-		b3Transform xf = b->GetTransform();
-		for (b3Shape* s = b->GetShapeList().m_head; s; s = s->GetNext())
-		{
-			DrawShape(s, c, xf);
-		}
-	}
-
-	g_debugDraw->Submit();
-}
-
-void DebugDraw::Submit()
-{
-	m_triangles->Submit();
-	m_lines->Submit();
-	m_points->Submit();
-}
+#endif
