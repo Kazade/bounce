@@ -96,20 +96,20 @@ public:
 		{
 			b3Triangle* t = m_clothMesh.triangles + i;
 
-			const float32 kMaxT = 100000.0f;
-
 			b3Vec3 f1 = T[t->v1];
 			float32 L1 = b3Length(f1);
-			b3Color c1 = Color(L1, 0.0f, kMaxT);
 
 			b3Vec3 f2 = T[t->v2];
 			float32 L2 = b3Length(f2);
-			b3Color c2 = Color(L2, 0.0f, kMaxT);
 
 			b3Vec3 f3 = T[t->v3];
 			float32 L3 = b3Length(f3);
-			b3Color c3 = Color(L3, 0.0f, kMaxT);
 
+			float32 L = (L1 + L2 + L3) / 3.0f;
+
+			const float32 kMaxT = 100000.0f;
+			b3Color color = Color(L, 0.0f, kMaxT);
+			
 			b3Vec3 v1 = m_clothMesh.vertices[t->v1];
 			b3Vec3 v2 = m_clothMesh.vertices[t->v2];
 			b3Vec3 v3 = m_clothMesh.vertices[t->v3];
@@ -119,8 +119,8 @@ public:
 
 			b3Vec3 n2 = -n1;
 
-			g_draw->DrawSolidTriangle(n1, v1, c1, v2, c2, v3, c3);
-			g_draw->DrawSolidTriangle(n2, v1, c1, v3, c3, v2, c2);
+			g_draw->DrawSolidTriangle(n1, v1, v2, v3, color);
+			g_draw->DrawSolidTriangle(n2, v1, v3, v2, color);
 		}
 
 		b3SpringClothStep step = m_cloth.GetStep();

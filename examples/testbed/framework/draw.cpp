@@ -31,6 +31,110 @@ Camera* g_camera = nullptr;
 Draw* g_draw = nullptr;
 u32 g_drawFlags = 0;
 
+Camera::Camera()
+{
+	m_center.SetZero();
+	m_q.SetIdentity();
+	m_width = 1024.0f;
+	m_height = 768.0f;
+	m_zNear = 1.0f;
+	m_zFar = 1000.0f;
+	m_fovy = 0.25f * B3_PI;
+	m_zoom = 10.0f;
+}
+
+b3Mat44 Camera::BuildProjectionMatrix() const
+{
+	float32 t = tan(0.5f * m_fovy);
+	float32 sy = 1.0f / t;
+
+	float32 aspect = m_width / m_height;
+	float32 sx = 1.0f / (aspect * t);
+
+	float32 invRange = 1.0f / (m_zNear - m_zFar);
+	float32 sz = invRange * (m_zNear + m_zFar);
+	float32 tz = invRange * m_zNear * m_zFar;
+
+	b3Mat44 m;
+	m.x = b3Vec4(sx, 0.0f, 0.0f, 0.0f);
+	m.y = b3Vec4(0.0f, sy, 0.0f, 0.0f);
+	m.z = b3Vec4(0.0f, 0.0f, sz, -1.0f);
+	m.w = b3Vec4(0.0f, 0.0f, tz, 0.0f);
+	return m;
+}
+
+b3Transform Camera::BuildWorldTransform() const
+{
+	b3Transform xf;
+	xf.rotation = b3QuatMat33(m_q);
+	xf.position = (m_zoom * xf.rotation.z) - m_center;
+	return xf;
+}
+
+b3Mat44 Camera::BuildWorldMatrix() const
+{
+	b3Transform xf = BuildWorldTransform();
+	return MakeMat44(xf);
+}
+
+b3Transform Camera::BuildViewTransform() const
+{
+	b3Transform xf;
+	xf.rotation = b3QuatMat33(m_q);
+	xf.position = (m_zoom * xf.rotation.z) - m_center;
+	return b3Inverse(xf);
+}
+
+b3Mat44 Camera::BuildViewMatrix() const
+{
+	b3Transform xf = BuildViewTransform();
+	return MakeMat44(xf);
+}
+
+b3Vec2 Camera::ConvertWorldToScreen(const b3Vec3& pw3) const
+{
+	float32 w = m_width, h = m_height;
+	b3Mat44 P = BuildProjectionMatrix();
+	b3Mat44 V = BuildViewMatrix();
+
+	b3Vec4 pw(pw3.x, pw3.y, pw3.z, 1.0f);
+
+	b3Vec4 pp = P * V * pw;
+
+	b3Vec3 pn(pp.x, pp.y, pp.z);
+	float32 inv_w = pp.w != 0.0f ? 1.0f / pp.w : 1.0f;
+	pn *= inv_w;
+
+	float32 u = 0.5f * (pn.x + 1.0f);
+	float32 v = 0.5f * (pn.y + 1.0f);
+
+	b3Vec2 ps;
+	ps.x = u * w;
+	ps.y = (1.0f - v) * h;
+	return ps;
+}
+
+Ray3 Camera::ConvertScreenToWorld(const b3Vec2& ps) const
+{
+	// Essential Math, page 250.
+	float32 t = tan(0.5f * m_fovy);
+	float32 aspect = m_width / m_height;
+
+	b3Vec3 pv;
+	pv.x = 2.0f * aspect * ps.x / m_width - aspect;
+	pv.y = -2.0f * ps.y / m_height + 1.0f;
+	pv.z = -1.0f / t;
+
+	b3Transform xf = BuildWorldTransform();
+	b3Vec3 pw = xf * pv;
+
+	Ray3 rw;
+	rw.direction = b3Normalize(pw - xf.position);
+	rw.origin = xf.position;
+	rw.fraction = m_zFar;
+	return rw;
+}
+
 Draw::Draw()
 {
 	m_points = new DrawPoints();
@@ -72,16 +176,6 @@ void Draw::DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const b3Vec
 	m_triangles->Vertex(p1, color, normal);
 	m_triangles->Vertex(p2, color, normal);
 	m_triangles->Vertex(p3, color, normal);
-
-	b3Color edgeColor(0.0f, 0.0f, 0.0f, 1.0f);
-	DrawTriangle(p1, p2, p3, edgeColor);
-}
-
-void Draw::DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const b3Color& color1, const b3Vec3& p2, const b3Color& color2, const b3Vec3& p3, const b3Color& color3)
-{
-	m_triangles->Vertex(p1, color1, normal);
-	m_triangles->Vertex(p2, color2, normal);
-	m_triangles->Vertex(p3, color3, normal);
 
 	b3Color edgeColor(0.0f, 0.0f, 0.0f, 1.0f);
 	DrawTriangle(p1, p2, p3, edgeColor);
@@ -334,15 +428,45 @@ void Draw::DrawAABB(const b3AABB3& aabb, const b3Color& color)
 	DrawSegment(vs[1], vs[7], color);
 }
 
+void Draw::DrawString(const b3Color& color, const b3Vec2& ps, const char* text, ...)
+{
+	va_list args;
+	va_start(args, text);
+	ImGui::SetNextWindowBgAlpha(0.0f);
+	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width, g_camera->m_height));
+	ImGui::Begin("Superlay", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
+	ImGui::SetCursorPos(ImVec2(ps.x, ps.y));
+	ImGui::TextColoredV(ImVec4(color.r, color.g, color.b, color.a), text, args);
+	ImGui::End();
+	va_end(args);
+}
+
+void Draw::DrawString(const b3Color& color, const b3Vec3& pw, const char* text, ...)
+{
+	b3Vec2 ps = g_camera->ConvertWorldToScreen(pw);
+
+	va_list args;
+	va_start(args, text);
+	ImGui::SetNextWindowBgAlpha(0.0f);
+	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width, g_camera->m_height));
+	ImGui::Begin("Superlay", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
+	ImGui::SetCursorPos(ImVec2(ps.x, ps.y));
+	ImGui::TextColoredV(ImVec4(color.r, color.g, color.b, color.a), text, args);
+	ImGui::End();
+	va_end(args);
+}
+
 void Draw::DrawString(const b3Color& color, const char* text, ...)
 {
 	va_list args;
 	va_start(args, text);
 
+	ImGui::SetNextWindowBgAlpha(0.0f);
 	ImGui::SetNextWindowPos(ImVec2(0.0f, 40.0f));
 	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width, g_camera->m_height));
-
-	ImGui::Begin("Overlay", NULL, ImVec2(0.0f, 0.0f), 0.0f, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
+	ImGui::Begin("Overlay", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
 	ImGui::TextColoredV(ImVec4(color.r, color.g, color.b, color.a), text, args);
 	ImGui::End();
 
