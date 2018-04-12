@@ -148,6 +148,7 @@ void View::Command_Draw()
 	Settings& settings = m_model->m_settings;
 	TestSettings& testSettings = m_model->m_testSettings;
 
+	bool openControls = false;
 	bool openAbout = false;
 	if (ImGui::BeginMainMenuBar())
 	{
@@ -204,6 +205,11 @@ void View::Command_Draw()
 
 		if (ImGui::BeginMenu("Help"))
 		{
+			if (ImGui::MenuItem("Controls"))
+			{
+				openControls = true;
+			}
+			
 			if (ImGui::MenuItem("About"))
 			{
 				openAbout = true;
@@ -214,6 +220,11 @@ void View::Command_Draw()
 
 		ImGui::EndMainMenuBar();
 	}
+	
+	if (openControls)
+	{
+		ImGui::OpenPopup("Controls");
+	}
 
 	if (openAbout)
 	{
@@ -221,6 +232,20 @@ void View::Command_Draw()
 	}
 
 	ImVec2 buttonSize(-1.0f, 0.0f);
+	
+	if (ImGui::BeginPopupModal("Controls", NULL, ImGuiWindowFlags_Popup | ImGuiWindowFlags_NoResize))
+	{
+		ImGui::Text("Rotate the scene using LSHIFT + LMB");
+		ImGui::Text("Translate the scene using LSHIFT + RMB");
+		ImGui::Text("Zoom in / out the scene using LSHIFT + Mouse Wheel");
+
+		if (ImGui::Button("OK", buttonSize))
+		{
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
+	}
 
 	if (ImGui::BeginPopupModal("About Bounce Testbed", NULL, ImGuiWindowFlags_Popup | ImGuiWindowFlags_NoResize))
 	{
