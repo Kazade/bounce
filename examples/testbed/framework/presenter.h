@@ -19,8 +19,6 @@
 #ifndef PRESENTER_H
 #define PRESENTER_H
 
-#include <bounce/common/math/vec2.h>
-
 class Model;
 class View;
 
