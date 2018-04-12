@@ -16,6 +16,9 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
+#ifndef DRAW_GL4_H
+#define DRAW_GL4_H
+
 #include <testbed/framework/draw.h> 
 
 #include <glad_4/glad.h>
@@ -1039,3 +1042,5 @@ struct DrawSolid
 	DrawSolidSphere m_sphere;
 	DrawSolidCylinder m_cylinder;
 };
+
+#endif
