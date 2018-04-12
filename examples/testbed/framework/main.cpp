@@ -108,6 +108,15 @@ static void Run()
 		
 		g_view->Command_PreDraw();
 
+		if (g_settings->pause)
+		{
+			g_draw->DrawString(b3Color_white, "*PAUSED*");
+		}
+		else
+		{
+			g_draw->DrawString(b3Color_white, "*PLAYING*");
+		}
+
 		if (g_settings->drawProfile)
 		{
 			const b3Array<ProfilerRecord>& records = g_profilerRecorder->GetRecords();

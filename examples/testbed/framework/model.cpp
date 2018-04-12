@@ -78,15 +78,6 @@ void Model::Command_Step()
 		Action_DefaultCamera();
 	}
 	
-	if (m_settings.pause)
-	{
-		m_draw.DrawString(b3Color_white, "*PAUSED*");
-	}
-	else
-	{
-		m_draw.DrawString(b3Color_white, "*PLAYING*");
-	}
-
 	if (m_settings.drawGrid)
 	{
 		b3Color color(0.2f, 0.2f, 0.2f, 1.0f);
