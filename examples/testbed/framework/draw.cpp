@@ -414,11 +414,11 @@ void Draw::DrawAABB(const b3AABB3& aabb, const b3Color& color)
 	DrawSegment(vs[b3AABB3Vertex::e_rightUpFrontVertex], vs[b3AABB3Vertex::e_leftUpFrontVertex], color);
 	DrawSegment(vs[b3AABB3Vertex::e_leftUpFrontVertex], vs[e_leftDownFrontVertex], color);
 
-	// Lower Edges
+	// Upper Edges
 	DrawSegment(vs[b3AABB3Vertex::e_leftUpBackVertex], vs[b3AABB3Vertex::e_leftUpFrontVertex], color);
 	DrawSegment(vs[b3AABB3Vertex::e_rightUpBackVertex], vs[b3AABB3Vertex::e_rightUpFrontVertex], color);
 
-	// Upper Edges
+	// Lower Edges
 	DrawSegment(vs[b3AABB3Vertex::e_leftDownBackVertex], vs[b3AABB3Vertex::e_leftDownFrontVertex], color);
 	DrawSegment(vs[b3AABB3Vertex::e_rightDownBackVertex], vs[b3AABB3Vertex::e_rightDownFrontVertex], color);
 }
