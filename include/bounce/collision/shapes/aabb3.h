@@ -21,40 +21,11 @@
 
 #include <bounce/common/math/transform.h>
 
-enum b3AABB3Vertex
-{
-	e_leftDownBackVertex,
-	e_rightDownBackVertex,
-	e_rightUpBackVertex,
-	e_leftUpBackVertex,
-
-	e_leftDownFrontVertex,
-	e_rightDownFrontVertex,
-	e_rightUpFrontVertex,
-	e_leftUpFrontVertex,
-
-	e_aabb3VertexCount
-};
-
 // A min-max representation of a three-dimensional AABB.
-struct b3AABB3
+struct b3AABB3 
 {
 	b3Vec3 m_lower; // lower vertex
 	b3Vec3 m_upper; // upper vertex
-
-	// Get the AABB corners enumerated using b3AABB3Vertex.
-	void GetVertices(b3Vec3 out[e_aabb3VertexCount]) const
-	{
-		out[e_leftDownBackVertex].Set(m_lower.x, m_lower.y, m_lower.z);
-		out[e_rightDownBackVertex].Set(m_upper.x, m_lower.y, m_lower.z);
-		out[e_rightUpBackVertex].Set(m_upper.x, m_upper.y, m_lower.z);
-		out[e_leftUpBackVertex].Set(m_lower.x, m_upper.y, m_lower.z);
-
-		out[e_leftDownFrontVertex].Set(m_lower.x, m_lower.y, m_upper.z);
-		out[e_rightDownFrontVertex].Set(m_upper.x, m_lower.y, m_upper.z);
-		out[e_rightUpFrontVertex].Set(m_upper.x, m_upper.y, m_upper.z);
-		out[e_leftUpFrontVertex].Set(m_lower.x, m_upper.y, m_upper.z);
-	}
 
 	// Get the support vertex in a given direction.
 	b3Vec3 GetSupportVertex(const b3Vec3& direction) const

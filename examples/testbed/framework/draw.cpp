@@ -399,28 +399,33 @@ void Draw::DrawAABB(const b3AABB3& aabb, const b3Color& color)
 	b3Vec3 lower = aabb.m_lower;
 	b3Vec3 upper = aabb.m_upper;
 
-	b3Vec3 vs[b3AABB3Vertex::e_aabb3VertexCount];
-	aabb.GetVertices(vs);
+	b3Vec3 vs[8];
 
-	// Back
-	DrawSegment(vs[b3AABB3Vertex::e_leftDownBackVertex], vs[b3AABB3Vertex::e_rightDownBackVertex], color);
-	DrawSegment(vs[b3AABB3Vertex::e_rightDownBackVertex], vs[b3AABB3Vertex::e_rightUpBackVertex], color);
-	DrawSegment(vs[b3AABB3Vertex::e_rightUpBackVertex], vs[b3AABB3Vertex::e_leftUpBackVertex], color);
-	DrawSegment(vs[b3AABB3Vertex::e_leftUpBackVertex], vs[e_leftDownBackVertex], color);
+	vs[0] = lower;
+	vs[1] = b3Vec3(lower.x, upper.y, lower.z);
+	vs[2] = b3Vec3(upper.x, upper.y, lower.z);
+	vs[3] = b3Vec3(upper.x, lower.y, lower.z);
 
-	// Front
-	DrawSegment(vs[b3AABB3Vertex::e_leftDownFrontVertex], vs[b3AABB3Vertex::e_rightDownFrontVertex], color);
-	DrawSegment(vs[b3AABB3Vertex::e_rightDownFrontVertex], vs[b3AABB3Vertex::e_rightUpFrontVertex], color);
-	DrawSegment(vs[b3AABB3Vertex::e_rightUpFrontVertex], vs[b3AABB3Vertex::e_leftUpFrontVertex], color);
-	DrawSegment(vs[b3AABB3Vertex::e_leftUpFrontVertex], vs[e_leftDownFrontVertex], color);
+	vs[4] = upper;
+	vs[5] = b3Vec3(upper.x, lower.y, upper.z);
+	vs[6] = b3Vec3(lower.x, lower.y, upper.z);
+	vs[7] = b3Vec3(lower.x, upper.y, upper.z);
 
-	// Upper Edges
-	DrawSegment(vs[b3AABB3Vertex::e_leftUpBackVertex], vs[b3AABB3Vertex::e_leftUpFrontVertex], color);
-	DrawSegment(vs[b3AABB3Vertex::e_rightUpBackVertex], vs[b3AABB3Vertex::e_rightUpFrontVertex], color);
+	DrawSegment(vs[0], vs[1], color);
+	DrawSegment(vs[1], vs[2], color);
+	DrawSegment(vs[2], vs[3], color);
+	DrawSegment(vs[3], vs[0], color);
 
-	// Lower Edges
-	DrawSegment(vs[b3AABB3Vertex::e_leftDownBackVertex], vs[b3AABB3Vertex::e_leftDownFrontVertex], color);
-	DrawSegment(vs[b3AABB3Vertex::e_rightDownBackVertex], vs[b3AABB3Vertex::e_rightDownFrontVertex], color);
+	DrawSegment(vs[4], vs[5], color);
+	DrawSegment(vs[5], vs[6], color);
+	DrawSegment(vs[6], vs[7], color);
+	DrawSegment(vs[7], vs[4], color);
+
+	DrawSegment(vs[2], vs[4], color);
+	DrawSegment(vs[5], vs[3], color);
+
+	DrawSegment(vs[6], vs[0], color);
+	DrawSegment(vs[1], vs[7], color);
 }
 
 void Draw::DrawString(const b3Color& color, const b3Vec2& ps, const char* text, ...)
