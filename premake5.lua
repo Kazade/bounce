@@ -269,7 +269,7 @@ solution (solution_name)
 			
 			examples_inc_dir .. "/testbed/framework/model.h", 
 			examples_inc_dir .. "/testbed/framework/view.h", 
-			examples_inc_dir .. "/testbed/framework/controller.h", 
+			examples_inc_dir .. "/testbed/framework/presenter.h", 
 			
 			examples_src_dir .. "/testbed/framework/test.h", 
 			
@@ -282,7 +282,7 @@ solution (solution_name)
 			
 			examples_inc_dir .. "/testbed/framework/model.cpp", 
 			examples_inc_dir .. "/testbed/framework/view.cpp", 
-			examples_inc_dir .. "/testbed/framework/controller.cpp", 
+			examples_inc_dir .. "/testbed/framework/presenter.cpp", 
 			
 			examples_src_dir .. "/testbed/framework/test.cpp", 
 			examples_src_dir .. "/testbed/framework/test_entries.cpp", 

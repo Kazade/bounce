@@ -16,44 +16,34 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef CONTROLLER_H
-#define CONTROLLER_H
+#ifndef PRESENTER_H
+#define PRESENTER_H
 
 #include <bounce/common/math/vec2.h>
 
 class Model;
 class View;
 
-class Controller
+class Presenter
 {
 public:
-	Controller(Model* model, View* view);
+	Presenter(Model* model, View* view);
 
-	~Controller();
+	~Presenter();
 
-	void Event_SetWindowSize(u32 w, u32 h);
-	
+	void Event_SetWindowSize(float w, float h);
 	void Event_Press_Key(int button);
 	void Event_Release_Key(int button);
-
 	void Event_Press_Mouse(int button);
 	void Event_Release_Mouse(int button);
-
-	void Event_Move_Cursor(float32 x, float32 y);
-	void Event_Scroll(float32 dx, float32 dy);
+	void Event_Move_Cursor(float x, float y);
+	void Event_Scroll(float dx, float dy);
 private:
 	friend class Model;
 	friend class View;
 
 	Model* m_model;
 	View* m_view;
-
-	bool m_leftDown;
-	bool m_rightDown;
-	bool m_shiftDown;
-	b3Vec2 m_ps0;
-
-	// Ray3 m_ray0;
 };
 
 #endif

@@ -16,12 +16,9 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <testbed/framework/controller.h>
+#include <testbed/framework/presenter.h>
 #include <testbed/framework/model.h>
 #include <testbed/framework/view.h>
-
-// !
-#include <glfw/glfw3.h>
 
 // !
 static inline b3Vec2 GetCursorPosition()
@@ -34,35 +31,25 @@ static inline b3Vec2 GetCursorPosition()
 	return b3Vec2(float32(x), float32(y));
 }
 
-Controller::Controller(Model* model, View* view)
+Presenter::Presenter(Model* model, View* view)
 {
 	m_model = model;
 	m_view = view;
-	
-	m_leftDown = false;
-	m_rightDown = false;
-	m_shiftDown = false;
-	m_ps0.SetZero();
 }
 
-Controller::~Controller()
+Presenter::~Presenter()
 {
 
 }
 
-void Controller::Event_SetWindowSize(u32 w, u32 h)
+void Presenter::Event_SetWindowSize(float w, float h)
 {
-	m_model->Command_ResizeCamera(float32(w), float32(h));
+	m_model->Command_ResizeCamera(w, h);
 }
 
-void Controller::Event_Press_Key(int button)
+void Presenter::Event_Press_Key(int button)
 {
-	if (button == GLFW_KEY_LEFT_SHIFT)
-	{
-		m_shiftDown = true;
-	}
-
-	if (m_shiftDown)
+	if (m_view->m_shiftDown)
 	{
 		if (button == GLFW_KEY_DOWN)
 		{
@@ -80,82 +67,58 @@ void Controller::Event_Press_Key(int button)
 	}
 }
 
-void Controller::Event_Release_Key(int button)
+void Presenter::Event_Release_Key(int button)
 {
-	if (button == GLFW_KEY_LEFT_SHIFT)
-	{
-		m_shiftDown = false;
-	}
-
-	if (m_shiftDown)
-	{
-
-	}
-	else
+	if (!m_view->m_shiftDown)
 	{
 		m_model->Command_Release_Key(button);
 	}
 }
 
-void Controller::Event_Press_Mouse(int button)
+void Presenter::Event_Press_Mouse(int button)
 {
 	if (button == GLFW_MOUSE_BUTTON_LEFT)
 	{
-		m_leftDown = true;
-
-		if (!m_shiftDown)
+		if (!m_view->m_shiftDown)
 		{
 			m_model->Command_Press_Mouse_Left(GetCursorPosition());
 		}
 	}
-
-	if (button == GLFW_MOUSE_BUTTON_RIGHT)
-	{
-		m_rightDown = true;
-	}
 }
 
-void Controller::Event_Release_Mouse(int button)
+void Presenter::Event_Release_Mouse(int button)
 {
 	if (button == GLFW_MOUSE_BUTTON_LEFT)
 	{
-		m_leftDown = false;
-
-		if (!m_shiftDown)
+		if (!m_view->m_shiftDown)
 		{
 			m_model->Command_Release_Mouse_Left(GetCursorPosition());
 		}
 	}
-
-	if (button == GLFW_MOUSE_BUTTON_RIGHT)
-	{
-		m_rightDown = false;
-	}
 }
 
-void Controller::Event_Move_Cursor(float32 x, float32 y)
+void Presenter::Event_Move_Cursor(float x, float y)
 {
 	b3Vec2 ps;
-	ps.Set(float32(x), float32(y));
+	ps.Set(x, y);
 
-	b3Vec2 dp = ps - m_ps0;
-	m_ps0 = ps;
+	b3Vec2 dp = ps - m_view->m_ps0;
 
 	float32 ndx = b3Clamp(dp.x, -1.0f, 1.0f);
 	float32 ndy = b3Clamp(dp.y, -1.0f, 1.0f);
 
-	if (m_shiftDown)
+	if (m_view->m_shiftDown)
 	{
-		if (m_leftDown)
+		if (m_view->m_leftDown)
 		{
 			float32 ax = -0.005f * B3_PI * ndx;
 			float32 ay = -0.005f * B3_PI * ndy;
-			
+
 			m_model->Command_RotateCameraY(ax);
 			m_model->Command_RotateCameraX(ay);
 		}
 
-		if (m_rightDown)
+		if (m_view->m_rightDown)
 		{
 			float32 tx = 0.2f * ndx;
 			float32 ty = -0.2f * ndy;
@@ -170,9 +133,9 @@ void Controller::Event_Move_Cursor(float32 x, float32 y)
 	}
 }
 
-void Controller::Event_Scroll(float32 dx, float32 dy)
+void Presenter::Event_Scroll(float dx, float dy)
 {
-	if (m_shiftDown)
+	if (m_view->m_shiftDown)
 	{
 		float32 ny = b3Clamp(dy, -1.0f, 1.0f);
 		m_model->Command_ZoomCamera(1.0f * ny);

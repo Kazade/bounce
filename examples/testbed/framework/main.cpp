@@ -26,7 +26,6 @@
 
 #include <testbed/framework/model.h>
 #include <testbed/framework/view.h>
-#include <testbed/framework/controller.h>
 
 //
 GLFWwindow* g_window;
@@ -34,21 +33,20 @@ GLFWwindow* g_window;
 //
 Model* g_model;
 View* g_view;
-Controller* g_controller;
 
 static void WindowSize(GLFWwindow* ww, int w, int h)
 {
-	g_controller->Event_SetWindowSize(u32(w), u32(h));
+	g_view->Event_SetWindowSize(w, h);
 }
 
 static void CursorMove(GLFWwindow* w, double x, double y)
 {
-	g_controller->Event_Move_Cursor(float32(x), float32(y));
+	g_view->Event_Move_Cursor(float(x), float(y));
 }
 
 static void WheelScroll(GLFWwindow* w, double dx, double dy)
 {
-	g_controller->Event_Scroll(float32(dx), float32(dy));
+	g_view->Event_Scroll(float(dx), float(dy));
 }
 
 static void MouseButton(GLFWwindow* w, int button, int action, int mods)
@@ -57,12 +55,12 @@ static void MouseButton(GLFWwindow* w, int button, int action, int mods)
 	{
 	case GLFW_PRESS:
 	{
-		g_controller->Event_Press_Mouse(button);
+		g_view->Event_Press_Mouse(button);
 		break;
 	}
 	case GLFW_RELEASE:
 	{
-		g_controller->Event_Release_Mouse(button);
+		g_view->Event_Release_Mouse(button);
 		break;
 	}
 	default:
@@ -78,13 +76,12 @@ static void KeyButton(GLFWwindow* w, int button, int scancode, int action, int m
 	{
 	case GLFW_PRESS:
 	{
-		g_controller->Event_Press_Key(button);
-		
+		g_view->Event_Press_Key(button);
 		break;
 	}
 	case GLFW_RELEASE:
 	{
-		g_controller->Event_Release_Key(button);
+		g_view->Event_Release_Key(button);
 		break;
 	}
 	default:
@@ -98,7 +95,7 @@ static void Run()
 {
 	int w, h;
 	glfwGetWindowSize(g_window, &w, &h);
-	g_controller->Event_SetWindowSize(u32(w), u32(h));
+	g_view->Event_SetWindowSize(u32(w), u32(h));
 	
 	while (glfwWindowShouldClose(g_window) == 0)
 	{
@@ -187,15 +184,11 @@ int main(int argc, char** args)
 	// 
 	g_model = new Model();
 	g_view = new View(g_window, g_model);
-	g_controller = new Controller(g_model, g_view);
 
 	// Run
 	Run();
 
 	//
-	delete g_controller;
-	g_controller = nullptr;
-
 	delete g_view;
 	g_view = nullptr;
 

@@ -26,6 +26,8 @@
 #else
 #endif
 
+#include <glfw/glfw3.h>
+
 static bool GetTestName(void* userData, int idx, const char** name)
 {
 	assert(u32(idx) < g_testCount);
@@ -109,7 +111,7 @@ static inline void ImGui_GLFW_GL_RenderDrawData(ImDrawData* draw_data)
 
 }
 
-View::View(GLFWwindow* window, Model* model)
+View::View(GLFWwindow* window, Model* model) : m_presenter(model, this)
 {
 	m_window = window;
 	m_model = model;
@@ -125,6 +127,11 @@ View::View(GLFWwindow* window, Model* model)
 	ImGui_GLFW_GL_Init(m_window, false);
 
 	ImGui::StyleColorsDark();
+
+	m_leftDown = false;
+	m_rightDown = false;
+	m_shiftDown = false;
+	m_ps0.SetZero();
 }
 
 View::~View()
@@ -133,6 +140,75 @@ View::~View()
 	ImGui_GLFW_GL_Shutdown();
 
 	ImGui::DestroyContext();
+}
+
+void View::Event_SetWindowSize(int w, int h)
+{
+	m_presenter.Event_SetWindowSize(float32(w), float32(h));
+}
+
+void View::Event_Press_Key(int button)
+{
+	if (button == GLFW_KEY_LEFT_SHIFT)
+	{
+		m_shiftDown = true;
+	}
+
+	m_presenter.Event_Press_Key(button);
+}
+
+void View::Event_Release_Key(int button)
+{
+	if (button == GLFW_KEY_LEFT_SHIFT)
+	{
+		m_shiftDown = false;
+	}
+
+	m_presenter.Event_Release_Key(button);
+}
+
+void View::Event_Press_Mouse(int button)
+{
+	if (button == GLFW_MOUSE_BUTTON_LEFT)
+	{
+		m_leftDown = true;
+	}
+
+	if (button == GLFW_MOUSE_BUTTON_RIGHT)
+	{
+		m_rightDown = true;
+	}
+	
+	m_presenter.Event_Press_Mouse(button);
+}
+
+void View::Event_Release_Mouse(int button)
+{
+	if (button == GLFW_MOUSE_BUTTON_LEFT)
+	{
+		m_leftDown = false;
+	}
+
+	if (button == GLFW_MOUSE_BUTTON_RIGHT)
+	{
+		m_rightDown = false;
+	}
+
+	m_presenter.Event_Release_Mouse(button);
+}
+
+void View::Event_Move_Cursor(float x, float y)
+{
+	b3Vec2 ps(x, y);
+
+	m_presenter.Event_Move_Cursor(ps.x, ps.y);
+	
+	m_ps0 = ps;
+}
+
+void View::Event_Scroll(float dx, float dy)
+{
+	m_presenter.Event_Scroll(dx, dy);
 }
 
 void View::Command_PreDraw()
