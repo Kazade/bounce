@@ -4,13 +4,7 @@ Bounce is a 3D physics engine for games.
 
 To get started with Bounce see readme.txt.
 
-Here is how to control the Testbed. The Testbed is a collection of non-unit tests and examples that helps the author debug features and is not part of the library.
-
-Camera (as in Maya):
-
-* Rotate the scene holding LSHIFT + LMB
-* Translate the scene holding LSHIFT + RMB
-* Zoom in/out the scene using LSHIFT + Mouse Wheel
+Inside the examples folder there is the source code for an application called Testbed. The Testbed is a collection of visual tests and examples that can support the development of the library. As you would imagine, this application is not part of the library. However, it's still recommended to read the code to become confortable with using the library. It might take some time to document Bounce properly.
 
 Bounce is released under the <b>zlib</b> license.
 
