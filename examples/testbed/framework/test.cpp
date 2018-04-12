@@ -34,7 +34,6 @@ void b3PopProfileScope()
 	g_profiler->PopEvent();
 }
 
-Settings* g_settings = nullptr;
 TestSettings* g_testSettings = nullptr;
 
 Test::Test() : m_bodyDragger(&m_bodyRay, &m_world)

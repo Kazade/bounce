@@ -18,6 +18,8 @@
 
 #include <testbed/framework/model.h>
 
+Settings* g_settings = nullptr;
+
 Model::Model()
 {
 	g_settings = &m_settings;
