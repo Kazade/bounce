@@ -45,15 +45,17 @@ Camera::Camera()
 
 b3Mat44 Camera::BuildProjectionMatrix() const
 {
+	float32 w = m_width, h = m_height;
+	
 	float32 t = tan(0.5f * m_fovy);
+	float32 ratio = w / h;
+	float32 sx = 1.0f / (ratio * t);
 	float32 sy = 1.0f / t;
-
-	float32 aspect = m_width / m_height;
-	float32 sx = 1.0f / (aspect * t);
-
-	float32 invRange = 1.0f / (m_zNear - m_zFar);
-	float32 sz = invRange * (m_zNear + m_zFar);
-	float32 tz = invRange * m_zNear * m_zFar;
+	
+	float32 inv_range = 1.0f / (m_zNear - m_zFar);
+	float32 sz = inv_range * (m_zNear + m_zFar);
+	
+	float32 tz = inv_range * m_zNear * m_zFar;
 
 	b3Mat44 m;
 	m.x = b3Vec4(sx, 0.0f, 0.0f, 0.0f);
@@ -116,20 +118,23 @@ b3Vec2 Camera::ConvertWorldToScreen(const b3Vec3& pw3) const
 
 Ray3 Camera::ConvertScreenToWorld(const b3Vec2& ps) const
 {
-	// Essential Math, page 250.
+	float32 w = m_width, h = m_height;
+	
 	float32 t = tan(0.5f * m_fovy);
-	float32 aspect = m_width / m_height;
-
-	b3Vec3 pv;
-	pv.x = 2.0f * aspect * ps.x / m_width - aspect;
-	pv.y = -2.0f * ps.y / m_height + 1.0f;
-	pv.z = -1.0f / t;
+	float32 ratio = w / h;
+	
+	b3Vec3 vv;
+	vv.x = 2.0f * ratio * ps.x / w - ratio;
+	vv.y = -2.0f * ps.y / h + 1.0f;
+	vv.z = -1.0f / t;
 
 	b3Transform xf = BuildWorldTransform();
-	b3Vec3 pw = xf * pv;
+	
+	b3Vec3 vw = xf.rotation * vv;
+	vw.Normalize();
 
 	Ray3 rw;
-	rw.direction = b3Normalize(pw - xf.position);
+	rw.direction = vw;
 	rw.origin = xf.position;
 	rw.fraction = m_zFar;
 	return rw;
