@@ -19,8 +19,8 @@
 #ifndef TESTBED_LISTENER_H
 #define TESTBED_LISTENER_H
 
-#include <testbed\framework\profiler.h>
-#include <testbed\framework\recorder_profiler.h>
+#include <testbed/framework/profiler.h>
+#include <testbed/framework/recorder_profiler.h>
 
 // Set to 1 then the testbed listener will write profile events into a .json file.
 // Set to 0 otherwise.
