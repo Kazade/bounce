@@ -17,8 +17,10 @@
 */
 
 #include <testbed/framework/view.h>
-#include <testbed/framework/model.h>
+#include <testbed/framework/view_model.h>
+#include <testbed/framework/test.h>
 
+#include <imgui/imgui.h>
 #if defined (U_OPENGL_2)
 #include <imgui/imgui_impl_glfw_gl2.h>
 #elif defined (U_OPENGL_4)
@@ -28,7 +30,7 @@
 
 #include <glfw/glfw3.h>
 
-static bool GetTestName(void* userData, int idx, const char** name)
+static inline bool GetTestName(void* userData, int idx, const char** name)
 {
 	assert(u32(idx) < g_testCount);
 	*name = g_tests[idx].name;
@@ -111,8 +113,9 @@ static inline void ImGui_GLFW_GL_RenderDrawData(ImDrawData* draw_data)
 
 }
 
-View::View(GLFWwindow* window, Model* model) : m_presenter(model, this)
+View::View(GLFWwindow* window)
 {
+	m_viewModel = nullptr;
 	m_window = window;
 
 	// Create UI
@@ -127,9 +130,6 @@ View::View(GLFWwindow* window, Model* model) : m_presenter(model, this)
 
 	ImGui::StyleColorsDark();
 
-	m_leftDown = false;
-	m_rightDown = false;
-	m_shiftDown = false;
 	m_ps0.SetZero();
 }
 
@@ -141,88 +141,60 @@ View::~View()
 	ImGui::DestroyContext();
 }
 
+b3Vec2 View::GetCursorPosition() const
+{
+	double x, y;
+	glfwGetCursorPos(m_window, &x, &y);
+	return b3Vec2(float32(x), float32(y));
+}
+
 void View::Event_SetWindowSize(int w, int h)
 {
-	m_presenter.Event_SetWindowSize(float32(w), float32(h));
+	m_viewModel->Event_SetWindowSize(w, h);
 }
 
 void View::Event_Press_Key(int button)
 {
-	if (button == GLFW_KEY_LEFT_SHIFT)
-	{
-		m_shiftDown = true;
-	}
-
-	m_presenter.Event_Press_Key(button);
+	m_viewModel->Event_Press_Key(button);
 }
 
 void View::Event_Release_Key(int button)
 {
-	if (button == GLFW_KEY_LEFT_SHIFT)
-	{
-		m_shiftDown = false;
-	}
-
-	m_presenter.Event_Release_Key(button);
+	m_viewModel->Event_Release_Key(button);
 }
 
 void View::Event_Press_Mouse(int button)
 {
-	if (button == GLFW_MOUSE_BUTTON_LEFT)
-	{
-		m_leftDown = true;
-	}
-
-	if (button == GLFW_MOUSE_BUTTON_RIGHT)
-	{
-		m_rightDown = true;
-	}
-	
-	m_presenter.Event_Press_Mouse(button);
+	m_viewModel->Event_Press_Mouse(button);
 }
 
 void View::Event_Release_Mouse(int button)
 {
-	if (button == GLFW_MOUSE_BUTTON_LEFT)
-	{
-		m_leftDown = false;
-	}
-
-	if (button == GLFW_MOUSE_BUTTON_RIGHT)
-	{
-		m_rightDown = false;
-	}
-
-	m_presenter.Event_Release_Mouse(button);
+	m_viewModel->Event_Release_Mouse(button);
 }
 
 void View::Event_Move_Cursor(float x, float y)
 {
-	b3Vec2 ps(x, y);
-
-	m_presenter.Event_Move_Cursor(ps.x, ps.y);
-	
-	m_ps0 = ps;
+	m_viewModel->Event_Move_Cursor(x, y);
+	m_ps0.Set(x, y);
 }
 
 void View::Event_Scroll(float dx, float dy)
 {
-	m_presenter.Event_Scroll(dx, dy);
+	m_viewModel->Event_Scroll(dx, dy);
 }
 
-void View::Command_PreDraw()
+void View::BeginInterface()
 {
 	ImGui_GLFW_GL_NewFrame();
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 }
 
-void View::Command_Draw()
+void View::Interface()
 {
-	Model* model = m_presenter.m_model;
-	Settings& settings = model->m_settings;
-	TestSettings& testSettings = model->m_testSettings;
-	Camera& camera = model->m_camera;
+	Settings& settings = m_viewModel->m_settings;
+	TestSettings& testSettings = m_viewModel->m_testSettings;
 
 	bool openControls = false;
 	bool openAbout = false;
@@ -232,7 +204,7 @@ void View::Command_Draw()
 		{
 			if (ImGui::MenuItem("Save"))
 			{
-				model->Action_SaveTest();
+				m_viewModel->Action_SaveTest();
 			}
 
 			ImGui::Separator();
@@ -354,7 +326,7 @@ void View::Command_Draw()
 		
 		if (ImGui::Combo("##Test", &settings.testID, GetTestName, NULL, g_testCount, g_testCount))
 		{
-			model->Action_SelectTest(settings.testID);
+			m_viewModel->Action_SetTest();
 		}
 
 		ImGui::PopItemWidth();
@@ -365,38 +337,38 @@ void View::Command_Draw()
 
 		if (ImGui::Button("Previous", menuButtonSize))
 		{
-			model->Action_PreviousTest();
+			m_viewModel->Action_PreviousTest();
 		}
 
 		if (ImGui::Button("Next", menuButtonSize))
 		{
-			model->Action_NextTest();
+			m_viewModel->Action_NextTest();
 		}
 
 		ImGui::Separator();
 
 		if (ImGui::Button("Play/Pause", menuButtonSize))
 		{
-			model->Action_PlayPause();
+			m_viewModel->Action_PlayPause();
 		}
 
-		if (ImGui::Button("Single Step", menuButtonSize))
+		if (ImGui::Button("Single Play", menuButtonSize))
 		{
-			model->Action_SingleStep();
+			m_viewModel->Action_SinglePlay();
 		}
 
 		ImGui::Separator();
 
 		if (ImGui::Button("Restart", menuButtonSize))
 		{
-			model->Action_RestartTest();
+			m_viewModel->Action_SetTest();
 		}
 
 		ImGui::Separator();
 
 		if (ImGui::Button("Reset Camera", menuButtonSize))
 		{
-			model->Action_DefaultCamera();
+			m_viewModel->Action_ResetCamera();
 		}
 
 		ImGui::EndMenuBar();
@@ -406,8 +378,8 @@ void View::Command_Draw()
 	
 	ImGui::PopStyleVar();
 
-	ImGui::SetNextWindowPos(ImVec2(camera.m_width - 250.0f, 40.0f));
-	ImGui::SetNextWindowSize(ImVec2(250.0f, camera.m_height - 40.0f));
+	ImGui::SetNextWindowPos(ImVec2(g_camera->m_width - 250.0f, 40.0f));
+	ImGui::SetNextWindowSize(ImVec2(250.0f, g_camera->m_height - 40.0f));
 	ImGui::Begin("Test Settings", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
 	ImGui::PushItemWidth(-1.0f);
@@ -430,7 +402,7 @@ void View::Command_Draw()
 	ImGui::End();
 }
 
-void View::Command_PostDraw()
+void View::EndInterface()
 {
 	ImGui::PopStyleVar();
 

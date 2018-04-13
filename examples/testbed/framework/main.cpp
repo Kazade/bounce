@@ -24,15 +24,19 @@
 	// error
 #endif
 
+#include <glfw/glfw3.h>
+
 #include <testbed/framework/model.h>
 #include <testbed/framework/view.h>
+#include <testbed/framework/view_model.h>
 
 //
-GLFWwindow* g_window;
+static GLFWwindow* g_window;
 
 //
-Model* g_model;
-View* g_view;
+static Model* g_model;
+static View* g_view;
+static ViewModel* g_viewModel;
 
 static void WindowSize(GLFWwindow* ww, int w, int h)
 {
@@ -103,9 +107,9 @@ static void Run()
 
 		g_profiler->PushEvent("Frame");
 		
-		g_view->Command_PreDraw();
+		g_view->BeginInterface();
 
-		if (g_settings->pause)
+		if (g_model->IsPaused())
 		{
 			g_draw->DrawString(b3Color_white, "*PAUSED*");
 		}
@@ -124,11 +128,11 @@ static void Run()
 			}
 		}
 
-		g_view->Command_Draw();
+		g_view->Interface();
 
-		g_model->Command_Step();
+		g_model->Update();
 
-		g_view->Command_PostDraw();
+		g_view->EndInterface();
 
 		g_profiler->PopEvent();
 		
@@ -183,12 +187,16 @@ int main(int argc, char** args)
 
 	// 
 	g_model = new Model();
-	g_view = new View(g_window, g_model);
+	g_view = new View(g_window);
+	g_viewModel = new ViewModel(g_model, g_view);
 
 	// Run
 	Run();
 
 	//
+	delete g_viewModel;
+	g_viewModel = nullptr;
+
 	delete g_view;
 	g_view = nullptr;
 

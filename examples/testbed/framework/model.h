@@ -21,40 +21,10 @@
 
 #include <testbed/framework/draw.h>
 #include <testbed/framework/testbed_listener.h>
-#include <testbed/framework/test.h>
 
-struct Settings
-{
-	Settings()
-	{
-		lastTestID = -1;
-		testID = 0;
-		pause = false;
-		singleStep = false;
-		drawPoints = true;
-		drawLines = true;
-		drawTriangles = true;
-		drawGrid = true;
-		drawProfile = false;
-		drawStats = false;
-	}
+class Test;
 
-	int lastTestID;
-	int testID;
-
-	bool pause;
-	bool singleStep;
-
-	bool drawPoints;
-	bool drawLines;
-	bool drawTriangles;
-	bool drawGrid;
-	bool drawProfile;
-	bool drawStats;
-};
-
-//
-extern Settings* g_settings;
+class ViewModel;
 
 class Model
 {
@@ -64,88 +34,59 @@ public:
 	~Model();
 
 	void Action_SaveTest();
-	
-	void Action_SelectTest(int selection);
-	void Action_RestartTest();
-	void Action_PreviousTest();
-	void Action_NextTest();
+	void Action_SetTest();
 	void Action_PlayPause();
-	void Action_SingleStep();
-	void Action_DefaultCamera();
-	void Action_LeftCamera();
-	void Action_RightCamera();
-	void Action_BottomCamera();
-	void Action_TopCamera();
-	void Action_BackCamera();
-	void Action_FrontCamera();
+	void Action_SinglePlay();
+	void Action_ResetCamera();
 
-	void Command_Step();
 	void Command_Press_Key(int button);
 	void Command_Release_Key(int button);
 	void Command_Press_Mouse_Left(const b3Vec2& ps);
 	void Command_Release_Mouse_Left(const b3Vec2& ps);
 	void Command_Move_Cursor(const b3Vec2& ps);
+
 	void Command_ResizeCamera(float32 w, float32 h);
 	void Command_RotateCameraX(float32 angle);
 	void Command_RotateCameraY(float32 angle);
 	void Command_TranslateCameraX(float32 d);
 	void Command_TranslateCameraY(float32 d);
 	void Command_ZoomCamera(float32 d);
+
+	void Update();
+	
+	bool IsPaused() const { return m_pause; }
 private:
-	friend class View;
+	friend class ViewModel;
 
-	// UI State
-	Settings m_settings; 
-	TestSettings m_testSettings;
+	ViewModel* m_viewModel;
 
-	// App State
 	Draw m_draw;
 	Camera m_camera;
 	Profiler m_profiler;
 	TestbedListener m_profilerListener;
 	Test* m_test;
+	bool m_setTest;
+	bool m_pause;
+	bool m_singlePlay;
 };
 
-inline void Model::Action_SelectTest(int selection)
+inline void Model::Action_SetTest()
 {
-	m_settings.testID = selection;
-	m_settings.lastTestID = -1;
-}
-
-inline void Model::Action_RestartTest()
-{
-	m_settings.lastTestID = -1;
-}
-
-inline void Model::Action_PreviousTest()
-{
-	m_settings.testID = b3Clamp(m_settings.testID - 1, 0, int(g_testCount) - 1);
-	m_settings.lastTestID = -1;
-}
-
-inline void Model::Action_NextTest()
-{
-	m_settings.testID = b3Clamp(m_settings.testID + 1, 0, int(g_testCount) - 1);
-	m_settings.lastTestID = -1;
-}
-
-inline void Model::Action_SaveTest()
-{
-	m_test->Save();
+	m_setTest = true;
 }
 
 inline void Model::Action_PlayPause()
 {
-	m_settings.pause = !m_settings.pause;
+	m_pause = !m_pause;
 }
 
-inline void Model::Action_SingleStep()
+inline void Model::Action_SinglePlay()
 {
-	m_settings.pause = true;
-	m_settings.singleStep = true;
+	m_pause = true;
+	m_singlePlay = true;
 }
 
-inline void Model::Action_DefaultCamera()
+inline void Model::Action_ResetCamera()
 {
 	m_camera.m_q = b3QuatRotationX(-0.125f * B3_PI);
 	
@@ -155,79 +96,6 @@ inline void Model::Action_DefaultCamera()
 	m_camera.m_q.Normalize();
 	m_camera.m_center.SetZero();
 	m_camera.m_zoom = 50.0f;
-}
-
-inline void Model::Action_LeftCamera()
-{
-	m_camera.m_q = b3QuatRotationX(0.5f * B3_PI);
-	m_camera.m_center.SetZero();
-	m_camera.m_zoom = 50.0f;
-}
-
-inline void Model::Action_RightCamera()
-{
-	m_camera.m_q = b3QuatRotationX(-0.5f * B3_PI);
-	m_camera.m_center.SetZero();
-	m_camera.m_zoom = 50.0f;
-}
-
-inline void Model::Action_BottomCamera()
-{
-	m_camera.m_q = b3QuatRotationX(0.5f * B3_PI);
-	m_camera.m_center.SetZero();
-	m_camera.m_zoom = 50.0f;
-}
-
-inline void Model::Action_TopCamera()
-{
-	m_camera.m_q = b3QuatRotationX(-0.5f * B3_PI);
-	m_camera.m_center.SetZero();
-	m_camera.m_zoom = 50.0f;
-}
-
-inline void Model::Action_BackCamera()
-{
-	m_camera.m_q = b3QuatRotationX(-B3_PI);
-	m_camera.m_center.SetZero();
-	m_camera.m_zoom = 50.0f;
-}
-
-inline void Model::Action_FrontCamera()
-{
-	m_camera.m_q.SetIdentity();
-	m_camera.m_center.SetZero();
-	m_camera.m_zoom = 50.0f;
-}
-
-inline void Model::Command_Press_Key(int button)
-{
-	m_test->KeyDown(button);
-}
-
-inline void Model::Command_Release_Key(int button)
-{
-	m_test->KeyUp(button);
-}
-
-inline void Model::Command_Press_Mouse_Left(const b3Vec2& ps)
-{
-	Ray3 pw = m_camera.ConvertScreenToWorld(ps);
-
-	m_test->MouseLeftDown(pw);
-}
-
-inline void Model::Command_Release_Mouse_Left(const b3Vec2& ps)
-{
-	Ray3 pw = m_camera.ConvertScreenToWorld(ps);
-
-	m_test->MouseLeftUp(pw);
-}
-
-inline void Model::Command_Move_Cursor(const b3Vec2& ps)
-{
-	Ray3 pw = m_camera.ConvertScreenToWorld(ps);
-
-	m_test->MouseMove(pw);
 }
 
 inline void Model::Command_ResizeCamera(float32 w, float32 h)

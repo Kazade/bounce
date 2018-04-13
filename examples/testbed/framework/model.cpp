@@ -17,13 +17,12 @@
 */
 
 #include <testbed/framework/model.h>
-
-Settings* g_settings = nullptr;
+#include <testbed/framework/view_model.h>
+#include <testbed/framework/test.h>
 
 Model::Model()
 {
-	g_settings = &m_settings;
-	g_testSettings = &m_testSettings;
+	m_viewModel = nullptr;
 	g_draw = &m_draw;
 	g_camera = &m_camera;
 	g_profiler = &m_profiler;
@@ -42,43 +41,80 @@ Model::Model()
 	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
 	glClearDepth(1.0f);
 
-	Action_DefaultCamera();
+	Action_ResetCamera();
+
+	m_setTest = true;
+	m_pause = true;
+	m_singlePlay = false;
 }
 
 Model::~Model()
 {
-	g_testSettings = nullptr;
 	g_draw = nullptr;
 	g_camera = nullptr;
 	g_profiler = nullptr;
 	g_profilerRecorder = nullptr;
 	g_profilerListener = nullptr;
-	g_testSettings = nullptr;
 
 	delete m_test;
 }
 
-void Model::Command_Step()
+void Model::Action_SaveTest()
+{
+	m_test->Save();
+}
+
+void Model::Command_Press_Key(int button)
+{
+	m_test->KeyDown(button);
+}
+
+void Model::Command_Release_Key(int button)
+{
+	m_test->KeyUp(button);
+}
+
+void Model::Command_Press_Mouse_Left(const b3Vec2& ps)
+{
+	Ray3 pw = m_camera.ConvertScreenToWorld(ps);
+
+	m_test->MouseLeftDown(pw);
+}
+
+void Model::Command_Release_Mouse_Left(const b3Vec2& ps)
+{
+	Ray3 pw = m_camera.ConvertScreenToWorld(ps);
+
+	m_test->MouseLeftUp(pw);
+}
+
+void Model::Command_Move_Cursor(const b3Vec2& ps)
+{
+	Ray3 pw = m_camera.ConvertScreenToWorld(ps);
+
+	m_test->MouseMove(pw);
+}
+
+void Model::Update()
 {
 	g_drawFlags = 0;
-	g_drawFlags += m_settings.drawPoints * DrawFlags::e_pointsFlag;
-	g_drawFlags += m_settings.drawLines * DrawFlags::e_linesFlag;
-	g_drawFlags += m_settings.drawTriangles * DrawFlags::e_trianglesFlag;
+	g_drawFlags += g_settings->drawPoints * DrawFlags::e_pointsFlag;
+	g_drawFlags += g_settings->drawLines * DrawFlags::e_linesFlag;
+	g_drawFlags += g_settings->drawTriangles * DrawFlags::e_trianglesFlag;
 
 	glViewport(0, 0, GLsizei(m_camera.m_width), GLsizei(m_camera.m_height));
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	if (m_settings.testID != m_settings.lastTestID)
+	if (m_setTest)
 	{
 		delete m_test;
-		m_settings.lastTestID = m_settings.testID;
-		m_test = g_tests[m_settings.testID].create();
-		
-		m_settings.pause = true;
-		Action_DefaultCamera();
+		m_test = g_tests[g_settings->testID].create();
+		m_setTest = false;
+		m_pause = true;
+		Action_ResetCamera();
 	}
 	
-	if (m_settings.drawGrid)
+	if (g_settings->drawGrid)
 	{
 		b3Color color(0.2f, 0.2f, 0.2f, 1.0f);
 
@@ -114,18 +150,24 @@ void Model::Command_Step()
 	}
 
 	//
-	m_testSettings.inv_hertz = m_testSettings.hertz != 0.0f ? 1.0f / m_testSettings.hertz : 0.0f;
-
-	if (m_settings.pause)
+	if (m_pause)
 	{
-		if (m_settings.singleStep)
+		if (m_singlePlay)
 		{
-			m_settings.singleStep = false;
+			// !
+			g_testSettings->inv_hertz = g_testSettings->hertz > 0.0f ? 1.0f / g_testSettings->hertz : 0.0f;
+			m_singlePlay = false;
 		}
 		else
 		{
-			m_testSettings.inv_hertz = 0.0f;
+			// !
+			g_testSettings->inv_hertz = 0.0f;
 		}
+	}
+	else
+	{
+		// !
+		g_testSettings->inv_hertz = g_testSettings->hertz > 0.0f ? 1.0f / g_testSettings->hertz : 0.0f;
 	}
 
 	m_test->Step();

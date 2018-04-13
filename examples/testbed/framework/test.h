@@ -20,13 +20,10 @@
 #define TEST_H
 
 #include <glfw/glfw3.h>
-#include <imgui/imgui.h>
-
 #include <bounce/bounce.h>
 
 #include <testbed/framework/draw.h>
-#include <testbed/framework/profiler.h>
-#include <testbed/framework/recorder_profiler.h>
+#include <testbed/framework/view_model.h>
 
 inline float32 RandomFloat(float32 a, float32 b)
 {
@@ -35,46 +32,6 @@ inline float32 RandomFloat(float32 a, float32 b)
 	float32 r = x * diff;
 	return a + r;
 }
-
-struct TestSettings
-{
-	TestSettings()
-	{
-		hertz = 60.0f;
-		inv_hertz = 1.0f / hertz;
-		velocityIterations = 8;
-		positionIterations = 2;
-		sleep = false;
-		warmStart = true;
-		convexCache = true;
-		drawCenterOfMasses = true;
-		drawShapes = true;
-		drawBounds = false;
-		drawJoints = true;
-		drawContactPoints = true;
-		drawContactNormals = false;
-		drawContactTangents = false;
-		drawContactPolygons = false;
-	}
-
-	float hertz, inv_hertz;
-	int velocityIterations;
-	int positionIterations;
-	bool sleep;
-	bool warmStart;
-	bool convexCache;
-
-	bool drawCenterOfMasses;
-	bool drawBounds;
-	bool drawShapes;
-	bool drawJoints;
-	bool drawContactPoints;
-	bool drawContactNormals;
-	bool drawContactTangents;
-	bool drawContactPolygons;
-};
-
-extern TestSettings* g_testSettings;
 
 class RayCastListener : public b3RayCastListener
 {

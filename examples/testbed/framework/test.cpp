@@ -17,7 +17,8 @@
 */
 
 #include <testbed/framework/test.h>
-#include <testbed/framework/model.h>
+#include <testbed/framework/profiler.h>
+#include <imgui/imgui.h>
 
 extern u32 b3_allocCalls, b3_maxAllocCalls;
 extern u32 b3_gjkCalls, b3_gjkIters, b3_gjkMaxIters;
@@ -33,8 +34,6 @@ void b3PopProfileScope()
 {
 	g_profiler->PopEvent();
 }
-
-TestSettings* g_testSettings = nullptr;
 
 Test::Test() : m_bodyDragger(&m_bodyRay, &m_world)
 {

@@ -20,17 +20,15 @@
 #define VIEW_H
 
 #include <bounce/common/math/vec2.h>
-#include <testbed/framework/presenter.h>
 
 struct GLFWwindow;
 
-class Model;
+class ViewModel;
 
 class View
 {	
 public:
-	View(GLFWwindow* window, Model* model);
-
+	View(GLFWwindow* window);
 	~View();
 
 	void Event_SetWindowSize(int w, int h);
@@ -41,20 +39,18 @@ public:
 	void Event_Move_Cursor(float x, float y);
 	void Event_Scroll(float dx, float dy);
 
-	void Command_PreDraw();
-	void Command_Draw();
-	void Command_PostDraw();
+	void BeginInterface();
+	void Interface();
+	void EndInterface();
 private:
-	friend class Presenter;
+	friend class ViewModel;
 
-	Presenter m_presenter;
+	b3Vec2 GetCursorPosition() const;
+
+	ViewModel* m_viewModel;
 
 	GLFWwindow* m_window;
-	bool m_leftDown;
-	bool m_rightDown;
-	bool m_shiftDown;
 	b3Vec2 m_ps0;
-	// Ray3 m_ray0;
 };
 
 #endif
