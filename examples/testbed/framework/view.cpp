@@ -114,7 +114,6 @@ static inline void ImGui_GLFW_GL_RenderDrawData(ImDrawData* draw_data)
 View::View(GLFWwindow* window, Model* model) : m_presenter(model, this)
 {
 	m_window = window;
-	m_model = model;
 
 	// Create UI
 	ImGui::CreateContext();
@@ -220,9 +219,10 @@ void View::Command_PreDraw()
 
 void View::Command_Draw()
 {
-	Camera& camera = m_model->m_camera;
-	Settings& settings = m_model->m_settings;
-	TestSettings& testSettings = m_model->m_testSettings;
+	Model* model = m_presenter.m_model;
+	Settings& settings = model->m_settings;
+	TestSettings& testSettings = model->m_testSettings;
+	Camera& camera = model->m_camera;
 
 	bool openControls = false;
 	bool openAbout = false;
@@ -232,7 +232,7 @@ void View::Command_Draw()
 		{
 			if (ImGui::MenuItem("Save"))
 			{
-				m_model->Action_SaveTest();
+				model->Action_SaveTest();
 			}
 
 			ImGui::Separator();
@@ -354,7 +354,7 @@ void View::Command_Draw()
 		
 		if (ImGui::Combo("##Test", &settings.testID, GetTestName, NULL, g_testCount, g_testCount))
 		{
-			m_model->Action_SelectTest(settings.testID);
+			model->Action_SelectTest(settings.testID);
 		}
 
 		ImGui::PopItemWidth();
@@ -365,38 +365,38 @@ void View::Command_Draw()
 
 		if (ImGui::Button("Previous", menuButtonSize))
 		{
-			m_model->Action_PreviousTest();
+			model->Action_PreviousTest();
 		}
 
 		if (ImGui::Button("Next", menuButtonSize))
 		{
-			m_model->Action_NextTest();
+			model->Action_NextTest();
 		}
 
 		ImGui::Separator();
 
 		if (ImGui::Button("Play/Pause", menuButtonSize))
 		{
-			m_model->Action_PlayPause();
+			model->Action_PlayPause();
 		}
 
 		if (ImGui::Button("Single Step", menuButtonSize))
 		{
-			m_model->Action_SingleStep();
+			model->Action_SingleStep();
 		}
 
 		ImGui::Separator();
 
 		if (ImGui::Button("Restart", menuButtonSize))
 		{
-			m_model->Action_RestartTest();
+			model->Action_RestartTest();
 		}
 
 		ImGui::Separator();
 
 		if (ImGui::Button("Reset Camera", menuButtonSize))
 		{
-			m_model->Action_DefaultCamera();
+			model->Action_DefaultCamera();
 		}
 
 		ImGui::EndMenuBar();

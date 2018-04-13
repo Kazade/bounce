@@ -48,7 +48,6 @@ private:
 	friend class Presenter;
 
 	Presenter m_presenter;
-	Model* m_model;
 
 	GLFWwindow* m_window;
 	bool m_leftDown;
