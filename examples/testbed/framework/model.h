@@ -93,7 +93,6 @@ public:
 	void Command_ZoomCamera(float32 d);
 private:
 	friend class View;
-	friend class Controller;
 
 	// UI State
 	Settings m_settings; 
