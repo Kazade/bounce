@@ -100,29 +100,29 @@ void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
 			b3Subexpressions(p1.y, p2.y, p3.y, f1y, f2y, f3y, g0y, g1y, g2y);
 			b3Subexpressions(p1.z, p2.z, p3.z, f1z, f2z, f3z, g0z, g1z, g2z);
 
-			is[0] += d.x * f1x;
+			is[0] += ks[0] * (d.x * f1x);
 
-			is[1] += d.x * f2x;
-			is[2] += d.y * f2y;
-			is[3] += d.z * f2z;
+			is[1] += ks[1] * (d.x * f2x);
+			is[2] += ks[2] * (d.y * f2y);
+			is[3] += ks[3] * (d.z * f2z);
 
-			is[4] += d.x * f3x;
-			is[5] += d.y * f3y;
-			is[6] += d.z * f3z;
+			is[4] += ks[4] * (d.x * f3x);
+			is[5] += ks[5] * (d.y * f3y);
+			is[6] += ks[6] * (d.z * f3z);
 
-			is[7] += d.x * (p1.y * g0x + p2.y * g1x + p3.y * g2x);
-			is[8] += d.y * (p1.z * g0y + p2.z * g1y + p3.z * g2y);
-			is[9] += d.z * (p1.x * g0z + p2.x * g1z + p3.x * g2z);
-
+			is[7] += ks[7] * (d.x * (p1.y * g0x + p2.y * g1x + p3.y * g2x));
+			is[8] += ks[8] * (d.y * (p1.z * g0y + p2.z * g1y + p3.z * g2y));
+			is[9] += ks[9] * (d.z * (p1.x * g0z + p2.x * g1z + p3.x * g2z));
+			
 			edge = next;
 		} while (m_hull->GetEdge(edge->next) != begin);
 	}
 
 	// Apply constants
-	for (u32 i = 0; i < 10; ++i)
-	{
-		is[i] *= ks[i];
-	}
+	//for (u32 i = 0; i < 10; ++i)
+	//{
+	//is[i] *= ks[i];
+	//}
 
 	// Volume
 	float32 V = is[0];

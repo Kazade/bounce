@@ -135,22 +135,22 @@ b3Vec3 b3Hull::GetCentroid() const
 			b3Subexpressions(p1.y, p2.y, p3.y, f1y, f2y, f3y);
 			b3Subexpressions(p1.z, p2.z, p3.z, f1z, f2z, f3z);
 
-			intgex += d.x * f1x;
+			intgex += inv6 * (d.x * f1x);
 
-			intgcx += d.x * f2x;
-			intgcy += d.y * f2y;
-			intgcz += d.z * f2z;
+			intgcx += inv24 * (d.x * f2x);
+			intgcy += inv24 * (d.y * f2y);
+			intgcz += inv24 * (d.z * f2z);
 
 			edge = next;
 		} while (GetEdge(edge->next) != begin);
 	}
 	
 	// Apply constants
-	intgex *= inv6;
+	//intgex *= inv6;
 
-	intgcx *= inv24;
-	intgcy *= inv24;
-	intgcz *= inv24;
+	//intgcx *= inv24;
+	//intgcy *= inv24;
+	//intgcz *= inv24;
 
 	// Center of volume
 	B3_ASSERT(intgex > B3_EPSILON);
