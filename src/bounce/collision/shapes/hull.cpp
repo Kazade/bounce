@@ -79,32 +79,31 @@ void b3Hull::Validate(const b3HalfEdge* e) const
 	} while (e != begin);
 }
 
+static B3_FORCE_INLINE void b3Subexpressions(float32& w0, float32& w1, float32& w2,
+	float32& f1, float32& f2, float32& f3)
+{
+	float32 t0 = w0 + w1;
+	float32 t1 = w0 * w0;
+	float32 t2 = t1 + w1 * t0;
+
+	f1 = t0 + w2;
+	f2 = t2 + w2 * f1;
+	f3 = w0 * t1 + w1 * t2 + w2 * f2;
+}
+
 b3Vec3 b3Hull::GetCentroid() const
 {
 	Validate();
 
-	b3Vec3 c(0.0f, 0.0f, 0.0f);
-	float32 volume = 0.0f;
-
-	// Pick reference point not too away from the origin 
-	// to minimize floating point rounding errors.
-	b3Vec3 p1(0.0f, 0.0f, 0.0f);
-	// Put it inside the hull.
-	for (u32 i = 0; i < vertexCount; ++i)
-	{
-		p1 += vertices[i];
-	}
-	p1 /= float32(vertexCount);
-
-	const float32 inv4 = 0.25f;
 	const float32 inv6 = 1.0f / 6.0f;
-	const float32 inv60 = 1.0f / 60.0f;
-	const float32 inv120 = 1.0f / 120.0f;
+	const float32 inv24 = 1.0f / 24.0f;
+	
+	float32 intgex = 0.0f;
 
-	b3Vec3 diag(0.0f, 0.0f, 0.0f);
-	b3Vec3 offDiag(0.0f, 0.0f, 0.0f);
+	float32 intgcx = 0.0f;
+	float32 intgcy = 0.0f;
+	float32 intgcz = 0.0f;
 
-	// Triangulate convex polygons
 	for (u32 i = 0; i < faceCount; ++i)
 	{
 		const b3Face* face = GetFace(i);
@@ -113,34 +112,51 @@ b3Vec3 b3Hull::GetCentroid() const
 		const b3HalfEdge* edge = GetEdge(begin->next);
 		do
 		{
+			const b3HalfEdge* next = GetEdge(edge->next);
+			
 			u32 i1 = begin->origin;
 			u32 i2 = edge->origin;
-			const b3HalfEdge* next = GetEdge(edge->next);
 			u32 i3 = next->origin;
 
-			b3Vec3 p2 = vertices[i1];
-			b3Vec3 p3 = vertices[i2];
-			b3Vec3 p4 = vertices[i3];
+			b3Vec3 p1 = GetVertex(i1);
+			b3Vec3 p2 = GetVertex(i2);
+			b3Vec3 p3 = GetVertex(i3);
 
 			b3Vec3 e1 = p2 - p1;
 			b3Vec3 e2 = p3 - p1;
-			b3Vec3 e3 = p4 - p1;
 
-			float32 D = b3Det(e1, e2, e3);
+			b3Vec3 d = b3Cross(e1, e2);
 
-			float32 tetraVolume = inv6 * D;
-			volume += tetraVolume;
+			float32 f1x, f1y, f1z;
+			float32 f2x, f2y, f2z;
+			float32 f3x, f3y, f3z;
 
-			// Volume weighted centroid
-			c += tetraVolume * inv4 * (e1 + e2 + e3);
+			b3Subexpressions(p1.x, p2.x, p3.x, f1x, f2x, f3x);
+			b3Subexpressions(p1.y, p2.y, p3.y, f1y, f2y, f3y);
+			b3Subexpressions(p1.z, p2.z, p3.z, f1z, f2z, f3z);
+
+			intgex += d.x * f1x;
+
+			intgcx += d.x * f2x;
+			intgcy += d.y * f2y;
+			intgcz += d.z * f2z;
 
 			edge = next;
 		} while (GetEdge(edge->next) != begin);
 	}
+	
+	// Apply constants
+	intgex *= inv6;
 
-	// Centroid
-	B3_ASSERT(volume > B3_EPSILON);
-	c /= volume;
-	c += p1;
-	return c;
+	intgcx *= inv24;
+	intgcy *= inv24;
+	intgcz *= inv24;
+
+	// Center of volume
+	B3_ASSERT(intgex > B3_EPSILON);
+	intgcx /= intgex;
+	intgcy /= intgex;
+	intgcz /= intgex;
+
+	return b3Vec3(intgcx, intgcy, intgcz);
 }

@@ -37,92 +37,119 @@ void b3HullShape::Swap(const b3HullShape& other)
 	m_hull = other.m_hull;
 }
 
-void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
+static B3_FORCE_INLINE void b3Subexpressions(float32& w0, float32& w1, float32& w2,
+	float32& f1, float32& f2, float32& f3,
+	float32& g0, float32& g1, float32& g2)
 {
-	// Compute mass data
-	b3Vec3 center(0.0f, 0.0f, 0.0f);
-	float32 volume = 0.0f;
-	b3Mat33 I;
-	I.SetZero();
+	float32 t0 = w0 + w1;
+	float32 t1 = w0 * w0;
+	float32 t2 = t1 + w1 * t0;
 
-	const float32 inv4 = 0.25f;
+	f1 = t0 + w2;
+	f2 = t2 + w2 * f1;
+	f3 = w0 * t1 + w1 * t2 + w2 * f2;
+
+	g0 = f2 + w0 * (f1 + w0);
+	g1 = f2 + w1 * (f1 + w1);
+	g2 = f2 + w2 * (f1 + w2);
+}
+
+// For explanation, see Polyhedral Mass Properties - David Eberly	
+void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
+{
 	const float32 inv6 = 1.0f / 6.0f;
+	const float32 inv24 = 1.0f / 24.0f;
 	const float32 inv60 = 1.0f / 60.0f;
 	const float32 inv120 = 1.0f / 120.0f;
 
-	b3Vec3 diag(0.0f, 0.0f, 0.0f);
-	b3Vec3 off_diag(0.0f, 0.0f, 0.0f);
-	
+	const float32 ks[10] = { inv6, inv24, inv24, inv24, inv60, inv60, inv60, inv120, inv120, inv120 };
+	float32 is[10] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+
 	for (u32 i = 0; i < m_hull->faceCount; ++i)
 	{
 		const b3Face* face = m_hull->GetFace(i);
 		const b3HalfEdge* begin = m_hull->GetEdge(face->edge);
-		
+
 		const b3HalfEdge* edge = m_hull->GetEdge(begin->next);
 		do
 		{
+			const b3HalfEdge* next = m_hull->GetEdge(edge->next);
+			
 			u32 i1 = begin->origin;
 			u32 i2 = edge->origin;
-			const b3HalfEdge* next = m_hull->GetEdge(edge->next);
 			u32 i3 = next->origin;
 
-			b3Vec3 p2 = m_hull->vertices[i1];
-			b3Vec3 p3 = m_hull->vertices[i2];
-			b3Vec3 p4 = m_hull->vertices[i3];
-			
-			b3Vec3 e1 = p2;
-			b3Vec3 e2 = p3;
-			b3Vec3 e3 = p4;
-			
-			float32 D = b3Det(e1, e2, e3);
+			b3Vec3 p1 = m_hull->GetVertex(i1);
+			b3Vec3 p2 = m_hull->GetVertex(i2);
+			b3Vec3 p3 = m_hull->GetVertex(i3);
 
-			float32 tetraVolume = inv6 * D;
-			volume += tetraVolume;
-			
-			// Volume weighted centroid
-			center += tetraVolume * inv4 * (e1 + e2 + e3);
+			b3Vec3 e1 = p2 - p1;
+			b3Vec3 e2 = p3 - p1;
 
-			// Volume weighted inertia tensor
-			// https://github.com/melax/sandbox
-			for (u32 j = 0; j < 3; ++j)
-			{
-				u32 j1 = (j + 1) % 3;
-				u32 j2 = (j + 2) % 3;
+			b3Vec3 d = b3Cross(e1, e2);
 
-				diag[j] += inv60 * D *
-					(e1[j] * e2[j] + e2[j] * e3[j] + e3[j] * e1[j] +
-					 e1[j] * e1[j] + e2[j] * e2[j] + e3[j] * e3[j]);
+			float32 f1x, f1y, f1z;
+			float32 f2x, f2y, f2z;
+			float32 f3x, f3y, f3z;
 
-				off_diag[j] += inv120 * D  *
-					(e1[j1] * e2[j2] + e2[j1] * e3[j2] + e3[j1] * e1[j2] +
-					 e1[j1] * e3[j2] + e2[j1] * e1[j2] + e3[j1] * e2[j2] +
-					 e1[j1] * e1[j2] * 2.0f + e2[j1] * e2[j2] * 2.0f + e3[j1] * e3[j2] * 2.0f);
-			}
-			
+			float32 g0x, g0y, g0z;
+			float32 g1x, g1y, g1z;
+			float32 g2x, g2y, g2z;
+
+			b3Subexpressions(p1.x, p2.x, p3.x, f1x, f2x, f3x, g0x, g1x, g2x);
+			b3Subexpressions(p1.y, p2.y, p3.y, f1y, f2y, f3y, g0y, g1y, g2y);
+			b3Subexpressions(p1.z, p2.z, p3.z, f1z, f2z, f3z, g0z, g1z, g2z);
+
+			is[0] += d.x * f1x;
+
+			is[1] += d.x * f2x;
+			is[2] += d.y * f2y;
+			is[3] += d.z * f2z;
+
+			is[4] += d.x * f3x;
+			is[5] += d.y * f3y;
+			is[6] += d.z * f3z;
+
+			is[7] += d.x * (p1.y * g0x + p2.y * g1x + p3.y * g2x);
+			is[8] += d.y * (p1.z * g0y + p2.z * g1y + p3.z * g2y);
+			is[9] += d.z * (p1.x * g0z + p2.x * g1z + p3.x * g2z);
+
 			edge = next;
 		} while (m_hull->GetEdge(edge->next) != begin);
 	}
 
-	// Total mass
-	massData->mass = density * volume;
-	
-	// Center of mass
-	B3_ASSERT(volume > B3_EPSILON);
-	float32 inv_volume = 1.0f / volume;
-	center *= inv_volume;
+	// Apply constants
+	for (u32 i = 0; i < 10; ++i)
+	{
+		is[i] *= ks[i];
+	}
 
-	diag *= inv_volume;
-	off_diag *= inv_volume;
+	// Volume
+	float32 V = is[0];
+	B3_ASSERT(V > B3_EPSILON);
 
-	I.x.Set(diag.y + diag.z, -off_diag.z, -off_diag.y);
-	I.y.Set(-off_diag.z, diag.x + diag.z, -off_diag.x);
-	I.z.Set(-off_diag.y, -off_diag.x, diag.x + diag.y);
+	// Center of volume
+	b3Vec3 c(is[1], is[2], is[3]);
+	c /= V;
 
-	// Center of mass 
-	massData->center = center;
+	// Inertia about the local origin
+	b3Mat33 I;
+	I.x.x = is[5] + is[6];
+	I.x.y = -is[7];
+	I.x.z = -is[9];
 
-	// Inertia tensor relative to the local origin
-	massData->I = massData->mass * I;
+	I.y.x = I.x.y;
+	I.y.y = is[4] + is[6];
+	I.y.z = -is[8];
+
+	I.z.x = I.x.z;
+	I.z.y = I.y.z;
+	I.z.z = is[4] + is[5];
+
+	// Apply density
+	data->center = c;
+	data->mass = density * V;
+	data->I = density * I;
 }
 
 void b3HullShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const
