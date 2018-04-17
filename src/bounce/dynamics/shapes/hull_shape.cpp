@@ -37,33 +37,98 @@ void b3HullShape::Swap(const b3HullShape& other)
 	m_hull = other.m_hull;
 }
 
-static B3_FORCE_INLINE void b3Subexpressions(float32& w0, float32& w1, float32& w2,
-	float32& f1, float32& f2, float32& f3,
-	float32& g0, float32& g1, float32& g2)
-{
-	float32 t0 = w0 + w1;
-	float32 t1 = w0 * w0;
-	float32 t2 = t1 + w1 * t0;
-
-	f1 = t0 + w2;
-	f2 = t2 + w2 * f1;
-	f3 = w0 * t1 + w1 * t2 + w2 * f2;
-
-	g0 = f2 + w0 * (f1 + w0);
-	g1 = f2 + w1 * (f1 + w1);
-	g2 = f2 + w2 * (f1 + w2);
-}
-
-// For explanation, see Polyhedral Mass Properties - David Eberly	
 void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
 {
-	const float32 inv6 = 1.0f / 6.0f;
-	const float32 inv24 = 1.0f / 24.0f;
-	const float32 inv60 = 1.0f / 60.0f;
-	const float32 inv120 = 1.0f / 120.0f;
+	// Polyhedron mass, center of mass, and inertia.
+	// Let rho be the polyhedron density per unit volume
 
-	const float32 ks[10] = { inv6, inv24, inv24, inv24, inv60, inv60, inv60, inv120, inv120, inv120 };
-	float32 is[10] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+	// mass = rho * int(1 * dV) 
+
+	// centroid.x = (1 / mass) * rho * int(x * dV)
+	// centroid.y = (1 / mass) * rho * int(y * dV)
+	// centroid.z = (1 / mass) * rho * int(z * dV)
+
+	// Ixx = rho * int((y^2 + z^2) * dV) 
+	// Iyy = rho * int((x^2 + z^2) * dV)
+	// Izz = rho * int((x^2 + y^2) * dV)
+	
+	// Ixy = -rho * int((x * y) * dV)
+	// Ixz = -rho * int((x * z) * dV)
+	// Iyz = -rho * int(y * z) * dV
+
+	// Iyx = Ixy
+	// Izx = Ixz
+	// Izy = Iyz
+	
+	// Using the Divergence's Theorem we can convert these volume integrals to surface integrals.
+	// int(div(F) * dV) = int(dot(F, N) * dS) 
+	// The left side is an integral over the volume V. 
+	// The right side is an integral over the closed surface S of V.
+	// N is the exterior normal of V along S.
+	// In order to compute the surface integral we need to choose an F 
+	// such that div(F) equals the function to be integrated over V.
+	
+	// Below are some simple choices for all F.
+
+	// div(x, 0, 0) = 1
+
+	// div(x^2, 0, 0) = x
+	// div(0, y^2, 0) = y
+	// div(0, 0, z^2) = z
+
+	// div(x^3 / 3, 0, 0) = x^2 
+	// div(0, y^3 / 3, 0) = y^2
+	// div(0, 0, z^3 / 3) = z^2
+
+	// div(x^2 * y / 2, 0, 0) = x * y  
+	// div(0, y^2 * z / 2, 0) = y * z
+	// div(0, 0, z^2 * x / 2) = x * z 
+
+	// Thus, where the boundary representation is simply a set of n triangles, 
+	// we can compute these integrals by summing all the integrals for each triangle 
+	// of the polyhedron.
+	// int(dV) = sum(int(dot(F, N_k) * dS)), k..n.
+	// If the normal N_k is constant over the triangle and s is an axis in the direction of F, 
+	// we can bring N_k outside the integral
+	// int(dV) = sum(dot(N_k, s) * int(f(x, y, z) * dS)), k..n.
+	
+	// We need to compute surface integrals, where the f above is to be integrated along a triangle.
+	// Changing coordinates from (x, y, z) to (u, v) a formula for a integral along the triangle is
+	// int(f(x(u, v), y(u, v), z(u, v)) * norm(cross(e1, e2)) * du * dv)
+	// where f is a parametrization for a triangle
+	// x = x1 + e1x * u + e2x * v 
+	// y = y1 + e1y * u + e2y * v 
+	// z = z1 + e1z * u + e2z * v 
+	// and 0 <= u, 0 <= v, u + v <= 1
+	// We can view the surface integral above also as 
+	// int(f * det(D) * du * dv)
+	// where D is the Jacobian of the parametrization:
+	// D = cross(e1, e2)
+	
+	// Thus, using the fact that 
+	// N_k = D / norm(D),
+	// the surface integral can be further simplified to
+	// sum(dot(D, s) * int(f(x(u, v), y(u, v), z(u, v)) * du * dv))
+
+	// We integrate f over [0, 1 - v] and then over [0, 1].
+	
+	// These double integrals are done either by a CAS or by hand.
+	// Here, it was used the great SymPy.
+	// SymPy was available at http://live.sympy.org/
+
+	b3Vec3 center;
+	center.SetZero();
+
+	float32 volume = 0.0f;
+
+	b3Mat33 I;
+	I.SetZero();
+
+	const float32 inv3 = 1.0f / 3.0f;
+	const float32 inv6 = 1.0f / 6.0f;
+	const float32 inv12 = 1.0f / 12.0f;
+	const float32 inv20 = 1.0f / 20.0f;
+	const float32 inv60 = 1.0f / 60.0f;
 
 	for (u32 i = 0; i < m_hull->faceCount; ++i)
 	{
@@ -79,76 +144,172 @@ void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
 			u32 i2 = edge->origin;
 			u32 i3 = next->origin;
 
-			b3Vec3 p1 = m_hull->GetVertex(i1);
-			b3Vec3 p2 = m_hull->GetVertex(i2);
-			b3Vec3 p3 = m_hull->GetVertex(i3);
+			b3Vec3 e1 = m_hull->GetVertex(i1);
+			b3Vec3 e2 = m_hull->GetVertex(i2);
+			b3Vec3 e3 = m_hull->GetVertex(i3);
 
-			b3Vec3 e1 = p2 - p1;
-			b3Vec3 e2 = p3 - p1;
+			float32 ex1 = e1.x, ey1 = e1.y, ez1 = e1.z;
+			float32 ex2 = e2.x, ey2 = e2.y, ez2 = e2.z;
+			float32 ex3 = e3.x, ey3 = e3.y, ez3 = e3.z;
 
-			b3Vec3 d = b3Cross(e1, e2);
-
-			float32 f1x, f1y, f1z;
-			float32 f2x, f2y, f2z;
-			float32 f3x, f3y, f3z;
-
-			float32 g0x, g0y, g0z;
-			float32 g1x, g1y, g1z;
-			float32 g2x, g2y, g2z;
-
-			b3Subexpressions(p1.x, p2.x, p3.x, f1x, f2x, f3x, g0x, g1x, g2x);
-			b3Subexpressions(p1.y, p2.y, p3.y, f1y, f2y, f3y, g0y, g1y, g2y);
-			b3Subexpressions(p1.z, p2.z, p3.z, f1z, f2z, f3z, g0z, g1z, g2z);
-
-			is[0] += ks[0] * (d.x * f1x);
-
-			is[1] += ks[1] * (d.x * f2x);
-			is[2] += ks[2] * (d.y * f2y);
-			is[3] += ks[3] * (d.z * f2z);
-
-			is[4] += ks[4] * (d.x * f3x);
-			is[5] += ks[5] * (d.y * f3y);
-			is[6] += ks[6] * (d.z * f3z);
-
-			is[7] += ks[7] * (d.x * (p1.y * g0x + p2.y * g1x + p3.y * g2x));
-			is[8] += ks[8] * (d.y * (p1.z * g0y + p2.z * g1y + p3.z * g2y));
-			is[9] += ks[9] * (d.z * (p1.x * g0z + p2.x * g1z + p3.x * g2z));
+			float32 a1 = ex2 - ex1, a2 = ey2 - ey1, a3 = ez2 - ez1;
+			float32 b1 = ex3 - ex1, b2 = ey3 - ey1, b3 = ez3 - ez1;
 			
+			// D = cross(e2 - e1, e3 - e1);
+			float32 D1 = a2 * b3 - a3 * b2;
+			float32 D2 = a3 * b1 - a1 * b3;
+			float32 D3 = a1 * b2 - a2 * b1;
+
+			//
+			float32 intx = ex1 + ex2 + ex3;
+			volume += (inv6 * D1) * intx;
+
+			//
+			float32 intx2 = ex1 * ex1 + ex1 * ex2 + ex1 * ex3 + ex2 * ex2 + ex2 * ex3 + ex3 * ex3;
+			float32 inty2 = ey1 * ey1 + ey1 * ey2 + ey1 * ey3 + ey2 * ey2 + ey2 * ey3 + ey3 * ey3;
+			float32 intz2 = ez1 * ez1 + ez1 * ez2 + ez1 * ez3 + ez2 * ez2 + ez2 * ez3 + ez3 * ez3;
+
+			center.x += (0.5f * inv12 * D1) * intx2;
+			center.y += (0.5f * inv12 * D2) * inty2;
+			center.z += (0.5f * inv12 * D3) * intz2;
+
+			//
+			float32 intx3 =
+				ex1 * ex1 * ex1 +
+				ex1 * ex1 * ex2 +
+				ex1 * ex1 * ex3 +
+				ex1 * ex2 * ex2 +
+				ex1 * ex2 * ex3 +
+				ex1 * ex3 * ex3 +
+				ex2 * ex2 * ex2 +
+				ex2 * ex2 * ex3 +
+				ex2 * ex3 * ex3 +
+				ex3 * ex3 * ex3;
+
+			float32 inty3 =
+				ey1 * ey1 * ey1 +
+				ey1 * ey1 * ey2 +
+				ey1 * ey1 * ey3 +
+				ey1 * ey2 * ey2 +
+				ey1 * ey2 * ey3 +
+				ey1 * ey3 * ey3 +
+				ey2 * ey2 * ey2 +
+				ey2 * ey2 * ey3 +
+				ey2 * ey3 * ey3 +
+				ey3 * ey3 * ey3;
+			
+			float32 intz3 =
+				ez1 * ez1 * ez1 +
+				ez1 * ez1 * ez2 +
+				ez1 * ez1 * ez3 +
+				ez1 * ez2 * ez2 +
+				ez1 * ez2 * ez3 +
+				ez1 * ez3 * ez3 +
+				ez2 * ez2 * ez2 +
+				ez2 * ez2 * ez3 +
+				ez2 * ez3 * ez3 +
+				ez3 * ez3 * ez3;
+			
+			// Apply constants
+			intx3 *= inv3 * inv20 * D1;
+			inty3 *= inv3 * inv20 * D2;
+			intz3 *= inv3 * inv20 * D3;
+
+			I.x.x += inty3 + intz3;
+			I.y.y += intx3 + intz3;	
+			I.z.z += intx3 + inty3;
+
+			// 
+			float32 intx2y = 
+				3.0f * ex1 * ex1 * ey1 + 
+				ex1 * ex1 * ey2 +
+				ex1 * ex1 * ey3 + 
+				2.0f * ex1 * ex2 * ey1 +
+				2.0f * ex1 * ex2 * ey2 + 
+				ex1 * ex2 * ey3 + 
+				2.0f * ex1 * ex3 * ey1 +
+				ex1 * ex3 * ey2 + 
+				2.0f * ex1 * ex3 * ey3 + 
+				ex2 * ex2 * ey1 + 
+				3.0f * ex2 * ex2 * ey2 + 
+				ex2 * ex2 * ey3 + 
+				ex2 * ex3 * ey1 + 
+				2.0f * ex2 * ex3 * ey2 + 
+				2.0f * ex2 * ex3 * ey3 + 
+				ex3 * ex3 * ey1 + 
+				ex3 * ex3 * ey2 + 
+				3.0f * ex3 * ex3 * ey3;
+
+			float32 inty2z =
+				3.0f * ey1 * ey1 * ez1 +
+				ey1 * ey1 * ez2 +
+				ey1 * ey1 * ez3 +
+				2.0f * ey1 * ey2 * ez1 +
+				2.0f * ey1 * ey2 * ez2 +
+				ey1 * ey2 * ez3 +
+				2.0f * ey1 * ey3 * ez1 +
+				ey1 * ey3 * ez2 +
+				2.0f * ey1 * ey3 * ez3 +
+				ey2 * ey2 * ez1 +
+				3.0f * ey2 * ey2 * ez2 +
+				ey2 * ey2 * ez3 +
+				ey2 * ey3 * ez1 +
+				2.0f * ey2 * ey3 * ez2 +
+				2.0f * ey2 * ey3 * ez3 +
+				ey3 * ey3 * ez1 +
+				ey3 * ey3 * ez2 +
+				3.0f * ey3 * ey3 * ez3;
+
+			float32 intz2x = 
+				3.0f * ez1 * ez1 * ex1 +
+				ez1 * ez1 * ex2 +
+				ez1 * ez1 * ex3 +
+				2.0f * ez1 * ez2 * ex1 +
+				2.0f * ez1 * ez2 * ex2 +
+				ez1 * ez2 * ex3 +
+				2.0f * ez1 * ez3 * ex1 +
+				ez1 * ez3 * ex2 +
+				2.0f * ez1 * ez3 * ex3 +
+				ez2 * ez2 * ex1 +
+				3.0f * ez2 * ez2 * ex2 +
+				ez2 * ez2 * ex3 +
+				ez2 * ez3 * ex1 +
+				2.0f * ez2 * ez3 * ex2 +
+				2.0f * ez2 * ez3 * ex3 +
+				ez3 * ez3 * ex1 +
+				ez3 * ez3 * ex2 +
+				3.0f * ez3 * ez3 * ex3;
+
+			// Apply constants
+			intx2y *= 0.5f * inv60 * D1;
+			inty2z *= 0.5f * inv60 * D2;
+			intz2x *= 0.5f * inv60 * D3;
+
+			I.x.y += intx2y;
+			I.y.z += inty2z;
+			I.z.x += intz2x;
+
 			edge = next;
 		} while (m_hull->GetEdge(edge->next) != begin);
 	}
 
-	// Apply constants
-	//for (u32 i = 0; i < 10; ++i)
-	//{
-	//is[i] *= ks[i];
-	//}
+	// Negate
+	I.x.y = -I.x.y;
+	I.y.z = -I.y.z;
+	I.z.x = -I.z.x;
 
-	// Volume
-	float32 V = is[0];
-	B3_ASSERT(V > B3_EPSILON);
-
-	// Center of volume
-	b3Vec3 c(is[1], is[2], is[3]);
-	c /= V;
-
-	// Inertia about the local origin
-	b3Mat33 I;
-	I.x.x = is[5] + is[6];
-	I.x.y = -is[7];
-	I.x.z = -is[9];
-
+	// Use symmetry
 	I.y.x = I.x.y;
-	I.y.y = is[4] + is[6];
-	I.y.z = -is[8];
-
-	I.z.x = I.x.z;
 	I.z.y = I.y.z;
-	I.z.z = is[4] + is[5];
+	I.x.z = I.x.z;
+	
+	// Center of mass
+	B3_ASSERT(volume > B3_EPSILON);
+	center /= volume;
 
 	// Apply density
-	data->center = c;
-	data->mass = density * V;
+	data->center = center;
+	data->mass = density * volume;
 	data->I = density * I;
 }
 
