@@ -36,6 +36,7 @@
 #include <bounce/collision/shapes/capsule.h>
 #include <bounce/collision/shapes/hull.h>
 #include <bounce/collision/shapes/box_hull.h>
+#include <bounce/collision/shapes/qhull.h>
 #include <bounce/collision/shapes/mesh.h>
 #include <bounce/collision/shapes/grid_mesh.h>
 

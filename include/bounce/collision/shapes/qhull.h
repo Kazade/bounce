@@ -16,53 +16,29 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_HULL_H
-#define B3_HULL_H
+#ifndef B3_Q_HULL_H
+#define B3_Q_HULL_H
 
-#include <bounce/common/geometry.h>
+#include <bounce/collision/shapes/hull.h>
 
-struct b3Face
+struct b3QHull : public b3Hull
 {
-	u8 edge;
+	b3QHull();
+	~b3QHull();
+
+	// Create a convex hull from a point list.
+	// If the point list defines a degenerate polyhedron 
+	// the old hull is not cleared.
+	//
+	// Coincident points are removed.
+	// Coplanar faces are merged.
+	void Set(const b3Vec3* points, u32 count);
+
+	// Set this hull as a cylinder located at the origin.
+	void SetAsCylinder(float32 radius = 1.0f, float32 height = 1.0f);
+
+	// Set this hull as a cone located at the origin.
+	void SetAsCone(float32 radius = 1.0f, float32 height = 1.0f);
 };
-
-struct b3HalfEdge
-{
-	u8 origin;
-	u8 twin;
-	u8 face;
-	u8 next;
-};
-
-struct b3Hull
-{
-	b3Vec3 centroid;
-	u32 vertexCount;
-	b3Vec3* vertices;
-	u32 edgeCount;
-	b3HalfEdge* edges;
-	u32 faceCount;
-	b3Face* faces;
-	b3Plane* planes;
-	
-	const b3Vec3& GetVertex(u32 index) const;
-	const b3HalfEdge* GetEdge(u32 index) const;
-	const b3Face* GetFace(u32 index) const;
-	const b3Plane& GetPlane(u32 index) const;
-
-	u32 GetSupportVertex(const b3Vec3& direction) const;
-	//u32 GetSupportEdge(const b3Vec3& direction) const;
-	u32 GetSupportFace(const b3Vec3& direction) const;
-	
-	b3Plane GetEdgeSidePlane(u32 index) const;
-	
-	u32 GetSize() const;
-
-	void Validate() const;
-	void Validate(const b3Face* face) const;
-	void Validate(const b3HalfEdge* edge) const;
-};
-
-#include <bounce/collision/shapes/hull.inl>
 
 #endif
