@@ -54,7 +54,7 @@ void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
 	
 	// Ixy = -rho * int((x * y) * dV)
 	// Ixz = -rho * int((x * z) * dV)
-	// Iyz = -rho * int(y * z) * dV
+	// Iyz = -rho * int((y * z) * dV)
 
 	// Iyx = Ixy
 	// Izx = Ixz
