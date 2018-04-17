@@ -87,7 +87,7 @@ void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
 	// Thus, where the boundary representation is simply a set of n triangles, 
 	// we can compute these integrals by summing all the integrals for each triangle 
 	// of the polyhedron.
-	// int(dV) = sum(int(dot(F, N_k) * dS)), k..n.
+	// int(f(x, y, z) * dV) = sum(int(dot(F, N_k) * dS)), k..n.
 	// If the normal N_k is constant over the triangle and s is an axis in the direction of F, 
 	// we can bring N_k outside the integral
 	// int(dV) = sum(dot(N_k, s) * int(f(x, y, z) * dS)), k..n.
