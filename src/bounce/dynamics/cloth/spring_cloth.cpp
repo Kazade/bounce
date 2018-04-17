@@ -101,53 +101,32 @@ static void b3FindEdges(b3UniqueEdge* uniqueEdges, u32& uniqueCount, b3SharedEdg
 		for (u32 j1 = 0; j1 < 3; ++j1)
 		{
 			u32 t1v1 = i1s[j1];
-
 			u32 t1v2 = i1s[b3NextIndex(j1)];
 
-			u32 foundCount = 0;
+			bool unique = true;
 
-			for (u32 j = i + 1; j < m->triangleCount; ++j)
+			for (u32 j = 0; j < uniqueCount; ++j)
 			{
-				b3Triangle* t2 = m->triangles + j;
-				u32 i2s[3] = { t2->v1, t2->v2, t2->v3 };
+				b3UniqueEdge* ue = uniqueEdges + j;
 
-				for (u32 j2 = 0; j2 < 3; ++j2)
+				if (ue->v1 == t1v1 && ue->v2 == t1v2)
 				{
-					u32 t2v1 = i2s[j2];
-					u32 t2v2 = i2s[b3NextIndex(j2)];
-
-					if (t1v1 == t2v2 && t1v2 == t2v1)
-					{
-						// Shared edge
-						b3SharedEdge se;
-						se.v1 = t1v1;
-						se.v2 = t1v2;
-
-						// Non-shared vertices
-						u32 k1 = b3NextIndex(j1);
-						u32 k3 = b3NextIndex(k1);
-						u32 t1v3 = i1s[k3];
-
-						u32 k2 = b3NextIndex(j2);
-						u32 k4 = b3NextIndex(k2);
-						u32 t2v3 = i2s[k4];
-
-						se.nsv1 = t1v3;
-						se.nsv2 = t2v3;
-
-						sharedEdges[sharedCount++] = se;
-
-						++foundCount;
-					}
+					unique = false;
+					break;
+				}
+				
+				if (ue->v2 == t1v1 && ue->v1 == t1v2)
+				{
+					unique = false;
+					break;
 				}
 			}
 
-			if (foundCount == 0)
+			if (unique)
 			{
 				b3UniqueEdge ue;
 				ue.v1 = t1v1;
 				ue.v2 = t1v2;
-
 				uniqueEdges[uniqueCount++] = ue;
 			}
 		}
