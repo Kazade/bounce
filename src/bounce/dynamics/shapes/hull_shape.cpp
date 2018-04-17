@@ -95,7 +95,7 @@ void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
 	// We need to compute surface integrals, where the g above is to be integrated along a triangle.
 	// Changing coordinates from (x, y, z) to (u, v) a formula for a integral along the triangle is
 	// int(g(x(u, v), y(u, v), z(u, v)) * norm(cross(e1, e2)) * du * dv)
-	// where g is a parametrization for a triangle
+	// where x, y, and z are given from the parametrization for a triangle
 	// x = x1 + e1x * u + e2x * v 
 	// y = y1 + e1y * u + e2y * v 
 	// z = z1 + e1z * u + e2z * v 
@@ -104,7 +104,7 @@ void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
 	// int(g * det(D) * du * dv)
 	// where D is the Jacobian of the parametrization:
 	// D = cross(e1, e2)
-	// We integrate x, y, and z over [0, 1 - v] and then over [0, 1].
+	// We integrate g over [0, 1 - v] and then over [0, 1].
 
 	// Thus, using the fact that 
 	// N_k = D / norm(D),
