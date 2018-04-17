@@ -26,12 +26,9 @@ struct b3QHull : public b3Hull
 	b3QHull();
 	~b3QHull();
 
-	// Create a convex hull from a point list.
-	// If the point list defines a degenerate polyhedron 
-	// the old hull is not cleared.
-	//
+	// Create a convex hull from an array of points.
+	// If the points define a degenerate polyhedron the hull is not overwritten.
 	// Coincident points are removed.
-	// Coplanar faces are merged.
 	void Set(const b3Vec3* points, u32 count);
 
 	// Set this hull as a cylinder located at the origin.

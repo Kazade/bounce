@@ -151,7 +151,7 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 void b3QHull::Set(const b3Vec3* points, u32 count)
 {
 	// Copy points into local buffer, remove coincident points.
-	b3StackArray<b3Vec3, 256> ps;
+	b3StackArray<b3Vec3, B3_MAX_HULL_FEATURES> ps;
 	for (u32 i = 0; i < count; ++i)
 	{
 		b3Vec3 p = points[i];
@@ -209,27 +209,16 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 		face = face->next;
 	}
 
-	if (V > B3_MAX_HULL_FEATURES) 
+	if (V > B3_MAX_HULL_FEATURES || E > B3_MAX_HULL_FEATURES || F > B3_MAX_HULL_FEATURES)
 	{
 		b3Free(qh_memory);
 		return; 
-	}
-	
-	if (E > B3_MAX_HULL_FEATURES) 
-	{ 
-		b3Free(qh_memory);
-		return;
-	}
-
-	if (F > B3_MAX_HULL_FEATURES) 
-	{ 
-		b3Free(qh_memory);
-		return;
 	}
 
 	b3Free(vertices);
 	b3Free(edges);
 	b3Free(faces);
+	b3Free(planes);
 
 	vertexCount = 0;
 	vertices = (b3Vec3*)b3Alloc(V * sizeof(b3Vec3));
