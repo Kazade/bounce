@@ -108,7 +108,7 @@ void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
 
 	// Thus, using the fact that 
 	// N_k = D / norm(D),
-	// the surface integral can be further simplified to
+	// the volume integral can be further simplified to
 	// sum(dot(D, s) * int(g(x(u, v), y(u, v), z(u, v)) * du * dv))
 
 	// These double integrals are done either by a CAS or by hand.
