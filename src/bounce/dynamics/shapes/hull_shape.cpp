@@ -90,28 +90,27 @@ void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
 	// int(f(x, y, z) * dV) = sum(int(dot(F, N_k) * dS)), k..n.
 	// If the normal N_k is constant over the triangle and s is an axis in the direction of F, 
 	// we can bring N_k outside the integral
-	// int(dV) = sum(dot(N_k, s) * int(f(x, y, z) * dS)), k..n.
+	// int(f(x, y, z) * dV) = sum(dot(N_k, s) * int(g(x, y, z) * dS)), k..n.
 	
-	// We need to compute surface integrals, where the f above is to be integrated along a triangle.
+	// We need to compute surface integrals, where the g above is to be integrated along a triangle.
 	// Changing coordinates from (x, y, z) to (u, v) a formula for a integral along the triangle is
-	// int(f(x(u, v), y(u, v), z(u, v)) * norm(cross(e1, e2)) * du * dv)
-	// where f is a parametrization for a triangle
+	// int(g(x(u, v), y(u, v), z(u, v)) * norm(cross(e1, e2)) * du * dv)
+	// where g is a parametrization for a triangle
 	// x = x1 + e1x * u + e2x * v 
 	// y = y1 + e1y * u + e2y * v 
 	// z = z1 + e1z * u + e2z * v 
 	// and 0 <= u, 0 <= v, u + v <= 1
 	// We can view the surface integral above also as 
-	// int(f * det(D) * du * dv)
+	// int(g * det(D) * du * dv)
 	// where D is the Jacobian of the parametrization:
 	// D = cross(e1, e2)
-	
+	// We integrate x, y, and z over [0, 1 - v] and then over [0, 1].
+
 	// Thus, using the fact that 
 	// N_k = D / norm(D),
 	// the surface integral can be further simplified to
-	// sum(dot(D, s) * int(f(x(u, v), y(u, v), z(u, v)) * du * dv))
+	// sum(dot(D, s) * int(g(x(u, v), y(u, v), z(u, v)) * du * dv))
 
-	// We integrate f over [0, 1 - v] and then over [0, 1].
-	
 	// These double integrals are done either by a CAS or by hand.
 	// Here, it was used the great SymPy.
 	// SymPy was available at http://live.sympy.org/
