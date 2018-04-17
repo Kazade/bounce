@@ -163,52 +163,14 @@ public:
 			}
 		}
 
-		{
-			b3StackArray<b3Vec3, 32> points;
-			ConstructCone(points);
+		m_coneHull.SetAsCone();
+		m_cylinderHull.SetAsCylinder();
 
-			u32 size = qhGetMemorySize(points.Count());
-			void* p = b3Alloc(size);
-
-			qhHull hull;
-			hull.Construct(p, points);
-			m_coneHull = ConvertHull(hull);
-
-			b3Free(p);
-		}
-
-		{
-			b3StackArray<b3Vec3, 32> points;
-			ConstructCylinder(points);
-
-			const u32 size = qhGetMemorySize(points.Count());
-			void* p = b3Alloc(size);
-
-			qhHull hull;
-			hull.Construct(p, points);
-			m_cylinderHull = ConvertHull(hull);
-
-			b3Free(p);
-		}
-		
 		m_count = 0;
 	}
 
 	~Tumbler()
 	{
-		{
-			b3Free(m_coneHull.vertices);
-			b3Free(m_coneHull.edges);
-			b3Free(m_coneHull.faces);
-			b3Free(m_coneHull.planes);
-		}
-
-		{
-			b3Free(m_cylinderHull.vertices);
-			b3Free(m_cylinderHull.edges);
-			b3Free(m_cylinderHull.faces);
-			b3Free(m_cylinderHull.planes);
-		}
 	}
 
 	void Step()
@@ -263,11 +225,8 @@ public:
 				bdef.angularVelocity.Set(0.0f, 0.05f * B3_PI, 0.0f);
 				b3Body* body = m_world.CreateBody(bdef);
 
-				static b3BoxHull box;
-				box.SetIdentity();
-
 				b3HullShape hs;
-				hs.m_hull = &box;
+				hs.m_hull = &b3BoxHull_identity;
 
 				b3ShapeDef sd;
 				sd.density = 0.05f;
@@ -322,8 +281,8 @@ public:
 	}
 
 	u32 m_count;
-	b3Hull m_coneHull;
-	b3Hull m_cylinderHull;
+	b3QHull m_coneHull;
+	b3QHull m_cylinderHull;
 };
 
 #endif

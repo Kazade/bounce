@@ -19,8 +19,6 @@
 #ifndef QUADRIC_SHAPES_H
 #define QUADRIC_SHAPES_H
 
-#include <testbed/tests/quickhull_test.h>
-
 class QuadricShapes : public Test
 {
 public:
@@ -85,20 +83,8 @@ public:
 
 			b3Body* body = m_world.CreateBody(bdef);
 
-			{
-				b3StackArray<b3Vec3, 32> points;
-				ConstructCone(points);
+			m_coneHull.SetAsCone();
 
-				u32 size = qhGetMemorySize(points.Count());
-				void* p = b3Alloc(size);
-
-				qhHull hull;
-				hull.Construct(p, points);
-				m_coneHull = ConvertHull(hull);
-
-				b3Free(p);
-			}
-			
 			b3HullShape hull;
 			hull.m_hull = &m_coneHull;
 
@@ -117,19 +103,7 @@ public:
 
 			b3Body* body = m_world.CreateBody(bdef);
 
-			{
-				b3StackArray<b3Vec3, 32> points;
-				ConstructCylinder(points);
-
-				const u32 size = qhGetMemorySize(points.Count());
-				void* p = b3Alloc(size);
-
-				qhHull hull;
-				hull.Construct(p, points);
-				m_cylinderHull = ConvertHull(hull);
-
-				b3Free(p);
-			}
+			m_cylinderHull.SetAsCylinder();
 
 			b3HullShape hull;
 			hull.m_hull = &m_cylinderHull;
@@ -145,19 +119,6 @@ public:
 
 	~QuadricShapes()
 	{
-		{
-			b3Free(m_coneHull.vertices);
-			b3Free(m_coneHull.edges);
-			b3Free(m_coneHull.faces);
-			b3Free(m_coneHull.planes);
-		}
-
-		{
-			b3Free(m_cylinderHull.vertices);
-			b3Free(m_cylinderHull.edges);
-			b3Free(m_cylinderHull.faces);
-			b3Free(m_cylinderHull.planes);
-		}
 	}
 
 	static Test* Create()
@@ -165,8 +126,8 @@ public:
 		return new QuadricShapes();
 	}
 
-	b3Hull m_coneHull;
-	b3Hull m_cylinderHull;
+	b3QHull m_coneHull;
+	b3QHull m_cylinderHull;
 };
 
 #endif

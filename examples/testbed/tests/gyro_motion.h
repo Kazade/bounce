@@ -27,20 +27,6 @@ public:
 	GyroMotion()
 	{
 		{
-			b3StackArray<b3Vec3, 32> points;
-			ConstructCylinder(points, 0.95f, 4.0f);
-
-			const u32 size = qhGetMemorySize(points.Count());
-			void* p = b3Alloc(size);
-			
-			qhHull hull;
-			hull.Construct(p, points);
-			m_cylinderHull = ConvertHull(hull);
-			
-			b3Free(p);
-		}
-
-		{
 			b3BodyDef bd;
 			b3Body* ground = m_world.CreateBody(bd);
 
@@ -76,6 +62,8 @@ public:
 			}
 
 			{
+				m_cylinderHull.SetAsCylinder(0.95f, 4.0f);
+
 				b3HullShape hull;
 				hull.m_hull = &m_cylinderHull;
 
@@ -92,12 +80,6 @@ public:
 
 	~GyroMotion()
 	{
-		{
-			b3Free(m_cylinderHull.vertices);
-			b3Free(m_cylinderHull.edges);
-			b3Free(m_cylinderHull.faces);
-			b3Free(m_cylinderHull.planes);
-		}
 	}
 
 	static Test* Create()
@@ -106,7 +88,7 @@ public:
 	}
 
 	b3BoxHull m_rotorBox;
-	b3Hull m_cylinderHull;
+	b3QHull m_cylinderHull;
 };
 
 #endif
