@@ -20,7 +20,7 @@
 #include <bounce/common/template/stack.h>
 #include <bounce/common/draw.h>
 
-float32 qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Array<b3Vec3>& vertices)
+static float32 qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Array<b3Vec3>& vertices)
 {
 	b3Vec3 min(B3_MAX_FLOAT, B3_MAX_FLOAT, B3_MAX_FLOAT);
 	iMin[0] = 0;
@@ -65,6 +65,8 @@ qhHull::~qhHull()
 
 void qhHull::Construct(void* memory, const b3Array<b3Vec3>& vs)
 {
+	// Euler's formula
+	// V - E + F = 2
 	u32 V = vs.Count();
 	u32 E = 3 * V - 6;
 	u32 HE = 2 * E;
@@ -73,9 +75,6 @@ void qhHull::Construct(void* memory, const b3Array<b3Vec3>& vs)
 	HE *= 2;
 	F *= 2;
 
-	// Euler's formula
-	// V - E + F = 2
-	
 	m_freeVertices = NULL;
 	qhVertex* vertices = (qhVertex*)memory;
 	for (u32 i = 0; i < V; ++i)
@@ -739,7 +738,7 @@ bool qhHull::IsConsistent() const
 	return true;
 }
 
-void qhHull::Draw(b3Draw* draw) const
+void qhHull::Draw() const
 {
 	qhFace* face = m_faceList.head;
 	while (face)
@@ -757,17 +756,17 @@ void qhHull::Draw(b3Draw* draw) const
 			edge = edge->next;
 		} while (edge != begin);
 
-		draw->DrawSolidPolygon(n, vs.Begin(), vs.Count(), b3Color(1.0f, 1.0f, 1.0f, 0.5f));
+		b3Draw_draw->DrawSolidPolygon(n, vs.Begin(), vs.Count(), b3Color(1.0f, 1.0f, 1.0f, 0.5f));
 
 		qhVertex* v = face->conflictList.head;
 		while (v)
 		{
-			draw->DrawPoint(v->position, 4.0f, b3Color(1.0f, 1.0f, 0.0f));
-			draw->DrawSegment(c, v->position, b3Color(1.0f, 1.0f, 0.0f));
+			b3Draw_draw->DrawPoint(v->position, 4.0f, b3Color(1.0f, 1.0f, 0.0f));
+			b3Draw_draw->DrawSegment(c, v->position, b3Color(1.0f, 1.0f, 0.0f));
 			v = v->next;
 		}
 
-		draw->DrawSegment(c, c + n, b3Color(1.0f, 1.0f, 1.0f));
+		b3Draw_draw->DrawSegment(c, c + n, b3Color(1.0f, 1.0f, 1.0f));
 
 		face = face->next;
 	}

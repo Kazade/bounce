@@ -32,7 +32,6 @@ struct qhList
 	u32 count;
 };
 
-// Half-edge data structure definition used by qhHull.
 struct qhHalfEdge;
 struct qhVertex;
 
@@ -90,16 +89,6 @@ struct qhVertex
 	qhFace* conflictFace;
 };
 
-// todo
-// Snapshots of the algorithm for debug drawing.
-struct qhDraw
-{
-	//DrawIteration* iter; // current iteration
-	//b3Array<DrawIteration> iterations;
-};
-
-class b3Draw;
-
 // Given a number of points return the required memory size in bytes for constructing the 
 // convex hull of those points. Use this function before allocating the memory buffer passed 
 // as argument to Construct.
@@ -119,15 +108,23 @@ public:
 	// Use qhGetMemorySize to see how many free bytes should be available in the buffer.
 	void Construct(void* memory, const b3Array<b3Vec3>& vertices);
 
-	// Output of qhHull.
-	// todo 
-	// Output a cleaner data structure. Maybe similar to b3Hull but storing larger hulls?
-	qhList<qhFace> m_faceList; // convex hull
-	u32 m_iteration; // number of quickhull iterations
+	// Get the list of faces in this hull.
+	const qhList<qhFace>& GetFaceList() const
+	{
+		return m_faceList;
+	}
+	
+	// Get the number of iterations this algorithm ran.
+	u32 GetIterations() const
+	{
+		return m_iteration;
+	}
 
+	// Return if this hull is valid.
 	bool IsConsistent() const;
 	
-	void Draw(b3Draw* draw) const;
+	// Draw this hull.
+	void Draw() const;
 private:
 	bool BuildInitialHull(const b3Array<b3Vec3>& vertices);
 
@@ -154,6 +151,12 @@ private:
 	// Coplanarity tolerance
 	float32 m_tolerance;
 	
+	// List of faces
+	qhList<qhFace> m_faceList; // list of faces
+	
+	// Number of Quickhull iterations
+	u32 m_iteration; 
+
 	// Memory
 	qhVertex* AllocateVertex();
 	void FreeVertex(qhVertex* p);
@@ -167,6 +170,7 @@ private:
 	qhVertex* m_freeVertices;
 	qhHalfEdge* m_freeEdges;
 	qhFace* m_freeFaces;
+
 };
 
 #include <bounce/quickhull/qh_hull.inl>
