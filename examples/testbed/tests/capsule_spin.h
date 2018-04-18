@@ -16,13 +16,13 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef CAPSULE_HULL_CONTACT_1_H
-#define CAPSULE_HULL_CONTACT_1_H
+#ifndef CAPSULE_SPIN_H
+#define CAPSULE_SPIN_H
 
-class CapsuleAndHullContact1 : public Test
+class CapsuleSpin : public Test
 {
 public:
-	CapsuleAndHullContact1()
+	CapsuleSpin()
 	{
 		{
 			b3BodyDef bd;
@@ -62,7 +62,7 @@ public:
 
 	static Test* Create()
 	{
-		return new CapsuleAndHullContact1();
+		return new CapsuleSpin();
 	}
 };
 

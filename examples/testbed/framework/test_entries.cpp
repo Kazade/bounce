@@ -30,7 +30,7 @@
 #include <testbed/tests/angular_motion.h>
 #include <testbed/tests/gyro_motion.h>
 #include <testbed/tests/initial_overlap.h>
-#include <testbed/tests/capsule_and_hull_contact_1.h>
+#include <testbed/tests/capsule_spin.h>
 #include <testbed/tests/quadric_shapes.h>
 #include <testbed/tests/compound_body.h>
 #include <testbed/tests/spring.h>
@@ -77,7 +77,7 @@ TestEntry g_tests[] =
 	{ "Capsule and Hull Collision (2)", &CapsuleAndHullCollision2::Create },
 	{ "Hull Collision (1)", &HullAndHull::Create },
 	{ "Hull Collision (2)", &HullAndHull2::Create },
-	{ "Capsule and Hull Contact (1)", &CapsuleAndHullContact1::Create },
+	{ "Capsule Spin", &CapsuleSpin::Create },
 	{ "Mesh Contact Test", &MeshContactTest::Create },
 	{ "Linear Motion", &LinearMotion::Create },
 	{ "Angular Motion", &AngularMotion::Create },
