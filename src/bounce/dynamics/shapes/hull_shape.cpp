@@ -101,9 +101,9 @@ void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
 	// z = z1 + e1z * u + e2z * v 
 	// and 0 <= u, 0 <= v, u + v <= 1
 	// We can view the surface integral above also as 
-	// int(g * det(D) * du * dv)
-	// where D is the Jacobian of the parametrization:
-	// D = cross(e1, e2)
+	// int(g * norm(det(J)) * du * dv)
+	// where J is the Jacobian of the parametrization:
+	// J = [e1 e2]
 	// We integrate g over [0, 1 - v] and then over [0, 1].
 
 	// Thus, using the fact that 
