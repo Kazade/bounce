@@ -41,6 +41,8 @@ typedef float float32;
 #define	B3_MAX_FLOAT (FLT_MAX)
 #define	B3_EPSILON (FLT_EPSILON)
 
+#define	B3_MAX_U32 (0xFFFFFFFF)
+
 // Collision
 
 // How much an AABB in the broad-phase should be extended by 

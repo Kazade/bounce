@@ -140,7 +140,7 @@ public:
 	void SetUserData(void* data);
 
 	// Dump this shape to the log file.
-	void Dump(i32 bodyIndex) const;
+	void Dump(u32 bodyIndex) const;
 
 	// Get the next shape in the body shape list.
 	const b3Shape* GetNext() const;
@@ -169,7 +169,7 @@ protected:
 	float32 m_density;
 	float32 m_restitution;
 	float32 m_friction;
-	i32 m_broadPhaseID;
+	u32 m_broadPhaseID;
 
 	// Contact edges for this shape contact graph.
 	b3List2<b3ContactEdge> m_contactEdges;

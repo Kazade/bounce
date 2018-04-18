@@ -154,7 +154,7 @@ void b3ContactManager::SynchronizeShapes()
 // Find potentially overlapping shape pairs.
 void b3ContactManager::FindNewContacts()
 {
-	m_broadPhase.FindNewPairs(this);
+	m_broadPhase.FindPairs(this);
 
 	b3MeshContactLink* c = m_meshContactList.m_head;
 	while (c)
@@ -175,11 +175,11 @@ void b3ContactManager::UpdateContacts()
 		b3OverlappingPair* pair = &c->m_pair;
 
 		b3Shape* shapeA = pair->shapeA;
-		i32 proxyA = shapeA->m_broadPhaseID;
+		u32 proxyA = shapeA->m_broadPhaseID;
 		b3Body* bodyA = shapeA->m_body;
 		
 		b3Shape* shapeB = pair->shapeB;
-		i32 proxyB = shapeB->m_broadPhaseID;
+		u32 proxyB = shapeB->m_broadPhaseID;
 		b3Body* bodyB = shapeB->m_body;
 		
 		// Check if the bodies must not collide with each other.

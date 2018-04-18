@@ -312,7 +312,7 @@ void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
 
 struct b3RayCastCallback
 {
-	float32 Report(const b3RayCastInput& input, i32 proxyId)
+	float32 Report(const b3RayCastInput& input, u32 proxyId)
 	{
 		// Get shape associated with the proxy.
 		void* userData = broadPhase->GetUserData(proxyId);
@@ -360,7 +360,7 @@ void b3World::RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec
 
 struct b3RayCastSingleCallback
 {
-	float32 Report(const b3RayCastInput& input, i32 proxyId)
+	float32 Report(const b3RayCastInput& input, u32 proxyId)
 	{
 		// Get shape associated with the proxy.
 		void* userData = broadPhase->GetUserData(proxyId);
@@ -425,7 +425,7 @@ bool b3World::RayCastSingle(b3RayCastSingleOutput* output, const b3Vec3& p1, con
 
 struct b3QueryAABBCallback
 {
-	bool Report(i32 proxyID)
+	bool Report(u32 proxyID)
 	{
 		b3Shape* shape = (b3Shape*)broadPhase->GetUserData(proxyID);
 		return listener->ReportShape(shape);

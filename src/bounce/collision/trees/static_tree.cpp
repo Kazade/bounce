@@ -120,7 +120,7 @@ void b3StaticTree::Build(const b3AABB3* set, b3Node* node, u32* ids, u32 count, 
 	if (count <= minObjectsPerLeaf)
 	{
 		++leafCount;
-		node->child1 = NULL_NODE_S;
+		node->child1 = B3_NULL_NODE_S;
 		node->index = ids[0];
 	}
 	else

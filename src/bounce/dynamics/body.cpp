@@ -83,7 +83,6 @@ b3Body::b3Body(const b3BodyDef& def, b3World* world)
 	m_angularDamping = def.angularDamping;
 	m_gravityScale = def.gravityScale;
 	m_userData = def.userData;
-	m_islandID = -1;
 	m_sleepTime = 0.0f;
 }
 
@@ -464,7 +463,7 @@ void b3Body::SetType(b3BodyType type)
 
 void b3Body::Dump() const
 {
-	i32 bodyIndex = m_islandID;
+	u32 bodyIndex = m_islandID;
 
 	b3Log("		{\n");
 	b3Log("		b3BodyDef bd;\n");

@@ -384,7 +384,7 @@ bool b3HullShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 	float32 lower = 0.0f;
 	float32 upper = input.maxFraction;
 
-	i32 index = -1;
+	u32 index = B3_MAX_U32;
 
 	// s(lower) = p1 + lower * d, 0 <= lower <= kupper
 	// The segment intersects the plane if a 'lower' exists
@@ -451,7 +451,7 @@ bool b3HullShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 
 	B3_ASSERT(lower >= 0.0f && lower <= input.maxFraction);
 
-	if (index >= 0)
+	if (index != B3_MAX_U32)
 	{
 		output->fraction = lower;
 		output->normal = b3Mul(xf.rotation, planes[index].normal);

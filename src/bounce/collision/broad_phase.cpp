@@ -21,8 +21,8 @@
 b3BroadPhase::b3BroadPhase() 
 {
 	m_moveBufferCapacity = 16;
-	m_moveBuffer = (i32*)b3Alloc(m_moveBufferCapacity * sizeof(i32));
-	memset(m_moveBuffer, 0, m_moveBufferCapacity * sizeof(i32));
+	m_moveBuffer = (u32*)b3Alloc(m_moveBufferCapacity * sizeof(u32));
+	memset(m_moveBuffer, 0, m_moveBufferCapacity * sizeof(u32));
 	m_moveBufferCount = 0;
 
 	m_pairCapacity = 16;
@@ -37,7 +37,7 @@ b3BroadPhase::~b3BroadPhase()
 	b3Free(m_pairs);
 }
 
-void b3BroadPhase::BufferMove(i32 proxyId) 
+void b3BroadPhase::BufferMove(u32 proxyId) 
 {
 	// The proxy has been moved. Add it to the buffer of moved proxies.
 	// Check capacity.
@@ -46,9 +46,9 @@ void b3BroadPhase::BufferMove(i32 proxyId)
 		// Duplicate capacity.
 		m_moveBufferCapacity *= 2;
 
-		i32* oldMoveBuffer = m_moveBuffer;
-		m_moveBuffer = (i32*)b3Alloc(m_moveBufferCapacity * sizeof(i32));
-		memcpy(m_moveBuffer, oldMoveBuffer, m_moveBufferCount * sizeof(i32));
+		u32* oldMoveBuffer = m_moveBuffer;
+		m_moveBuffer = (u32*)b3Alloc(m_moveBufferCapacity * sizeof(u32));
+		memcpy(m_moveBuffer, oldMoveBuffer, m_moveBufferCount * sizeof(u32));
 		b3Free(oldMoveBuffer);
 	}
 
@@ -57,12 +57,12 @@ void b3BroadPhase::BufferMove(i32 proxyId)
 	++m_moveBufferCount;
 }
 
-bool b3BroadPhase::TestOverlap(i32 proxy1, i32 proxy2) const 
+bool b3BroadPhase::TestOverlap(u32 proxy1, u32 proxy2) const 
 {
 	return m_tree.TestOverlap(proxy1, proxy2);
 }
 
-i32 b3BroadPhase::CreateProxy(const b3AABB3& aabb, void* userData) 
+u32 b3BroadPhase::CreateProxy(const b3AABB3& aabb, void* userData) 
 {
 	// Later, if the node aabb has changed then it should be reinserted into the tree.
 	// However, this can be expansive due to the hierarchy reconstruction.
@@ -70,17 +70,17 @@ i32 b3BroadPhase::CreateProxy(const b3AABB3& aabb, void* userData)
 	// so we can check later if the new (original) AABB is inside the old (fat) AABB.
 	b3AABB3 fatAABB = aabb;
 	fatAABB.Extend(B3_AABB_EXTENSION);	
-	i32 proxyId = m_tree.InsertNode(fatAABB, userData);
+	u32 proxyId = m_tree.InsertNode(fatAABB, userData);
 	BufferMove(proxyId);
 	return proxyId;
 }
 
-void b3BroadPhase::DestroyProxy(i32 proxyId) 
+void b3BroadPhase::DestroyProxy(u32 proxyId) 
 {
 	return m_tree.RemoveNode(proxyId);
 }
 
-bool b3BroadPhase::MoveProxy(i32 proxyId, const b3AABB3& aabb, const b3Vec3& displacement)
+bool b3BroadPhase::MoveProxy(u32 proxyId, const b3AABB3& aabb, const b3Vec3& displacement)
 {
 	if (m_tree.GetAABB(proxyId).Contains(aabb))
 	{
@@ -133,7 +133,7 @@ bool b3BroadPhase::MoveProxy(i32 proxyId, const b3AABB3& aabb, const b3Vec3& dis
 	return true;
 }
 
-bool b3BroadPhase::Report(i32 proxyId) 
+bool b3BroadPhase::Report(u32 proxyId) 
 {
 	if (proxyId == m_queryProxyId) 
 	{

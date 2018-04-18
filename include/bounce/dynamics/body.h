@@ -325,7 +325,7 @@ private:
 	bool ShouldCollide(const b3Body* other) const;
 
 	b3BodyType m_type;
-	i32 m_islandID;
+	u32 m_islandID;
 	u32 m_flags;
 	float32 m_sleepTime;
 

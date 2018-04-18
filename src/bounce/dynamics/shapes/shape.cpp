@@ -65,7 +65,7 @@ void b3Shape::DestroyContacts()
 	}
 }
 
-void b3Shape::Dump(i32 bodyIndex) const
+void b3Shape::Dump(u32 bodyIndex) const
 {
 	switch (m_type)
 	{

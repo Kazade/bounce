@@ -23,7 +23,7 @@
 #include <bounce/collision/shapes/aabb3.h>
 #include <bounce/collision/collision.h>
 
-#define NULL_NODE_S (0xFFFFFFFF)
+#define B3_NULL_NODE_S (0xFFFFFFFF)
 
 // AABB tree for static AABBs.
 class b3StaticTree 
@@ -72,7 +72,7 @@ private :
 		// Is this node a leaf?
 		bool IsLeaf() const
 		{
-			return child1 == NULL_NODE_S;
+			return child1 == B3_NULL_NODE_S;
 		}
 	};
 
@@ -114,7 +114,7 @@ inline void b3StaticTree::QueryAABB(T* callback, const b3AABB3& aabb) const
 	{
 		u32 nodeIndex = stack.Top();
 
-		if (nodeIndex == NULL_NODE_S)
+		if (nodeIndex == B3_NULL_NODE_S)
 		{
 			continue;
 		}
@@ -164,10 +164,10 @@ inline void b3StaticTree::RayCast(T* callback, const b3RayCastInput& input) cons
 
 	while (stack.IsEmpty() == false) 
 	{
-		i32 nodeIndex = stack.Top();	
+		u32 nodeIndex = stack.Top();	
 		stack.Pop();
 
-		if (nodeIndex == NULL_NODE_S)
+		if (nodeIndex == B3_NULL_NODE_S)
 		{
 			continue;
 		}

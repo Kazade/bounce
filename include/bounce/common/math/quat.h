@@ -258,9 +258,9 @@ inline b3Quat b3Mat33Quat(const b3Mat33& m)
 	}
 
 	// Diagonal is negative.
-	const i32 next[3] = { 1, 2, 0 };
+	const u32 next[3] = { 1, 2, 0 };
 	
-	i32 i = 0;
+	u32 i = 0;
 	
 	if (m[1][1] > m[0][0])
 	{
@@ -272,8 +272,8 @@ inline b3Quat b3Mat33Quat(const b3Mat33& m)
 		i = 2;
 	}
 
-	i32 j = next[i];
-	i32 k = next[j];
+	u32 j = next[i];
+	u32 k = next[j];
 
 	float32 s = sqrt((m[i][i] - (m[j][j] + m[k][k])) + 1.0f);
 	
