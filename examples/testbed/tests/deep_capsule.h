@@ -16,47 +16,45 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef HULL_HULL_H
-#define HULL_HULL_H
+#ifndef DEEP_CAPSULE_H
+#define DEEP_CAPSULE_H
 
-class HullAndHull : public Collide
+class DeepCapsule : public Collide
 {
 public:
-	HullAndHull()
+	DeepCapsule()
 	{
-		b3Transform m;
-		m.rotation = b3Diagonal(1.0f, 2.0f, 1.0f);
-		m.position.Set(0.0f, 2.0f, 0.0f);
-		m_box1.SetTransform(m);
-
-		m.rotation = b3Diagonal(1.0f, 1.0f, 1.0f);
-		m.position.Set(0.0f, 0.0f, 0.0f);
-		m_box2.SetTransform(m);
-
-		m_xfA.SetIdentity();
-		m_xfA.position.SetZero();
-		m_xfA.rotation.SetIdentity();
-		m_sA.m_hull = &m_box1;
+		m_xfA.position.Set(0.0f, 0.0f, 0.0f);
+		m_xfA.rotation = b3QuatMat33(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.55f * B3_PI));
 		
-		m_xfB.SetIdentity();
-		m_xfB.position.Set(0.0f, 0.0f, 0.0f);
-		m_xfB.rotation.SetIdentity();
-		m_sB.m_hull = &m_box2;
+		m_sA.m_centers[0].Set(1.0f, -1.0f, 0.0f);
+		m_sA.m_centers[1].Set(0.0f, 1.0f, 0.0f);
+		m_sA.m_radius = 2.0f;
 
-		m_cache.count = 0;
+		m_xfB.position.Set(0.f, 0.0f, 0.0f);
+		m_xfB.rotation = b3QuatMat33(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.0f * B3_PI));
+
+		b3Transform xf;
+		xf.SetIdentity();
+		xf.rotation = b3Diagonal(4.0f, 1.0f, 4.0f);
+
+		m_box.SetTransform(xf);
+
+		m_sB.m_hull = &m_box;
+
 		m_shapeA = &m_sA;
 		m_shapeB = &m_sB;
+		m_cache.count = 0;
 	}
 
 	static Test* Create()
 	{
-		return new HullAndHull();
+		return new DeepCapsule();
 	}
 
-	b3BoxHull m_box1;
-	b3BoxHull m_box2;
-	b3HullShape m_sA;
+	b3CapsuleShape m_sA;
 	b3HullShape m_sB;
+	b3BoxHull m_box;
 };
 
 #endif

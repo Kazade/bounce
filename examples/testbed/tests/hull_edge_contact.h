@@ -16,45 +16,45 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef CAPSULE_HULL_COLLISION_1_H
-#define CAPSULE_HULL_COLLISION_1_H
+#ifndef HULL_EDGE_CONTACT_H
+#define HULL_EDGE_CONTACT_H
 
-class CapsuleAndHullCollision1 : public Collide
+class HullEdgeContact : public Collide
 {
 public:
-	CapsuleAndHullCollision1()
+	HullEdgeContact()
 	{
-		m_xfA.position.Set(0.0f, 0.0f, 0.0f);
-		m_xfA.rotation = b3QuatMat33(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.55f * B3_PI));
-		
-		m_sA.m_centers[0].Set(1.0f, -1.0f, 0.0f);
-		m_sA.m_centers[1].Set(0.0f, 1.0f, 0.0f);
-		m_sA.m_radius = 2.0f;
-
-		m_xfB.position.Set(0.f, 0.0f, 0.0f);
-		m_xfB.rotation = b3QuatMat33(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.0f * B3_PI));
-
 		b3Transform xf;
-		xf.SetIdentity();
-		xf.rotation = b3Diagonal(4.0f, 1.0f, 4.0f);
-
+		xf.position.SetZero();
+		xf.rotation = b3Diagonal(1.0f, 2.0f, 1.0f);
 		m_box.SetTransform(xf);
 
+		m_sA.m_hull = &m_box;
 		m_sB.m_hull = &m_box;
+		
+		m_xfA.position.Set(1.500000, 1.000000, 0.000000);
+		m_xfA.rotation.x.Set(0.707107, 0.000000, -0.707107);
+		m_xfA.rotation.y.Set(0.000000, 1.000000, 0.000000);
+		m_xfA.rotation.z.Set(0.707107, 0.000000, 0.707107);
 
+		m_xfB.position.Set(-1.300000, 0.000000, 0.000000);
+		m_xfB.rotation.x.Set(0.809017, 0.266849, -0.523721);
+		m_xfB.rotation.y.Set(0.000000, 0.891007, 0.453991);
+		m_xfB.rotation.z.Set(0.587785, -0.367286, 0.720840);
+
+		m_cache.count = 0;
 		m_shapeA = &m_sA;
 		m_shapeB = &m_sB;
-		m_cache.count = 0;
 	}
-
+	
 	static Test* Create()
 	{
-		return new CapsuleAndHullCollision1();
+		return new HullEdgeContact();
 	}
 
-	b3CapsuleShape m_sA;
-	b3HullShape m_sB;
 	b3BoxHull m_box;
+	b3HullShape m_sA;
+	b3HullShape m_sB;
 };
 
 #endif

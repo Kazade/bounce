@@ -16,13 +16,13 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef CAPSULE_HULL_2_H
-#define CAPSULE_HULL_2_H
+#ifndef DEGENERATE_CAPSULE_H
+#define DEGENERATE_CAPSULE_H
 
-class CapsuleAndHullCollision2 : public Collide
+class DegenerateCapsule : public Collide
 {
 public:
-	CapsuleAndHullCollision2()
+	DegenerateCapsule()
 	{
 		m_xfA.position.Set(0.0f, 0.0f, 0.0f);
 		m_xfA.rotation = b3QuatMat33(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.55f * B3_PI));
@@ -49,7 +49,7 @@ public:
 
 	static Test* Create()
 	{
-		return new CapsuleAndHullCollision2();
+		return new DegenerateCapsule();
 	}
 
 	b3CapsuleShape m_sA;

@@ -22,10 +22,10 @@
 #include <testbed/tests/distance_test.h>
 #include <testbed/tests/collide_test.h>
 #include <testbed/tests/capsule_collision.h>
-#include <testbed/tests/capsule_and_hull_collision_1.h>
-#include <testbed/tests/capsule_and_hull_collision_2.h>
-#include <testbed/tests/hull_collision.h>
-#include <testbed/tests/hull_collision_2.h>
+#include <testbed/tests/deep_capsule.h>
+#include <testbed/tests/degenerate_capsule.h>
+#include <testbed/tests/hull_face_contact.h>
+#include <testbed/tests/hull_edge_contact.h>
 #include <testbed/tests/linear_motion.h>
 #include <testbed/tests/angular_motion.h>
 #include <testbed/tests/gyro_motion.h>
@@ -73,10 +73,10 @@ TestEntry g_tests[] =
 	{ "Cluster Test", &Cluster::Create },
 	{ "Distance Test", &Distance::Create },
 	{ "Capsule Collision", &CapsuleCollision::Create },
-	{ "Capsule and Hull Collision (1)", &CapsuleAndHullCollision1::Create },
-	{ "Capsule and Hull Collision (2)", &CapsuleAndHullCollision2::Create },
-	{ "Hull Collision (1)", &HullAndHull::Create },
-	{ "Hull Collision (2)", &HullAndHull2::Create },
+	{ "Deep Capsule", &DeepCapsule::Create },
+	{ "Degenerate Capsule", &DegenerateCapsule::Create },
+	{ "Hull Face Contact", &HullFaceContact::Create },
+	{ "Hull Edge Contact", &HullEdgeContact::Create },
 	{ "Capsule Spin", &CapsuleSpin::Create },
 	{ "Mesh Contact Test", &MeshContactTest::Create },
 	{ "Linear Motion", &LinearMotion::Create },
