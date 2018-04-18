@@ -86,8 +86,8 @@ solution (solution_name)
 		defines { "U_OPENGL_4" }
 	end
 	
-	filter "language:C++"
-		buildoptions { "-std=c++11" }
+	filter { "language:C++", "toolset:gcc" }
+ 		buildoptions { "-std=c++11" }
 
 	project "bounce"
 		kind "StaticLib"
