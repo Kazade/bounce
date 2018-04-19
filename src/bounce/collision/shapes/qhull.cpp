@@ -19,14 +19,6 @@
 #include <bounce/collision/shapes/qhull.h>
 #include <bounce/quickhull/qh_hull.h>
 
-// Euler's formula
-// V - E + F = 2
-//#define B3_MAX_HULL_VERTICES 87
-//#define B3_MAX_HULL_EDGES (3 * B3_MAX_HULL_VERTICES - 6)
-//#define B3_MAX_HULL_FACES (2 * B3_MAX_HULL_VERTICES - 4)
-
-#define B3_MAX_HULL_FEATURES 256
-
 #define B3_NULL_HULL_FEATURE 0xFF
 
 //
@@ -60,26 +52,6 @@ struct b3PointerMap
 	
 	b3StackArray<b3PointerIndex, N> m_entries;
 };
-
-b3QHull::b3QHull()
-{
-	centroid.SetZero();
-	vertexCount = 0;
-	vertices = NULL;
-	edgeCount = 0;
-	edges = NULL;
-	faceCount = 0;
-	faces = NULL;
-	planes = NULL;
-}
-
-b3QHull::~b3QHull()
-{
-	b3Free(vertices);
-	b3Free(edges);
-	b3Free(faces);
-	b3Free(planes);
-}
 
 //
 static b3Vec3 b3ComputeCentroid(b3QHull* hull)
@@ -151,7 +123,7 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 void b3QHull::Set(const b3Vec3* points, u32 count)
 {
 	// Copy points into local buffer, remove coincident points.
-	b3StackArray<b3Vec3, B3_MAX_HULL_FEATURES> ps;
+	b3StackArray<b3Vec3, B3_MAX_HULL_VERTICES> ps;
 	for (u32 i = 0; i < count; ++i)
 	{
 		b3Vec3 p = points[i];
@@ -209,27 +181,19 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 		face = face->next;
 	}
 
-	if (V > B3_MAX_HULL_FEATURES || E > B3_MAX_HULL_FEATURES || F > B3_MAX_HULL_FEATURES)
+	if (V > B3_MAX_HULL_VERTICES || E > B3_MAX_HULL_EDGES || F > B3_MAX_HULL_FACES)
 	{
 		b3Free(qh_memory);
 		return; 
 	}
 
-	b3Free(vertices);
-	b3Free(edges);
-	b3Free(faces);
-	b3Free(planes);
-
+	// Convert the constructed hull into a run-time hull.
 	vertexCount = 0;
-	vertices = (b3Vec3*)b3Alloc(V * sizeof(b3Vec3));
 	edgeCount = 0;
-	edges = (b3HalfEdge*)b3Alloc(E * sizeof(b3HalfEdge));
 	faceCount = 0;
-	faces = (b3Face*)b3Alloc(F * sizeof(b3Face));
-	planes = (b3Plane*)b3Alloc(F * sizeof(b3Plane));
 
-	b3PointerMap<B3_MAX_HULL_FEATURES> vertexMap;
-	b3PointerMap<B3_MAX_HULL_FEATURES> edgeMap;
+	b3PointerMap<B3_MAX_HULL_VERTICES> vertexMap;
+	b3PointerMap<B3_MAX_HULL_EDGES> edgeMap;
 
 	face = faceList.head;
 	while (face)
