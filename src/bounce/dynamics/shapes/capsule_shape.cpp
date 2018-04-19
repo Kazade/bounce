@@ -44,91 +44,87 @@ void b3CapsuleShape::ComputeMass(b3MassData* massData, float32 density) const
 	b3Vec3 B = m_centers[1];
 
 	b3Vec3 d = B - A;
+	
 	float32 h = b3Length(d);
+	B3_ASSERT(h > B3_LINEAR_SLOP);
 	float32 h2 = h * h;
 
 	float32 r = m_radius;
 	float32 r2 = r * r;
 	float32 r3 = r2 * r;
 
-	// Cylinder inertia about the capsule center of mass
-	b3MassData Ic_Cylinder;
+	//
+	b3Vec3 center = 0.5f * (A + B);
+	float32 mass = 0.0f;
+	b3Mat33 I; I.SetZero();
+	
+	b3Mat33 rotation;
+	rotation.y = (1.0f / h) * d;
+	rotation.x = b3Perp(rotation.y);
+	rotation.z = b3Cross(rotation.y, rotation.x);
+
+	// Cylinder
 	{
-		// Cylinder mass
-		float32 volume = B3_PI * r2 * h;
-		float32 mass = density * volume;
+		// Mass
+		float32 cylinderVolume = B3_PI * r2 * h;
+		float32 cylinderMass = density * cylinderVolume;
 
-		// Cylinder inertia about the center of mass (same as capsule center of mass)
-		float32 x = (1.0f / 12.0f) * mass * (3.0f * r2 + h2);
-		float32 y = 0.5f * mass * r2;
-		float32 z = x;
+		// Inertia about the center of mass
+		float32 Ixx = (1.0f / 12.0f) * cylinderMass * (3.0f * r2 + h2);
+		float32 Iyy = 0.5f * cylinderMass * r2;
+		// Izz = Ixx
+		b3Mat33 cylinderI = b3Diagonal(Ixx, Iyy, Ixx);
 
-		Ic_Cylinder.center = 0.5f * (A + B);
-		Ic_Cylinder.mass = mass;
-		Ic_Cylinder.I = b3Diagonal(x, y, z);
+		// Align the inertia with the body frame
+		cylinderI = b3RotateToFrame(cylinderI, rotation);
+
+		// Shift the inertia to the body origin
+		cylinderI += cylinderMass * b3Steiner(center);
+		
+		// Contribute
+		mass += cylinderMass;
+		I += cylinderI;
 	}
 
-	// Hemisphere inertia about the capsule center of mass
-	b3MassData Ic_Hemisphere;
+	// Hemispheres
 	{
-		// Hemisphere volume and mass
-		float32 volume = (2.0f / 3.0f) * B3_PI * r3;
-		float32 mass = density * volume;
+		// Mass
+		float32 hemiVolume = (2.0f / 3.0f) * B3_PI * r3;
+		float32 hemiMass = density * hemiVolume;
 		
-		// I = Ic + m * d^2
-		// Ic = I - m * d^2
-
 		// Hemisphere inertia about the origin
-		float32 Io = (2.0f / 5.0f) * mass * r2;
+		float32 Io = (2.0f / 5.0f) * hemiMass * r2;
+
+		// Hemisphere center of mass relative to the origin
+		float32 coy = (3.0f / 8.0f) * r;
 		
-		// Hemisphere center of mass relative to origin
-		float32 d1 = (3.0f / 8.0f) * r;
-		
-		// Hemisphere inertia about the hemisphere center of mass
-		float32 Ic = Io - (mass * d1 * d1);
+		// Hemisphere inertia about the hemisphere/capsule center of mass
+		float32 Iyy = Io - hemiMass * coy * coy;
 
 		// Hemisphere center of mass relative to the capsule center of mass
-		float32 d2 = d1 + 0.5f * h;
+		float32 ccy = coy + 0.5f * h;
 		
-		// Hemisphere inertia about the capsule center of mass
-		float32 x = Ic + (mass * d2 * d2);
-		float32 y = Io;
-		float32 z = x;
+		// Hemisphere inertia about the capsule the center of mass
+		float32 Ixx = Io + hemiMass * ccy * ccy;
 
-		Ic_Hemisphere.center.Set(0.0f, d2, 0.0f);
-		Ic_Hemisphere.mass = mass;
-		Ic_Hemisphere.I = b3Diagonal(x, y, z);
+		// Izz = Ixx 
+		b3Mat33 hemiI = b3Diagonal(Ixx, Iyy, Ixx);
+		
+		// Align the inertia with the body frame
+		hemiI = b3RotateToFrame(hemiI, rotation);
+
+		// Shift the inertia to the body origin
+		hemiI += hemiMass * b3Steiner(center);
+
+		// Contribute twice
+		mass += 2.0f * hemiMass;
+		I += 2.0f * hemiI;
 	}
 
-	// Capsule inertia about the capsule center of mass
-	b3MassData Ic_Capsule;
-	{
-		// Capsule center of mass
-		Ic_Capsule.center = 0.5f * (A + B);
-		// Inertia about the capsule center of mass
-		// taking two hemispheres into account
-		Ic_Capsule.mass = Ic_Cylinder.mass + 2.0f * Ic_Hemisphere.mass;
-		Ic_Capsule.I = Ic_Cylinder.I + 2.0f * Ic_Hemisphere.I;
-	}
-	
-	// Capsule inertia about the reference frame of the cylinder
-	// Center of mass doesn't change
-	B3_ASSERT(h > B3_LINEAR_SLOP);
-	b3Mat33 R;
-	R.SetIdentity();
-	if (h > B3_LINEAR_SLOP)
-	{
-		R.y = (1.0f / h) * d;
-		R.x = b3Perp(R.y);
-		R.z = b3Cross(R.y, R.x);
-	}
-	
-	b3Mat33 Ic = b3RotateToFrame(Ic_Capsule.I, R);
-	
-	// Inertia about the center of mass
-	massData->center = Ic_Capsule.center;
-	massData->mass = Ic_Capsule.mass;
-	massData->I = Ic;
+	// Centroid, total mass, inertia at the origin
+	massData->center = center;
+	massData->mass = mass;
+	massData->I = I;
 }
 
 void b3CapsuleShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const 
