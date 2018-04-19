@@ -56,13 +56,23 @@ struct b3PointerMap
 //
 static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 {
+	B3_ASSERT(hull->vertexCount >= 3);
+
+	// volume = int(dV)
+	float32 volume = 0.0f;
+
 	// centroid.x = (1 / volume) * int(x * dV)
 	// centroid.y = (1 / volume) * int(y * dV)
 	// centroid.z = (1 / volume) * int(z * dV)
-	b3Vec3 centroid;
-	centroid.SetZero();
-
-	float32 volume = 0.0f;
+	b3Vec3 centroid; centroid.SetZero();
+	
+	// Put the reference point inside the hull
+	b3Vec3 s; s.SetZero();
+	for (u32 i = 0; i < hull->vertexCount; ++i)
+	{
+		s += hull->vertices[i];
+	}
+	s /= float32(hull->vertexCount);
 
 	const float32 inv6 = 1.0f / 6.0f;
 	const float32 inv12 = 1.0f / 12.0f;
@@ -81,34 +91,30 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 			u32 i2 = edge->origin;
 			u32 i3 = next->origin;
 
-			b3Vec3 e1 = hull->GetVertex(i1);
-			b3Vec3 e2 = hull->GetVertex(i2);
-			b3Vec3 e3 = hull->GetVertex(i3);
+			b3Vec3 p1 = hull->GetVertex(i1) - s;
+			b3Vec3 p2 = hull->GetVertex(i2) - s;
+			b3Vec3 p3 = hull->GetVertex(i3) - s;
 
-			float32 ex1 = e1.x, ey1 = e1.y, ez1 = e1.z;
-			float32 ex2 = e2.x, ey2 = e2.y, ez2 = e2.z;
-			float32 ex3 = e3.x, ey3 = e3.y, ez3 = e3.z;
+			float32 px1 = p1.x, py1 = p1.y, pz1 = p1.z;
+			float32 px2 = p2.x, py2 = p2.y, pz2 = p2.z;
+			float32 px3 = p3.x, py3 = p3.y, pz3 = p3.z;
 
-			// D = cross(e2 - e1, e3 - e1);
-			float32 a1 = ex2 - ex1, a2 = ey2 - ey1, a3 = ez2 - ez1;
-			float32 b1 = ex3 - ex1, b2 = ey3 - ey1, b3 = ez3 - ez1;
-
-			float32 D1 = a2 * b3 - a3 * b2;
-			float32 D2 = a3 * b1 - a1 * b3;
-			float32 D3 = a1 * b2 - a2 * b1;
+			// 
+			b3Vec3 D = b3Cross(p2 - p1, p3 - p1);
+			float32 Dx = D.x, Dy = D.y, Dz = D.z;
 
 			//
-			float32 intx = ex1 + ex2 + ex3;
-			volume += (inv6 * D1) * intx;
+			float32 intx = px1 + px2 + px3;
+			volume += (inv6 * D.x) * intx;
 
 			//
-			float32 intx2 = ex1 * ex1 + ex1 * ex2 + ex1 * ex3 + ex2 * ex2 + ex2 * ex3 + ex3 * ex3;
-			float32 inty2 = ey1 * ey1 + ey1 * ey2 + ey1 * ey3 + ey2 * ey2 + ey2 * ey3 + ey3 * ey3;
-			float32 intz2 = ez1 * ez1 + ez1 * ez2 + ez1 * ez3 + ez2 * ez2 + ez2 * ez3 + ez3 * ez3;
+			float32 intx2 = px1 * px1 + px1 * px2 + px1 * px3 + px2 * px2 + px2 * px3 + px3 * px3;
+			float32 inty2 = py1 * py1 + py1 * py2 + py1 * py3 + py2 * py2 + py2 * py3 + py3 * py3;
+			float32 intz2 = pz1 * pz1 + pz1 * pz2 + pz1 * pz3 + pz2 * pz2 + pz2 * pz3 + pz3 * pz3;
 
-			centroid.x += (0.5f * inv12 * D1) * intx2;
-			centroid.y += (0.5f * inv12 * D2) * inty2;
-			centroid.z += (0.5f * inv12 * D3) * intz2;
+			centroid.x += (0.5f * inv12 * Dx) * intx2;
+			centroid.y += (0.5f * inv12 * Dy) * inty2;
+			centroid.z += (0.5f * inv12 * Dz) * intz2;
 
 			edge = next;
 		} while (hull->GetEdge(edge->next) != begin);
@@ -117,6 +123,7 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 	// Centroid
 	B3_ASSERT(volume > B3_EPSILON);
 	centroid /= volume;
+	centroid += s;
 	return centroid;
 }
 
