@@ -37,7 +37,7 @@ void b3HullShape::Swap(const b3HullShape& other)
 	m_hull = other.m_hull;
 }
 
-void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
+void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 {
 	// Polyhedron mass, center of mass, and inertia.
 	// Let rho be the polyhedron density per unit volume
@@ -112,13 +112,20 @@ void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
 	// Here, it was used the great SymPy.
 	// SymPy was available at http://live.sympy.org/
 
-	b3Vec3 center;
-	center.SetZero();
+	B3_ASSERT(m_hull->vertexCount >= 3);
 
+	// Put the hull relative to a point that is inside the hull 
+	// to help reducing round-off errors.
+	b3Vec3 s; s.SetZero();
+	for (u32 i = 0; i < m_hull->vertexCount; ++i)
+	{
+		s += m_hull->vertices[i];
+	}
+	s /= float32(m_hull->vertexCount);
+
+	b3Vec3 center; center.SetZero();
 	float32 volume = 0.0f;
-
-	b3Mat33 I;
-	I.SetZero();
+	b3Mat33 I; I.SetZero();
 
 	const float32 inv3 = 1.0f / 3.0f;
 	const float32 inv6 = 1.0f / 6.0f;
@@ -140,76 +147,73 @@ void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
 			u32 i2 = edge->origin;
 			u32 i3 = next->origin;
 
-			b3Vec3 e1 = m_hull->GetVertex(i1);
-			b3Vec3 e2 = m_hull->GetVertex(i2);
-			b3Vec3 e3 = m_hull->GetVertex(i3);
+			b3Vec3 p1 = m_hull->GetVertex(i1) - s;
+			b3Vec3 p2 = m_hull->GetVertex(i2) - s;
+			b3Vec3 p3 = m_hull->GetVertex(i3) - s;
 
-			float32 ex1 = e1.x, ey1 = e1.y, ez1 = e1.z;
-			float32 ex2 = e2.x, ey2 = e2.y, ez2 = e2.z;
-			float32 ex3 = e3.x, ey3 = e3.y, ez3 = e3.z;
+			float32 px1 = p1.x, py1 = p1.y, pz1 = p1.z;
+			float32 px2 = p2.x, py2 = p2.y, pz2 = p2.z;
+			float32 px3 = p3.x, py3 = p3.y, pz3 = p3.z;
 
-			float32 a1 = ex2 - ex1, a2 = ey2 - ey1, a3 = ez2 - ez1;
-			float32 b1 = ex3 - ex1, b2 = ey3 - ey1, b3 = ez3 - ez1;
+			// D = cross(e1, e2);
+			b3Vec3 e1 = p2 - p1, e2 = p3 - p1;
+			b3Vec3 D = b3Cross(e1, e2);
+			float32 Dx = D.x, Dy = D.y, Dz = D.z;
 			
-			// D = cross(e2 - e1, e3 - e1);
-			float32 D1 = a2 * b3 - a3 * b2;
-			float32 D2 = a3 * b1 - a1 * b3;
-			float32 D3 = a1 * b2 - a2 * b1;
+			//
+			float32 intx = px1 + px2 + px3;
+			volume += (inv6 * Dx) * intx;
 
 			//
-			float32 intx = ex1 + ex2 + ex3;
-			volume += (inv6 * D1) * intx;
+			float32 intx2 = px1 * px1 + px1 * px2 + px1 * px3 + px2 * px2 + px2 * px3 + px3 * px3;
+			float32 inty2 = py1 * py1 + py1 * py2 + py1 * py3 + py2 * py2 + py2 * py3 + py3 * py3;
+			float32 intz2 = pz1 * pz1 + pz1 * pz2 + pz1 * pz3 + pz2 * pz2 + pz2 * pz3 + pz3 * pz3;
 
-			//
-			float32 intx2 = ex1 * ex1 + ex1 * ex2 + ex1 * ex3 + ex2 * ex2 + ex2 * ex3 + ex3 * ex3;
-			float32 inty2 = ey1 * ey1 + ey1 * ey2 + ey1 * ey3 + ey2 * ey2 + ey2 * ey3 + ey3 * ey3;
-			float32 intz2 = ez1 * ez1 + ez1 * ez2 + ez1 * ez3 + ez2 * ez2 + ez2 * ez3 + ez3 * ez3;
-
-			center.x += (0.5f * inv12 * D1) * intx2;
-			center.y += (0.5f * inv12 * D2) * inty2;
-			center.z += (0.5f * inv12 * D3) * intz2;
+			center.x += (0.5f * inv12 * Dx) * intx2;
+			center.y += (0.5f * inv12 * Dy) * inty2;
+			center.z += (0.5f * inv12 * Dz) * intz2;
 
 			//
 			float32 intx3 =
-				ex1 * ex1 * ex1 +
-				ex1 * ex1 * ex2 +
-				ex1 * ex1 * ex3 +
-				ex1 * ex2 * ex2 +
-				ex1 * ex2 * ex3 +
-				ex1 * ex3 * ex3 +
-				ex2 * ex2 * ex2 +
-				ex2 * ex2 * ex3 +
-				ex2 * ex3 * ex3 +
-				ex3 * ex3 * ex3;
+				px1 * px1 * px1 +
+				px1 * px1 * px2 +
+				px1 * px1 * px3 +
+				px1 * px2 * px2 +
+				px1 * px2 * px3 +
+				px1 * px3 * px3 +
+				px2 * px2 * px2 +
+				px2 * px2 * px3 +
+				px2 * px3 * px3 +
+				px3 * px3 * px3;
 
 			float32 inty3 =
-				ey1 * ey1 * ey1 +
-				ey1 * ey1 * ey2 +
-				ey1 * ey1 * ey3 +
-				ey1 * ey2 * ey2 +
-				ey1 * ey2 * ey3 +
-				ey1 * ey3 * ey3 +
-				ey2 * ey2 * ey2 +
-				ey2 * ey2 * ey3 +
-				ey2 * ey3 * ey3 +
-				ey3 * ey3 * ey3;
+				py1 * py1 * py1 +
+				py1 * py1 * py2 +
+				py1 * py1 * py3 +
+				py1 * py2 * py2 +
+				py1 * py2 * py3 +
+				py1 * py3 * py3 +
+				py2 * py2 * py2 +
+				py2 * py2 * py3 +
+				py2 * py3 * py3 +
+				py3 * py3 * py3;
 			
 			float32 intz3 =
-				ez1 * ez1 * ez1 +
-				ez1 * ez1 * ez2 +
-				ez1 * ez1 * ez3 +
-				ez1 * ez2 * ez2 +
-				ez1 * ez2 * ez3 +
-				ez1 * ez3 * ez3 +
-				ez2 * ez2 * ez2 +
-				ez2 * ez2 * ez3 +
-				ez2 * ez3 * ez3 +
-				ez3 * ez3 * ez3;
+				pz1 * pz1 * pz1 +
+				pz1 * pz1 * pz2 +
+				pz1 * pz1 * pz3 +
+				pz1 * pz2 * pz2 +
+				pz1 * pz2 * pz3 +
+				pz1 * pz3 * pz3 +
+				pz2 * pz2 * pz2 +
+				pz2 * pz2 * pz3 +
+				pz2 * pz3 * pz3 +
+				pz3 * pz3 * pz3;
 			
 			// Apply constants
-			intx3 *= inv3 * inv20 * D1;
-			inty3 *= inv3 * inv20 * D2;
-			intz3 *= inv3 * inv20 * D3;
+			intx3 *= inv3 * inv20 * Dx;
+			inty3 *= inv3 * inv20 * Dy;
+			intz3 *= inv3 * inv20 * Dz;
 
 			I.x.x += inty3 + intz3;
 			I.y.y += intx3 + intz3;	
@@ -217,69 +221,69 @@ void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
 
 			// 
 			float32 intx2y = 
-				3.0f * ex1 * ex1 * ey1 + 
-				ex1 * ex1 * ey2 +
-				ex1 * ex1 * ey3 + 
-				2.0f * ex1 * ex2 * ey1 +
-				2.0f * ex1 * ex2 * ey2 + 
-				ex1 * ex2 * ey3 + 
-				2.0f * ex1 * ex3 * ey1 +
-				ex1 * ex3 * ey2 + 
-				2.0f * ex1 * ex3 * ey3 + 
-				ex2 * ex2 * ey1 + 
-				3.0f * ex2 * ex2 * ey2 + 
-				ex2 * ex2 * ey3 + 
-				ex2 * ex3 * ey1 + 
-				2.0f * ex2 * ex3 * ey2 + 
-				2.0f * ex2 * ex3 * ey3 + 
-				ex3 * ex3 * ey1 + 
-				ex3 * ex3 * ey2 + 
-				3.0f * ex3 * ex3 * ey3;
+				3.0f * px1 * px1 * py1 + 
+				px1 * px1 * py2 +
+				px1 * px1 * py3 + 
+				2.0f * px1 * px2 * py1 +
+				2.0f * px1 * px2 * py2 + 
+				px1 * px2 * py3 + 
+				2.0f * px1 * px3 * py1 +
+				px1 * px3 * py2 + 
+				2.0f * px1 * px3 * py3 + 
+				px2 * px2 * py1 + 
+				3.0f * px2 * px2 * py2 + 
+				px2 * px2 * py3 + 
+				px2 * px3 * py1 + 
+				2.0f * px2 * px3 * py2 + 
+				2.0f * px2 * px3 * py3 + 
+				px3 * px3 * py1 + 
+				px3 * px3 * py2 + 
+				3.0f * px3 * px3 * py3;
 
 			float32 inty2z =
-				3.0f * ey1 * ey1 * ez1 +
-				ey1 * ey1 * ez2 +
-				ey1 * ey1 * ez3 +
-				2.0f * ey1 * ey2 * ez1 +
-				2.0f * ey1 * ey2 * ez2 +
-				ey1 * ey2 * ez3 +
-				2.0f * ey1 * ey3 * ez1 +
-				ey1 * ey3 * ez2 +
-				2.0f * ey1 * ey3 * ez3 +
-				ey2 * ey2 * ez1 +
-				3.0f * ey2 * ey2 * ez2 +
-				ey2 * ey2 * ez3 +
-				ey2 * ey3 * ez1 +
-				2.0f * ey2 * ey3 * ez2 +
-				2.0f * ey2 * ey3 * ez3 +
-				ey3 * ey3 * ez1 +
-				ey3 * ey3 * ez2 +
-				3.0f * ey3 * ey3 * ez3;
+				3.0f * py1 * py1 * pz1 +
+				py1 * py1 * pz2 +
+				py1 * py1 * pz3 +
+				2.0f * py1 * py2 * pz1 +
+				2.0f * py1 * py2 * pz2 +
+				py1 * py2 * pz3 +
+				2.0f * py1 * py3 * pz1 +
+				py1 * py3 * pz2 +
+				2.0f * py1 * py3 * pz3 +
+				py2 * py2 * pz1 +
+				3.0f * py2 * py2 * pz2 +
+				py2 * py2 * pz3 +
+				py2 * py3 * pz1 +
+				2.0f * py2 * py3 * pz2 +
+				2.0f * py2 * py3 * pz3 +
+				py3 * py3 * pz1 +
+				py3 * py3 * pz2 +
+				3.0f * py3 * py3 * pz3;
 
 			float32 intz2x = 
-				3.0f * ez1 * ez1 * ex1 +
-				ez1 * ez1 * ex2 +
-				ez1 * ez1 * ex3 +
-				2.0f * ez1 * ez2 * ex1 +
-				2.0f * ez1 * ez2 * ex2 +
-				ez1 * ez2 * ex3 +
-				2.0f * ez1 * ez3 * ex1 +
-				ez1 * ez3 * ex2 +
-				2.0f * ez1 * ez3 * ex3 +
-				ez2 * ez2 * ex1 +
-				3.0f * ez2 * ez2 * ex2 +
-				ez2 * ez2 * ex3 +
-				ez2 * ez3 * ex1 +
-				2.0f * ez2 * ez3 * ex2 +
-				2.0f * ez2 * ez3 * ex3 +
-				ez3 * ez3 * ex1 +
-				ez3 * ez3 * ex2 +
-				3.0f * ez3 * ez3 * ex3;
+				3.0f * pz1 * pz1 * px1 +
+				pz1 * pz1 * px2 +
+				pz1 * pz1 * px3 +
+				2.0f * pz1 * pz2 * px1 +
+				2.0f * pz1 * pz2 * px2 +
+				pz1 * pz2 * px3 +
+				2.0f * pz1 * pz3 * px1 +
+				pz1 * pz3 * px2 +
+				2.0f * pz1 * pz3 * px3 +
+				pz2 * pz2 * px1 +
+				3.0f * pz2 * pz2 * px2 +
+				pz2 * pz2 * px3 +
+				pz2 * pz3 * px1 +
+				2.0f * pz2 * pz3 * px2 +
+				2.0f * pz2 * pz3 * px3 +
+				pz3 * pz3 * px1 +
+				pz3 * pz3 * px2 +
+				3.0f * pz3 * pz3 * px3;
 
 			// Apply constants
-			intx2y *= 0.5f * inv60 * D1;
-			inty2z *= 0.5f * inv60 * D2;
-			intz2x *= 0.5f * inv60 * D3;
+			intx2y *= 0.5f * inv60 * Dx;
+			inty2z *= 0.5f * inv60 * Dy;
+			intz2x *= 0.5f * inv60 * Dz;
 
 			I.x.y += intx2y;
 			I.y.z += inty2z;
@@ -298,15 +302,23 @@ void b3HullShape::ComputeMass(b3MassData* data, float32 density) const
 	I.y.x = I.x.y;
 	I.z.y = I.y.z;
 	I.x.z = I.x.z;
+
+	// Total mass
+	massData->mass = density * volume;
 	
 	// Center of mass
 	B3_ASSERT(volume > B3_EPSILON);
 	center /= volume;
+	massData->center = center + s;
 
-	// Apply density
-	data->center = center;
-	data->mass = density * volume;
-	data->I = density * I;
+	// Inertia relative to the local origin (s).
+	massData->I = density * I;
+	
+	// Shift the inertia to center of mass then to the body origin.
+	// Ib = Ic - m * c^2 + m * m.c^2
+	// Simplification:
+	// Ib = Ic + m * (m.c^2 - c^2)
+	massData->I += massData->mass * (b3Steiner(massData->center) - b3Steiner(center));
 }
 
 void b3HullShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const
