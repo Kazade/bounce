@@ -205,24 +205,17 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 	face = faceList.head;
 	while (face)
 	{
-		B3_ASSERT(faceCount < F);
-		u8 iface = faceCount;
-		b3Face* f = faces + faceCount;
-		b3Plane* plane = planes + faceCount;
-		++faceCount;
-
-		*plane = face->plane;
-
+		// Collected face half-edges
 		b3StackArray<u8, 32> faceEdges;
 
 		qhHalfEdge* edge = face->edge;
 		do
 		{
 			qhHalfEdge* twin = edge->twin;
+			
 			qhVertex* v1 = edge->tail;
 			qhVertex* v2 = twin->tail;
 
-			b3PointerIndex* mte = edgeMap.Find(edge);
 			b3PointerIndex* mv1 = vertexMap.Find(v1);
 			b3PointerIndex* mv2 = vertexMap.Find(v2);
 
@@ -253,13 +246,15 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 				vertexMap.Add({ v2, iv2 });
 				++vertexCount;
 			}
-
+			
+			b3PointerIndex* mte = edgeMap.Find(edge);
+			
 			if (mte)
 			{
 				u8 ie2 = mte->value;
 				b3HalfEdge* e2 = edges + ie2;
 				B3_ASSERT(e2->face == B3_NULL_HULL_FEATURE);
-				e2->face = iface;
+				e2->face = u8(faceCount);
 				faceEdges.PushBack(ie2);
 			}
 			else
@@ -274,7 +269,7 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 				b3HalfEdge* e2 = edges + edgeCount;
 				++edgeCount;
 
-				e1->face = iface;
+				e1->face = u8(faceCount);
 				e1->origin = iv1;
 				e1->twin = ie2;
 
@@ -291,12 +286,20 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 			edge = edge->next;
 		} while (edge != face->edge);
 
+		B3_ASSERT(faceEdges.Count() > 0);
+		
+		b3Face* f = faces + faceCount;
 		f->edge = faceEdges[0];
 		for (u32 i = 0; i < faceEdges.Count(); ++i)
 		{
 			u32 j = i < faceEdges.Count() - 1 ? i + 1 : 0;
 			edges[faceEdges[i]].next = faceEdges[j];
 		}
+
+		planes[faceCount] = face->plane;
+		
+		B3_ASSERT(faceCount < F);
+		++faceCount;
 
 		face = face->next;
 	}
