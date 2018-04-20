@@ -38,13 +38,17 @@ struct b3QHull : public b3Hull
 	b3Face hullFaces[B3_MAX_HULL_FACES];
 	b3Plane hullPlanes[B3_MAX_HULL_FACES];
 
-	//
 	b3QHull()
 	{
+		// Zero the counters since the user manipulates via setters
 		vertices = hullVertices;
+		vertexCount = 0;
 		edges = hullEdges;
+		edgeCount = 0;
 		faces = hullFaces;
+		faceCount = 0;
 		planes = hullPlanes;
+		centroid.SetZero();
 	}
 
 	// Create a convex hull from an array of points.
