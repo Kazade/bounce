@@ -20,7 +20,7 @@
 #include <bounce/common/template/stack.h>
 #include <bounce/common/draw.h>
 
-static float32 qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Array<b3Vec3>& vertices)
+static float32 qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Vec3* vertices, u32 count)
 {
 	b3Vec3 min(B3_MAX_FLOAT, B3_MAX_FLOAT, B3_MAX_FLOAT);
 	iMin[0] = 0;
@@ -32,21 +32,21 @@ static float32 qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Array<b3Vec3>& verti
 	iMax[1] = 0;
 	iMax[2] = 0;
 
-	for (u32 i = 0; i < vertices.Count(); ++i)
+	for (u32 i = 0; i < count; ++i)
 	{
-		b3Vec3 p = vertices[i];
+		b3Vec3 v = vertices[i];
 
 		for (u32 j = 0; j < 3; ++j)
 		{
-			if (p[j] < min[j])
+			if (v[j] < min[j])
 			{
-				min[j] = p[j];
+				min[j] = v[j];
 				iMin[j] = i;
 			}
 
-			if (p[j] > max[j])
+			if (v[j] > max[j])
 			{
-				max[j] = p[j];
+				max[j] = v[j];
 				iMax[j] = i;
 			}
 		}
@@ -63,11 +63,11 @@ qhHull::~qhHull()
 {
 }
 
-void qhHull::Construct(void* memory, const b3Array<b3Vec3>& vs)
+void qhHull::Construct(void* memory, const b3Vec3* vs, u32 count)
 {
 	// Euler's formula
 	// V - E + F = 2
-	u32 V = vs.Count();
+	u32 V = count;
 	u32 E = 3 * V - 6;
 	u32 HE = 2 * E;
 	u32 F = 2 * V - 4;
@@ -103,7 +103,7 @@ void qhHull::Construct(void* memory, const b3Array<b3Vec3>& vs)
 	m_faceList.count = 0;
 	m_iteration = 0;
 
-	if (!BuildInitialHull(vs))
+	if (!BuildInitialHull(vs, count))
 	{
 		return;
 	}
@@ -119,9 +119,9 @@ void qhHull::Construct(void* memory, const b3Array<b3Vec3>& vs)
 	}
 }
 
-bool qhHull::BuildInitialHull(const b3Array<b3Vec3>& vertices)
+bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 {
-	if (vertices.Count() < 4)
+	if (vertexCount < 4)
 	{
 		B3_ASSERT(false);
 		return false;
@@ -134,7 +134,7 @@ bool qhHull::BuildInitialHull(const b3Array<b3Vec3>& vertices)
 		// canonical axes.
 		// Store tolerance for coplanarity checks.
 		u32 aabbMin[3], aabbMax[3];
-		m_tolerance = qhFindAABB(aabbMin, aabbMax, vertices);
+		m_tolerance = qhFindAABB(aabbMin, aabbMax, vertices, vertexCount);
 
 		// Find the longest segment.
 		float32 d0 = 0.0f;
@@ -173,7 +173,7 @@ bool qhHull::BuildInitialHull(const b3Array<b3Vec3>& vertices)
 		// Find the triangle which has the largest area.
 		float32 a0 = 0.0f;
 
-		for (u32 i = 0; i < vertices.Count(); ++i)
+		for (u32 i = 0; i < vertexCount; ++i)
 		{
 			if (i == i1 || i == i2)
 			{
@@ -214,7 +214,7 @@ bool qhHull::BuildInitialHull(const b3Array<b3Vec3>& vertices)
 		// Find the furthest point from the triangle plane.
 		float32 d0 = 0.0f;
 
-		for (u32 i = 0; i < vertices.Count(); ++i)
+		for (u32 i = 0; i < vertexCount; ++i)
 		{
 			if (i == i1 || i == i2 || i == i3)
 			{
@@ -280,7 +280,7 @@ bool qhHull::BuildInitialHull(const b3Array<b3Vec3>& vertices)
 
 	// Add remaining points to the hull.
 	// Assign closest face plane to each of them.
-	for (u32 i = 0; i < vertices.Count(); ++i)
+	for (u32 i = 0; i < vertexCount; ++i)
 	{
 		if (i == i1 || i == i2 || i == i3 || i == i4)
 		{

@@ -58,8 +58,8 @@ struct qhFace
 	b3Vec3 center;
 	b3Plane plane;
 
-	u32 VertexCount() const;
-	u32 EdgeCount() const; 
+	u32 GetVertexCount() const;
+	u32 GetEdgeCount() const;
 	qhHalfEdge* FindTwin(const qhVertex* tail, const qhVertex* head) const;
 	void ComputeCenterAndPlane();
 };
@@ -89,12 +89,8 @@ struct qhVertex
 	qhFace* conflictFace;
 };
 
-// Given a number of points return the required memory size in bytes for constructing the 
-// convex hull of those points. Use this function before allocating the memory buffer passed 
-// as argument to Construct.
-u32 qhGetMemorySize(u32 V);
-
-// A convex hull builder. Given a list of points constructs its convex hull. 
+// A convex hull builder. 
+// Given a list of points constructs its convex hull. 
 // The output convex hull might contain polygonal faces and not only triangles. 
 // Coplanar face merging is necessary for stable physics simulation.
 class qhHull
@@ -102,17 +98,22 @@ class qhHull
 public:
 	qhHull();
 	~qhHull();
-
-	// Entry point of qhHull.
-	// Construct this hull given a memory buffer and a list of points.
-	// Use qhGetMemorySize to see how many free bytes should be available in the buffer.
-	void Construct(void* memory, const b3Array<b3Vec3>& vertices);
-
-	// Get the list of faces in this hull.
-	const qhList<qhFace>& GetFaceList() const;
+	
+	// Construct this hull given a memory buffer and an array of points.
+	// Use qhGetBufferCapacity to get the buffer capacity from the point array size.
+	void Construct(void* buffer, const b3Vec3* vertices, u32 vertexCount);
 
 	// Get the number of iterations this algorithm ran.
 	u32 GetIterations() const;
+
+	// Get the list of faces in this convex hull.
+	const qhList<qhFace>& GetFaceList() const;
+
+	// Get the number of unique edges in this convex hull.
+	// u32 GetEdgeCount() const;
+
+	// Get the number of unique vertices in this convex hull.
+	// u32 GetVertexCount() const;
 
 	// Validate this hull.
 	void Validate() const;
@@ -122,7 +123,7 @@ public:
 	// Draw this hull.
 	void Draw() const;
 private:
-	bool BuildInitialHull(const b3Array<b3Vec3>& vertices);
+	bool BuildInitialHull(const b3Vec3* vertices, u32 count);
 
 	qhVertex* NextVertex();
 	
@@ -146,13 +147,13 @@ private:
 
 	// Coplanarity tolerance
 	float32 m_tolerance;
-	
+
+	// Number of Quickhull iterations
+	u32 m_iteration;
+
 	// List of faces
 	qhList<qhFace> m_faceList; 
 	
-	// Number of Quickhull iterations
-	u32 m_iteration; 
-
 	// Memory
 	qhVertex* AllocateVertex();
 	void FreeVertex(qhVertex* p);

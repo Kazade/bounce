@@ -1,5 +1,7 @@
 // qhHull.h
 
+// Lists
+
 template<class T>
 inline void qhList<T>::PushFront(T* link)
 {
@@ -38,7 +40,9 @@ inline T* qhList<T>::Remove(T* link)
 	return next;
 }
 
-inline u32 qhFace::VertexCount() const
+// qhFace
+
+inline u32 qhFace::GetVertexCount() const
 {
 	u32 count = 0;
 	qhHalfEdge* e = edge;
@@ -50,7 +54,7 @@ inline u32 qhFace::VertexCount() const
 	return count;
 }
 
-inline u32 qhFace::EdgeCount() const
+inline u32 qhFace::GetEdgeCount() const
 {
 	u32 count = 0;
 	qhHalfEdge* e = edge;
@@ -81,7 +85,7 @@ inline qhHalfEdge* qhFace::FindTwin(const qhVertex* tail, const qhVertex* head) 
 	return NULL;
 }
 
-inline b3Vec3 b3Newell(const b3Vec3& a, const b3Vec3& b)
+static inline b3Vec3 b3Newell(const b3Vec3& a, const b3Vec3& b)
 {
 	return b3Vec3((a.y - b.y) * (a.z + b.z), (a.z - b.z) * (a.x + b.x), (a.x - b.x) * (a.y + b.y));
 }
@@ -116,29 +120,21 @@ inline void qhFace::ComputeCenterAndPlane()
 	center = c;
 }
 
-inline qhHalfEdge* qhHull::FindTwin(const qhVertex* tail, const qhVertex* head) const
-{
-	qhFace* face = m_faceList.head;
-	while (face)
-	{
-		qhHalfEdge* e = face->FindTwin(tail, head);
-		if (e)
-		{
-			return e;
-		}
-		face = face->next;
-	}
-	return NULL;
-}
+// qhHull
 
-inline u32 qhGetMemorySize(u32 V)
+// Given a number of points return the required memory size in 
+// bytes for constructing the convex hull of those points. 
+// This function uses constant expression (C++11). Therefore, you can evaluate 
+// its value at compile-time. That is particularly usefull when you want to 
+// create a stack buffer from a constant number of vertices. 
+// Due to the constexpr specifier, this function is automatically inlined.
+constexpr u32 qhGetBufferCapacity(u32 pointCount)
 {
+	u32 V = pointCount;
 	u32 E = 3 * V - 6;
 	u32 HE = 2 * E;
 	u32 F = 2 * V - 4;
 
-	// V - E + F = 2
-	
 	HE *= 2;
 	F *= 2;
 
@@ -149,14 +145,14 @@ inline u32 qhGetMemorySize(u32 V)
 	return size;
 }
 
-inline const qhList<qhFace>& qhHull::GetFaceList() const
-{
-	return m_faceList;
-}
-
 inline u32 qhHull::GetIterations() const
 {
 	return m_iteration;
+}
+
+inline const qhList<qhFace>& qhHull::GetFaceList() const
+{
+	return m_faceList;
 }
 
 inline qhVertex* qhHull::AllocateVertex()
@@ -197,4 +193,19 @@ inline void qhHull::FreeFace(qhFace* f)
 	f->state = qhFace::e_deleted;
 	f->freeNext = m_freeFaces;
 	m_freeFaces = f;
+}
+
+inline qhHalfEdge* qhHull::FindTwin(const qhVertex* tail, const qhVertex* head) const
+{
+	qhFace* face = m_faceList.head;
+	while (face)
+	{
+		qhHalfEdge* e = face->FindTwin(tail, head);
+		if (e)
+		{
+			return e;
+		}
+		face = face->next;
+	}
+	return NULL;
 }
