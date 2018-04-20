@@ -21,15 +21,6 @@
 
 #include <bounce/collision/shapes/hull.h>
 
-// The maximum number of vertices that a hull can have.
-#define B3_MAX_HULL_VERTICES (256)
-
-// The maximum number of half-edges a hull can have.
-#define B3_MAX_HULL_EDGES (256)
-
-// The maximum number of faces and planes a hull can have.
-#define B3_MAX_HULL_FACES (256)
-
 // This hull can be constructed from an array of points.
 struct b3QHull : public b3Hull
 {
@@ -52,8 +43,9 @@ struct b3QHull : public b3Hull
 	}
 
 	// Create a convex hull from an array of points.
-	// If the points define a degenerate polyhedron the hull is not overwritten.
+	// The counter must be in the range [0, B3_MAX_HULL_VERTICES].
 	// Coincident points are removed.
+	// Some coplanar faces are merged.
 	void Set(const b3Vec3* points, u32 count);
 
 	// Set this hull as a cylinder located at the origin.

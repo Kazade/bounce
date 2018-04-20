@@ -21,6 +21,15 @@
 
 #include <bounce/common/geometry.h>
 
+// The maximum number of vertices that a hull can have.
+#define B3_MAX_HULL_VERTICES (B3_MAX_U8 + 1)
+
+// The maximum number of half-edges a hull can have.
+#define B3_MAX_HULL_EDGES (B3_MAX_U8 + 1)
+
+// The maximum number of faces and planes a hull can have.
+#define B3_MAX_HULL_FACES (B3_MAX_U8 + 1)
+
 struct b3Face
 {
 	u8 edge;
