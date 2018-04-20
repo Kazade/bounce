@@ -201,7 +201,7 @@ void b3ReducePolygon(b3ClusterPolygon& pOut,
 
 b3ClusterSolver::b3ClusterSolver()
 {
-
+	m_iterations = 0;
 }
 
 b3ClusterSolver::~b3ClusterSolver()
@@ -443,6 +443,8 @@ void b3ClusterSolver::Solve()
 		++iter;
 	}
 
+	m_iterations = iter;
+	
 	// Remove empty clusters
 	b3StackArray<b3Cluster, 32> usedClusters;
 

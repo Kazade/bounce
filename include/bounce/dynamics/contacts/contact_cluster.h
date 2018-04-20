@@ -70,6 +70,9 @@ public:
 	void AddObservation(const b3Observation& observation);
 
 	//
+	u32 GetIterations() const;
+
+	//
 	const b3Array<b3Observation>& GetObservations() const;
 
 	//
@@ -92,6 +95,8 @@ private:
 	//
 	u32 BestCluster(const b3Vec3& point) const;
 
+	u32 m_iterations;
+
 	b3StackArray<b3Observation, 32> m_observations;
 	b3StackArray<b3Cluster, 32> m_clusters;
 };
@@ -99,6 +104,11 @@ private:
 inline void b3ClusterSolver::AddObservation(const b3Observation& observation)
 {
 	m_observations.PushBack(observation);
+}
+
+inline u32 b3ClusterSolver::GetIterations() const
+{
+	return m_iterations;
 }
 
 inline const b3Array<b3Observation>& b3ClusterSolver::GetObservations() const
