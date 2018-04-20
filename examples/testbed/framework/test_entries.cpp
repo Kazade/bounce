@@ -17,8 +17,8 @@
 */
 
 #include <testbed/framework/test.h>
-#include <testbed/tests/quickhull_test.h>
-#include <testbed/tests/cluster_test.h>
+#include <testbed/tests/convex_hull.h>
+#include <testbed/tests/cluster.h>
 #include <testbed/tests/distance_test.h>
 #include <testbed/tests/collide_test.h>
 #include <testbed/tests/capsule_collision.h>
@@ -69,9 +69,9 @@
 
 TestEntry g_tests[] =
 {
-	{ "Quickhull Test", &QuickhullTest::Create },
-	{ "Cluster Test", &Cluster::Create },
-	{ "Distance Test", &Distance::Create },
+	{ "Convex Hull", &ConvexHull::Create },
+	{ "Cluster", &Cluster::Create },
+	{ "Distance", &Distance::Create },
 	{ "Capsule Collision", &CapsuleCollision::Create },
 	{ "Deep Capsule", &DeepCapsule::Create },
 	{ "Degenerate Capsule", &DegenerateCapsule::Create },

@@ -16,65 +16,97 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef QHULL_H
-#define QHULL_H
+#ifndef CONVEX_HULL_H
+#define CONVEX_HULL_H
 
-#include <bounce/quickhull/qh_hull.h>
-
-class QuickhullTest : public Test
+class ConvexHull : public Test
 {
 public:
-	QuickhullTest()
+	enum
+	{
+		// Half to avoid generation failure due to many vertices
+		e_count = B3_MAX_HULL_VERTICES / 2
+	};
+
+	ConvexHull()
 	{
 		b3BoxHull box;
 		box.SetIdentity();
 
-		b3StackArray<b3Vec3, 256> tetra;
+		b3Vec3 tetra[4];
 		b3Vec3 v1(-1.0f, 0.0f, 0.0f);
 		b3Vec3 v2(1.0f, 0.0f, 0.0f);
 		b3Vec3 v3(0.0f, 0.0f, -1.0f);
 		b3Vec3 v4 = 0.5f * (v1 + v2 + v3);
 		v4.y += 2.0f;
 
-		tetra.PushBack(v1);
-		tetra.PushBack(v2);
-		tetra.PushBack(v3);
-		tetra.PushBack(v4);
+		tetra[0] = v1;
+		tetra[1] = v2;
+		tetra[2] = v3;
+		tetra[3] = v4;
 
 		// Minkowski sum of box and tetrahedron
-		b3StackArray<b3Vec3, 256> points;
+		m_count = 0;
 		for (u32 i = 0; i < box.vertexCount; ++i)
 		{
-			for (u32 j = 0; j < tetra.Count(); ++j)
+			for (u32 j = 0; j < 4; ++j)
 			{
 				b3Vec3 p = box.vertices[i] - tetra[j];
-				points.PushBack(p);
+				
+				m_points[m_count++] = p;
 			}
 		}
-
-		u32 size = qhGetMemorySize(points.Count());
-		m_memory = b3Alloc(size);
-		m_qhull.Construct(m_memory, points);
 	}
 
-	~QuickhullTest()
+	~ConvexHull()
 	{
-		b3Free(m_memory);
+
+	}
+
+	void KeyDown(int button)
+	{
+		if (button == GLFW_KEY_G)
+		{
+			Generate();
+		}
+	}
+
+	void Generate()
+	{
+		m_count = 0;
+		for (u32 i = 0; i < e_count; ++i)
+		{
+			// Clamp to force coplanarities.
+			// This will stress the generation code.
+			float32 x = 3.0f * RandomFloat(-1.0f, 1.0f);
+			float32 y = 3.0f * RandomFloat(-1.0f, 1.0f);
+			float32 z = 3.0f * RandomFloat(-1.0f, 1.0f);
+
+			b3Vec3 p(x, y, z);
+			m_points[m_count++] = p;
+		}
 	}
 
 	void Step()
 	{
-		g_draw->DrawString(b3Color_white, "Iterations = %d", m_qhull.GetIterations());
-		m_qhull.Draw();
+		b3QHull hull;
+		hull.Set(m_points, m_count);
+
+		b3HullShape shape;
+		shape.m_hull = &hull;
+
+		g_draw->DrawSolidShape(&shape, b3Color_white, b3Transform_identity);
+		
+		g_draw->DrawString(b3Color_white, "G - Generate a random convex hull");
 	}
 
 	static Test* Create()
 	{
-		return new QuickhullTest();
+		return new ConvexHull();
 	}
 
-	void* m_memory;
-	qhHull m_qhull;
+	u32 m_count;
+	b3Vec3 m_points[e_count];
 };
 
 #endif
