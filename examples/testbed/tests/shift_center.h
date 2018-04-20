@@ -19,8 +19,6 @@
 #ifndef SHIFT_CENTER_H
 #define SHIFT_CENTER_H
 
-#include <testbed/tests/quickhull_test.h>
-
 class ShiftCenter : public Test
 {
 public:

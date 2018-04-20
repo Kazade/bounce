@@ -19,8 +19,6 @@
 #ifndef TUMBLER_TEST_H
 #define TUMBLER_TEST_H
 
-#include <testbed/tests/quickhull_test.h>
-
 class Tumbler : public Test
 {
 public:

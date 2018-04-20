@@ -19,8 +19,6 @@
 #ifndef GYRO_MOTION_H
 #define GYRO_MOTION_H
 
-#include <testbed/tests/quickhull_test.h>
-
 class GyroMotion : public Test
 {
 public:
