@@ -109,16 +109,10 @@ public:
 	void Construct(void* memory, const b3Array<b3Vec3>& vertices);
 
 	// Get the list of faces in this hull.
-	const qhList<qhFace>& GetFaceList() const
-	{
-		return m_faceList;
-	}
-	
+	const qhList<qhFace>& GetFaceList() const;
+
 	// Get the number of iterations this algorithm ran.
-	u32 GetIterations() const
-	{
-		return m_iteration;
-	}
+	u32 GetIterations() const;
 
 	// Validate this hull.
 	void Validate() const;
@@ -154,7 +148,7 @@ private:
 	float32 m_tolerance;
 	
 	// List of faces
-	qhList<qhFace> m_faceList; // list of faces
+	qhList<qhFace> m_faceList; 
 	
 	// Number of Quickhull iterations
 	u32 m_iteration; 
@@ -172,7 +166,6 @@ private:
 	qhVertex* m_freeVertices;
 	qhHalfEdge* m_freeEdges;
 	qhFace* m_freeFaces;
-
 };
 
 #include <bounce/quickhull/qh_hull.inl>

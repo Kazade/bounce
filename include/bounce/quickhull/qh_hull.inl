@@ -149,6 +149,16 @@ inline u32 qhGetMemorySize(u32 V)
 	return size;
 }
 
+inline const qhList<qhFace>& qhHull::GetFaceList() const
+{
+	return m_faceList;
+}
+
+inline u32 qhHull::GetIterations() const
+{
+	return m_iteration;
+}
+
 inline qhVertex* qhHull::AllocateVertex()
 {
 	qhVertex* v = m_freeVertices;
