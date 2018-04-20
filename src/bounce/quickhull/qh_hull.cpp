@@ -108,6 +108,8 @@ void qhHull::Construct(void* memory, const b3Array<b3Vec3>& vs)
 		return;
 	}
 
+	Validate();
+
 	qhVertex* eye = NextVertex();
 	while (eye)
 	{
@@ -274,12 +276,7 @@ bool qhHull::BuildInitialHull(const b3Array<b3Vec3>& vertices)
 	}
 
 	// Connectivity check.
-	bool ok = IsConsistent();
-	B3_ASSERT(ok);
-	if (!ok)
-	{
-		return false;
-	}
+	Validate();
 
 	// Add remaining points to the hull.
 	// Assign closest face plane to each of them.
@@ -714,28 +711,45 @@ void qhHull::MergeFaces(b3Array<qhFace*>& newFaces)
 	}
 }
 
-bool qhHull::IsConsistent() const
+void qhHull::Validate(const qhHalfEdge* edge) const
 {
+	const qhHalfEdge* twin = edge->twin;
+	B3_ASSERT(twin->twin == edge);
+
+	b3Vec3 A = edge->tail->position;
+	b3Vec3 B = twin->tail->position;
+	B3_ASSERT(b3DistanceSquared(A, B) > B3_EPSILON * B3_EPSILON);
+	
 	u32 count = 0;
-
-	qhFace* f = m_faceList.head;
-	while (f)
+	const qhHalfEdge* begin = edge;
+	do
 	{
-		B3_ASSERT(f->state != qhFace::e_deleted);
-		qhHalfEdge* e = f->edge;
-		do
-		{
-			++count;
-			//B3_ASSERT(e->face == f);
-			B3_ASSERT(e->twin->twin == e);
-			B3_ASSERT(count < 10000);
-			e = e->next;
-		} while (e != f->edge);
+		++count;
+		const qhHalfEdge* next = edge->next;
+		edge = next->twin;
+	} while (edge != begin);
+}
 
-		f = f->next;
+void qhHull::Validate(const qhFace* face) const
+{
+	const qhHalfEdge* begin = face->edge;
+	const qhHalfEdge* edge = begin;
+	do
+	{
+		B3_ASSERT(edge->face == face);
+		edge = edge->next;
+	} while (edge != begin);
+
+	Validate(face->edge);
+}
+
+void qhHull::Validate() const
+{
+	for (qhFace* face = m_faceList.head; face != NULL; face = face->next)
+	{
+		B3_ASSERT(face->state != face->e_deleted);
+		Validate(face);
 	}
-
-	return true;
 }
 
 void qhHull::Draw() const

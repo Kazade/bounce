@@ -120,9 +120,11 @@ public:
 		return m_iteration;
 	}
 
-	// Return if this hull is valid.
-	bool IsConsistent() const;
-	
+	// Validate this hull.
+	void Validate() const;
+	void Validate(const qhFace* face) const;
+	void Validate(const qhHalfEdge* edge) const;
+
 	// Draw this hull.
 	void Draw() const;
 private:
