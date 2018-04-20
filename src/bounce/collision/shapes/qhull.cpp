@@ -24,25 +24,31 @@
 //
 struct b3PointerIndex
 {
-	void* key;
-	u8 value;
+	void* pointer;
+	u8 index;
 };
 
 // 
 template<u32 N>
-struct b3PointerMap
+struct b3PIMap
 {
-	void Add(const b3PointerIndex& entry)
+	b3PIMap()
 	{
-		m_entries.PushBack(entry);
+		count = 0;
 	}
 
-	b3PointerIndex* Find(void* key)
+	void Add(const b3PointerIndex& pi)
 	{
-		for (u32 i = 0; i < m_entries.Count(); ++i)
+		B3_ASSERT(count < N);
+		pis[count++] = pi;
+	}
+
+	b3PointerIndex* Find(void* pointer)
+	{
+		for (u32 i = 0; i < count; ++i)
 		{
-			b3PointerIndex* index = m_entries.Get(i);
-			if (index->key == key)
+			b3PointerIndex* index = pis + i;
+			if (index->pointer == pointer)
 			{
 				return index;
 			}
@@ -50,7 +56,8 @@ struct b3PointerMap
 		return NULL;
 	}
 	
-	b3StackArray<b3PointerIndex, N> m_entries;
+	u32 count;
+	b3PointerIndex pis[N];
 };
 
 //
@@ -129,15 +136,21 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 
 void b3QHull::Set(const b3Vec3* points, u32 count)
 {
+	B3_ASSERT(count >= 4 && count <= B3_MAX_HULL_VERTICES);
+
+	// Clamp vertices into range [0, B3_MAX_HULL_VERTICES]
+	u32 n = b3Min(count, u32(B3_MAX_HULL_VERTICES));
+
 	// Copy points into local buffer, remove coincident points.
-	b3StackArray<b3Vec3, B3_MAX_HULL_VERTICES> ps;
-	for (u32 i = 0; i < count; ++i)
+	b3Vec3 ps[B3_MAX_HULL_VERTICES];
+	u32 psCount = 0;
+	for (u32 i = 0; i < n; ++i)
 	{
 		b3Vec3 p = points[i];
 
 		bool unique = true;
 
-		for (u32 j = 0; j < ps.Count(); ++j)
+		for (u32 j = 0; j < psCount; ++j)
 		{
 			const float32 kTol = 0.5f * B3_LINEAR_SLOP;
 			if (b3DistanceSquared(p, ps[j]) < kTol * kTol)
@@ -149,60 +162,43 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 
 		if (unique)
 		{
-			ps.PushBack(p);
+			ps[psCount++] = p;
 		}
 	}
 
-	if (ps.Count() < 3)
+	if (psCount < 4)
 	{
 		// Polyhedron is degenerate.
 		return;
 	}
 
 	// Create a convex hull.
-	u32 qh_size = qhGetMemorySize(ps.Count());
-	void* qh_memory = b3Alloc(qh_size);
+	
+	// Allocate memory buffer for the worst case.
+	const u32 qhBufferCapacity = qhGetBufferCapacity(B3_MAX_HULL_VERTICES);
+	u8 qhBuffer[qhBufferCapacity];
 
+	// Build
 	qhHull hull;
-	hull.Construct(qh_memory, ps);
-
-	// Count vertices, edges, and faces in the convex hull.
-	u32 V = 0;
-	u32 E = 0;
-	u32 F = 0;
+	hull.Construct(qhBuffer, ps, psCount);
 
 	const qhList<qhFace>& faceList = hull.GetFaceList();
-
-	qhFace* face = faceList.head;
-	while (face)
+	if (faceList.count > B3_MAX_HULL_FACES)
 	{
-		qhHalfEdge* e = face->edge;
-		do
-		{
-			++E;
-			++V;
-			e = e->next;
-		} while (e != face->edge);
-
-		++F;
-		face = face->next;
+		// Face excess
+		return;
 	}
 
-	if (V > B3_MAX_HULL_VERTICES || E > B3_MAX_HULL_EDGES || F > B3_MAX_HULL_FACES)
-	{
-		b3Free(qh_memory);
-		return; 
-	}
-
-	// Convert the constructed hull into a run-time hull.
+	// Cheaply convert the constructed hull into a run-time hull.
 	vertexCount = 0;
 	edgeCount = 0;
 	faceCount = 0;
 
-	b3PointerMap<B3_MAX_HULL_VERTICES> vertexMap;
-	b3PointerMap<B3_MAX_HULL_EDGES> edgeMap;
+	// These structures map vertex/edge pointers to indices in the run-time hull
+	b3PIMap<B3_MAX_HULL_VERTICES> vertexMap;
+	b3PIMap<B3_MAX_HULL_EDGES> edgeMap;
 
-	face = faceList.head;
+	qhFace* face = faceList.head;
 	while (face)
 	{
 		// Collected face half-edges
@@ -216,42 +212,61 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 			qhVertex* v1 = edge->tail;
 			qhVertex* v2 = twin->tail;
 
+			// Are the vertices unique?
 			b3PointerIndex* mv1 = vertexMap.Find(v1);
 			b3PointerIndex* mv2 = vertexMap.Find(v2);
 
 			u8 iv1;
 			if (mv1)
 			{
-				iv1 = mv1->value;
+				iv1 = mv1->index;
 			}
 			else
 			{
-				B3_ASSERT(vertexCount < V);
+				// Vertex excess
+				if (vertexCount == B3_MAX_HULL_VERTICES)
+				{
+					vertexCount = 0;
+					edgeCount = 0;
+					faceCount = 0;
+					return;
+				}
+
+				vertices[vertexCount] = v1->position;
 				iv1 = vertexCount;
-				vertices[iv1] = v1->position;
-				vertexMap.Add({ v1, iv1 });
 				++vertexCount;
+				
+				vertexMap.Add({ v1, iv1 });
 			}
 
 			u8 iv2;
 			if (mv2)
 			{
-				iv2 = mv2->value;
+				iv2 = mv2->index;
 			}
 			else
 			{
-				B3_ASSERT(vertexCount < V);
+				// Vertex excess
+				if (vertexCount == B3_MAX_HULL_VERTICES)
+				{
+					vertexCount = 0;
+					edgeCount = 0;
+					faceCount = 0;
+					return;
+				}
+				
+				vertices[vertexCount] = v2->position;
 				iv2 = vertexCount;
-				vertices[iv2] = v2->position;
-				vertexMap.Add({ v2, iv2 });
 				++vertexCount;
+
+				vertexMap.Add({ v2, iv2 });
 			}
 			
 			b3PointerIndex* mte = edgeMap.Find(edge);
 			
 			if (mte)
 			{
-				u8 ie2 = mte->value;
+				u8 ie2 = mte->index;
 				b3HalfEdge* e2 = edges + ie2;
 				B3_ASSERT(e2->face == B3_NULL_HULL_FEATURE);
 				e2->face = u8(faceCount);
@@ -259,12 +274,19 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 			}
 			else
 			{
-				B3_ASSERT(edgeCount < E);
+				// Edge excess
+				if (edgeCount + 2 >= B3_MAX_HULL_EDGES)
+				{
+					vertexCount = 0;
+					edgeCount = 0;
+					faceCount = 0;
+					return;
+				}
+
 				u8 ie1 = edgeCount;
 				b3HalfEdge* e1 = edges + edgeCount;
 				++edgeCount;
-
-				B3_ASSERT(edgeCount < E);
+				
 				u8 ie2 = edgeCount;
 				b3HalfEdge* e2 = edges + edgeCount;
 				++edgeCount;
@@ -285,27 +307,28 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 
 			edge = edge->next;
 		} while (edge != face->edge);
-
-		B3_ASSERT(faceEdges.Count() > 0);
 		
-		b3Face* f = faces + faceCount;
-		f->edge = faceEdges[0];
-		for (u32 i = 0; i < faceEdges.Count(); ++i)
-		{
-			u32 j = i < faceEdges.Count() - 1 ? i + 1 : 0;
-			edges[faceEdges[i]].next = faceEdges[j];
-		}
-
+		B3_ASSERT(faceCount < B3_MAX_HULL_FACES);
+		
 		planes[faceCount] = face->plane;
 		
-		B3_ASSERT(faceCount < F);
+		b3Face* f = faces + faceCount;
 		++faceCount;
+
+		B3_ASSERT(faceEdges.Count() > 0);
+		f->edge = faceEdges[0];
+		
+		// Link face half-edges 
+		for (u32 i = 0; i < faceEdges.Count(); ++i)
+		{
+			u8 edge = faceEdges[i];
+			
+			u32 j = i < faceEdges.Count() - 1 ? i + 1 : 0;
+			edges[edge].next = faceEdges[j];
+		}
 
 		face = face->next;
 	}
-
-	// 
-	b3Free(qh_memory);
 
 	// Validate
 	Validate();
