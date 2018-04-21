@@ -112,7 +112,7 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 	// Here, it was used the great SymPy.
 	// SymPy was available at http://live.sympy.org/
 
-	B3_ASSERT(m_hull->vertexCount >= 3);
+	B3_ASSERT(m_hull->vertexCount >= 4);
 
 	// Put the hull relative to a point that is inside the hull 
 	// to help reducing round-off errors.

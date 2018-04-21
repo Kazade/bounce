@@ -63,7 +63,7 @@ struct b3PIMap
 //
 static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 {
-	B3_ASSERT(hull->vertexCount >= 3);
+	B3_ASSERT(hull->vertexCount >= 4);
 
 	// volume = int(dV)
 	float32 volume = 0.0f;
