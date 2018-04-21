@@ -21,7 +21,8 @@
 
 #define B3_NULL_HULL_FEATURE 0xFF
 
-// 
+// Used to map pointers to indices 
+// If more performance is required then a use hash-map
 template<class T, u32 N>
 struct b3UniqueArray
 {
@@ -30,14 +31,10 @@ struct b3UniqueArray
 		count = 0;
 	}
 
-	void PushBack(const T& value)
-	{
-		// B3_ASSERT(Find(value) == count)
-		B3_ASSERT(count < N);
-		values[count++] = value;
-	}
-
-	u32 Find(const T& value) const
+	// Add the value if not found
+	// Return value index if added
+	// Return N if the array is full
+	u32 Find(const T& value)
 	{
 		for (u32 i = 0; i < count; ++i)
 		{
@@ -46,7 +43,14 @@ struct b3UniqueArray
 				return i;
 			}
 		}
-		return count;
+
+		if (count == N)
+		{
+			return N;
+		}
+
+		values[count++] = value;
+		return count - 1;
 	}
 	
 	T values[N];
@@ -175,138 +179,92 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 	qhHull hull;
 	hull.Construct(qhBuffer, ps, psCount);
 
-	// Cheaply convert the constructed hull into a run-time hull.
+	// Convert the constructed hull into a run-time hull.
 
 	// Unique vertices and edges
 	b3UniqueArray<qhVertex*, B3_MAX_HULL_VERTICES> vs;
 	b3UniqueArray<qhHalfEdge*, B3_MAX_HULL_EDGES> es;
 	u32 fs_count = 0;
 
-	// Face half-edges
-	u8 fhs[B3_MAX_HULL_EDGES];
-	u32 nfh = 0;
-
-	const qhList<qhFace>& faceList = hull.GetFaceList();
-	qhFace* face = faceList.head;
-	while (face)
+	for (qhFace* face = hull.GetFaceList().head; face != NULL; face = face->next)
 	{
+		// Add face
 		if (fs_count == B3_MAX_HULL_FACES)
 		{
 			// Face excess
 			return;
 		}
-
-		// Add face
-		B3_ASSERT(fs_count < B3_MAX_HULL_FACES);
-		b3Face* f = faces + fs_count;
-		u32 fi = fs_count;
+		
+		b3Face* hface = faces + fs_count;
+		planes[fs_count] = face->plane;
+		u32 iface = fs_count;
 		++fs_count;
 
-		planes[fi] = face->plane;
-		
+		// Add vertices and half-edges 
 		qhHalfEdge* begin = face->edge;
 		qhHalfEdge* edge = begin;
 		do
 		{
-			qhHalfEdge* twin = edge->twin;
-			
-			qhVertex* v1 = edge->tail;
-			qhVertex* v2 = twin->tail;
-
-			u32 iv1 = vs.Find(v1);
-			if (iv1 == vs.count)
+			// Add vertex
+			u32 iv = vs.Find(edge->tail);
+			if (iv == B3_MAX_HULL_VERTICES)
 			{
 				// Vertex excess
-				if (vs.count == B3_MAX_HULL_VERTICES)
-				{
-					return;
-				}
-
-				// Add vertex
-				vs.PushBack(v1);
+				return;
 			}
 
-			u32 iv2 = vs.Find(v2);
-			if (iv2 == vs.count)
+			// Add half-edge
+			u32 iedge = es.Find(edge);
+			if (iedge == B3_MAX_HULL_EDGES)
 			{
-				// Vertex excess
-				if (vs.count == B3_MAX_HULL_VERTICES)
-				{
-					return;
-				}
-				
-				// Add vertex
-				vs.PushBack(v2);
+				// Half-edge excess
+				return;
 			}
-			
-			u32 ie2 = es.Find(edge);
-			if(ie2 == es.count)
+
+			// Add half-edge just after its twin
+			u32 itwin = es.Find(edge->twin);
+			if (itwin == B3_MAX_HULL_EDGES)
 			{
-				// Edge excess
-				if (es.count + 2 >= B3_MAX_HULL_EDGES)
-				{
-					return;
-				}
-
-				// Add half-edges
-				u32 ie1 = es.count;
-				es.PushBack(edge);
-
-				u32 ie2 = es.count;
-				es.PushBack(twin);
-
-				// Link half-edges
-				b3HalfEdge* e1 = edges + ie1;
-				e1->face = u8(fi);
-				e1->origin = iv1;
-				e1->twin = ie2;
-
-				b3HalfEdge* e2 = edges + ie2;
-				e2->face = B3_NULL_HULL_FEATURE;
-				e2->origin = iv2;
-				e2->twin = ie1;
-
-				B3_ASSERT(nfh < B3_MAX_HULL_EDGES);
-				fhs[nfh++] = ie1;
-			}
-			else
-			{
-				b3HalfEdge* e2 = edges + ie2;
-				
-				B3_ASSERT(e2->face == B3_NULL_HULL_FEATURE);
-				e2->face = u8(fi);
-
-				B3_ASSERT(nfh < B3_MAX_HULL_EDGES);
-				fhs[nfh++] = ie2;
+				// Half-edge excess
+				return;
 			}
 
 			edge = edge->next;
 		} while (edge != begin);
 		
-		// Link any face half-edge to face
-		B3_ASSERT(nfh > 0);
-		f->edge = fhs[0];
-		
-		// Link half-edge list 
-		for (u32 i = 0; i < nfh; ++i)
+		// Build and link the half-edges 
+		hface->edge = es.Find(begin);
+
+		edge = begin;
+		do
 		{
-			u8 edge = fhs[i];
-			u8 nextEdge = i < nfh - 1 ? i + 1 : 0;
-			
-			edges[edge].next = fhs[nextEdge];
-		}
+			qhVertex* v = edge->tail;
+			u8 iv = (u8)vs.Find(v);
+			vertices[iv] = v->position;
 
-		nfh = 0;
+			u8 iedge = (u8)es.Find(edge);
+			b3HalfEdge* hedge = edges + iedge;
+			hedge->face = u8(iface);
+			hedge->origin = (u8)vs.Find(edge->tail);
 
-		face = face->next;
+			qhHalfEdge* twin = edge->twin;
+			u8 itwin = (u8)es.Find(twin);
+			b3HalfEdge* htwin = edges + itwin;
+			htwin->twin = iedge;
+
+			hedge->twin = itwin;
+
+			qhHalfEdge* next = edge->next;
+			u8 inext = (u8)es.Find(next);
+
+			edges[iedge].next = inext;
+
+			edge = next;
+		} while (edge != begin);
 	}
 
 	B3_ASSERT(vs.count <= B3_MAX_HULL_VERTICES);
 	vertexCount = vs.count;
-	for (u32 i = 0; i < vs.count; ++i)
-	{
-		vertices[i] = vs.values[i]->position;
-	}
 
 	B3_ASSERT(es.count <= B3_MAX_HULL_EDGES);
 	edgeCount = es.count;
