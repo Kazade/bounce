@@ -21,44 +21,51 @@
 
 #define B3_NULL_HULL_FEATURE 0xFF
 
-//
-struct b3PointerIndex
-{
-	void* pointer;
-	u8 index;
-};
-
 // 
-template<u32 N>
-struct b3PIMap
+template<class T, u32 N>
+struct b3UniqueArray
 {
-	b3PIMap()
+	b3UniqueArray()
 	{
 		count = 0;
 	}
 
-	void Add(const b3PointerIndex& pi)
+	void PushBack(const T& value)
 	{
+		// B3_ASSERT(Find(value) == count)
 		B3_ASSERT(count < N);
-		pis[count++] = pi;
+		values[count++] = value;
 	}
 
-	b3PointerIndex* Find(void* pointer)
+	u32 Find(const T& value) const
 	{
 		for (u32 i = 0; i < count; ++i)
 		{
-			b3PointerIndex* index = pis + i;
-			if (index->pointer == pointer)
+			if (values[i] == value)
 			{
-				return index;
+				return i;
 			}
 		}
-		return NULL;
+		return count;
 	}
 	
+	T values[N];
 	u32 count;
-	b3PointerIndex pis[N];
 };
+
+//
+template<class T> 
+static inline u32 b3Find(const T* values, u32 count, const T* value)
+{
+	for (u32 i = 0; i < count; ++i)
+	{
+		if (values[i] == value)
+		{
+			return i;
+		}
+	}
+	B3_ASSERT(false);
+}
 
 //
 static b3Vec3 b3ComputeCentroid(b3QHull* hull)
@@ -182,30 +189,37 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 	qhHull hull;
 	hull.Construct(qhBuffer, ps, psCount);
 
-	const qhList<qhFace>& faceList = hull.GetFaceList();
-	if (faceList.count > B3_MAX_HULL_FACES)
-	{
-		// Face excess
-		return;
-	}
-
 	// Cheaply convert the constructed hull into a run-time hull.
-	vertexCount = 0;
-	edgeCount = 0;
-	faceCount = 0;
 
-	// These structures map vertex/edge pointers to indices in the run-time hull
-	b3PIMap<B3_MAX_HULL_VERTICES> vs;
-	b3PIMap<B3_MAX_HULL_EDGES> es;
+	// Unique vertices and edges
+	b3UniqueArray<qhVertex*, B3_MAX_HULL_VERTICES> vs;
+	b3UniqueArray<qhHalfEdge*, B3_MAX_HULL_EDGES> es;
+	u32 fs_count = 0;
 
 	// Face half-edges
 	u8 fhs[B3_MAX_HULL_EDGES];
 	u32 nfh = 0;
 
+	const qhList<qhFace>& faceList = hull.GetFaceList();
 	qhFace* face = faceList.head;
 	while (face)
 	{
-		qhHalfEdge* edge = face->edge;
+		if (fs_count == B3_MAX_HULL_FACES)
+		{
+			// Face excess
+			return;
+		}
+
+		// Add face
+		B3_ASSERT(fs_count < B3_MAX_HULL_FACES);
+		b3Face* f = faces + fs_count;
+		u32 fi = fs_count;
+		++fs_count;
+
+		planes[fi] = face->plane;
+		
+		qhHalfEdge* begin = face->edge;
+		qhHalfEdge* edge = begin;
 		do
 		{
 			qhHalfEdge* twin = edge->twin;
@@ -213,131 +227,106 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 			qhVertex* v1 = edge->tail;
 			qhVertex* v2 = twin->tail;
 
-			b3PointerIndex* mv1 = vs.Find(v1);
-
-			u8 iv1;
-			if (mv1)
+			u32 iv1 = vs.Find(v1);
+			if (iv1 == vs.count)
 			{
-				iv1 = mv1->index;
-			}
-			else
-			{
-				// Add a unique vertex
-
 				// Vertex excess
-				if (vertexCount == B3_MAX_HULL_VERTICES)
+				if (vs.count == B3_MAX_HULL_VERTICES)
 				{
-					vertexCount = 0;
-					edgeCount = 0;
-					faceCount = 0;
 					return;
 				}
 
-				vertices[vertexCount] = v1->position;
-				iv1 = vertexCount;
-				++vertexCount;
-				
-				// Add to vertex-index pair to the map
-				vs.Add({ v1, iv1 });
+				// Add vertex
+				vs.PushBack(v1);
 			}
 
-			b3PointerIndex* mv2 = vs.Find(v2);
-			
-			u8 iv2;
-			if (mv2)
-			{
-				iv2 = mv2->index;
-			}
-			else
+			u32 iv2 = vs.Find(v2);
+			if (iv2 == vs.count)
 			{
 				// Vertex excess
-				if (vertexCount == B3_MAX_HULL_VERTICES)
+				if (vs.count == B3_MAX_HULL_VERTICES)
 				{
-					vertexCount = 0;
-					edgeCount = 0;
-					faceCount = 0;
 					return;
 				}
 				
-				vertices[vertexCount] = v2->position;
-				iv2 = vertexCount;
-				++vertexCount;
-
-				vs.Add({ v2, iv2 });
+				// Add vertex
+				vs.PushBack(v2);
 			}
 			
-			b3PointerIndex* mte = es.Find(edge);
-			
-			if (mte)
-			{
-				u8 ie2 = mte->index;
-				b3HalfEdge* e2 = edges + ie2;
-				B3_ASSERT(e2->face == B3_NULL_HULL_FEATURE);
-				e2->face = u8(faceCount);
-				
-				B3_ASSERT(nfh < B3_MAX_HULL_EDGES);
-				fhs[nfh++] = ie2;
-			}
-			else
+			u32 ie2 = es.Find(edge);
+			if(ie2 == es.count)
 			{
 				// Edge excess
-				if (edgeCount + 2 >= B3_MAX_HULL_EDGES)
+				if (es.count + 2 >= B3_MAX_HULL_EDGES)
 				{
-					vertexCount = 0;
-					edgeCount = 0;
-					faceCount = 0;
 					return;
 				}
 
-				b3HalfEdge* e1 = edges + edgeCount;
-				u8 ie1 = edgeCount;
-				++edgeCount;
-				
-				b3HalfEdge* e2 = edges + edgeCount;
-				u8 ie2 = edgeCount;
-				++edgeCount;
+				// Add half-edges
+				u32 ie1 = es.count;
+				es.PushBack(edge);
 
-				e1->face = u8(faceCount);
+				u32 ie2 = es.count;
+				es.PushBack(twin);
+
+				// Link half-edges
+				b3HalfEdge* e1 = edges + ie1;
+				e1->face = u8(fi);
 				e1->origin = iv1;
 				e1->twin = ie2;
 
+				b3HalfEdge* e2 = edges + ie2;
 				e2->face = B3_NULL_HULL_FEATURE;
 				e2->origin = iv2;
 				e2->twin = ie1;
 
-				es.Add({ edge, ie1 });
-				es.Add({ twin, ie2 });
-
 				B3_ASSERT(nfh < B3_MAX_HULL_EDGES);
 				fhs[nfh++] = ie1;
 			}
+			else
+			{
+				b3HalfEdge* e2 = edges + ie2;
+				
+				B3_ASSERT(e2->face == B3_NULL_HULL_FEATURE);
+				e2->face = u8(fi);
+
+				B3_ASSERT(nfh < B3_MAX_HULL_EDGES);
+				fhs[nfh++] = ie2;
+			}
 
 			edge = edge->next;
-		} while (edge != face->edge);
+		} while (edge != begin);
 		
-		B3_ASSERT(faceCount < B3_MAX_HULL_FACES);
-		
-		planes[faceCount] = face->plane;
-		
-		b3Face* f = faces + faceCount;
-		++faceCount;
-
+		// Link any face half-edge to face
 		B3_ASSERT(nfh > 0);
 		f->edge = fhs[0];
 		
-		// Link face half-edges 
+		// Link half-edge list 
 		for (u32 i = 0; i < nfh; ++i)
 		{
 			u8 edge = fhs[i];
+			u8 nextEdge = i < nfh - 1 ? i + 1 : 0;
 			
-			u32 j = i < nfh - 1 ? i + 1 : 0;
-			edges[edge].next = fhs[j];
+			edges[edge].next = fhs[nextEdge];
 		}
 
 		nfh = 0;
 
 		face = face->next;
 	}
+
+	B3_ASSERT(vs.count <= B3_MAX_HULL_VERTICES);
+	vertexCount = vs.count;
+	for (u32 i = 0; i < vs.count; ++i)
+	{
+		vertices[i] = vs.values[i]->position;
+	}
+
+	B3_ASSERT(es.count <= B3_MAX_HULL_EDGES);
+	edgeCount = es.count;
+	
+	B3_ASSERT(fs_count <= B3_MAX_HULL_FACES);
+	faceCount = fs_count;
 
 	// Validate
 	Validate();
@@ -402,7 +391,7 @@ void b3QHull::SetAsCone(float32 radius, float32 height)
 {
 	B3_ASSERT(radius > 0.0f);
 	B3_ASSERT(height > 0.0f);
-	
+
 	const u32 kEdgeCount = 20;
 	const u32 kVertexCount = 2 * kEdgeCount + 1;
 	b3Vec3 vs[kVertexCount];
