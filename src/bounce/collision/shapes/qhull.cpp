@@ -180,12 +180,11 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 	hull.Construct(qhBuffer, ps, psCount);
 
 	// Convert the constructed hull into a run-time hull.
-
-	// Unique vertices and edges
 	b3UniqueArray<qhVertex*, B3_MAX_HULL_VERTICES> vs;
 	b3UniqueArray<qhHalfEdge*, B3_MAX_HULL_EDGES> es;
 	u32 fs_count = 0;
-
+	
+	// Add vertices and edges to the map
 	for (qhFace* face = hull.GetFaceList().head; face != NULL; face = face->next)
 	{
 		// Add face
@@ -195,9 +194,6 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 			return;
 		}
 		
-		b3Face* hface = faces + fs_count;
-		planes[fs_count] = face->plane;
-		u32 iface = fs_count;
 		++fs_count;
 
 		// Add vertices and half-edges 
@@ -231,11 +227,21 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 
 			edge = edge->next;
 		} while (edge != begin);
-		
+	}
+	
+	// Build and link the features
+	u32 iface = 0;
+	for (qhFace* face = hull.GetFaceList().head; face != NULL; face = face->next)
+	{
 		// Build and link the half-edges 
-		hface->edge = es.Find(begin);
+		b3Face* hface = faces + iface;
+		
+		planes[iface] = face->plane;
 
-		edge = begin;
+		qhHalfEdge* begin = face->edge;
+		hface->edge = (u8)es.Find(begin);
+
+		qhHalfEdge* edge = begin;
 		do
 		{
 			qhVertex* v = edge->tail;
@@ -261,6 +267,8 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 
 			edge = next;
 		} while (edge != begin);
+
+		++iface;
 	}
 
 	B3_ASSERT(vs.count <= B3_MAX_HULL_VERTICES);
