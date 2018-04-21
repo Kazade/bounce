@@ -123,7 +123,7 @@ private:
 	void AddVertex(qhVertex* v);
 
 	void BuildHorizon(qhVertex* eye);
-	void BuildHorizon(qhVertex* eye, qhHalfEdge* e0, qhFace* f);
+	void BuildHorizon(qhVertex* eye, qhHalfEdge* edge);
 
 	void AddNewFaces(qhVertex* eye);
 	void MergeFaces();

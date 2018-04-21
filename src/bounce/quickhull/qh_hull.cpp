@@ -361,32 +361,23 @@ void qhHull::AddVertex(qhVertex* eye)
 void qhHull::BuildHorizon(qhVertex* eye)
 {
 	// Clean visited flags
+	for (qhFace* face = m_faceList.head; face != NULL; face = face->next)
 	{
-		qhFace* f = m_faceList.head;
-		while (f)
-		{
-			f->state = qhFace::e_invisible;
-
-			qhHalfEdge* e = f->edge;
-			do
-			{
-				e = e->next;
-			} while (e != f->edge);
-			f = f->next;
-		}
+		face->state = qhFace::e_invisible;
 	}
 
 	// Build horizon.
 	m_horizonCount = 0;
-	BuildHorizon(eye, eye->conflictFace->edge, eye->conflictFace);
+	BuildHorizon(eye, eye->conflictFace->edge);
 }
 
-void qhHull::BuildHorizon(qhVertex* eye, qhHalfEdge* edge0, qhFace* face)
+void qhHull::BuildHorizon(qhVertex* eye, qhHalfEdge* begin)
 {
 	// Mark face as visible/visited.
+	qhFace* face = begin->face;
 	face->state = qhFace::e_visible;
 
-	qhHalfEdge* edge = edge0;
+	qhHalfEdge* edge = begin;
 
 	do
 	{
@@ -397,7 +388,7 @@ void qhHull::BuildHorizon(qhVertex* eye, qhHalfEdge* edge0, qhFace* face)
 		{
 			if (b3Distance(eye->position, adjFace->plane) > m_tolerance)
 			{
-				BuildHorizon(eye, adjEdge, adjFace);
+				BuildHorizon(eye, adjEdge);
 			}
 			else
 			{
@@ -407,7 +398,7 @@ void qhHull::BuildHorizon(qhVertex* eye, qhHalfEdge* edge0, qhFace* face)
 
 		edge = edge->next;
 
-	} while (edge != edge0);
+	} while (edge != begin);
 }
 
 void qhHull::AddNewFaces(qhVertex* eye)
