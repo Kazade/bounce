@@ -108,12 +108,6 @@ public:
 	// Get the list of faces in this convex hull.
 	const qhList<qhFace>& GetFaceList() const;
 
-	// Get the number of unique edges in this convex hull.
-	// u32 GetEdgeCount() const;
-
-	// Get the number of unique vertices in this convex hull.
-	// u32 GetVertexCount() const;
-
 	// Validate this hull.
 	void Validate() const;
 	void Validate(const qhFace* face) const;
