@@ -119,19 +119,17 @@ private:
 	bool BuildInitialHull(const b3Vec3* vertices, u32 count);
 
 	qhVertex* NextVertex();
-	
 	void AddVertex(qhVertex* v);
 
-	void BuildHorizon(qhVertex* eye);
-	void BuildHorizon(qhVertex* eye, qhHalfEdge* edge);
+	void FindHorizon(qhVertex* eye);
+	void FindHorizon(qhVertex* eye, qhHalfEdge* edge);
 
 	void AddNewFaces(qhVertex* eye);
 	void MergeFaces();
 	bool MergeFace(qhFace* face);
 
-	qhFace* AddTriangle(qhVertex* v1, qhVertex* v2, qhVertex* v3);
-	
-	qhHalfEdge* AddAdjoiningTriangle(qhVertex* v, qhHalfEdge* he);
+	qhFace* CreateTriangle(qhVertex* v1, qhVertex* v2, qhVertex* v3);
+	qhHalfEdge* CreateAdjoiningTriangle(qhVertex* v, qhHalfEdge* he);
 	
 	qhHalfEdge* FindTwin(const qhVertex* tail, const qhVertex* head) const;
 
