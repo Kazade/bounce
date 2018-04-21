@@ -54,20 +54,6 @@ struct b3UniqueArray
 };
 
 //
-template<class T> 
-static inline u32 b3Find(const T* values, u32 count, const T* value)
-{
-	for (u32 i = 0; i < count; ++i)
-	{
-		if (values[i] == value)
-		{
-			return i;
-		}
-	}
-	B3_ASSERT(false);
-}
-
-//
 static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 {
 	B3_ASSERT(hull->vertexCount >= 4);
