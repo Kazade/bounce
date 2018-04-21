@@ -175,8 +175,8 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 	// Create a convex hull.
 	
 	// Allocate memory buffer for the worst case.
-	const u32 qhBufferCapacity = qhGetBufferCapacity(B3_MAX_HULL_VERTICES);
-	u8 qhBuffer[qhBufferCapacity];
+	const u32 qhBufferSize = qhGetBufferSize(B3_MAX_HULL_VERTICES);
+	u8 qhBuffer[qhBufferSize];
 
 	// Build
 	qhHull hull;

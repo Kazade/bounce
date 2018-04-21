@@ -128,20 +128,31 @@ inline void qhFace::ComputeCenterAndPlane()
 // its value at compile-time. That is particularly usefull when you want to 
 // create a stack buffer from a constant number of vertices. 
 // Due to the constexpr specifier, this function is automatically inlined.
-constexpr u32 qhGetBufferCapacity(u32 pointCount)
+constexpr u32 qhGetBufferSize(u32 pointCount)
 {
+	u32 size = 0;
+
+	// Hull using Euler's Formula
 	u32 V = pointCount;
 	u32 E = 3 * V - 6;
 	u32 HE = 2 * E;
 	u32 F = 2 * V - 4;
-
-	HE *= 2;
-	F *= 2;
-
-	u32 size = 0;
+	
 	size += V * sizeof(qhVertex);
 	size += HE * sizeof(qhHalfEdge);
 	size += F * sizeof(qhFace);
+
+	// Extra
+	size += HE * sizeof(qhHalfEdge);
+	size += F * sizeof(qhFace);
+
+	// Horizon
+	size += HE * sizeof(qhHalfEdge*);
+	
+	// New Faces
+	// One face per horizon edge
+	size += HE * sizeof(qhFace*);
+	
 	return size;
 }
 

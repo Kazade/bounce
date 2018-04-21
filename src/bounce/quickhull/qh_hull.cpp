@@ -17,6 +17,7 @@
 */
 
 #include <bounce/quickhull/qh_hull.h>
+#include <bounce/common/template/array.h>
 #include <bounce/common/template/stack.h>
 #include <bounce/common/draw.h>
 
@@ -98,7 +99,13 @@ void qhHull::Construct(void* memory, const b3Vec3* vs, u32 count)
 		f->conflictList.count = 0;
 		FreeFace(f);
 	}
-		
+
+	m_horizon = (qhHalfEdge**)((u8*)faces + F * sizeof(qhFace*));
+	m_horizonCount = 0;
+
+	m_newFaces = (qhFace**)((u8*)m_horizon + HE * sizeof(qhHalfEdge*));
+	m_newFaceCount = 0;
+
 	m_faceList.head = NULL;
 	m_faceList.count = 0;
 	m_iteration = 0;
@@ -346,45 +353,12 @@ qhVertex* qhHull::NextVertex()
 
 void qhHull::AddVertex(qhVertex* eye)
 {
-	b3StackArray<qhHalfEdge*, 32> horizon;
-	BuildHorizon(horizon, eye);
-
-	b3StackArray<qhFace*, 32> newFaces;
-	AddNewFaces(newFaces, eye, horizon);
-	
-	MergeFaces(newFaces);
+	BuildHorizon(eye);
+	AddNewFaces(eye);
+	MergeFaces();
 }
 
-void qhHull::BuildHorizon(b3Array<qhHalfEdge*>& horizon, qhVertex* eye, qhHalfEdge* edge0, qhFace* face)
-{
-	// Mark face as visible/visited.
-	face->state = qhFace::e_visible;
-
-	qhHalfEdge* edge = edge0;
-
-	do
-	{
-		qhHalfEdge* adjEdge = edge->twin;
-		qhFace* adjFace = adjEdge->face;
-
-		if (adjFace->state == qhFace::e_invisible)
-		{
-			if (b3Distance(eye->position, adjFace->plane) > m_tolerance)
-			{
-				BuildHorizon(horizon, eye, adjEdge, adjFace);
-			}
-			else
-			{
-				horizon.PushBack(edge);
-			}
-		}
-
-		edge = edge->next;
-
-	} while (edge != edge0);
-}
-
-void qhHull::BuildHorizon(b3Array<qhHalfEdge*>& horizon, qhVertex* eye)
+void qhHull::BuildHorizon(qhVertex* eye)
 {
 	// Clean visited flags
 	{
@@ -402,12 +376,150 @@ void qhHull::BuildHorizon(b3Array<qhHalfEdge*>& horizon, qhVertex* eye)
 		}
 	}
 
-	// todo
-	// Iterative DFS.
-	// Ensure CCW order of horizon edges.
-	
 	// Build horizon.
-	BuildHorizon(horizon, eye, eye->conflictFace->edge, eye->conflictFace);
+	m_horizonCount = 0;
+	BuildHorizon(eye, eye->conflictFace->edge, eye->conflictFace);
+}
+
+void qhHull::BuildHorizon(qhVertex* eye, qhHalfEdge* edge0, qhFace* face)
+{
+	// Mark face as visible/visited.
+	face->state = qhFace::e_visible;
+
+	qhHalfEdge* edge = edge0;
+
+	do
+	{
+		qhHalfEdge* adjEdge = edge->twin;
+		qhFace* adjFace = adjEdge->face;
+
+		if (adjFace->state == qhFace::e_invisible)
+		{
+			if (b3Distance(eye->position, adjFace->plane) > m_tolerance)
+			{
+				BuildHorizon(eye, adjEdge, adjFace);
+			}
+			else
+			{
+				m_horizon[m_horizonCount++] = edge;
+			}
+		}
+
+		edge = edge->next;
+
+	} while (edge != edge0);
+}
+
+void qhHull::AddNewFaces(qhVertex* eye)
+{
+	m_newFaceCount = 0;
+
+	B3_ASSERT(m_horizonCount > 0);
+
+	qhHalfEdge* beginEdge = NULL;
+	qhHalfEdge* prevEdge = NULL;
+
+	{
+		qhHalfEdge* edge = m_horizon[0];
+		qhHalfEdge* leftEdge = AddAdjoiningTriangle(eye, edge);
+		qhHalfEdge* rightEdge = leftEdge->prev;
+
+		prevEdge = rightEdge;
+
+		beginEdge = leftEdge;
+
+		m_newFaces[m_newFaceCount++] = leftEdge->face;
+	}
+
+	for (u32 i = 1; i < m_horizonCount - 1; ++i)
+	{
+		qhHalfEdge* edge = m_horizon[i];
+		qhHalfEdge* leftEdge = AddAdjoiningTriangle(eye, edge);
+		qhHalfEdge* rightEdge = leftEdge->prev;
+
+		leftEdge->twin = prevEdge;
+		prevEdge->twin = leftEdge;
+
+		prevEdge = rightEdge;
+		
+		m_newFaces[m_newFaceCount++] = leftEdge->face;
+	}
+
+	{
+		qhHalfEdge* edge = m_horizon[m_horizonCount - 1];
+		qhHalfEdge* leftEdge = AddAdjoiningTriangle(eye, edge);
+		qhHalfEdge* rightEdge = leftEdge->prev;
+
+		leftEdge->twin = prevEdge;
+		prevEdge->twin = leftEdge;
+
+		rightEdge->twin = beginEdge;
+		beginEdge->twin = rightEdge;
+
+		m_newFaces[m_newFaceCount++] = leftEdge->face;
+	}
+
+	qhFace* f = m_faceList.head;
+	while (f)
+	{
+		if (f->state == qhFace::e_invisible)
+		{
+			f = f->next;
+			continue;
+		}
+
+		// Partition conflict vertices.
+		qhVertex* v = f->conflictList.head;
+		while (v)
+		{
+			b3Vec3 p = v->position;
+
+			// Use tolerance and discard internal points.
+			float32 max = m_tolerance;
+			qhFace* iMax = NULL;
+
+			for (u32 i = 0; i < m_newFaceCount; ++i)
+			{
+				qhFace* newFace = m_newFaces[i];
+				float32 d = b3Distance(p, newFace->plane);
+				if (d > max)
+				{
+					max = d;
+					iMax = newFace;
+				}
+			}
+
+			if (iMax)
+			{
+				qhVertex* v0 = v;
+				v->conflictFace = NULL;
+				v = f->conflictList.Remove(v);
+				iMax->conflictList.PushFront(v0);
+				v0->conflictFace = iMax;
+			}
+			else
+			{
+				qhVertex* v0 = v;
+				v->conflictFace = NULL;
+				v = f->conflictList.Remove(v);
+				FreeVertex(v0);
+			}
+		}
+
+		// Remove face half-edges.
+		qhHalfEdge* e = f->edge;
+		do
+		{
+			qhHalfEdge* e0 = e;
+			e = e->next;
+			FreeEdge(e0);
+		} while (e != f->edge);
+
+		// Remove face.
+		qhFace* f0 = f;
+		f = m_faceList.Remove(f);
+		FreeFace(f0);
+	}
 }
 
 qhFace* qhHull::AddTriangle(qhVertex* v1, qhVertex* v2, qhVertex* v3)
@@ -503,116 +615,6 @@ qhHalfEdge* qhHull::AddAdjoiningTriangle(qhVertex* eye, qhHalfEdge* horizonEdge)
 	return e1;
 }
 
-void qhHull::AddNewFaces(b3Array<qhFace*>& newFaces, qhVertex* eye, const b3Array<qhHalfEdge*>& horizon)
-{
-	newFaces.Reserve(horizon.Count());
-
-	qhHalfEdge* beginEdge = NULL;
-	qhHalfEdge* prevEdge = NULL;
-
-	{
-		qhHalfEdge* edge = horizon[0];
-		qhHalfEdge* leftEdge = AddAdjoiningTriangle(eye, edge);
-		qhHalfEdge* rightEdge = leftEdge->prev;
-
-		prevEdge = rightEdge;
-
-		beginEdge = leftEdge;
-
-		newFaces.PushBack(leftEdge->face);
-	}
-
-	for (u32 i = 1; i < horizon.Count() - 1; ++i)
-	{
-		qhHalfEdge* edge = horizon[i];
-		qhHalfEdge* leftEdge = AddAdjoiningTriangle(eye, edge);
-		qhHalfEdge* rightEdge = leftEdge->prev;
-
-		leftEdge->twin = prevEdge;
-		prevEdge->twin = leftEdge;
-
-		prevEdge = rightEdge;
-
-		newFaces.PushBack(leftEdge->face);
-	}
-
-	{
-		qhHalfEdge* edge = horizon[horizon.Count() - 1];
-		qhHalfEdge* leftEdge = AddAdjoiningTriangle(eye, edge);
-		qhHalfEdge* rightEdge = leftEdge->prev;
-
-		leftEdge->twin = prevEdge;
-		prevEdge->twin = leftEdge;
-
-		rightEdge->twin = beginEdge;
-		beginEdge->twin = rightEdge;
-
-		newFaces.PushBack(leftEdge->face);
-	}
-
-	qhFace* f = m_faceList.head;
-	while (f)
-	{
-		if (f->state == qhFace::e_invisible)
-		{
-			f = f->next;
-			continue;
-		}
-
-		// Partition conflict vertices.
-		qhVertex* v = f->conflictList.head;
-		while (v)
-		{
-			b3Vec3 p = v->position;
-
-			// Use tolerance and discard internal points.
-			float32 max = m_tolerance;
-			qhFace* iMax = NULL;
-
-			for (u32 i = 0; i < newFaces.Count(); ++i)
-			{
-				qhFace* newFace = newFaces[i];
-				float32 d = b3Distance(p, newFace->plane);
-				if (d > max)
-				{
-					max = d;
-					iMax = newFace;
-				}
-			}
-
-			if (iMax)
-			{
-				qhVertex* v0 = v;
-				v->conflictFace = NULL;
-				v = f->conflictList.Remove(v);
-				iMax->conflictList.PushFront(v0);
-				v0->conflictFace = iMax;
-			}
-			else
-			{
-				qhVertex* v0 = v;
-				v->conflictFace = NULL;
-				v = f->conflictList.Remove(v);
-				FreeVertex(v0);
-			}
-		}
-
-		// Remove face half-edges.
-		qhHalfEdge* e = f->edge;
-		do
-		{
-			qhHalfEdge* e0 = e;
-			e = e->next;
-			FreeEdge(e0);
-		} while (e != f->edge);
-
-		// Remove face.
-		qhFace* f0 = f;
-		f = m_faceList.Remove(f);
-		FreeFace(f0);
-	}
-}
-
 bool qhHull::MergeFace(qhFace* rightFace)
 {
 	qhHalfEdge* e = rightFace->edge;
@@ -691,22 +693,18 @@ bool qhHull::MergeFace(qhFace* rightFace)
 	return false;
 }
 
-void qhHull::MergeFaces(b3Array<qhFace*>& newFaces)
+void qhHull::MergeFaces()
 {
-	for (u32 i = 0; i < newFaces.Count(); ++i)
+	for (u32 i = 0; i < m_newFaceCount; ++i)
 	{
-		qhFace* f = newFaces[i];
+		qhFace* f = m_newFaces[i];
 		
 		if (f->state == qhFace::e_deleted) 
 		{
 			continue;
 		}
 
-		// todo
-		// Fix topological and geometrical errors.
-
-		// Merge the faces while there is no face left 
-		// to merge.
+		// Merge the faces while there is no face left to merge.
 		while (MergeFace(f));
 	}
 }
@@ -754,23 +752,25 @@ void qhHull::Validate() const
 
 void qhHull::Draw() const
 {
+	b3StackArray<b3Vec3, 256> polygon;
+
 	qhFace* face = m_faceList.head;
 	while (face)
 	{
+		polygon.Resize(0);
+
 		b3Vec3 c = face->center;
 		b3Vec3 n = face->plane.normal;
 
-		b3StackArray<b3Vec3, 32> vs;
-		
 		const qhHalfEdge* begin = face->edge;
 		const qhHalfEdge* edge = begin;
 		do
 		{
-			vs.PushBack(edge->tail->position);
+			polygon.PushBack(edge->tail->position);
 			edge = edge->next;
 		} while (edge != begin);
 
-		b3Draw_draw->DrawSolidPolygon(n, vs.Begin(), vs.Count(), b3Color(1.0f, 1.0f, 1.0f, 0.5f));
+		b3Draw_draw->DrawSolidPolygon(n, polygon.Begin(), polygon.Count(), b3Color(1.0f, 1.0f, 1.0f, 0.5f));
 
 		qhVertex* v = face->conflictList.head;
 		while (v)

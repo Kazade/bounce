@@ -20,7 +20,6 @@
 #define QH_HULL_H
 
 #include <bounce/common/geometry.h>
-#include <bounce/common/template/array.h>
 
 template<class T>
 struct qhList
@@ -100,7 +99,7 @@ public:
 	~qhHull();
 	
 	// Construct this hull given a memory buffer and an array of points.
-	// Use qhGetBufferCapacity to get the buffer capacity from the point array size.
+	// Use qhGetBufferSize to get the buffer size given the number of points.
 	void Construct(void* buffer, const b3Vec3* vertices, u32 vertexCount);
 
 	// Get the number of iterations this algorithm ran.
@@ -128,21 +127,18 @@ private:
 	qhVertex* NextVertex();
 	
 	void AddVertex(qhVertex* v);
-	
-	void BuildHorizon(b3Array<qhHalfEdge*>& horizon, qhVertex* eye);
-	
-	void BuildHorizon(b3Array<qhHalfEdge*>& horizon, qhVertex* eye, qhHalfEdge* e0, qhFace* f);
-	
+
+	void BuildHorizon(qhVertex* eye);
+	void BuildHorizon(qhVertex* eye, qhHalfEdge* e0, qhFace* f);
+
+	void AddNewFaces(qhVertex* eye);
+	void MergeFaces();
+	bool MergeFace(qhFace* face);
+
 	qhFace* AddTriangle(qhVertex* v1, qhVertex* v2, qhVertex* v3);
 	
 	qhHalfEdge* AddAdjoiningTriangle(qhVertex* v, qhHalfEdge* he);
 	
-	void AddNewFaces(b3Array<qhFace*>& newFaces, qhVertex* eye, const b3Array<qhHalfEdge*>& horizon);
-
-	bool MergeFace(qhFace* face);
-	
-	void MergeFaces(b3Array<qhFace*>& newFaces);
-
 	qhHalfEdge* FindTwin(const qhVertex* tail, const qhVertex* head) const;
 
 	// Coplanarity tolerance
@@ -163,10 +159,16 @@ private:
 	
 	qhFace* AllocateFace();
 	void FreeFace(qhFace* p);
-		
+	
 	qhVertex* m_freeVertices;
 	qhHalfEdge* m_freeEdges;
 	qhFace* m_freeFaces;
+	
+	qhHalfEdge** m_horizon;
+	u32 m_horizonCount;
+
+	qhFace** m_newFaces;
+	u32 m_newFaceCount;
 };
 
 #include <bounce/quickhull/qh_hull.inl>
