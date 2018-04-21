@@ -245,7 +245,7 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 			u8 iedge = (u8)es.Find(edge);
 			b3HalfEdge* hedge = edges + iedge;
 			hedge->face = u8(iface);
-			hedge->origin = (u8)vs.Find(edge->tail);
+			hedge->origin = iv;
 
 			qhHalfEdge* twin = edge->twin;
 			u8 itwin = (u8)es.Find(twin);
