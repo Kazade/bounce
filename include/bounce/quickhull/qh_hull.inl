@@ -158,7 +158,7 @@ constexpr u32 qhGetBufferSize(u32 pointCount)
 
 inline u32 qhHull::GetIterations() const
 {
-	return m_iteration;
+	return m_iterations;
 }
 
 inline const qhList<qhFace>& qhHull::GetFaceList() const

@@ -19,6 +19,7 @@
 #include <bounce/quickhull/qh_hull.h>
 #include <bounce/common/template/array.h>
 #include <bounce/common/template/stack.h>
+#include <bounce/common/template/queue.h>
 #include <bounce/common/draw.h>
 
 static float32 qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Vec3* vertices, u32 count)
@@ -27,7 +28,7 @@ static float32 qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Vec3* vertices, u32 
 	iMin[0] = 0;
 	iMin[1] = 0;
 	iMin[2] = 0;
-	
+
 	b3Vec3 max(-B3_MAX_FLOAT, -B3_MAX_FLOAT, -B3_MAX_FLOAT);
 	iMax[0] = 0;
 	iMax[1] = 0;
@@ -89,7 +90,7 @@ void qhHull::Construct(void* memory, const b3Vec3* vs, u32 count)
 	{
 		FreeEdge(edges + i);
 	}
-	
+
 	m_freeFaces = NULL;
 	qhFace* faces = (qhFace*)((u8*)edges + HE * sizeof(qhHalfEdge));
 	for (u32 i = 0; i < F; ++i)
@@ -108,19 +109,19 @@ void qhHull::Construct(void* memory, const b3Vec3* vs, u32 count)
 
 	m_faceList.head = NULL;
 	m_faceList.count = 0;
-	m_iteration = 0;
+	m_iterations = 0;
 
 	if (!BuildInitialHull(vs, count))
 	{
 		return;
 	}
 
-	qhVertex* eye = NextVertex();
+	qhVertex* eye = FindEyeVertex();
 	while (eye)
 	{
 		AddVertex(eye);
-		eye = NextVertex();
-		++m_iteration;
+		eye = FindEyeVertex();
+		++m_iterations;
 	}
 
 	Validate();
@@ -150,7 +151,7 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 		{
 			b3Vec3 A = vertices[aabbMin[i]];
 			b3Vec3 B = vertices[aabbMax[i]];
-			
+
 			float32 d = b3DistanceSquared(A, B);
 
 			if (d > d0)
@@ -190,7 +191,7 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 			b3Vec3 C = vertices[i];
 
 			float32 a = b3AreaSquared(A, B, C);
-			
+
 			if (a > a0)
 			{
 				a0 = a;
@@ -229,7 +230,7 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 			}
 
 			b3Vec3 D = vertices[i];
-			
+
 			float32 d = b3Abs(b3Distance(D, plane));
 
 			if (d > d0)
@@ -310,7 +311,7 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 				f0 = f;
 			}
 		}
-		
+
 		if (f0)
 		{
 			qhVertex* v = AllocateVertex();
@@ -323,17 +324,15 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 	return true;
 }
 
-qhVertex* qhHull::NextVertex()
+qhVertex* qhHull::FindEyeVertex() const
 {
 	// Find the point furthest from the current hull.
 	float32 d0 = m_tolerance;
 	qhVertex* v0 = NULL;
 
-	qhFace* f = m_faceList.head;
-	while (f)
+	for (qhFace* f = m_faceList.head; f != NULL; f = f->next)
 	{
-		qhVertex* v = f->conflictList.head;
-		while (v)
+		for (qhVertex* v = f->conflictList.head; v != NULL; v = v->next)
 		{
 			float32 d = b3Distance(v->position, f->plane);
 			if (d > d0)
@@ -341,11 +340,7 @@ qhVertex* qhHull::NextVertex()
 				d0 = d;
 				v0 = v;
 			}
-
-			v = v->next;
 		}
-
-		f = f->next;
 	}
 
 	return v0;
@@ -368,27 +363,29 @@ void qhHull::FindHorizon(qhVertex* eye)
 
 	// Find the horizon 
 	m_horizonCount = 0;
-	FindHorizon(eye, eye->conflictFace->edge);
+	FindHorizon(eye, eye->conflictFace, eye->conflictFace->edge);
 }
 
-void qhHull::FindHorizon(qhVertex* eye, qhHalfEdge* begin)
+void qhHull::FindHorizon(qhVertex* eye, qhFace* face, qhHalfEdge* begin)
 {
-	// Mark face as visible/visited.
-	qhFace* face = begin->face;
+	// Mark the face 
 	face->state = qhFace::e_visible;
 
+	//
 	qhHalfEdge* edge = begin;
-
 	do
 	{
-		qhHalfEdge* adjEdge = edge->twin;
-		qhFace* adjFace = adjEdge->face;
+		qhHalfEdge* twin = edge->twin;
+		qhFace* other = twin->face;
 
-		if (adjFace->state == qhFace::e_invisible)
+		if (other->state == qhFace::e_invisible)
 		{
-			if (b3Distance(eye->position, adjFace->plane) > m_tolerance)
+			// Is the other face invisible?
+			if (b3Distance(eye->position, other->plane) > m_tolerance)
 			{
-				FindHorizon(eye, adjEdge);
+				// Recurse starting from the twin edge for 
+				// ensuring CCW horizon order
+				FindHorizon(eye, other, twin);
 			}
 			else
 			{
@@ -397,7 +394,6 @@ void qhHull::FindHorizon(qhVertex* eye, qhHalfEdge* begin)
 		}
 
 		edge = edge->next;
-
 	} while (edge != begin);
 }
 
@@ -432,7 +428,7 @@ void qhHull::AddNewFaces(qhVertex* eye)
 		prevEdge->twin = leftEdge;
 
 		prevEdge = rightEdge;
-		
+
 		m_newFaces[m_newFaceCount++] = leftEdge->face;
 	}
 
@@ -574,7 +570,7 @@ qhHalfEdge* qhHull::CreateAdjoiningTriangle(qhVertex* eye, qhHalfEdge* horizonEd
 	qhHalfEdge* e1 = AllocateEdge();
 	qhHalfEdge* e2 = AllocateEdge();
 	qhHalfEdge* e3 = AllocateEdge();
-	
+
 	e1->tail = v1;
 	e1->prev = e3;
 	e1->next = e2;
@@ -640,11 +636,11 @@ bool qhHull::MergeFace(qhFace* rightFace)
 				rightFace->conflictList.PushFront(v0);
 				v0->conflictFace = rightFace;
 			}
-			
+
 			// Set right face to reference a non-deleted edge
 			B3_ASSERT(e->face == rightFace);
 			rightFace->edge = e->prev;
-			
+
 			// Absorb face
 			qhHalfEdge* te = e->twin;
 			do
@@ -663,7 +659,7 @@ bool qhHull::MergeFace(qhFace* rightFace)
 			FreeEdge(e);
 			m_faceList.Remove(leftFace);
 			FreeFace(leftFace);
-			
+
 			// Compute face center and plane
 			rightFace->ComputeCenterAndPlane();
 
@@ -683,8 +679,8 @@ void qhHull::MergeFaces()
 	for (u32 i = 0; i < m_newFaceCount; ++i)
 	{
 		qhFace* f = m_newFaces[i];
-		
-		if (f->state == qhFace::e_deleted) 
+
+		if (f->state == qhFace::e_deleted)
 		{
 			continue;
 		}
@@ -702,7 +698,7 @@ void qhHull::Validate(const qhHalfEdge* edge) const
 	b3Vec3 A = edge->tail->position;
 	b3Vec3 B = twin->tail->position;
 	B3_ASSERT(b3DistanceSquared(A, B) >= B3_LINEAR_SLOP * B3_LINEAR_SLOP);
-	
+
 	u32 count = 0;
 	const qhHalfEdge* begin = edge;
 	do

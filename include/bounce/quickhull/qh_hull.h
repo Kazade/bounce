@@ -118,11 +118,11 @@ public:
 private:
 	bool BuildInitialHull(const b3Vec3* vertices, u32 count);
 
-	qhVertex* NextVertex();
+	qhVertex* FindEyeVertex() const;
 	void AddVertex(qhVertex* v);
 
 	void FindHorizon(qhVertex* eye);
-	void FindHorizon(qhVertex* eye, qhHalfEdge* edge);
+	void FindHorizon(qhVertex* eye, qhFace* face, qhHalfEdge* begin);
 
 	void AddNewFaces(qhVertex* eye);
 	void MergeFaces();
@@ -137,7 +137,7 @@ private:
 	float32 m_tolerance;
 
 	// Number of Quickhull iterations
-	u32 m_iteration;
+	u32 m_iterations;
 
 	// List of faces
 	qhList<qhFace> m_faceList; 
