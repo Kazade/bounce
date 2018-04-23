@@ -463,7 +463,7 @@ void qhHull::AddNewFaces(qhVertex* eye)
 
 			// Use tolerance and discard internal points.
 			float32 max = m_tolerance;
-			qhFace* iMax = NULL;
+			qhFace* maxFace = NULL;
 
 			for (u32 i = 0; i < m_newFaceCount; ++i)
 			{
@@ -472,16 +472,16 @@ void qhHull::AddNewFaces(qhVertex* eye)
 				if (d > max)
 				{
 					max = d;
-					iMax = newFace;
+					maxFace = newFace;
 				}
 			}
 
-			if (iMax)
+			if (maxFace)
 			{
 				qhVertex* v0 = v;
 				v->conflictFace = NULL;
 				v = f->conflictList.Remove(v);
-				iMax->conflictList.PushFront(v0);
+				maxFace->conflictList.PushFront(v0);
 				v0->conflictFace = iMax;
 			}
 			else
