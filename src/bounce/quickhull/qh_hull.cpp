@@ -610,6 +610,12 @@ bool qhHull::MergeFace(qhFace* rightFace)
 	{
 		qhFace* leftFace = e->twin->face;
 
+		if (leftFace == rightFace)
+		{
+			e = e->next;
+			continue;
+		}
+
 		float32 d1 = b3Distance(leftFace->center, rightFace->plane);
 		float32 d2 = b3Distance(rightFace->center, leftFace->plane);
 
@@ -617,15 +623,11 @@ bool qhHull::MergeFace(qhFace* rightFace)
 		{
 			// Convex
 			e = e->next;
+			continue;
 		}
 		else
 		{
 			// Concave or coplanar
-			if (leftFace == rightFace)
-			{
-				e = e->next;
-				continue;
-			}
 
 			// Move left vertices into right
 			qhVertex* v = leftFace->conflictList.head;
