@@ -482,7 +482,7 @@ void qhHull::AddNewFaces(qhVertex* eye)
 				v->conflictFace = NULL;
 				v = f->conflictList.Remove(v);
 				maxFace->conflictList.PushFront(v0);
-				v0->conflictFace = iMax;
+				v0->conflictFace = maxFace;
 			}
 			else
 			{
