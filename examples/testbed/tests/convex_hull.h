@@ -30,32 +30,7 @@ public:
 
 	ConvexHull()
 	{
-		b3BoxHull box;
-		box.SetIdentity();
-
-		b3Vec3 tetra[4];
-		b3Vec3 v1(-1.0f, 0.0f, 0.0f);
-		b3Vec3 v2(1.0f, 0.0f, 0.0f);
-		b3Vec3 v3(0.0f, 0.0f, -1.0f);
-		b3Vec3 v4 = 0.5f * (v1 + v2 + v3);
-		v4.y += 2.0f;
-
-		tetra[0] = v1;
-		tetra[1] = v2;
-		tetra[2] = v3;
-		tetra[3] = v4;
-
-		// Minkowski sum of box and tetrahedron
-		m_count = 0;
-		for (u32 i = 0; i < box.vertexCount; ++i)
-		{
-			for (u32 j = 0; j < 4; ++j)
-			{
-				b3Vec3 p = box.vertices[i] - tetra[j];
-				
-				m_points[m_count++] = p;
-			}
-		}
+		Generate();
 	}
 
 	~ConvexHull()
