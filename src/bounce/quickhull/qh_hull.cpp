@@ -355,53 +355,93 @@ void qhHull::AddVertex(qhVertex* eye)
 
 void qhHull::FindHorizon(qhVertex* eye)
 {
-	// Clean visited flags
+	// Classify faces
+	// Reuse new face buffer 
+	u32 visibleCount = 0;
+	qhFace** visibleFaces = m_newFaces;
 	for (qhFace* face = m_faceList.head; face != NULL; face = face->next)
 	{
-		face->state = qhFace::e_invisible;
+		float32 d = b3Distance(eye->position, face->plane);
+		if (d > m_tolerance)
+		{
+			face->state = qhFace::e_visible;
+			
+			visibleFaces[visibleCount++] = face;
+		}
+		else
+		{
+			face->state = qhFace::e_invisible;
+		}
 	}
 
 	// Find the horizon 
 	m_horizonCount = 0;
-	FindHorizon(eye, eye->conflictFace, eye->conflictFace->edge);
-}
-
-void qhHull::FindHorizon(qhVertex* eye, qhFace* face, qhHalfEdge* begin)
-{
-	// Mark the face 
-	face->state = qhFace::e_visible;
-
-	//
-	qhHalfEdge* edge = begin;
-	do
+	for (u32 i = 0; i < visibleCount; ++i)
 	{
-		qhHalfEdge* twin = edge->twin;
-		qhFace* other = twin->face;
+		qhFace* face = visibleFaces[i];
 
-		if (other->state == qhFace::e_invisible)
+		qhHalfEdge* begin = face->edge;
+		qhHalfEdge* edge = begin;
+		do
 		{
-			// Is the other face invisible?
-			if (b3Distance(eye->position, other->plane) > m_tolerance)
-			{
-				// Recurse starting from the twin edge for 
-				// ensuring CCW horizon order
-				FindHorizon(eye, other, twin);
-			}
-			else
+			qhHalfEdge* twin = edge->twin;
+			qhFace* other = twin->face;
+
+			if (other->state == qhFace::e_invisible)
 			{
 				m_horizon[m_horizonCount++] = edge;
 			}
-		}
 
-		edge = edge->next;
-	} while (edge != begin);
+			edge = edge->next;
+		} while (edge != begin);
+	}
+
+	// Ensure unique edges
+	for (u32 i = 0; i < m_horizonCount; ++i)
+	{
+		for (u32 j = i + 1; j < m_horizonCount; ++j)
+		{
+			B3_ASSERT(m_horizon[i] != m_horizon[j]);
+		}
+	}
+
+	// Sort the horizon in CCW order 
+	B3_ASSERT(m_horizonCount > 0);
+	for (u32 i = 0; i < m_horizonCount - 1; ++i)
+	{
+		qhHalfEdge* e1 = m_horizon[i]->twin;
+		qhVertex* v1 = e1->tail;
+
+		for (u32 j = i + 1; j < m_horizonCount; ++j)
+		{
+			qhHalfEdge* e2 = m_horizon[j];
+			qhVertex* v2 = e2->tail;
+
+			if (v1 == v2)
+			{
+				b3Swap(m_horizon[j], m_horizon[i + 1]);
+				break;
+			}
+		}
+	}
 }
 
 void qhHull::AddNewFaces(qhVertex* eye)
 {
-	m_newFaceCount = 0;
-
+	// Ensure CCW horizon order
 	B3_ASSERT(m_horizonCount > 0);
+	for (u32 i = 0; i < m_horizonCount; ++i)
+	{
+		qhHalfEdge* e1 = m_horizon[i]->twin;
+
+		u32 j = i + 1 < m_horizonCount ? i + 1 : 0;
+		qhHalfEdge* e2 = m_horizon[j];
+
+		B3_ASSERT(e1->tail == e2->tail);
+	}
+
+	// Add new faces
+	m_newFaceCount = 0;
 
 	qhHalfEdge* beginEdge = NULL;
 	qhHalfEdge* prevEdge = NULL;

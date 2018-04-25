@@ -122,7 +122,6 @@ private:
 	void AddVertex(qhVertex* v);
 
 	void FindHorizon(qhVertex* eye);
-	void FindHorizon(qhVertex* eye, qhFace* face, qhHalfEdge* begin);
 
 	void AddNewFaces(qhVertex* eye);
 	void MergeFaces();
