@@ -356,17 +356,12 @@ void qhHull::AddVertex(qhVertex* eye)
 void qhHull::FindHorizon(qhVertex* eye)
 {
 	// Classify faces
-	// Reuse new face buffer 
-	u32 visibleCount = 0;
-	qhFace** visibleFaces = m_newFaces;
 	for (qhFace* face = m_faceList.head; face != NULL; face = face->next)
 	{
 		float32 d = b3Distance(eye->position, face->plane);
 		if (d > m_tolerance)
 		{
 			face->state = qhFace::e_visible;
-			
-			visibleFaces[visibleCount++] = face;
 		}
 		else
 		{
@@ -376,9 +371,12 @@ void qhHull::FindHorizon(qhVertex* eye)
 
 	// Find the horizon 
 	m_horizonCount = 0;
-	for (u32 i = 0; i < visibleCount; ++i)
+	for (qhFace* face = m_faceList.head; face != NULL; face = face->next)
 	{
-		qhFace* face = visibleFaces[i];
+		if (face->state == qhFace::e_invisible)
+		{
+			continue;
+		}
 
 		qhHalfEdge* begin = face->edge;
 		qhHalfEdge* edge = begin;
