@@ -121,11 +121,7 @@ inline void qhFace::ComputeCenterAndPlane()
 
 // Given a number of points return the required memory size in 
 // bytes for constructing the convex hull of those points. 
-// This function uses constant expression (C++11). Therefore, you can evaluate 
-// its value at compile-time. That is particularly usefull when you want to 
-// create a stack buffer from a constant number of vertices. 
-// Due to the constexpr specifier, this function is automatically inlined.
-constexpr u32 qhGetBufferSize(u32 pointCount)
+inline u32 qhGetBufferSize(u32 pointCount)
 {
 	u32 size = 0;
 
@@ -179,12 +175,14 @@ inline void qhHull::FreeVertex(qhVertex* v)
 inline qhHalfEdge* qhHull::AllocateEdge()
 {
 	qhHalfEdge* e = m_freeEdges;
+	e->state = qhHalfEdge::e_used;
 	m_freeEdges = e->freeNext;
 	return e;
 }
 
 inline void qhHull::FreeEdge(qhHalfEdge* e)
 {
+	e->state = qhHalfEdge::e_deleted;
 	e->freeNext = m_freeEdges;
 	m_freeEdges = e;
 }

@@ -67,6 +67,14 @@ struct qhFace
 
 struct qhHalfEdge
 {
+	enum State
+	{
+		e_used,
+		e_deleted
+	};
+	
+	State state;
+
 	qhHalfEdge* freeNext;
 
 	qhVertex* tail;

@@ -768,6 +768,8 @@ void qhHull::Validate(const qhFace* face) const
 	const qhHalfEdge* edge = begin;
 	do
 	{
+		B3_ASSERT(edge->state != qhHalfEdge::e_deleted);
+
 		B3_ASSERT(edge->face == face);
 
 		qhHalfEdge* twin = edge->twin;
