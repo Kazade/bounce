@@ -18,8 +18,6 @@
 
 #include <bounce/quickhull/qh_hull.h>
 #include <bounce/common/template/array.h>
-#include <bounce/common/template/stack.h>
-#include <bounce/common/template/queue.h>
 #include <bounce/common/draw.h>
 
 static float32 qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Vec3* vertices, u32 count)
@@ -732,6 +730,12 @@ void qhHull::MergeFaces()
 	for (u32 i = 0; i < m_newFaceCount; ++i)
 	{
 		qhFace* face = m_newFaces[i];
+		
+		// Was the face merged?
+		if (face->state == qhFace::e_deleted)
+		{
+			continue;
+		}
 
 		// Merge the faces while there is no face left to merge.
 		while (MergeFace(face));
