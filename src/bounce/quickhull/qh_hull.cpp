@@ -731,15 +731,10 @@ void qhHull::MergeFaces()
 {
 	for (u32 i = 0; i < m_newFaceCount; ++i)
 	{
-		qhFace* f = m_newFaces[i];
-
-		if (f->state == qhFace::e_deleted)
-		{
-			continue;
-		}
+		qhFace* face = m_newFaces[i];
 
 		// Merge the faces while there is no face left to merge.
-		while (MergeFace(f));
+		while (MergeFace(face));
 	}
 }
 
