@@ -66,15 +66,12 @@ inline u32 qhFace::GetEdgeCount() const
 	return count;
 }
 
-inline qhHalfEdge* qhFace::FindTwin(const qhVertex* tail, const qhVertex* head) const
+inline qhHalfEdge* qhFace::FindHalfEdge(const qhVertex* v1, const qhVertex* v2) const
 {
 	qhHalfEdge* e = edge;
 	do
 	{
-		qhVertex* tail2 = e->tail;
-		qhVertex* head2 = e->next->tail;
-
-		if (tail2 == tail && head2 == head)
+		if (e->tail == v1 && e->next->tail == v2)
 		{
 			return e;
 		}
@@ -137,7 +134,7 @@ constexpr u32 qhGetBufferSize(u32 pointCount)
 	u32 E = 3 * V - 6;
 	u32 HE = 2 * E;
 	u32 F = 2 * V - 4;
-	
+
 	size += V * sizeof(qhVertex);
 	size += HE * sizeof(qhHalfEdge);
 	size += F * sizeof(qhFace);
@@ -148,11 +145,11 @@ constexpr u32 qhGetBufferSize(u32 pointCount)
 
 	// Horizon
 	size += HE * sizeof(qhHalfEdge*);
-	
+
 	// New Faces
 	// One face per horizon edge
 	size += HE * sizeof(qhFace*);
-	
+
 	return size;
 }
 
@@ -206,17 +203,15 @@ inline void qhHull::FreeFace(qhFace* f)
 	m_freeFaces = f;
 }
 
-inline qhHalfEdge* qhHull::FindTwin(const qhVertex* tail, const qhVertex* head) const
+inline qhHalfEdge* qhHull::FindHalfEdge(const qhVertex* v1, const qhVertex* v2) const
 {
-	qhFace* face = m_faceList.head;
-	while (face)
+	for (qhFace* face = m_faceList.head; face != NULL; face = face->next)
 	{
-		qhHalfEdge* e = face->FindTwin(tail, head);
+		qhHalfEdge* e = face->FindHalfEdge(v1, v2);
 		if (e)
 		{
 			return e;
 		}
-		face = face->next;
 	}
 	return NULL;
 }

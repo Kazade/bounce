@@ -59,7 +59,9 @@ struct qhFace
 
 	u32 GetVertexCount() const;
 	u32 GetEdgeCount() const;
-	qhHalfEdge* FindTwin(const qhVertex* tail, const qhVertex* head) const;
+	
+	qhHalfEdge* FindHalfEdge(const qhVertex* v1, const qhVertex* v2) const;
+	
 	void ComputeCenterAndPlane();
 };
 
@@ -117,6 +119,7 @@ public:
 	void Draw() const;
 private:
 	bool BuildInitialHull(const b3Vec3* vertices, u32 count);
+	qhFace* AddFace(qhVertex* v1, qhVertex* v2, qhVertex* v3);
 
 	qhVertex* FindEyeVertex() const;
 	void AddVertex(qhVertex* v);
@@ -124,13 +127,12 @@ private:
 	void FindHorizon(qhVertex* eye);
 
 	void AddNewFaces(qhVertex* eye);
+	void AddNewFace(qhVertex* v1, qhVertex* v2, qhVertex* v3);
+	
 	void MergeFaces();
 	bool MergeFace(qhFace* face);
 
-	qhFace* CreateTriangle(qhVertex* v1, qhVertex* v2, qhVertex* v3);
-	qhHalfEdge* CreateAdjoiningTriangle(qhVertex* v, qhHalfEdge* he);
-	
-	qhHalfEdge* FindTwin(const qhVertex* tail, const qhVertex* head) const;
+	qhHalfEdge* FindHalfEdge(const qhVertex* v1, const qhVertex* v2) const;
 
 	// Coplanarity tolerance
 	float32 m_tolerance;
