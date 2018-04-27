@@ -154,6 +154,11 @@ inline u32 qhHull::GetIterations() const
 	return m_iterations;
 }
 
+inline const qhList<qhVertex>& qhHull::GetVertexList() const
+{
+	return m_vertexList;
+}
+
 inline const qhList<qhFace>& qhHull::GetFaceList() const
 {
 	return m_faceList;

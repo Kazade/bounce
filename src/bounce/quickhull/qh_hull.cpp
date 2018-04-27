@@ -105,8 +105,12 @@ void qhHull::Construct(void* memory, const b3Vec3* vs, u32 count)
 	m_newFaces = (qhFace**)((u8*)m_horizon + HE * sizeof(qhHalfEdge*));
 	m_newFaceCount = 0;
 
+	m_vertexList.head = NULL;
+	m_vertexList.count = 0;
+
 	m_faceList.head = NULL;
 	m_faceList.count = 0;
+	
 	m_iterations = 0;
 
 	if (!BuildInitialHull(vs, count))
@@ -119,7 +123,7 @@ void qhHull::Construct(void* memory, const b3Vec3* vs, u32 count)
 	{
 		Validate();
 
-		AddVertex(eye);
+		AddEyeVertex(eye);
 
 		eye = FindEyeVertex();
 
@@ -305,7 +309,6 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 		if (f0)
 		{
 			qhVertex* v = AllocateVertex();
-			v->mark = qhVertexMark::e_conflict;
 			v->position = p;
 			v->conflictFace = f0;
 			f0->conflictList.PushFront(v);
@@ -325,11 +328,6 @@ qhVertex* qhHull::FindEyeVertex() const
 	{
 		for (qhVertex* v = f->conflictList.head; v != NULL; v = v->next)
 		{
-			if (v->mark == qhVertexMark::e_hull)
-			{
-				continue;
-			}
-
 			float32 d = b3Distance(v->position, f->plane);
 			if (d > d0)
 			{
@@ -342,7 +340,7 @@ qhVertex* qhHull::FindEyeVertex() const
 	return v0;
 }
 
-void qhHull::AddVertex(qhVertex* eye)
+void qhHull::AddEyeVertex(qhVertex* eye)
 {
 	FindHorizon(eye);
 	AddNewFaces(eye);
@@ -428,15 +426,21 @@ void qhHull::AddNewFaces(qhVertex* eye)
 		B3_ASSERT(e1->tail == e2->tail);
 	}
 
+	// Remove the eye vertex from the conflict list
+	b3Vec3 eyePosition = eye->position;
+		
+	eye->conflictFace->conflictList.Remove(eye);
+	FreeVertex(eye);
+
+	// Add the eye point to the hull
+	qhVertex* v1 = AddVertex(eyePosition);
+
 	// Create new faces
 	m_newFaceCount = 0;
 	for (u32 i = 0; i < m_horizonCount; ++i)
 	{
 		qhHalfEdge* edge = m_horizon[i];
 
-		qhVertex* v1 = eye;
-		v1->mark = qhVertexMark::e_hull;
-		
 		qhVertex* v2 = edge->tail;
 		qhVertex* v3 = edge->twin->tail;
 
@@ -459,12 +463,6 @@ void qhHull::AddNewFaces(qhVertex* eye)
 		qhVertex* v = f->conflictList.head;
 		while (v)
 		{
-			if (v->mark == qhVertexMark::e_hull)
-			{
-				v = v->next;
-				continue;
-			}
-
 			b3Vec3 p = v->position;
 
 			float32 max = m_tolerance;
@@ -533,8 +531,11 @@ void qhHull::AddNewFaces(qhVertex* eye)
 qhVertex* qhHull::AddVertex(const b3Vec3& position)
 {
 	qhVertex* v = AllocateVertex();
-	v->mark = qhVertexMark::e_hull;
 	v->position = position;
+	v->conflictFace = NULL;
+
+	m_vertexList.PushFront(v);
+	
 	return v;
 }
 
@@ -767,10 +768,8 @@ void qhHull::Validate(const qhHalfEdge* edge) const
 	B3_ASSERT(twin->twin == edge);
 
 	B3_ASSERT(edge->tail->active == true);
-	B3_ASSERT(edge->tail->mark == qhVertexMark::e_hull);
 	b3Vec3 A = edge->tail->position;
-
-	B3_ASSERT(twin->tail->mark == qhVertexMark::e_hull);
+	
 	B3_ASSERT(twin->tail->active == true);
 	b3Vec3 B = twin->tail->position;
 	
@@ -808,6 +807,11 @@ void qhHull::Validate(const qhFace* face) const
 
 void qhHull::Validate() const
 {
+	for (qhVertex* vertex = m_vertexList.head; vertex != NULL; vertex = vertex->next)
+	{
+		B3_ASSERT(vertex->active == true);
+	}
+
 	for (qhFace* face = m_faceList.head; face != NULL; face = face->next)
 	{
 		B3_ASSERT(face->active == true);

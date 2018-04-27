@@ -81,12 +81,6 @@ struct qhHalfEdge
 	bool active;
 };
 
-enum qhVertexMark
-{
-	e_conflict,
-	e_hull
-};
-
 struct qhVertex
 {
 	qhVertex* prev;
@@ -95,8 +89,6 @@ struct qhVertex
 	b3Vec3 position;
 
 	qhFace* conflictFace;
-	
-	qhVertexMark mark;
 
 	//
 	qhVertex* freeNext;
@@ -120,6 +112,9 @@ public:
 	// Get the number of iterations this algorithm ran.
 	u32 GetIterations() const;
 
+	// Get the list of vertices in this convex hull.
+	const qhList<qhVertex>& GetVertexList() const;
+	
 	// Get the list of faces in this convex hull.
 	const qhList<qhFace>& GetFaceList() const;
 
@@ -139,7 +134,7 @@ private:
 	qhFace* RemoveFace(qhFace* face);
 
 	qhVertex* FindEyeVertex() const;
-	void AddVertex(qhVertex* v);
+	void AddEyeVertex(qhVertex* eye);
 
 	void FindHorizon(qhVertex* eye);
 
@@ -157,6 +152,9 @@ private:
 	// Number of Quickhull iterations
 	u32 m_iterations;
 
+	// List of vertices
+	qhList<qhVertex> m_vertexList;
+	
 	// List of faces
 	qhList<qhFace> m_faceList; 
 	
