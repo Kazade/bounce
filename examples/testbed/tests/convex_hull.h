@@ -51,13 +51,18 @@ public:
 		m_count = 0;
 		for (u32 i = 0; i < e_count; ++i)
 		{
-			// Clamp to force coplanarities.
-			// This will stress the generation code.
 			float32 x = 3.0f * RandomFloat(-1.0f, 1.0f);
 			float32 y = 3.0f * RandomFloat(-1.0f, 1.0f);
 			float32 z = 3.0f * RandomFloat(-1.0f, 1.0f);
+			
+			// Clamp to force coplanarities.
+			// This will stress the convex hull creation code.
+			x = b3Clamp(x, -2.5f, 2.5f);
+			y = b3Clamp(y, -2.5f, 2.5f);
+			z = b3Clamp(z, -2.5f, 2.5f);
 
 			b3Vec3 p(x, y, z);
+			
 			m_points[m_count++] = p;
 		}
 	}
