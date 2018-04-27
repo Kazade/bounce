@@ -320,7 +320,7 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 
 qhVertex* qhHull::FindEyeVertex() const
 {
-	// Find the point furthest from the current hull.
+	// Find the furthest conflict point.
 	float32 d0 = m_tolerance;
 	qhVertex* v0 = NULL;
 
