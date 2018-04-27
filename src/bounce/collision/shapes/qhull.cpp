@@ -149,8 +149,7 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 
 		for (u32 j = 0; j < psCount; ++j)
 		{
-			const float32 kTol = 0.5f * B3_LINEAR_SLOP;
-			if (b3DistanceSquared(p, ps[j]) < kTol * kTol)
+			if (b3DistanceSquared(p, ps[j]) <= B3_LINEAR_SLOP * B3_LINEAR_SLOP)
 			{
 				unique = false;
 				break;

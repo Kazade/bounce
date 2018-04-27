@@ -162,8 +162,8 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 			}
 		}
 
-		// Coincident check.
-		if (d0 < B3_LINEAR_SLOP * B3_LINEAR_SLOP)
+		// Coincidence check
+		if (d0 <= B3_EPSILON * B3_EPSILON)
 		{
 			B3_ASSERT(false);
 			return false;
@@ -200,7 +200,7 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 		}
 
 		// Colinear check.
-		if (a0 < (2.0f * B3_LINEAR_SLOP) * (2.0f * B3_LINEAR_SLOP))
+		if (a0 <= (2.0f * B3_EPSILON) * (2.0f * B3_EPSILON))
 		{
 			B3_ASSERT(false);
 			return false;
@@ -241,7 +241,7 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 		}
 
 		// Coplanar check.
-		if (d0 < m_tolerance)
+		if (d0 <= m_tolerance)
 		{
 			B3_ASSERT(false);
 			return false;
@@ -749,7 +749,7 @@ void qhHull::Validate(const qhHalfEdge* edge) const
 
 	b3Vec3 A = edge->tail->position;
 	b3Vec3 B = twin->tail->position;
-	B3_ASSERT(b3DistanceSquared(A, B) >= B3_LINEAR_SLOP * B3_LINEAR_SLOP);
+	B3_ASSERT(b3DistanceSquared(A, B) > B3_EPSILON * B3_EPSILON);
 
 	u32 count = 0;
 	const qhHalfEdge* begin = edge;
