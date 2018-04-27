@@ -25,14 +25,24 @@
 #include <bounce/dynamics/joints/joint.h>
 #include <bounce/dynamics/time_step.h>
 
-extern u32 b3_allocCalls;
-extern u32 b3_maxAllocCalls;
+extern u32 b3_allocCalls, b3_maxAllocCalls;
+extern u32 b3_convexCalls, b3_convexCacheHits;
+extern u32 b3_gjkCalls, b3_gjkIters, b3_gjkMaxIters;
+extern bool b3_convexCache;
 
 b3World::b3World() : m_bodyBlocks(sizeof(b3Body))
 {
 	b3_allocCalls = 0;
 	b3_maxAllocCalls = 0;
+	
+	b3_gjkCalls = 0;
+	b3_gjkIters = 0;
 
+	b3_convexCalls = 0;
+	b3_convexCacheHits = 0;
+
+	b3_convexCache = true;
+	
 	m_flags = e_clearForcesFlag;
 	m_sleeping = false;
 	m_warmStarting = true;
@@ -49,8 +59,15 @@ b3World::~b3World()
 		b->DestroyJoints();
 		b = b->m_next;
 	}
+	
 	b3_allocCalls = 0;
 	b3_maxAllocCalls = 0;
+
+	b3_gjkCalls = 0;
+	b3_gjkIters = 0;
+
+	b3_convexCalls = 0;
+	b3_convexCacheHits = 0;
 }
 
 void b3World::SetSleeping(bool flag)
@@ -97,6 +114,16 @@ void b3World::DestroyJoint(b3Joint* j)
 void b3World::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 {
 	B3_PROFILE("Step");
+
+	// Clear statistics
+	b3_allocCalls = 0;
+	
+	b3_convexCalls = 0;
+	b3_convexCacheHits = 0;
+
+	b3_gjkCalls = 0;
+	b3_gjkIters = 0;
+	b3_gjkMaxIters = 0;
 
 	if (m_flags & e_shapeAddedFlag)
 	{

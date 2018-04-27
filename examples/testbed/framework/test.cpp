@@ -21,30 +21,24 @@
 #include <imgui/imgui.h>
 
 extern u32 b3_allocCalls, b3_maxAllocCalls;
+extern u32 b3_convexCalls, b3_convexCacheHits;
 extern u32 b3_gjkCalls, b3_gjkIters, b3_gjkMaxIters;
 extern bool b3_convexCache;
-extern u32 b3_convexCalls, b3_convexCacheHits;
 
-bool b3PushProfileScope(const char* name)
+void b3BeginProfileScope(const char* name)
 {
-	return g_profiler->PushEvent(name);
+	g_profiler->PushEvent(name);
 }
 
-void b3PopProfileScope()
+void b3EndProfileScope()
 {
 	g_profiler->PopEvent();
 }
 
 Test::Test() : m_bodyDragger(&m_bodyRay, &m_world)
 {
-	b3_allocCalls = 0;
-	b3_gjkCalls = 0;
-	b3_gjkIters = 0;
-	b3_gjkMaxIters = 0;
-	b3_convexCache = g_testSettings->convexCache;
-	b3_convexCalls = 0;
-	b3_convexCacheHits = 0;
 	b3Draw_draw = g_draw;
+	b3_convexCache = g_testSettings->convexCache;
 
 	m_world.SetContactListener(this);
 
@@ -58,25 +52,12 @@ Test::Test() : m_bodyDragger(&m_bodyRay, &m_world)
 
 Test::~Test()
 {
-	b3_allocCalls = 0;
-	b3_gjkCalls = 0;
-	b3_gjkIters = 0;
-	b3_gjkMaxIters = 0;
-	b3_convexCache = false;
-	b3_convexCalls = 0;
-	b3_convexCacheHits = 0;
 	b3Draw_draw = nullptr;
 }
 
 void Test::Step()
 {
-	b3_allocCalls = 0;
-	b3_gjkCalls = 0;
-	b3_gjkIters = 0;
-	b3_gjkMaxIters = 0;
 	b3_convexCache = g_testSettings->convexCache;
-	b3_convexCalls = 0;
-	b3_convexCacheHits = 0;
 
 	// Step
 	float32 dt = g_testSettings->inv_hertz;

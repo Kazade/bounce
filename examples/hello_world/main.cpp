@@ -19,13 +19,13 @@
 #include <bounce\bounce.h>
 
 // We don't care for a profiler. This definition does nothing.
-bool b3PushProfileScope(const char* name)
+void b3BeginProfileScope(const char* name)
 {
-	return false;
+
 }
 
 // We don't care for a profiler. This definition does nothing.
-void b3PopProfileScope()
+void b3EndProfileScope()
 {
 	
 }

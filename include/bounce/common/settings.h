@@ -143,28 +143,25 @@ void b3Free(void* block);
 // from this software.
 void b3Log(const char* string, ...);
 
-// You should implement this function to use your own profiler.
-bool b3PushProfileScope(const char* name);
+// You should implement this function to listen when a profile scope is opened.
+void b3BeginProfileScope(const char* name);
 
-// You should implement this function to use your own profiler.
-void b3PopProfileScope();
+// You must implement this function if you have implemented b3BeginProfileScope.
+// Implement this function to listen when a profile scope is closed.
+void b3EndProfileScope();
 
+// 
 struct b3ProfileScope
 {
 	b3ProfileScope(const char* name)
 	{
-		b = b3PushProfileScope(name);
+		b3BeginProfileScope(name);
 	}
 
 	~b3ProfileScope()
 	{
-		if (b)
-		{
-			b3PopProfileScope();
-		}
+		b3EndProfileScope();
 	}
-private:
-	bool b;
 };
 
 // The current version this software.
