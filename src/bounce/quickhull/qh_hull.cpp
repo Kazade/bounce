@@ -265,22 +265,20 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 	qhVertex* v4 = AllocateVertex();
 	v4->position = D;
 
-	qhFace* faces[4];
-
 	if (b3Distance(D, plane) < 0.0f)
 	{
-		faces[0] = AddFace(v1, v2, v3);
-		faces[1] = AddFace(v4, v2, v1);
-		faces[2] = AddFace(v4, v3, v2);
-		faces[3] = AddFace(v4, v1, v3);
+		AddFace(v1, v2, v3);
+		AddFace(v4, v2, v1);
+		AddFace(v4, v3, v2);
+		AddFace(v4, v1, v3);
 	}
 	else
 	{
 		// Ensure CCW order.
-		faces[0] = AddFace(v1, v3, v2);
-		faces[1] = AddFace(v4, v1, v2);
-		faces[2] = AddFace(v4, v2, v3);
-		faces[3] = AddFace(v4, v3, v1);
+		AddFace(v1, v3, v2);
+		AddFace(v4, v1, v2);
+		AddFace(v4, v2, v3);
+		AddFace(v4, v3, v1);
 	}
 
 	// Connectivity check.
@@ -301,9 +299,8 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 		float32 d0 = m_tolerance;
 		qhFace* f0 = NULL;
 
-		for (u32 j = 0; j < 4; ++j)
+		for (qhFace* f = m_faceList.head; f != NULL; f = f->next)
 		{
-			qhFace* f = faces[j];
 			float32 d = b3Distance(p, f->plane);
 			if (d > d0)
 			{
@@ -448,7 +445,7 @@ void qhHull::AddNewFaces(qhVertex* eye)
 		qhVertex* v2 = edge->tail;
 		qhVertex* v3 = edge->twin->tail;
 
-		AddNewFace(v1, v2, v3);
+		qhFace* face = AddNewFace(v1, v2, v3);
 	}
 
 	// Remove obsolete faces
@@ -612,7 +609,7 @@ qhFace* qhHull::AddFace(qhVertex* v1, qhVertex* v2, qhVertex* v3)
 	return face;
 }
 
-void qhHull::AddNewFace(qhVertex* v1, qhVertex* v2, qhVertex* v3)
+qhFace* qhHull::AddNewFace(qhVertex* v1, qhVertex* v2, qhVertex* v3)
 {
 	qhFace* face = AllocateFace();
 
@@ -649,6 +646,8 @@ void qhHull::AddNewFace(qhVertex* v1, qhVertex* v2, qhVertex* v3)
 	face->next = NULL;
 
 	m_newFaces[m_newFaceCount++] = face;
+
+	return face;
 }
 
 bool qhHull::MergeFace(qhFace* rightFace)

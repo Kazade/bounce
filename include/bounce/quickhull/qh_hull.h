@@ -135,7 +135,7 @@ private:
 	void FindHorizon(qhVertex* eye);
 
 	void AddNewFaces(qhVertex* eye);
-	void AddNewFace(qhVertex* v1, qhVertex* v2, qhVertex* v3);
+	qhFace* AddNewFace(qhVertex* v1, qhVertex* v2, qhVertex* v3);
 	
 	void MergeFaces();
 	bool MergeFace(qhFace* face);
