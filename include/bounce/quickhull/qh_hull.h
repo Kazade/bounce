@@ -68,17 +68,23 @@ struct qhFace
 
 struct qhHalfEdge
 {
-	qhVertex* tail;
-
 	qhHalfEdge* prev;
 	qhHalfEdge* next;
 	qhHalfEdge* twin;
 
 	qhFace* face;
 
+	qhVertex* tail;
+
 	//
 	qhHalfEdge* freeNext;
 	bool active;
+};
+
+enum qhVertexMark
+{
+	e_conflict,
+	e_hull
 };
 
 struct qhVertex
@@ -89,6 +95,8 @@ struct qhVertex
 	b3Vec3 position;
 
 	qhFace* conflictFace;
+	
+	qhVertexMark mark;
 
 	//
 	qhVertex* freeNext;
@@ -124,6 +132,9 @@ public:
 	void Draw() const;
 private:
 	bool BuildInitialHull(const b3Vec3* vertices, u32 count);
+	
+	qhVertex* AddVertex(const b3Vec3& position);
+	
 	qhFace* AddFace(qhVertex* v1, qhVertex* v2, qhVertex* v3);
 	qhFace* RemoveFace(qhFace* face);
 

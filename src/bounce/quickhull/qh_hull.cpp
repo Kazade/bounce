@@ -253,17 +253,10 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 	// Add okay simplex to the hull.
 	b3Vec3 D = vertices[i4];
 
-	qhVertex* v1 = AllocateVertex();
-	v1->position = A;
-
-	qhVertex* v2 = AllocateVertex();
-	v2->position = B;
-
-	qhVertex* v3 = AllocateVertex();
-	v3->position = C;
-
-	qhVertex* v4 = AllocateVertex();
-	v4->position = D;
+	qhVertex* v1 = AddVertex(A);
+	qhVertex* v2 = AddVertex(B);
+	qhVertex* v3 = AddVertex(C);
+	qhVertex* v4 = AddVertex(D);
 
 	if (b3Distance(D, plane) < 0.0f)
 	{
@@ -284,10 +277,10 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 	// Connectivity check.
 	Validate();
 
-	// Add remaining points to the hull.
-	// Assign closest face plane to each of them.
+	// Add remaining points to the conflict lists on each face.
 	for (u32 i = 0; i < vertexCount; ++i)
 	{
+		// Skip hull vertices.
 		if (i == i1 || i == i2 || i == i3 || i == i4)
 		{
 			continue;
@@ -295,7 +288,7 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 
 		b3Vec3 p = vertices[i];
 
-		// Discard internal points since they can't be in the hull.
+		// Ignore internal points since they can't be in the hull.
 		float32 d0 = m_tolerance;
 		qhFace* f0 = NULL;
 
@@ -312,6 +305,7 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 		if (f0)
 		{
 			qhVertex* v = AllocateVertex();
+			v->mark = qhVertexMark::e_conflict;
 			v->position = p;
 			v->conflictFace = f0;
 			f0->conflictList.PushFront(v);
@@ -331,6 +325,11 @@ qhVertex* qhHull::FindEyeVertex() const
 	{
 		for (qhVertex* v = f->conflictList.head; v != NULL; v = v->next)
 		{
+			if (v->mark == qhVertexMark::e_hull)
+			{
+				continue;
+			}
+
 			float32 d = b3Distance(v->position, f->plane);
 			if (d > d0)
 			{
@@ -391,15 +390,6 @@ void qhHull::FindHorizon(qhVertex* eye)
 		} while (edge != begin);
 	}
 
-	// Ensure unique edges
-	for (u32 i = 0; i < m_horizonCount; ++i)
-	{
-		for (u32 j = i + 1; j < m_horizonCount; ++j)
-		{
-			B3_ASSERT(m_horizon[i] != m_horizon[j]);
-		}
-	}
-
 	// Sort the horizon in CCW order 
 	B3_ASSERT(m_horizonCount > 0);
 	for (u32 i = 0; i < m_horizonCount - 1; ++i)
@@ -409,6 +399,9 @@ void qhHull::FindHorizon(qhVertex* eye)
 
 		for (u32 j = i + 1; j < m_horizonCount; ++j)
 		{
+			// Ensure unique edges
+			B3_ASSERT(m_horizon[i] != m_horizon[j]);
+
 			qhHalfEdge* e2 = m_horizon[j];
 			qhVertex* v2 = e2->tail;
 
@@ -442,6 +435,8 @@ void qhHull::AddNewFaces(qhVertex* eye)
 		qhHalfEdge* edge = m_horizon[i];
 
 		qhVertex* v1 = eye;
+		v1->mark = qhVertexMark::e_hull;
+		
 		qhVertex* v2 = edge->tail;
 		qhVertex* v3 = edge->twin->tail;
 
@@ -464,6 +459,12 @@ void qhHull::AddNewFaces(qhVertex* eye)
 		qhVertex* v = f->conflictList.head;
 		while (v)
 		{
+			if (v->mark == qhVertexMark::e_hull)
+			{
+				v = v->next;
+				continue;
+			}
+
 			b3Vec3 p = v->position;
 
 			float32 max = m_tolerance;
@@ -527,6 +528,14 @@ void qhHull::AddNewFaces(qhVertex* eye)
 		// Add 
 		m_faceList.PushFront(face);
 	}
+}
+
+qhVertex* qhHull::AddVertex(const b3Vec3& position)
+{
+	qhVertex* v = AllocateVertex();
+	v->mark = qhVertexMark::e_hull;
+	v->position = position;
+	return v;
 }
 
 qhFace* qhHull::AddFace(qhVertex* v1, qhVertex* v2, qhVertex* v3)
@@ -754,13 +763,22 @@ void qhHull::Validate(const qhHalfEdge* edge) const
 	B3_ASSERT(edge->active == true);
 
 	const qhHalfEdge* twin = edge->twin;
+	B3_ASSERT(twin->active == true);
 	B3_ASSERT(twin->twin == edge);
 
-	//B3_ASSERT(edge->tail->active == true);
-
+	B3_ASSERT(edge->tail->active == true);
+	B3_ASSERT(edge->tail->mark == qhVertexMark::e_hull);
 	b3Vec3 A = edge->tail->position;
+
+	B3_ASSERT(twin->tail->mark == qhVertexMark::e_hull);
+	B3_ASSERT(twin->tail->active == true);
 	b3Vec3 B = twin->tail->position;
+	
 	B3_ASSERT(b3DistanceSquared(A, B) > B3_EPSILON * B3_EPSILON);
+	
+	const qhHalfEdge* next = edge->next;
+	B3_ASSERT(next->active == true);
+	B3_ASSERT(twin->tail == next->tail);
 
 	u32 count = 0;
 	const qhHalfEdge* begin = edge;
@@ -774,17 +792,15 @@ void qhHull::Validate(const qhHalfEdge* edge) const
 
 void qhHull::Validate(const qhFace* face) const
 {
+	B3_ASSERT(face->active == true);
+	
 	const qhHalfEdge* begin = face->edge;
 	const qhHalfEdge* edge = begin;
 	do
 	{
+		B3_ASSERT(edge->active == true);
 		B3_ASSERT(edge->face == face);
-
-		qhHalfEdge* twin = edge->twin;
-		qhHalfEdge* next = edge->next;
-		B3_ASSERT(twin->tail == next->tail);
-
-		edge = next;
+		edge = edge->next;
 	} while (edge != begin);
 
 	Validate(face->edge);
