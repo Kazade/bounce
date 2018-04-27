@@ -162,12 +162,16 @@ inline const qhList<qhFace>& qhHull::GetFaceList() const
 inline qhVertex* qhHull::AllocateVertex()
 {
 	qhVertex* v = m_freeVertices;
+	B3_ASSERT(v->active == false);
+	v->active = true;
 	m_freeVertices = v->freeNext;
 	return v;
 }
 
 inline void qhHull::FreeVertex(qhVertex* v)
 {
+	//B3_ASSERT(v->active == true);
+	v->active = false;
 	v->freeNext = m_freeVertices;
 	m_freeVertices = v;
 }
@@ -175,14 +179,16 @@ inline void qhHull::FreeVertex(qhVertex* v)
 inline qhHalfEdge* qhHull::AllocateEdge()
 {
 	qhHalfEdge* e = m_freeEdges;
-	e->state = qhHalfEdge::e_used;
+	B3_ASSERT(e->active == false);
+	e->active = true;
 	m_freeEdges = e->freeNext;
 	return e;
 }
 
 inline void qhHull::FreeEdge(qhHalfEdge* e)
 {
-	e->state = qhHalfEdge::e_deleted;
+	//B3_ASSERT(e->active == true);
+	e->active = false;
 	e->freeNext = m_freeEdges;
 	m_freeEdges = e;
 }
@@ -190,13 +196,16 @@ inline void qhHull::FreeEdge(qhHalfEdge* e)
 inline qhFace* qhHull::AllocateFace()
 {
 	qhFace* f = m_freeFaces;
+	B3_ASSERT(f->active == false);
+	f->active = true;
 	m_freeFaces = f->freeNext;
 	return f;
 }
 
 inline void qhHull::FreeFace(qhFace* f)
 {
-	f->state = qhFace::e_deleted;
+	//B3_ASSERT(f->active == true);
+	f->active = false;
 	f->freeNext = m_freeFaces;
 	m_freeFaces = f;
 }

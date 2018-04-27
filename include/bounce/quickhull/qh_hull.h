@@ -34,49 +34,40 @@ struct qhList
 struct qhHalfEdge;
 struct qhVertex;
 
+enum qhFaceMark
+{
+	e_visible,
+	e_invisible
+};
+
 struct qhFace
 {
-	enum State
-	{
-		e_invisible,
-		e_visible,
-		e_unknown,
-		e_deleted
-	};
-
-	qhFace* freeNext;
-
 	qhFace* prev;
 	qhFace* next;
 
 	qhHalfEdge* edge;
 
 	qhList<qhVertex> conflictList;
-	
-	State state;
+
 	b3Vec3 center;
 	b3Plane plane;
 
+	qhFaceMark mark;
+	
 	u32 GetVertexCount() const;
 	u32 GetEdgeCount() const;
 	
 	qhHalfEdge* FindHalfEdge(const qhVertex* v1, const qhVertex* v2) const;
 	
 	void ComputeCenterAndPlane();
+
+	//
+	qhFace* freeNext;
+	bool active;
 };
 
 struct qhHalfEdge
 {
-	enum State
-	{
-		e_used,
-		e_deleted
-	};
-	
-	State state;
-
-	qhHalfEdge* freeNext;
-
 	qhVertex* tail;
 
 	qhHalfEdge* prev;
@@ -84,18 +75,24 @@ struct qhHalfEdge
 	qhHalfEdge* twin;
 
 	qhFace* face;
+
+	//
+	qhHalfEdge* freeNext;
+	bool active;
 };
 
 struct qhVertex
 {
-	qhVertex* freeNext;
-
 	qhVertex* prev;
 	qhVertex* next;
 
 	b3Vec3 position;
 
 	qhFace* conflictFace;
+
+	//
+	qhVertex* freeNext;
+	bool active;
 };
 
 // A convex hull builder. 
@@ -128,6 +125,7 @@ public:
 private:
 	bool BuildInitialHull(const b3Vec3* vertices, u32 count);
 	qhFace* AddFace(qhVertex* v1, qhVertex* v2, qhVertex* v3);
+	qhFace* RemoveFace(qhFace* face);
 
 	qhVertex* FindEyeVertex() const;
 	void AddVertex(qhVertex* v);
