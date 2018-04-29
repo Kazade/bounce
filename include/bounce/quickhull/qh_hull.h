@@ -21,6 +21,8 @@
 
 #include <bounce/common/geometry.h>
 
+#define B3_NULL_U32 B3_MAX_U32
+
 template<class T>
 struct qhList
 {
@@ -31,8 +33,8 @@ struct qhList
 	u32 count;
 };
 
-struct qhHalfEdge;
 struct qhVertex;
+struct qhHalfEdge;
 
 enum qhFaceMark
 {
@@ -53,13 +55,6 @@ struct qhFace
 	b3Plane plane;
 
 	qhFaceMark mark;
-	
-	u32 GetVertexCount() const;
-	u32 GetEdgeCount() const;
-	
-	qhHalfEdge* FindHalfEdge(const qhVertex* v1, const qhVertex* v2) const;
-	
-	void ComputeCenterAndPlane();
 
 	//
 	qhFace* freeNext;
@@ -70,6 +65,7 @@ struct qhHalfEdge
 {
 	qhHalfEdge* prev;
 	qhHalfEdge* next;
+
 	qhHalfEdge* twin;
 
 	qhFace* face;
@@ -109,14 +105,14 @@ public:
 	// Use qhGetBufferSize to get the buffer size given the number of points.
 	void Construct(void* buffer, const b3Vec3* vertices, u32 vertexCount);
 
-	// Get the number of iterations this algorithm ran.
-	u32 GetIterations() const;
-
 	// Get the list of vertices in this convex hull.
 	const qhList<qhVertex>& GetVertexList() const;
 	
 	// Get the list of faces in this convex hull.
 	const qhList<qhFace>& GetFaceList() const;
+
+	// Get the number of iterations this algorithm ran.
+	u32 GetIterations() const;
 
 	// Validate this hull.
 	void Validate() const;
@@ -126,12 +122,18 @@ public:
 	// Draw this hull.
 	void Draw() const;
 private:
-	bool BuildInitialHull(const b3Vec3* vertices, u32 count);
-	
+	// 
 	qhVertex* AddVertex(const b3Vec3& position);
-	
+
+	qhFace* RemoveEdge(qhHalfEdge* edge);
+
 	qhFace* AddFace(qhVertex* v1, qhVertex* v2, qhVertex* v3);
 	qhFace* RemoveFace(qhFace* face);
+
+	qhHalfEdge* FindHalfEdge(const qhVertex* v1, const qhVertex* v2) const;
+
+	//
+	bool BuildInitialHull(const b3Vec3* vertices, u32 count);
 
 	qhVertex* FindEyeVertex() const;
 	void AddEyeVertex(qhVertex* eye);
@@ -139,12 +141,15 @@ private:
 	void FindHorizon(qhVertex* eye);
 
 	void AddNewFaces(qhVertex* eye);
-	qhFace* AddNewFace(qhVertex* v1, qhVertex* v2, qhVertex* v3);
-	
+
 	void MergeFaces();
 	bool MergeFace(qhFace* face);
 
-	qhHalfEdge* FindHalfEdge(const qhVertex* v1, const qhVertex* v2) const;
+	// List of vertices
+	qhList<qhVertex> m_vertexList;
+	
+	// List of faces
+	qhList<qhFace> m_faceList; 
 
 	// Coplanarity tolerance
 	float32 m_tolerance;
@@ -152,12 +157,6 @@ private:
 	// Number of Quickhull iterations
 	u32 m_iterations;
 
-	// List of vertices
-	qhList<qhVertex> m_vertexList;
-	
-	// List of faces
-	qhList<qhFace> m_faceList; 
-	
 	// Memory
 	qhVertex* AllocateVertex();
 	void FreeVertex(qhVertex* p);
@@ -174,7 +173,11 @@ private:
 	
 	qhHalfEdge** m_horizon;
 	u32 m_horizonCount;
+	qhVertex** m_horizonVertices;
 
+	qhVertex** m_conflictVertices;
+	u32 m_conflictCount;
+	
 	qhFace** m_newFaces;
 	u32 m_newFaceCount;
 };

@@ -102,7 +102,12 @@ void qhHull::Construct(void* memory, const b3Vec3* vs, u32 count)
 	m_horizon = (qhHalfEdge**)((u8*)faces + F * sizeof(qhFace*));
 	m_horizonCount = 0;
 
-	m_newFaces = (qhFace**)((u8*)m_horizon + HE * sizeof(qhHalfEdge*));
+	m_horizonVertices = (qhVertex**)((u8*)m_horizon + HE * sizeof(qhHalfEdge*));
+
+	m_conflictVertices = (qhVertex**)((u8*)m_horizonVertices + HE * sizeof(qhVertex*));
+	m_conflictCount = 0;
+
+	m_newFaces = (qhFace**)((u8*)m_conflictVertices + V * sizeof(qhVertex*));
 	m_newFaceCount = 0;
 
 	m_vertexList.head = NULL;
@@ -110,7 +115,7 @@ void qhHull::Construct(void* memory, const b3Vec3* vs, u32 count)
 
 	m_faceList.head = NULL;
 	m_faceList.count = 0;
-	
+
 	m_iterations = 0;
 
 	if (!BuildInitialHull(vs, count))
@@ -426,105 +431,97 @@ void qhHull::AddNewFaces(qhVertex* eye)
 		B3_ASSERT(e1->tail == e2->tail);
 	}
 
+	// Save horizon vertices
+	for (u32 i = 0; i < m_horizonCount; ++i)
+	{
+		qhHalfEdge* edge = m_horizon[i];
+
+		m_horizonVertices[i] = edge->tail;
+	}
+
 	// Remove the eye vertex from the conflict list
 	b3Vec3 eyePosition = eye->position;
-		
+
 	eye->conflictFace->conflictList.Remove(eye);
 	FreeVertex(eye);
 
 	// Add the eye point to the hull
 	qhVertex* v1 = AddVertex(eyePosition);
 
-	// Create new faces
-	m_newFaceCount = 0;
-	for (u32 i = 0; i < m_horizonCount; ++i)
-	{
-		qhHalfEdge* edge = m_horizon[i];
+	// Save conflict vertices
+	m_conflictCount = 0;
 
-		qhVertex* v2 = edge->tail;
-		qhVertex* v3 = edge->twin->tail;
-
-		qhFace* face = AddNewFace(v1, v2, v3);
-	}
-
-	// Remove obsolete faces
+	// Remove visible faces
 	qhFace* f = m_faceList.head;
 	while (f)
 	{
-		// Invisible faces are maintained.
+		// Skip invisible faces.
 		if (f->mark == qhFaceMark::e_invisible)
 		{
 			f = f->next;
 			continue;
 		}
-
-		// Move the orphaned vertices into the new faces
-		// Also remove internal points 
+		
 		qhVertex* v = f->conflictList.head;
 		while (v)
 		{
-			b3Vec3 p = v->position;
-
-			float32 max = m_tolerance;
-			qhFace* maxFace = NULL;
-
-			for (u32 i = 0; i < m_newFaceCount; ++i)
-			{
-				qhFace* newFace = m_newFaces[i];
-				float32 d = b3Distance(p, newFace->plane);
-				if (d > max)
-				{
-					max = d;
-					maxFace = newFace;
-				}
-			}
-
-			if (maxFace)
-			{
-				qhVertex* v0 = v;
-				v->conflictFace = NULL;
-				v = f->conflictList.Remove(v);
-				maxFace->conflictList.PushFront(v0);
-				v0->conflictFace = maxFace;
-			}
-			else
-			{
-				qhVertex* v0 = v;
-				v->conflictFace = NULL;
-				v = f->conflictList.Remove(v);
-				FreeVertex(v0);
-			}
+			// Save vertex
+			m_conflictVertices[m_conflictCount++] = v;
+			
+			// Remove vertex from face
+			v->conflictFace = NULL;
+			v = f->conflictList.Remove(v);
 		}
 
-		// Remove the face
+		// Remove face
 		f = RemoveFace(f);
 	}
 
-	// Add the new faces to the hull
-	for (u32 i = 0; i < m_newFaceCount; ++i)
+	// Add new faces to the hull
+	m_newFaceCount = 0;
+	for (u32 i = 0; i < m_horizonCount; ++i)
 	{
-		qhFace* face = m_newFaces[i];
+		u32 j = i + 1 < m_horizonCount ? i + 1 : 0;
+		
+		qhVertex* v2 = m_horizonVertices[i];
+		qhVertex* v3 = m_horizonVertices[j];
 
-		qhHalfEdge* begin = face->edge;
-		qhHalfEdge* edge = begin;
-		do
+		m_newFaces[m_newFaceCount++] = AddFace(v1, v2, v3);
+	}
+
+	// Move the orphaned conflict vertices into the new faces
+	// Remove internal conflict vertices
+	for (u32 i = 0; i < m_conflictCount; ++i)
+	{
+		qhVertex* v = m_conflictVertices[i];
+
+		b3Vec3 p = v->position;
+
+		float32 d0 = m_tolerance;
+		qhFace* f0 = NULL;
+
+		for (u32 j = 0; j < m_newFaceCount; ++j)
 		{
-			qhVertex* v1 = edge->tail;
-
-			qhHalfEdge* next = edge->next;
-			qhVertex* v2 = next->tail;
-
-			edge->twin = FindHalfEdge(v2, v1);
-			if (edge->twin)
+			qhFace* nf = m_newFaces[j];
+			float32 d = b3Distance(p, nf->plane);
+			if (d > d0)
 			{
-				edge->twin->twin = edge;
+				d0 = d;
+				f0 = nf;
 			}
+		}
 
-			edge = next;
-		} while (edge != begin);
-
-		// Add 
-		m_faceList.PushFront(face);
+		if (f0)
+		{
+			// Add conflict vertex to the new face
+			f0->conflictList.PushFront(v);
+			v->conflictFace = f0;
+		}
+		else
+		{
+			// Remove conflict vertex
+			FreeVertex(v);
+		}
 	}
 }
 
@@ -535,8 +532,92 @@ qhVertex* qhHull::AddVertex(const b3Vec3& position)
 	v->conflictFace = NULL;
 
 	m_vertexList.PushFront(v);
-	
+
 	return v;
+}
+
+static inline b3Vec3 b3Newell(const b3Vec3& a, const b3Vec3& b)
+{
+	return b3Vec3((a.y - b.y) * (a.z + b.z), (a.z - b.z) * (a.x + b.x), (a.x - b.x) * (a.y + b.y));
+}
+
+static inline void b3ComputePlane(const qhFace* face, b3Plane& plane, b3Vec3& center)
+{
+	b3Vec3 n;
+	n.SetZero();
+
+	b3Vec3 c;
+	c.SetZero();
+
+	u32 count = 0;
+	qhHalfEdge* e = face->edge;
+	do
+	{
+		b3Vec3 v1 = e->tail->position;
+		b3Vec3 v2 = e->next->tail->position;
+
+		n += b3Newell(v1, v2);
+		c += v1;
+
+		++count;
+		e = e->next;
+	} while (e != face->edge);
+
+	B3_ASSERT(count > 0);
+	c /= float32(count);
+	n.Normalize();
+
+	plane.normal = n;
+	plane.offset = b3Dot(n, c);
+
+	center = c;
+}
+
+qhFace* qhHull::RemoveEdge(qhHalfEdge* e)
+{
+	qhFace* leftFace = e->twin->face;
+	qhFace* rightFace = e->face;
+
+	// Move left vertices into right
+	qhVertex* v = leftFace->conflictList.head;
+	while (v)
+	{
+		qhVertex* v0 = v;
+		v = leftFace->conflictList.Remove(v);
+		rightFace->conflictList.PushFront(v0);
+		v0->conflictFace = rightFace;
+	}
+
+	// Set right face to reference a non-deleted edge
+	B3_ASSERT(e->face == rightFace);
+	rightFace->edge = e->prev;
+
+	// Absorb face
+	qhHalfEdge* te = e->twin;
+	do
+	{
+		te->face = rightFace;
+		te = te->next;
+	} while (te != e->twin);
+
+	// Link edges
+	e->prev->next = e->twin->next;
+	e->next->prev = e->twin->prev;
+	e->twin->prev->next = e->next;
+	e->twin->next->prev = e->prev;
+
+	FreeEdge(e->twin);
+	FreeEdge(e);
+	m_faceList.Remove(leftFace);
+	FreeFace(leftFace);
+
+	// Compute face center and plane
+	b3ComputePlane(rightFace, rightFace->plane, rightFace->center);
+
+	// Validate
+	Validate(rightFace);
+
+	return rightFace;
 }
 
 qhFace* qhHull::AddFace(qhVertex* v1, qhVertex* v2, qhVertex* v3)
@@ -547,49 +628,97 @@ qhFace* qhHull::AddFace(qhVertex* v1, qhVertex* v2, qhVertex* v3)
 	if (e1 == NULL)
 	{
 		e1 = AllocateEdge();
+		e1->face = NULL;
+		e1->tail = NULL;
+
+		e1->twin = AllocateEdge();
+		e1->twin->face = NULL;
+		e1->twin->tail = NULL;
+
+		e1->twin->twin = e1;
+	}
+
+	if (e1->tail == NULL)
+	{
+		e1->tail = v1;
+	}
+
+	if (e1->face == NULL)
+	{
 		e1->face = face;
+	}
+
+	if (e1->twin->tail == NULL)
+	{
+		e1->twin->tail = v2;
 	}
 
 	qhHalfEdge* e2 = FindHalfEdge(v2, v3);
 	if (e2 == NULL)
 	{
 		e2 = AllocateEdge();
+		e2->face = NULL;
+		e2->tail = NULL;
+
+		e2->twin = AllocateEdge();
+		e2->twin->face = NULL;
+		e2->twin->tail = NULL;
+
+		e2->twin->twin = e2;
+	}
+
+	if (e2->face == NULL)
+	{
 		e2->face = face;
+	}
+
+	if (e2->tail == NULL)
+	{
+		e2->tail = v2;
+	}
+
+	if (e2->twin->tail == NULL)
+	{
+		e2->twin->tail = v3;
 	}
 
 	qhHalfEdge* e3 = FindHalfEdge(v3, v1);
 	if (e3 == NULL)
 	{
 		e3 = AllocateEdge();
+		e3->face = NULL;
+		e3->tail = NULL;
+
+		e3->twin = AllocateEdge();
+		e3->twin->face = NULL;
+		e3->twin->tail = NULL;
+
+		e3->twin->twin = e3;
+	}
+
+	if (e3->face == NULL)
+	{
 		e3->face = face;
 	}
 
-	e1->tail = v1;
+	if (e3->tail == NULL)
+	{
+		e3->tail = v3;
+	}
+
+	if (e3->twin->tail == NULL)
+	{
+		e3->twin->tail = v1;
+	}
+
 	e1->prev = e3;
 	e1->next = e2;
-	e1->twin = FindHalfEdge(v2, v1);
-	if (e1->twin)
-	{
-		e1->twin->twin = e1;
-	}
 
-	e2->tail = v2;
 	e2->prev = e1;
 	e2->next = e3;
-	e2->twin = FindHalfEdge(v3, v2);
-	if (e2->twin)
-	{
-		e2->twin->twin = e2;
-	}
 
-	e3->tail = v3;
 	e3->prev = e2;
 	e3->next = e1;
-	e3->twin = FindHalfEdge(v1, v3);
-	if (e3->twin)
-	{
-		e3->twin->twin = e3;
-	}
 
 	face->edge = e1;
 	face->center = (v1->position + v2->position + v3->position) / 3.0f;
@@ -606,66 +735,41 @@ qhFace* qhHull::RemoveFace(qhFace* face)
 	qhHalfEdge* e = face->edge;
 	do
 	{
-		qhHalfEdge* twin = e->twin;
+		qhHalfEdge* e0 = e;
+		e = e->next;
 
-		// Remove half-edge and its twin if twin face does not exist
-		if (twin->face == NULL || twin->face == e->face)
+		qhHalfEdge* twin = e0->twin;
+
+		// Is the edge a boundary edge?
+		if (twin->face == NULL)
 		{
-			e->twin = NULL;
+			e0->twin = NULL;
+			
+			e0->tail = NULL;
+			e0->face = NULL;
+			e0->next = NULL;
+			e0->prev = NULL;
+			
+			twin->twin = NULL;
 
-			FreeEdge(twin);
-
-			qhHalfEdge* e0 = e;
-			e = e->next;
+			// Free both half-edges if edge is a boundary.
 			FreeEdge(e0);
+			FreeEdge(twin);
 		}
-
+		else
+		{
+			e0->tail = NULL;
+			e0->face = NULL;
+			e0->next = NULL;
+			e0->prev = NULL;
+		}
+		
 	} while (e != face->edge);
 
 	// Remove face 
 	qhFace* nextFace = m_faceList.Remove(face);
 	FreeFace(face);
 	return nextFace;
-}
-
-qhFace* qhHull::AddNewFace(qhVertex* v1, qhVertex* v2, qhVertex* v3)
-{
-	qhFace* face = AllocateFace();
-
-	qhHalfEdge* e1 = AllocateEdge();
-	e1->face = face;
-	e1->twin = NULL;
-	e1->tail = v1;
-
-	qhHalfEdge* e2 = AllocateEdge();
-	e2->face = face;
-	e2->twin = NULL;
-	e2->tail = v2;
-
-	qhHalfEdge* e3 = AllocateEdge();
-	e3->face = face;
-	e3->twin = NULL;
-	e3->tail = v3;
-
-	e1->prev = e3;
-	e1->next = e2;
-
-	e2->prev = e1;
-	e2->next = e3;
-
-	e3->prev = e2;
-	e3->next = e1;
-
-	face->edge = e1;
-	face->center = (v1->position + v2->position + v3->position) / 3.0f;
-	face->plane = b3Plane(v1->position, v2->position, v3->position);
-
-	face->prev = NULL;
-	face->next = NULL;
-
-	m_newFaces[m_newFaceCount++] = face;
-
-	return face;
 }
 
 bool qhHull::MergeFace(qhFace* rightFace)
@@ -694,46 +798,7 @@ bool qhHull::MergeFace(qhFace* rightFace)
 		else
 		{
 			// Concave or coplanar
-
-			// Move left vertices into right
-			qhVertex* v = leftFace->conflictList.head;
-			while (v)
-			{
-				qhVertex* v0 = v;
-				v = leftFace->conflictList.Remove(v);
-				rightFace->conflictList.PushFront(v0);
-				v0->conflictFace = rightFace;
-			}
-
-			// Set right face to reference a non-deleted edge
-			B3_ASSERT(e->face == rightFace);
-			rightFace->edge = e->prev;
-
-			// Absorb face
-			qhHalfEdge* te = e->twin;
-			do
-			{
-				te->face = rightFace;
-				te = te->next;
-			} while (te != e->twin);
-
-			// Link edges
-			e->prev->next = e->twin->next;
-			e->next->prev = e->twin->prev;
-			e->twin->prev->next = e->next;
-			e->twin->next->prev = e->prev;
-
-			FreeEdge(e->twin);
-			FreeEdge(e);
-			m_faceList.Remove(leftFace);
-			FreeFace(leftFace);
-
-			// Compute face center and plane
-			rightFace->ComputeCenterAndPlane();
-
-			// Validate
-			Validate(rightFace);
-
+			RemoveEdge(e);
 			return true;
 		}
 
@@ -769,12 +834,12 @@ void qhHull::Validate(const qhHalfEdge* edge) const
 
 	B3_ASSERT(edge->tail->active == true);
 	b3Vec3 A = edge->tail->position;
-	
+
 	B3_ASSERT(twin->tail->active == true);
 	b3Vec3 B = twin->tail->position;
-	
+
 	B3_ASSERT(b3DistanceSquared(A, B) > B3_EPSILON * B3_EPSILON);
-	
+
 	const qhHalfEdge* next = edge->next;
 	B3_ASSERT(next->active == true);
 	B3_ASSERT(twin->tail == next->tail);
@@ -792,7 +857,7 @@ void qhHull::Validate(const qhHalfEdge* edge) const
 void qhHull::Validate(const qhFace* face) const
 {
 	B3_ASSERT(face->active == true);
-	
+
 	const qhHalfEdge* begin = face->edge;
 	const qhHalfEdge* edge = begin;
 	do
