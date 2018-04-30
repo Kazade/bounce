@@ -33,45 +33,6 @@ class b3MeshShape;
 
 struct b3Manifold;
 
-enum b3SATCacheType
-{
-	e_separation,
-	e_overlap,
-	e_empty,
-};
-
-struct b3SATFeaturePair
-{
-	enum Type
-	{
-		e_edge1, // an edge on hull 1 and an edge on hull 2
-		e_face1, // a face on hull 1 and a vertex/edge/face on hull 2
-		e_face2, // a face on hull 2 and a vertex/edge/face on hull 1
-	};
-
-	b3SATCacheType state; // sat result
-	Type type; // feature pair type
-	u32 index1; // feature index on hull 1
-	u32 index2; // feature index on hull 2
-};
-
-struct b3FeatureCache
-{
-	// Read the current state of the cache.
-	// Return e_unkown if neither a separation or penetration was detected.
-	b3SATCacheType ReadState(const b3Transform& xf1, const b3Hull* hull1,
-		const b3Transform& xf2, const b3Hull* hull2, float32 totalRadius);
-
-	b3SATCacheType ReadEdge(const b3Transform& xf1, const b3Hull* hull1,
-		const b3Transform& xf2, const b3Hull* hull2, float32 totalRadius);
-
-	b3SATCacheType ReadFace(const b3Transform& xf1, const b3Hull* hull1,
-		const b3Transform& xf2, const b3Hull* hull2, float32 totalRadius);
-
-	// We could increase the cache size (e.g. a feature pair of the last two frames).
-	b3SATFeaturePair m_featurePair;
-};
-
 // A convex cache contains information used to exploit temporal 
 // coherence of the contact generation algorithms between two shapes.
 struct b3ConvexCache

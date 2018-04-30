@@ -171,3 +171,108 @@ b3EdgeQuery b3QueryEdgeSeparation(const b3Transform& xf1, const b3Hull* hull1,
 	out.separation = maxSeparation;
 	return out;
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+b3SATCacheType b3FeatureCache::ReadState(
+	const b3Transform& xf1, const b3Hull* hull1,
+	const b3Transform& xf2, const b3Hull* hull2, float32 totalRadius)
+{
+	// If the cache was empty or flushed choose an arbitrary feature pair.
+	if (m_featurePair.state == b3SATCacheType::e_empty)
+	{
+		m_featurePair = b3MakeFeaturePair(b3SATCacheType::e_separation, b3SATFeatureType::e_face1, 0, 0);
+	}
+
+	switch (m_featurePair.type)
+	{
+	case b3SATFeatureType::e_edge1:
+	{
+		return ReadEdge(xf1, hull1, xf2, hull2, totalRadius);
+	}
+	case b3SATFeatureType::e_face1:
+	{
+		return ReadFace(xf1, hull1, xf2, hull2, totalRadius);
+	}
+	case b3SATFeatureType::e_face2:
+	{
+		return ReadFace(xf2, hull2, xf1, hull1, totalRadius);
+	}
+	default:
+	{
+		return b3SATCacheType::e_empty;
+	}
+	}
+}
+
+b3SATCacheType b3FeatureCache::ReadFace(
+	const b3Transform& xf1, const b3Hull* hull1,
+	const b3Transform& xf2, const b3Hull* hull2, float32 totalRadius)
+{
+	// Perform computations in the local space of the second hull.
+	b3Transform xf = b3MulT(xf2, xf1);
+	b3Plane plane = xf * hull1->GetPlane(m_featurePair.index1);
+	float32 separation = b3Project(hull2, plane);
+	if (separation > totalRadius)
+	{
+		return e_separation;
+	}
+	return e_overlap;
+}
+
+b3SATCacheType b3FeatureCache::ReadEdge(
+	const b3Transform& xf1, const b3Hull* hull1,
+	const b3Transform& xf2, const b3Hull* hull2, float32 totalRadius)
+{
+	u32 i = m_featurePair.index1;
+	u32 j = m_featurePair.index2;
+
+	// Query minimum separation distance and axis of the first hull planes.
+	// Perform computations in the local space of the second hull.
+	b3Transform xf = b3MulT(xf2, xf1);
+	b3Vec3 C1 = xf * hull1->centroid;
+
+	const b3HalfEdge* edge1 = hull1->GetEdge(i);
+	const b3HalfEdge* twin1 = hull1->GetEdge(i + 1);
+
+	B3_ASSERT(edge1->twin == i + 1 && twin1->twin == i);
+
+	b3Vec3 P1 = xf * hull1->GetVertex(edge1->origin);
+	b3Vec3 Q1 = xf * hull1->GetVertex(twin1->origin);
+	b3Vec3 E1 = Q1 - P1;
+
+	// The Gauss Map of edge 1.
+	b3Vec3 U1 = xf.rotation * hull1->GetPlane(edge1->face).normal;
+	b3Vec3 V1 = xf.rotation * hull1->GetPlane(twin1->face).normal;
+
+	const b3HalfEdge* edge2 = hull2->GetEdge(j);
+	const b3HalfEdge* twin2 = hull2->GetEdge(j + 1);
+
+	B3_ASSERT(edge2->twin == j + 1 && twin2->twin == j);
+
+	b3Vec3 P2 = hull2->GetVertex(edge2->origin);
+	b3Vec3 Q2 = hull2->GetVertex(twin2->origin);
+	b3Vec3 E2 = Q2 - P2;
+
+	// The Gauss Map of edge 2.
+	b3Vec3 U2 = hull2->GetPlane(edge2->face).normal;
+	b3Vec3 V2 = hull2->GetPlane(twin2->face).normal;
+
+	// Negate the Gauss Map 2 for account for the MD.
+	if (b3IsMinkowskiFace(U1, V1, -E1, -U2, -V2, -E2))
+	{
+		float32 separation = b3Project(P1, E1, P2, E2, C1);
+		if (separation > totalRadius)
+		{
+			return b3SATCacheType::e_separation;
+		}
+		else
+		{
+			return b3SATCacheType::e_overlap;
+		}
+	}
+
+	// We can't determine the cache type 
+	// therefore must run SAT.
+	return b3SATCacheType::e_empty;
+}

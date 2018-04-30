@@ -236,7 +236,7 @@ void b3CollideHulls(b3Manifold& manifold,
 		return;
 	}
 
-	const float32 kTol = 0.1f * B3_LINEAR_SLOP;
+	const float32 kTol = 0.05f * B3_LINEAR_SLOP;
 	if (edgeQuery.separation > b3Max(faceQuery1.separation, faceQuery2.separation) + kTol)
 	{
 		b3BuildEdgeContact(manifold, xf1, edgeQuery.index1, s1, xf2, edgeQuery.index2, s2);
