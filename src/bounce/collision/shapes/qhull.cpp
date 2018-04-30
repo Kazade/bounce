@@ -30,6 +30,13 @@ struct b3UniqueArray
 	{
 		count = 0;
 	}
+	
+	// Add the value if not found
+	void Add(const T& value)
+	{
+		B3_ASSERT(count < N);
+		values[count++] = value;
+	}
 
 	// Add the value if not found
 	// Return value index if added
@@ -178,22 +185,37 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 	qhHull hull;
 	hull.Construct(qhBuffer, ps, psCount);
 
+	if (hull.GetVertexList().count > B3_MAX_HULL_VERTICES)
+	{
+		// Vertex excess
+		b3Free(qhBuffer);
+		return;
+	}
+
+	if (hull.GetFaceList().count > B3_MAX_HULL_FACES)
+	{
+		// Face excess
+		b3Free(qhBuffer);
+		return;
+	}
+	
 	// Convert the constructed hull into a run-time hull.
 	b3UniqueArray<qhVertex*, B3_MAX_HULL_VERTICES> vs;
 	b3UniqueArray<qhHalfEdge*, B3_MAX_HULL_EDGES> es;
 	u32 fs_count = 0;
 	
-	// Add vertices and edges to the map
+	// Add vertices to the map
+	for (qhVertex* vertex = hull.GetVertexList().head; vertex != NULL; vertex = vertex->next)
+	{
+		// Add vertex
+		vs.Add(vertex);
+	}
+
+	// Add faces and to the map
 	for (qhFace* face = hull.GetFaceList().head; face != NULL; face = face->next)
 	{
 		// Add face
-		if (fs_count == B3_MAX_HULL_FACES)
-		{
-			// Face excess
-			b3Free(qhBuffer);
-			return;
-		}
-		
+		B3_ASSERT(fs_count < B3_MAX_HULL_FACES);
 		++fs_count;
 
 		// Add vertices and half-edges 
@@ -201,15 +223,6 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 		qhHalfEdge* edge = begin;
 		do
 		{
-			// Add vertex
-			u32 iv = vs.Find(edge->tail);
-			if (iv == B3_MAX_HULL_VERTICES)
-			{
-				// Vertex excess
-				b3Free(qhBuffer);
-				return;
-			}
-
 			// Add half-edge
 			u32 iedge = es.Find(edge);
 			if (iedge == B3_MAX_HULL_EDGES)
