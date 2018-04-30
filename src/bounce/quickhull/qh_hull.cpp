@@ -349,7 +349,7 @@ void qhHull::AddEyeVertex(qhVertex* eye)
 {
 	FindHorizon(eye);
 	AddNewFaces(eye);
-	MergeFaces();
+	MergeNewFaces();
 }
 
 void qhHull::FindHorizon(qhVertex* eye)
@@ -807,7 +807,7 @@ bool qhHull::MergeFace(qhFace* rightFace)
 	return false;
 }
 
-void qhHull::MergeFaces()
+void qhHull::MergeNewFaces()
 {
 	for (u32 i = 0; i < m_newFaceCount; ++i)
 	{

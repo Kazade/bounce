@@ -129,6 +129,8 @@ private:
 
 	qhFace* AddFace(qhVertex* v1, qhVertex* v2, qhVertex* v3);
 	qhFace* RemoveFace(qhFace* face);
+	
+	bool MergeFace(qhFace* face);
 
 	qhHalfEdge* FindHalfEdge(const qhVertex* v1, const qhVertex* v2) const;
 
@@ -141,10 +143,8 @@ private:
 	void FindHorizon(qhVertex* eye);
 
 	void AddNewFaces(qhVertex* eye);
-
-	void MergeFaces();
-	bool MergeFace(qhFace* face);
-
+	void MergeNewFaces();
+	
 	// List of vertices
 	qhList<qhVertex> m_vertexList;
 	
