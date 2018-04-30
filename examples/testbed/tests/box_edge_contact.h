@@ -16,13 +16,13 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef HULL_EDGE_CONTACT_H
-#define HULL_EDGE_CONTACT_H
+#ifndef BOX_EDGE_CONTACT_H
+#define BOX_EDGE_CONTACT_H
 
-class HullEdgeContact : public Collide
+class BoxEdgeContact : public Collide
 {
 public:
-	HullEdgeContact()
+	BoxEdgeContact()
 	{
 		b3Transform xf;
 		xf.position.SetZero();
@@ -49,7 +49,7 @@ public:
 	
 	static Test* Create()
 	{
-		return new HullEdgeContact();
+		return new BoxEdgeContact();
 	}
 
 	b3BoxHull m_box;

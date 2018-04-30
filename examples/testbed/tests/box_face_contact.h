@@ -16,13 +16,13 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef HULL_FACE_CONTACT_H
-#define HULL_FACE_CONTACT_H
+#ifndef BOX_FACE_CONTACT_H
+#define BOX_FACE_CONTACT_H
 
-class HullFaceContact : public Collide
+class BoxFaceContact : public Collide
 {
 public:
-	HullFaceContact()
+	BoxFaceContact()
 	{
 		b3Transform m;
 		m.rotation = b3Diagonal(1.0f, 2.0f, 1.0f);
@@ -50,7 +50,7 @@ public:
 
 	static Test* Create()
 	{
-		return new HullFaceContact();
+		return new BoxFaceContact();
 	}
 
 	b3BoxHull m_box1;

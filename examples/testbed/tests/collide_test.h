@@ -55,6 +55,9 @@ public:
 
 		m_world.DrawShape(m_xfA, m_shapeA);
 		m_world.DrawShape(m_xfB, m_shapeB);
+
+		g_draw->DrawString(b3Color_white, "Left/Right/Up/Down Arrow - Translate shape");
+		g_draw->DrawString(b3Color_white, "X/Y/Z - Rotate shape");
 	}
 
 	virtual void KeyDown(int key)
@@ -93,6 +96,14 @@ public:
 			b3Mat33 xfy = b3QuatMat33(qy);
 
 			m_xfB.rotation = m_xfB.rotation * xfy;
+		}
+
+		if (key == GLFW_KEY_Z)
+		{
+			b3Quat qy(b3Vec3(0.0f, 0.0f, 1.0f), 0.05f * B3_PI);
+			b3Mat33 xfz = b3QuatMat33(qy);
+
+			m_xfB.rotation = m_xfB.rotation * xfz;
 		}
 	}
 
