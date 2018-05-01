@@ -350,6 +350,7 @@ void qhHull::AddEyeVertex(qhVertex* eye)
 	FindHorizon(eye);
 	AddNewFaces(eye);
 	MergeNewFaces();
+	ResolveOrphans();
 }
 
 void qhHull::FindHorizon(qhVertex* eye)
@@ -443,6 +444,8 @@ void qhHull::AddNewFaces(qhVertex* eye)
 	b3Vec3 eyePosition = eye->position;
 
 	eye->conflictFace->conflictList.Remove(eye);
+	eye->conflictFace = NULL;
+
 	FreeVertex(eye);
 
 	// Add the eye point to the hull
@@ -461,13 +464,13 @@ void qhHull::AddNewFaces(qhVertex* eye)
 			f = f->next;
 			continue;
 		}
-		
+
 		qhVertex* v = f->conflictList.head;
 		while (v)
 		{
 			// Save vertex
 			m_conflictVertices[m_conflictCount++] = v;
-			
+
 			// Remove vertex from face
 			v->conflictFace = NULL;
 			v = f->conflictList.Remove(v);
@@ -482,13 +485,16 @@ void qhHull::AddNewFaces(qhVertex* eye)
 	for (u32 i = 0; i < m_horizonCount; ++i)
 	{
 		u32 j = i + 1 < m_horizonCount ? i + 1 : 0;
-		
+
 		qhVertex* v2 = m_horizonVertices[i];
 		qhVertex* v3 = m_horizonVertices[j];
 
 		m_newFaces[m_newFaceCount++] = AddFace(v1, v2, v3);
 	}
+}
 
+void qhHull::ResolveOrphans()
+{
 	// Move the orphaned conflict vertices into the new faces
 	// Remove internal conflict vertices
 	for (u32 i = 0; i < m_conflictCount; ++i)
@@ -503,6 +509,13 @@ void qhHull::AddNewFaces(qhVertex* eye)
 		for (u32 j = 0; j < m_newFaceCount; ++j)
 		{
 			qhFace* nf = m_newFaces[j];
+
+			// Was the face deleted due to merging?
+			if (nf->active == false)
+			{
+				continue;
+			}
+
 			float32 d = b3Distance(p, nf->plane);
 			if (d > d0)
 			{
@@ -541,7 +554,7 @@ static inline b3Vec3 b3Newell(const b3Vec3& a, const b3Vec3& b)
 	return b3Vec3((a.y - b.y) * (a.z + b.z), (a.z - b.z) * (a.x + b.x), (a.x - b.x) * (a.y + b.y));
 }
 
-static inline void b3ComputePlane(const qhFace* face, b3Plane& plane, b3Vec3& center)
+static inline void b3ComputeFaceData(const qhFace* face, b3Plane& plane, b3Vec3& center, float32& area)
 {
 	b3Vec3 n;
 	n.SetZero();
@@ -565,12 +578,19 @@ static inline void b3ComputePlane(const qhFace* face, b3Plane& plane, b3Vec3& ce
 
 	B3_ASSERT(count > 0);
 	c /= float32(count);
-	n.Normalize();
+	
+	center = c;
+
+	float32 len = b3Length(n);
+	area = 0.5f * len;
+
+	if (len > B3_EPSILON)
+	{
+		n /= len;
+	}
 
 	plane.normal = n;
 	plane.offset = b3Dot(n, c);
-
-	center = c;
 }
 
 qhFace* qhHull::RemoveEdge(qhHalfEdge* e)
@@ -612,10 +632,10 @@ qhFace* qhHull::RemoveEdge(qhHalfEdge* e)
 	FreeFace(leftFace);
 
 	// Compute face center and plane
-	b3ComputePlane(rightFace, rightFace->plane, rightFace->center);
-
+	b3ComputeFaceData(rightFace, rightFace->plane, rightFace->center, rightFace->area);
+	
 	// Validate
-	Validate(rightFace);
+	//Validate(rightFace);
 
 	return rightFace;
 }
@@ -721,8 +741,19 @@ qhFace* qhHull::AddFace(qhVertex* v1, qhVertex* v2, qhVertex* v3)
 	e3->next = e1;
 
 	face->edge = e1;
-	face->center = (v1->position + v2->position + v3->position) / 3.0f;
-	face->plane = b3Plane(v1->position, v2->position, v3->position);
+	
+	b3Vec3 A = v1->position, B = v2->position, C = v3->position;
+
+	b3Vec3 N = b3Cross(B - A, C - A);
+	float32 L = b3Length(N);
+	if (L > B3_EPSILON)
+	{
+		N /= L;
+	}
+
+	face->center = (A + B + C) / 3.0f;
+	face->plane = b3Plane(N, face->center);
+	face->area = 0.5f * L;
 
 	m_faceList.PushFront(face);
 
@@ -744,12 +775,12 @@ qhFace* qhHull::RemoveFace(qhFace* face)
 		if (twin->face == NULL)
 		{
 			e0->twin = NULL;
-			
+
 			e0->tail = NULL;
 			e0->face = NULL;
 			e0->next = NULL;
 			e0->prev = NULL;
-			
+
 			twin->twin = NULL;
 
 			// Free both half-edges if edge is a boundary.
@@ -763,7 +794,7 @@ qhFace* qhHull::RemoveFace(qhFace* face)
 			e0->next = NULL;
 			e0->prev = NULL;
 		}
-		
+
 	} while (e != face->edge);
 
 	// Remove face 
@@ -774,6 +805,9 @@ qhFace* qhHull::RemoveFace(qhFace* face)
 
 bool qhHull::MergeFace(qhFace* rightFace)
 {
+	// Non-convex edge
+	qhHalfEdge* edge = NULL;
+	
 	qhHalfEdge* e = rightFace->edge;
 
 	do
@@ -791,24 +825,90 @@ bool qhHull::MergeFace(qhFace* rightFace)
 
 		if (d1 < -m_tolerance && d2 < -m_tolerance)
 		{
-			// Convex
+			// Edge is convex
 			e = e->next;
 			continue;
 		}
-		else
-		{
-			// Concave or coplanar
-			RemoveEdge(e);
-			return true;
-		}
+
+		// Edge is concave or coplanar
+		edge = e;
+		break;
 
 	} while (e != rightFace->edge);
+
+	if (edge)
+	{
+		RemoveEdge(edge);
+		return true;
+	}
+
+	return false;
+}
+
+bool qhHull::MergeLargeFace(qhFace* rightFace)
+{
+	// Non-convex edge
+	qhHalfEdge* edge = NULL;
+
+	qhHalfEdge* e = rightFace->edge;
+
+	do
+	{
+		qhFace* leftFace = e->twin->face;
+
+		if (leftFace == rightFace)
+		{
+			e = e->next;
+			continue;
+		}
+
+		if (rightFace->area > leftFace->area)
+		{
+			// Right face merge
+			float32 d = b3Distance(leftFace->center, rightFace->plane);
+			if (d < -m_tolerance)
+			{
+				// Edge is convex wrt to the right face
+				e = e->next;
+				continue;
+			}
+			
+			// Edge is concave or coplanar wrt to the right face
+			edge = e;
+			break;
+		}
+		else
+		{
+			// Left face merge
+			float32 d = b3Distance(rightFace->center, leftFace->plane);
+			if (d < -m_tolerance)
+			{
+				// Edge is convex wrt to the left face
+				e = e->next;
+				continue;
+			}
+
+			// Edge is concave or coplanar wrt to the left face
+			edge = e;
+			break;
+		}
+
+		e = e->next;
+
+	} while (e != rightFace->edge);
+
+	if (edge)
+	{
+		RemoveEdge(edge);
+		return true;
+	}
 
 	return false;
 }
 
 void qhHull::MergeNewFaces()
 {
+	// Merge with respect to the largest face.
 	for (u32 i = 0; i < m_newFaceCount; ++i)
 	{
 		qhFace* face = m_newFaces[i];
@@ -819,7 +919,20 @@ void qhHull::MergeNewFaces()
 			continue;
 		}
 
-		// Merge the faces while there is no face left to merge.
+		while (MergeLargeFace(face));
+	}
+
+	// Merge with respect to the both faces.
+	for (u32 i = 0; i < m_newFaceCount; ++i)
+	{
+		qhFace* face = m_newFaces[i];
+
+		// Was the face deleted due to merging?
+		if (face->active == false)
+		{
+			continue;
+		}
+		
 		while (MergeFace(face));
 	}
 }
@@ -864,6 +977,21 @@ void qhHull::Validate(const qhFace* face) const
 	{
 		B3_ASSERT(edge->active == true);
 		B3_ASSERT(edge->face == face);
+
+		// Validate face convexity
+		//B3_ASSERT(edge->twin->active == true);
+		//qhFace* other = edge->twin->face;
+		//B3_ASSERT(other->active == true);
+
+		//float32 d1 = b3Distance(other->center, face->plane);
+		//float32 d2 = b3Distance(face->center, other->plane);
+
+		//B3_ASSERT(d1 < -m_tolerance);
+		//B3_ASSERT(d2 < -m_tolerance);
+
+		// Verify vertex redundancy 
+		//B3_ASSERT(edge->next->twin->face != edge->twin->face);
+
 		edge = edge->next;
 	} while (edge != begin);
 

@@ -53,6 +53,7 @@ struct qhFace
 
 	b3Vec3 center;
 	b3Plane plane;
+	float32 area;
 
 	qhFaceMark mark;
 
@@ -131,6 +132,8 @@ private:
 	qhFace* RemoveFace(qhFace* face);
 	
 	bool MergeFace(qhFace* face);
+	
+	bool MergeLargeFace(qhFace* face);
 
 	qhHalfEdge* FindHalfEdge(const qhVertex* v1, const qhVertex* v2) const;
 
@@ -145,6 +148,8 @@ private:
 	void AddNewFaces(qhVertex* eye);
 	void MergeNewFaces();
 	
+	void ResolveOrphans();
+
 	// List of vertices
 	qhList<qhVertex> m_vertexList;
 	
