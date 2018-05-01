@@ -176,26 +176,18 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 	}
 
 	// Create a convex hull.
-	
-	// Allocate memory buffer for the worst case.
-	u32 qhBufferSize = qhGetBufferSize(B3_MAX_HULL_VERTICES);
-	void* qhBuffer = b3Alloc(qhBufferSize);
-
-	// Build
 	qhHull hull;
-	hull.Construct(qhBuffer, ps, psCount);
+	hull.Construct(ps, psCount);
 
 	if (hull.GetVertexList().count > B3_MAX_HULL_VERTICES)
 	{
 		// Vertex excess
-		b3Free(qhBuffer);
 		return;
 	}
 
 	if (hull.GetFaceList().count > B3_MAX_HULL_FACES)
 	{
 		// Face excess
-		b3Free(qhBuffer);
 		return;
 	}
 	
@@ -228,7 +220,6 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 			if (iedge == B3_MAX_HULL_EDGES)
 			{
 				// Half-edge excess
-				b3Free(qhBuffer);
 				return;
 			}
 
@@ -237,7 +228,6 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 			if (itwin == B3_MAX_HULL_EDGES)
 			{
 				// Half-edge excess
-				b3Free(qhBuffer);
 				return;
 			}
 
@@ -286,8 +276,6 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 
 		++iface;
 	}
-
-	b3Free(qhBuffer);
 
 	B3_ASSERT(vs.count <= B3_MAX_HULL_VERTICES);
 	vertexCount = vs.count;

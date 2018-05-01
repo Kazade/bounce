@@ -61,10 +61,42 @@ qhHull::qhHull()
 
 qhHull::~qhHull()
 {
+	qhVertex* v = m_vertexList.head;
+	while(v) 
+	{
+		qhVertex* v0 = v;
+		v = v->next;
+		
+		FreeVertex(v0);
+	}
+	
+	qhFace* f = m_faceList.head;
+	while (f)
+	{
+		qhFace* f0 = f;
+		f = f->next;
+
+		qhHalfEdge* e = f0->edge;
+		do
+		{
+			qhHalfEdge* e0 = e;
+			e = e->next;
+			
+			FreeEdge(e0);
+		} while (e != f0->edge);
+		
+		FreeFace(f0);
+	}
+
+	b3Free(m_buffer);
 }
 
-void qhHull::Construct(void* memory, const b3Vec3* vs, u32 count)
+void qhHull::Construct(const b3Vec3* vs, u32 count)
 {
+	// Allocate memory buffer for the worst case.
+	u32 bufferSize = qhGetBufferSize(count);
+	m_buffer = b3Alloc(bufferSize);
+
 	// Euler's formula
 	// V - E + F = 2
 	u32 V = count;
@@ -72,11 +104,8 @@ void qhHull::Construct(void* memory, const b3Vec3* vs, u32 count)
 	u32 HE = 2 * E;
 	u32 F = 2 * V - 4;
 
-	HE *= 2;
-	F *= 2;
-
 	m_freeVertices = NULL;
-	qhVertex* vertices = (qhVertex*)memory;
+	qhVertex* vertices = (qhVertex*)m_buffer;
 	for (u32 i = 0; i < V; ++i)
 	{
 		FreeVertex(vertices + i);

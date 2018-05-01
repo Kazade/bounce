@@ -102,9 +102,8 @@ public:
 	qhHull();
 	~qhHull();
 	
-	// Construct this hull given a memory buffer and an array of points.
-	// Use qhGetBufferSize to get the buffer size given the number of points.
-	void Construct(void* buffer, const b3Vec3* vertices, u32 vertexCount);
+	// Construct this convex hull from an array of points.
+	void Construct(const b3Vec3* vertices, u32 vertexCount);
 
 	// Get the list of vertices in this convex hull.
 	const qhList<qhVertex>& GetVertexList() const;
@@ -150,10 +149,10 @@ private:
 	
 	void ResolveOrphans();
 
-	// List of vertices
+	// List of active vertices
 	qhList<qhVertex> m_vertexList;
 	
-	// List of faces
+	// List of active faces 
 	qhList<qhFace> m_faceList; 
 
 	// Coplanarity tolerance
@@ -172,6 +171,8 @@ private:
 	qhFace* AllocateFace();
 	void FreeFace(qhFace* p);
 	
+	void* m_buffer;
+
 	qhVertex* m_freeVertices;
 	qhHalfEdge* m_freeEdges;
 	qhFace* m_freeFaces;
