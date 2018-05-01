@@ -46,15 +46,17 @@ public:
 			b3Vec3 pw = wm.points[i].point;
 			b3Vec2 ps = g_camera->ConvertWorldToScreen(pw);
 			
-			g_draw->DrawPoint(pw, 4.0f, b3Color(0.0f, 1.0f, 0.0f));
-			g_draw->DrawSegment(pw, pw + wm.points[i].normal, b3Color(1.0f, 1.0f, 1.0f));
+			g_draw->DrawPoint(pw, 4.0f, b3Color_green);
+			g_draw->DrawSegment(pw, pw + wm.points[i].normal, b3Color_white);
 		}
-
-		g_draw->DrawSolidShape(m_shapeA, b3Color(1.0f, 1.0f, 1.0f, 0.5f), m_xfA);
-		g_draw->DrawSolidShape(m_shapeB, b3Color(1.0f, 1.0f, 1.0f, 0.5f), m_xfB);
 
 		m_world.DrawShape(m_xfA, m_shapeA);
 		m_world.DrawShape(m_xfB, m_shapeB);
+
+		g_draw->Flush();
+
+		g_draw->DrawSolidShape(m_shapeA, b3Color(1.0f, 1.0f, 1.0f, 0.25f), m_xfA);
+		g_draw->DrawSolidShape(m_shapeB, b3Color(1.0f, 1.0f, 1.0f, 0.25f), m_xfB);
 
 		g_draw->DrawString(b3Color_white, "Left/Right/Up/Down Arrow - Translate shape");
 		g_draw->DrawString(b3Color_white, "X/Y/Z - Rotate shape");
