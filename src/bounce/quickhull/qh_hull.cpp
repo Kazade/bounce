@@ -128,7 +128,7 @@ void qhHull::Construct(const b3Vec3* vs, u32 count)
 		FreeFace(f);
 	}
 
-	m_horizon = (qhHalfEdge**)((u8*)faces + F * sizeof(qhFace*));
+	m_horizon = (qhHalfEdge**)((u8*)faces + F * sizeof(qhFace));
 	m_horizonCount = 0;
 
 	m_horizonVertices = (qhVertex**)((u8*)m_horizon + HE * sizeof(qhHalfEdge*));
