@@ -344,7 +344,7 @@ void b3ClusterSolver::AddCluster(const b3Vec3& centroid)
 		return;
 	}
 
-	u32 bestIndex = BestCluster(centroid);
+	u32 bestIndex = FindCluster(centroid);
 	b3Cluster& bestCluster = m_clusters[bestIndex];
 
 	// Should we merge the cluster?
@@ -364,7 +364,7 @@ void b3ClusterSolver::AddCluster(const b3Vec3& centroid)
 	m_clusters.PushBack(c);
 }
 
-u32 b3ClusterSolver::BestCluster(const b3Vec3& point) const
+u32 b3ClusterSolver::FindCluster(const b3Vec3& point) const
 {
 	u32 bestIndex = 0;
 	float32 bestValue = B3_MAX_FLOAT;
@@ -410,7 +410,7 @@ void b3ClusterSolver::Solve()
 		for (u32 i = 0; i < m_observations.Count(); ++i)
 		{
 			b3Observation& obs = m_observations[i];
-			obs.cluster = BestCluster(obs.point);
+			obs.cluster = FindCluster(obs.point);
 		}
 
 		// Compute the new cluster centroids.

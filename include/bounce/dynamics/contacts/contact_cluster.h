@@ -93,7 +93,7 @@ private:
 	void AddCluster(const b3Vec3& centroid);
 
 	//
-	u32 BestCluster(const b3Vec3& point) const;
+	u32 FindCluster(const b3Vec3& point) const;
 
 	u32 m_iterations;
 
