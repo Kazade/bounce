@@ -96,6 +96,14 @@ public:
 		{
 			b3Triangle* t = m_clothMesh.triangles + i;
 
+			b3Vec3 v1 = m_clothMesh.vertices[t->v1];
+			b3Vec3 v2 = m_clothMesh.vertices[t->v2];
+			b3Vec3 v3 = m_clothMesh.vertices[t->v3];
+
+			b3Draw_draw->DrawSegment(v1, v2, b3Color_black);
+			b3Draw_draw->DrawSegment(v2, v3, b3Color_black);
+			b3Draw_draw->DrawSegment(v3, v1, b3Color_black);
+
 			b3Vec3 f1 = T[t->v1];
 			float32 L1 = b3Length(f1);
 
@@ -110,10 +118,6 @@ public:
 			const float32 kMaxT = 100000.0f;
 			b3Color color = Color(L, 0.0f, kMaxT);
 			
-			b3Vec3 v1 = m_clothMesh.vertices[t->v1];
-			b3Vec3 v2 = m_clothMesh.vertices[t->v2];
-			b3Vec3 v3 = m_clothMesh.vertices[t->v3];
-
 			b3Vec3 n1 = b3Cross(v2 - v1, v3 - v1);
 			n1.Normalize();
 
