@@ -60,6 +60,8 @@ public:
 
 		g_draw->DrawString(b3Color_white, "Left/Right/Up/Down Arrow - Translate shape");
 		g_draw->DrawString(b3Color_white, "X/Y/Z - Rotate shape");
+		
+		g_draw->Flush();
 	}
 
 	virtual void KeyDown(int key)
