@@ -181,9 +181,6 @@ void Draw::DrawSolidTriangle(const b3Vec3& normal, const b3Vec3& p1, const b3Vec
 	m_triangles->Vertex(p1, color, normal);
 	m_triangles->Vertex(p2, color, normal);
 	m_triangles->Vertex(p3, color, normal);
-
-	b3Color edgeColor(0.0f, 0.0f, 0.0f, 1.0f);
-	DrawTriangle(p1, p2, p3, edgeColor);
 }
 
 void Draw::DrawPolygon(const b3Vec3* vertices, u32 count, const b3Color& color)
