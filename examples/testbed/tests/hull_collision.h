@@ -54,15 +54,13 @@ public:
 	{
 		for (u32 i = 0; i < e_count; ++i)
 		{
-			float32 x = RandomFloat(-1.0f, 1.0f);
-			float32 y = RandomFloat(-1.0f, 1.0f);
-			float32 z = RandomFloat(-1.0f, 1.0f);
+			float32 x = 3.0f * RandomFloat(-1.0f, 1.0f);
+			float32 y = 3.0f * RandomFloat(-1.0f, 1.0f);
+			float32 z = 3.0f * RandomFloat(-1.0f, 1.0f);
 
-			// Clamp to force coplanarities.
-			// This will stress the convex hull creation code.
-			x = b3Clamp(x, -0.9f, 0.9f);
-			y = b3Clamp(y, -0.9f, 0.9f);
-			z = b3Clamp(z, -0.9f, 0.9f);
+			x = b3Clamp(x, -2.5f, 2.5f);
+			y = b3Clamp(y, -2.5f, 2.5f);
+			z = b3Clamp(z, -2.5f, 2.5f);
 
 			b3Vec3 p(x, y, z);
 
@@ -71,15 +69,13 @@ public:
 
 		for (u32 i = 0; i < e_count; ++i)
 		{
-			float32 x = RandomFloat(-1.0f, 1.0f);
-			float32 y = RandomFloat(-1.0f, 1.0f);
-			float32 z = RandomFloat(-1.0f, 1.0f);
+			float32 x = 3.0f * RandomFloat(-1.0f, 1.0f);
+			float32 y = 3.0f * RandomFloat(-1.0f, 1.0f);
+			float32 z = 3.0f * RandomFloat(-1.0f, 1.0f);
 
-			// Clamp to force coplanarities.
-			// This will stress the convex hull creation code.
-			x = b3Clamp(x, -0.9f, 0.9f);
-			y = b3Clamp(y, -0.9f, 0.9f);
-			z = b3Clamp(z, -0.9f, 0.9f);
+			x = b3Clamp(x, -2.5f, 2.5f);
+			y = b3Clamp(y, -2.5f, 2.5f);
+			z = b3Clamp(z, -2.5f, 2.5f);
 
 			b3Vec3 p(x, y, z);
 
