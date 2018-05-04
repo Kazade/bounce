@@ -192,8 +192,7 @@ void b3CollideCache(b3Manifold& manifold,
 		return;
 	}
 
-	const float32 kTol = 0.05f * B3_LINEAR_SLOP;
-
+	const float32 kTol = 0.1f * B3_LINEAR_SLOP;
 	if (edgeQuery.separation > b3Max(faceQuery1.separation, faceQuery2.separation) + kTol)
 	{
 		b3BuildEdgeContact(manifold, xf1, edgeQuery.index1, s1, xf2, edgeQuery.index2, s2);
@@ -201,6 +200,7 @@ void b3CollideCache(b3Manifold& manifold,
 		{
 			// Write an overlap cache.		
 			cache->m_featurePair = b3MakeFeaturePair(b3SATCacheType::e_overlap, b3SATFeatureType::e_edge1, edgeQuery.index1, edgeQuery.index2);
+			return;
 		}
 	}
 	else
@@ -212,6 +212,7 @@ void b3CollideCache(b3Manifold& manifold,
 			{
 				// Write an overlap cache.
 				cache->m_featurePair = b3MakeFeaturePair(b3SATCacheType::e_overlap, b3SATFeatureType::e_face1, faceQuery1.index, faceQuery1.index);
+				return;
 			}
 		}
 		else
@@ -221,9 +222,57 @@ void b3CollideCache(b3Manifold& manifold,
 			{
 				// Write an overlap cache.
 				cache->m_featurePair = b3MakeFeaturePair(b3SATCacheType::e_overlap, b3SATFeatureType::e_face2, faceQuery2.index, faceQuery2.index);
+				return;
 			}
 		}
 	}
+
+	// Heuristic failed. Fallback.
+	if (edgeQuery.separation > b3Max(faceQuery1.separation, faceQuery2.separation))
+	{
+		b3BuildEdgeContact(manifold, xf1, edgeQuery.index1, s1, xf2, edgeQuery.index2, s2);
+		if (manifold.pointCount > 0)
+		{
+			// Write an overlap cache.		
+			cache->m_featurePair = b3MakeFeaturePair(b3SATCacheType::e_overlap, b3SATFeatureType::e_edge1, edgeQuery.index1, edgeQuery.index2);
+			return;
+		}
+	}
+	else
+	{
+		if (faceQuery1.separation > faceQuery2.separation)
+		{
+			b3BuildFaceContact(manifold, xf1, faceQuery1.index, s1, xf2, s2, false);
+			if (manifold.pointCount > 0)
+			{
+				// Write an overlap cache.
+				cache->m_featurePair = b3MakeFeaturePair(b3SATCacheType::e_overlap, b3SATFeatureType::e_face1, faceQuery1.index, faceQuery1.index);
+				return;
+			}
+		}
+		else
+		{
+			b3BuildFaceContact(manifold, xf2, faceQuery2.index, s2, xf1, s1, true);
+			if (manifold.pointCount > 0)
+			{
+				// Write an overlap cache.
+				cache->m_featurePair = b3MakeFeaturePair(b3SATCacheType::e_overlap, b3SATFeatureType::e_face2, faceQuery2.index, faceQuery2.index);
+				return;
+			}
+		}
+	}
+
+	// When both convex hulls are not simplified clipping might fail and create no contact points.
+	// For example, when a hull contains tiny faces, coplanar faces, and/or non-sharped edges.
+	// So we simply create a contact point between the segments.
+	// The hulls might overlap, but is better than solving no contact points.
+	b3BuildEdgeContact(manifold, xf1, edgeQuery.index1, s1, xf2, edgeQuery.index2, s2);
+
+	// If the shapes are overlapping then at least on point must be created.
+	B3_ASSERT(manifold.pointCount > 0);
+
+	// Write an overlap cache.		
+	cache->m_featurePair = b3MakeFeaturePair(b3SATCacheType::e_overlap, b3SATFeatureType::e_edge1, edgeQuery.index1, edgeQuery.index2);
 }
 
 extern u32 b3_convexCacheHits;

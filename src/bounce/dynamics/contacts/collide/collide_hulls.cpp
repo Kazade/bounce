@@ -23,7 +23,7 @@
 #include <bounce/dynamics/shapes/hull_shape.h>
 #include <bounce/collision/shapes/hull.h>
 
-void b3BuildEdgeContact(b3Manifold& manifold, 
+void b3BuildEdgeContact(b3Manifold& manifold,
 	const b3Transform& xf1, u32 index1, const b3HullShape* s1,
 	const b3Transform& xf2, u32 index2, const b3HullShape* s2)
 {
@@ -52,13 +52,13 @@ void b3BuildEdgeContact(b3Manifold& manifold,
 	B3_ASSERT(L2 > B3_LINEAR_SLOP);
 
 	// Compute the closest points on the two lines.
-	float32 b = b3Dot(N1, N2);	
+	float32 b = b3Dot(N1, N2);
 	float32 den = 1.0f - b * b;
 	if (den <= 0.0f)
 	{
 		return;
 	}
-	
+
 	float32 inv_den = 1.0f / den;
 
 	b3Vec3 E3 = P1 - P2;
@@ -80,7 +80,7 @@ void b3BuildEdgeContact(b3Manifold& manifold,
 	{
 		N = -N;
 	}
-	
+
 	b3FeaturePair pair = b3MakePair(index1, index1 + 1, index2, index2 + 1);
 
 	manifold.pointCount = 1;
@@ -113,7 +113,7 @@ void b3BuildFaceContact(b3Manifold& manifold,
 	b3Plane plane1 = b3Mul(xf1, localPlane1);
 
 	// 2. Find the incident face polygon (2).	
-	
+
 	// Put the reference plane normal in the frame of the incident hull (2).
 	b3Vec3 normal1 = b3MulT(xf2.rotation, plane1.normal);
 
@@ -133,7 +133,7 @@ void b3BuildFaceContact(b3Manifold& manifold,
 	// 4. Project the clipped polygon on the reference plane for reduction.
 	// Ensure the deepest point is contained in the reduced polygon.
 	b3StackArray<b3ClusterPolygonVertex, 32> polygon1;
-	
+
 	u32 minIndex = 0;
 	float32 minSeparation = B3_MAX_FLOAT;
 
@@ -164,10 +164,10 @@ void b3BuildFaceContact(b3Manifold& manifold,
 
 	// 5. Reduce.
 	b3Vec3 normal = plane1.normal;
-	
+
 	// Ensure normal orientation to hull 2.
 	b3Vec3 s_normal = flipNormal ? -normal : normal;
-	
+
 	b3StackArray<b3ClusterPolygonVertex, 32> reducedPolygon1;
 	b3ReducePolygon(reducedPolygon1, polygon1, s_normal, minIndex);
 	B3_ASSERT(!reducedPolygon1.IsEmpty());
@@ -186,7 +186,7 @@ void b3BuildFaceContact(b3Manifold& manifold,
 		{
 			// Swap the feature pairs.
 			b3FeaturePair pair = b3MakePair(v2.pair.inEdge2, v2.pair.inEdge1, v2.pair.outEdge2, v2.pair.outEdge1);
-			
+
 			mp->localNormal1 = b3MulT(xf2.rotation, s_normal);
 			mp->localPoint1 = b3MulT(xf2, v2.position);
 			mp->localPoint2 = b3MulT(xf1, v1);
@@ -202,20 +202,22 @@ void b3BuildFaceContact(b3Manifold& manifold,
 			mp->key = b3MakeKey(v2.pair);
 		}
 	}
-	
+
 	manifold.pointCount = pointCount;
 }
 
-void b3CollideHulls(b3Manifold& manifold, 
+void b3CollideHulls(b3Manifold& manifold,
 	const b3Transform& xf1, const b3HullShape* s1,
 	const b3Transform& xf2, const b3HullShape* s2)
 {
+	B3_ASSERT(manifold.pointCount == 0);
+
 	const b3Hull* hull1 = s1->m_hull;
 	float32 r1 = s1->m_radius;
-	
+
 	const b3Hull* hull2 = s2->m_hull;
 	float32 r2 = s2->m_radius;
-	
+
 	float32 totalRadius = r1 + r2;
 
 	b3FaceQuery faceQuery1 = b3QueryFaceSeparation(xf1, hull1, xf2, hull2);
@@ -236,7 +238,7 @@ void b3CollideHulls(b3Manifold& manifold,
 		return;
 	}
 
-	const float32 kTol = 0.05f * B3_LINEAR_SLOP;
+	const float32 kTol = 0.1f * B3_LINEAR_SLOP;
 	if (edgeQuery.separation > b3Max(faceQuery1.separation, faceQuery2.separation) + kTol)
 	{
 		b3BuildEdgeContact(manifold, xf1, edgeQuery.index1, s1, xf2, edgeQuery.index2, s2);
@@ -252,6 +254,41 @@ void b3CollideHulls(b3Manifold& manifold,
 			b3BuildFaceContact(manifold, xf2, faceQuery2.index, s2, xf1, s1, true);
 		}
 	}
+
+	// Heuristic succeded. 
+	if (manifold.pointCount > 0)
+	{
+		return;
+	}
+
+	// Heuristic failed. Fallback.
+	if (edgeQuery.separation > b3Max(faceQuery1.separation, faceQuery2.separation))
+	{
+		b3BuildEdgeContact(manifold, xf1, edgeQuery.index1, s1, xf2, edgeQuery.index2, s2);
+	}
+	else
+	{
+		if (faceQuery1.separation > faceQuery2.separation)
+		{
+			b3BuildFaceContact(manifold, xf1, faceQuery1.index, s1, xf2, s2, false);
+		}
+		else
+		{
+			b3BuildFaceContact(manifold, xf2, faceQuery2.index, s2, xf1, s1, true);
+		}
+	}
+
+	// When both convex hulls are not simplified clipping might fail and create no contact points.
+	// For example, when a hull contains tiny faces, coplanar faces, and/or non-sharped edges.
+	// So we simply create a contact point between the segments.
+	// The hulls might overlap, but is better than solving no contact points.
+	if (manifold.pointCount == 0)
+	{
+		b3BuildEdgeContact(manifold, xf1, edgeQuery.index1, s1, xf2, edgeQuery.index2, s2);
+	}
+
+	// If the shapes are overlapping then at least on point must be created.
+	B3_ASSERT(manifold.pointCount > 0);
 }
 
 bool b3_convexCache = true;
@@ -262,9 +299,9 @@ void b3CollideHulls(b3Manifold& manifold,
 	const b3Transform& xf2, const b3HullShape* s2,
 	b3FeatureCache* cache);
 
-void b3CollideHullAndHull(b3Manifold& manifold, 
+void b3CollideHullAndHull(b3Manifold& manifold,
 	const b3Transform& xf1, const b3HullShape* s1,
-	const b3Transform& xf2, const b3HullShape* s2, 
+	const b3Transform& xf2, const b3HullShape* s2,
 	b3ConvexCache* cache)
 {
 	++b3_convexCalls;
