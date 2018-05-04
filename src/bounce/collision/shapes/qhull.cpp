@@ -30,7 +30,7 @@ struct b3UniqueArray
 	{
 		count = 0;
 	}
-	
+
 	// Add the value if not found
 	void Add(const T& value)
 	{
@@ -59,7 +59,7 @@ struct b3UniqueArray
 		values[count++] = value;
 		return count - 1;
 	}
-	
+
 	T values[N];
 	u32 count;
 };
@@ -76,7 +76,7 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 	// centroid.y = (1 / volume) * int(y * dV)
 	// centroid.z = (1 / volume) * int(z * dV)
 	b3Vec3 centroid; centroid.SetZero();
-	
+
 	// Put the reference point inside the hull
 	b3Vec3 s; s.SetZero();
 	for (u32 i = 0; i < hull->vertexCount; ++i)
@@ -176,8 +176,102 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 	}
 
 	// Create a convex hull.
+	qhHull primary;
+	primary.Construct(ps, psCount);
+
+	// Simplify the constructed hull.
+
+	// Put the origin inside the hull.
+	b3Vec3 s;
+	s.SetZero();
+	for (qhVertex* v = primary.GetVertexList().head; v; v = v->next)
+	{
+		s += v->position;
+	}
+	s /= float32(primary.GetVertexList().count);
+
+	primary.Translate(-s);
+
+	// Build the dual hull 
+	u32 dvCount = 0;
+	qhFace** dfs = (qhFace**)b3Alloc(primary.GetFaceList().count * sizeof(qhFace*));
+	b3Vec3* dvs = (b3Vec3*)b3Alloc(primary.GetFaceList().count * sizeof(b3Vec3));
+
+	for (qhFace* f = primary.GetFaceList().head; f; f = f->next)
+	{
+		b3Plane plane = f->plane;
+		B3_ASSERT(plane.offset > 0.0f);
+		b3Vec3 v = plane.normal / plane.offset;
+
+		bool unique = true;
+
+		// There's a magic portion of code lost in the island that would cluster those planes.
+		// While we can't find it, simply keep the face which has the largest area.
+		for (u32 j = 0; j < dvCount; ++j)
+		{
+			qhFace*& df = dfs[j];
+			b3Vec3& dv = dvs[j];
+
+			const float32 kTol = 0.1f;
+			if (b3DistanceSquared(v, dv) <= kTol)
+			{
+				if (f->area > df->area)
+				{
+					df = f;
+					dv = v;
+				}
+
+				unique = false;
+				break;
+			}
+		}
+
+		if (unique)
+		{
+			dfs[dvCount] = f;
+			dvs[dvCount] = v;
+			++dvCount;
+		}
+	}
+
+	b3Free(dfs);
+
+	qhHull dual;
+	dual.Construct(dvs, dvCount);
+	b3Free(dvs);
+
+	// Recover the simplified hull in primary space. 
+	u32 pvCount = 0;
+	b3Vec3* pvs = (b3Vec3*)b3Alloc(dual.GetFaceList().count * sizeof(b3Vec3));
+	for (qhFace* f = dual.GetFaceList().head; f; f = f->next)
+	{
+		b3Plane plane = f->plane;
+		B3_ASSERT(plane.offset > 0.0f);
+		b3Vec3 v = plane.normal / plane.offset;
+
+		bool unique = true;
+
+		for (u32 j = 0; j < pvCount; ++j)
+		{
+			if (b3DistanceSquared(v, pvs[j]) <= B3_LINEAR_SLOP * B3_LINEAR_SLOP)
+			{
+				unique = false;
+				break;
+			}
+		}
+
+		if (unique)
+		{
+			pvs[pvCount++] = v;
+		}
+	}
+
 	qhHull hull;
-	hull.Construct(ps, psCount);
+	hull.Construct(pvs, pvCount);
+	b3Free(pvs);
+
+	// Translate the hull back to the origin
+	hull.Translate(s);
 
 	if (hull.GetVertexList().count > B3_MAX_HULL_VERTICES)
 	{
@@ -190,12 +284,12 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 		// Face excess
 		return;
 	}
-	
+
 	// Convert the constructed hull into a run-time hull.
 	b3UniqueArray<qhVertex*, B3_MAX_HULL_VERTICES> vs;
 	b3UniqueArray<qhHalfEdge*, B3_MAX_HULL_EDGES> es;
 	u32 fs_count = 0;
-	
+
 	// Add vertices to the map
 	for (qhVertex* vertex = hull.GetVertexList().head; vertex != NULL; vertex = vertex->next)
 	{
@@ -234,14 +328,14 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 			edge = edge->next;
 		} while (edge != begin);
 	}
-	
+
 	// Build and link the features
 	u32 iface = 0;
 	for (qhFace* face = hull.GetFaceList().head; face != NULL; face = face->next)
 	{
 		// Build and link the half-edges 
 		b3Face* hface = faces + iface;
-		
+
 		planes[iface] = face->plane;
 
 		qhHalfEdge* begin = face->edge;
@@ -282,7 +376,7 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 
 	B3_ASSERT(es.count <= B3_MAX_HULL_EDGES);
 	edgeCount = es.count;
-	
+
 	B3_ASSERT(fs_count <= B3_MAX_HULL_FACES);
 	faceCount = fs_count;
 
