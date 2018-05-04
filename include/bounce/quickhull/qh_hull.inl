@@ -42,39 +42,6 @@ inline T* qhList<T>::Remove(T* link)
 
 // qhHull
 
-// Given a number of points return the required memory size in 
-// bytes for constructing the convex hull of those points. 
-inline u32 qhGetBufferSize(u32 pointCount)
-{
-	u32 size = 0;
-
-	// Hull using Euler's Formula
-	u32 V = pointCount;
-	u32 E = 3 * V - 6;
-	u32 HE = 2 * E;
-	u32 F = 2 * V - 4;
-
-	size += V * sizeof(qhVertex);
-	size += HE * sizeof(qhHalfEdge);
-	size += F * sizeof(qhFace);
-
-	// Horizon 
-	size += HE * sizeof(qhHalfEdge*);
-
-	// Saved horizon vertices
-	// One vertex per horizon edge
-	size += HE * sizeof(qhVertex*);
-
-	// Saved conflict vertices
-	size += V * sizeof(qhVertex*);
-
-	// New Faces
-	// One face per horizon edge
-	size += HE * sizeof(qhFace*);
-
-	return size;
-}
-
 inline const qhList<qhVertex>& qhHull::GetVertexList() const
 {
 	return m_vertexList;
@@ -92,6 +59,9 @@ inline u32 qhHull::GetIterations() const
 
 inline qhVertex* qhHull::AllocateVertex()
 {
+	B3_ASSERT(m_vertexCount < m_vertexCapacity);
+	++m_vertexCount;
+
 	qhVertex* v = m_freeVertices;
 	B3_ASSERT(v->active == false);
 	v->active = true;
@@ -101,7 +71,10 @@ inline qhVertex* qhHull::AllocateVertex()
 
 inline void qhHull::FreeVertex(qhVertex* v)
 {
-	//B3_ASSERT(v->active == true);
+	B3_ASSERT(m_vertexCount > 0);
+	--m_vertexCount;
+
+	B3_ASSERT(v->active == true);
 	v->active = false;
 	v->freeNext = m_freeVertices;
 	m_freeVertices = v;
@@ -109,6 +82,9 @@ inline void qhHull::FreeVertex(qhVertex* v)
 
 inline qhHalfEdge* qhHull::AllocateEdge()
 {
+	B3_ASSERT(m_edgeCount < m_edgeCapacity);
+	++m_edgeCount;
+
 	qhHalfEdge* e = m_freeEdges;
 	B3_ASSERT(e->active == false);
 	e->active = true;
@@ -118,7 +94,10 @@ inline qhHalfEdge* qhHull::AllocateEdge()
 
 inline void qhHull::FreeEdge(qhHalfEdge* e)
 {
-	//B3_ASSERT(e->active == true);
+	B3_ASSERT(m_edgeCount > 0);
+	--m_edgeCount;
+
+	B3_ASSERT(e->active == true);
 	e->active = false;
 	e->freeNext = m_freeEdges;
 	m_freeEdges = e;
@@ -126,6 +105,9 @@ inline void qhHull::FreeEdge(qhHalfEdge* e)
 
 inline qhFace* qhHull::AllocateFace()
 {
+	B3_ASSERT(m_faceCount < m_faceCapacity);
+	++m_faceCount;
+
 	qhFace* f = m_freeFaces;
 	B3_ASSERT(f->active == false);
 	f->active = true;
@@ -135,31 +117,11 @@ inline qhFace* qhHull::AllocateFace()
 
 inline void qhHull::FreeFace(qhFace* f)
 {
-	//B3_ASSERT(f->active == true);
+	B3_ASSERT(m_faceCount > 0);
+	--m_faceCount;
+	
+	B3_ASSERT(f->active == true);
 	f->active = false;
 	f->freeNext = m_freeFaces;
 	m_freeFaces = f;
-}
-
-inline qhHalfEdge* qhHull::FindHalfEdge(const qhVertex* v1, const qhVertex* v2) const
-{
-	for (qhFace* face = m_faceList.head; face != NULL; face = face->next)
-	{
-		qhHalfEdge* e = face->edge;
-		do
-		{
-			if (e->tail == v1 && e->next->tail == v2)
-			{
-				return e;
-			}
-
-			if (e->tail == v2 && e->next->tail == v1)
-			{
-				return e->twin;
-			}
-
-			e = e->next;
-		} while (e != face->edge);
-	}
-	return NULL;
 }

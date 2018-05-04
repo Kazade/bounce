@@ -64,14 +64,13 @@ struct qhFace
 
 struct qhHalfEdge
 {
+	qhVertex* tail;
+
 	qhHalfEdge* prev;
 	qhHalfEdge* next;
-
 	qhHalfEdge* twin;
 
 	qhFace* face;
-
-	qhVertex* tail;
 
 	//
 	qhHalfEdge* freeNext;
@@ -110,6 +109,9 @@ public:
 	
 	// Get the list of faces in this convex hull.
 	const qhList<qhFace>& GetFaceList() const;
+
+	// Translate this hull.
+	void Translate(const b3Vec3& translation);
 
 	// Get the number of iterations this algorithm ran.
 	u32 GetIterations() const;
@@ -173,6 +175,14 @@ private:
 	
 	void* m_buffer;
 
+	u32 m_vertexCapacity;
+	u32 m_faceCapacity;
+	u32 m_edgeCapacity;
+
+	u32 m_vertexCount;
+	u32 m_faceCount;
+	u32 m_edgeCount;
+	
 	qhVertex* m_freeVertices;
 	qhHalfEdge* m_freeEdges;
 	qhFace* m_freeFaces;
