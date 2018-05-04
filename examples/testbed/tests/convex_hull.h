@@ -74,7 +74,7 @@ public:
 
 		for (u32 i = 0; i < m_count; ++i)
 		{
-			b3Draw_draw->DrawPoint(m_points[i], 4.0f, b3Color_green);
+			g_draw->DrawPoint(m_points[i], 4.0f, b3Color_green);
 		}
 
 		for (u32 i = 0; i < hull.edgeCount; i += 2)
@@ -85,7 +85,7 @@ public:
 			b3Vec3 v1 = hull.GetVertex(edge->origin);
 			b3Vec3 v2 = hull.GetVertex(twin->origin);
 
-			b3Draw_draw->DrawSegment(v1, v2, b3Color_black);
+			g_draw->DrawSegment(v1, v2, b3Color_black);
 		}
 
 		g_draw->Flush();
