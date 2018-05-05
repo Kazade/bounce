@@ -211,9 +211,6 @@ void Draw::DrawSolidPolygon(const b3Vec3& normal, const b3Vec3* vertices, u32 co
 		m_triangles->Vertex(p2, fillColor, normal);
 		m_triangles->Vertex(p3, fillColor, normal);
 	}
-
-	b3Color frameColor(0.5f * color.r, 0.5f * color.g, 0.5f * color.b, 1.0f);
-	DrawPolygon(vertices, count, frameColor);
 }
 
 void Draw::DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
@@ -290,9 +287,6 @@ void Draw::DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, float32 r
 		m_triangles->Vertex(center, fillColor, normal);
 		m_triangles->Vertex(p1, fillColor, normal);
 		m_triangles->Vertex(p2, fillColor, normal);
-
-		m_lines->Vertex(p1, frameColor);
-		m_lines->Vertex(p2, frameColor);
 
 		n1 = n2;
 		p1 = p2;
