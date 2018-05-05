@@ -30,7 +30,7 @@ static B3_FORCE_INLINE bool b3IsCCW(const b3Vec3& A, const b3Vec3& B, const b3Ve
 	return b3IsCCW(A, B, C, N) && b3IsCCW(C, D, A, N);
 }
 
-void b3WeldPolygon(b3ClusterPolygon& pOut,
+void b3SortPolygon(b3ClusterPolygon& pOut,
 	const b3ClusterPolygon& pIn, const b3Vec3& pNormal)
 {
 	B3_ASSERT(pOut.IsEmpty());
@@ -65,7 +65,7 @@ void b3ReducePolygon(b3ClusterPolygon& pOut,
 	pOut.Reserve(pIn.Count());
 	if (pIn.Count() <= B3_MAX_MANIFOLD_POINTS)
 	{
-		b3WeldPolygon(pOut, pIn, pNormal);
+		b3SortPolygon(pOut, pIn, pNormal);
 		return;
 	}
 
@@ -193,7 +193,7 @@ void b3ReducePolygon(b3ClusterPolygon& pOut,
 	B3_ASSERT(pOut.Count() <= B3_MAX_MANIFOLD_POINTS);
 	
 	b3StackArray<b3ClusterPolygonVertex, 32> quad;
-	b3WeldPolygon(quad, pOut, pNormal);
+	b3SortPolygon(quad, pOut, pNormal);
 	
 	// Output polygon
 	pOut = quad;

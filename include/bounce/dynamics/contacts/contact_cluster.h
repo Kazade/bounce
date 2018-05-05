@@ -33,8 +33,8 @@ struct b3ClusterPolygonVertex
 // Used for contact cluster reduction.
 typedef b3Array<b3ClusterPolygonVertex> b3ClusterPolygon;
 
-// Weld a convex polygon such that the polygon normal points to a given direction.
-void b3WeldPolygon(b3ClusterPolygon& pOut, 
+// Sort a convex polygon such that the polygon normal points to a given normal.
+void b3SortPolygon(b3ClusterPolygon& pOut, 
 	const b3ClusterPolygon& pIn, const b3Vec3& pNormal);
 
 // Reduce a set of contact points to a quad (approximate convex polygon).
