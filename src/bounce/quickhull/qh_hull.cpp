@@ -808,6 +808,7 @@ void qhHull::FixMerge(qhFace* face1, qhHalfEdge* ein)
 		B3_ASSERT(eout->next->prev == eout);
 		eout->next->prev = eout->prev;
 
+		B3_ASSERT(eout->face == face1);
 		if (face1->edge == eout)
 		{
 			face1->edge = eout->next;
@@ -825,6 +826,7 @@ void qhHull::FixMerge(qhFace* face1, qhHalfEdge* ein)
 		B3_ASSERT(eout->twin->next->prev == eout->twin);
 		eout->twin->next->prev = eout->twin->prev;
 
+		B3_ASSERT(eout->twin->face == face3);
 		if (face3->edge == eout->twin)
 		{
 			face3->edge = eout->twin->next;
@@ -861,6 +863,7 @@ qhFace* qhHull::RemoveEdge(qhHalfEdge* edge)
 	}
 
 	// Set the face 1 to reference a non-deleted edge
+	B3_ASSERT(edge->face == face1);
 	if (face1->edge == edge)
 	{
 		face1->edge = edge->next;
@@ -877,10 +880,10 @@ qhFace* qhHull::RemoveEdge(qhHalfEdge* edge)
 	B3_ASSERT(edge->twin->next->prev == edge->twin);
 	edge->twin->next->prev = edge->prev;
 
-	// Reset right face data
+	// Reset face 1 data
 	b3ResetFaceData(face1);
 
-	// Validate topology
+	// Validate face 1
 	Validate(face1);
 
 	// Move face 2 conflict vertices into face 1
