@@ -621,16 +621,13 @@ void b3SpringCloth::Draw() const
 		b3Vec3 v2 = m_x[t->v2];
 		b3Vec3 v3 = m_x[t->v3];
 
-		b3Draw_draw->DrawSegment(v1, v2, b3Color_black);
-		b3Draw_draw->DrawSegment(v2, v3, b3Color_black);
-		b3Draw_draw->DrawSegment(v3, v1, b3Color_black);
+		b3Draw_draw->DrawTriangle(v1, v2, v3, b3Color_black);
 
 		b3Vec3 n1 = b3Cross(v2 - v1, v3 - v1);
 		n1.Normalize();
+		b3Draw_draw->DrawSolidTriangle(n1, v1, v2, v3, b3Color_blue);
 
 		b3Vec3 n2 = -n1;
-
-		b3Draw_draw->DrawSolidTriangle(n1, v1, v2, v3, b3Color_blue);
 		b3Draw_draw->DrawSolidTriangle(n2, v1, v3, v2, b3Color_blue);
 	}
 }
