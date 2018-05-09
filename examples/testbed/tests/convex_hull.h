@@ -84,7 +84,7 @@ public:
 		
 		m_hull.Set(m_points, m_count);
 		assert(m_hull.faceCount > 0);
-		m_selection = 0;
+		m_selection = m_hull.GetSupportFace(b3Vec3_z);
 	}
 
 	void Step()
