@@ -21,6 +21,10 @@
 
 #define B3_NULL_HULL_FEATURE 0xFF
 
+// Enables or disables convex hull simplification.
+// This can speed up collision detection and stability significantly.
+#define B3_SIMPLIFY_HULL 1
+
 // Used to map pointers to indices 
 // If more performance is required then a use hash-map
 template<class T, u32 N>
@@ -31,7 +35,7 @@ struct b3UniqueArray
 		count = 0;
 	}
 
-	// Add the value if not found
+	// Add the value 
 	void Add(const T& value)
 	{
 		B3_ASSERT(count < N);
@@ -145,7 +149,7 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 	// Clamp vertices into range [0, B3_MAX_HULL_VERTICES]
 	u32 n = b3Min(count, u32(B3_MAX_HULL_VERTICES));
 
-	// Copy points into local buffer, remove coincident points.
+	// Copy points into local buffer, weld coincident points.
 	b3Vec3 ps[B3_MAX_HULL_VERTICES];
 	u32 psCount = 0;
 	for (u32 i = 0; i < n; ++i)
@@ -174,8 +178,11 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 		// Polyhedron is degenerate.
 		return;
 	}
-
+	
 	// Create a convex hull.
+
+#if B3_SIMPLIFY_HULL == 1
+	
 	qhHull primary;
 	primary.Construct(ps, psCount);
 
@@ -202,7 +209,7 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 		b3Plane plane = f->plane;
 		B3_ASSERT(plane.offset > 0.0f);
 		b3Vec3 v = plane.normal / plane.offset;
-
+			
 		bool unique = true;
 
 		// There's a magic portion of code lost in the island that would cluster those planes.
@@ -273,6 +280,13 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 	// Translate the hull back to the origin
 	hull.Translate(s);
 
+#else
+	
+	qhHull hull;
+	hull.Construct(ps, psCount);
+
+#endif
+	
 	if (hull.GetVertexList().count > B3_MAX_HULL_VERTICES)
 	{
 		// Vertex excess
@@ -297,14 +311,14 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 		vs.Add(vertex);
 	}
 
-	// Add faces and to the map
+	// Add faces and half-edges to the map
 	for (qhFace* face = hull.GetFaceList().head; face != NULL; face = face->next)
 	{
 		// Add face
 		B3_ASSERT(fs_count < B3_MAX_HULL_FACES);
 		++fs_count;
 
-		// Add vertices and half-edges 
+		// Add half-edges 
 		qhHalfEdge* begin = face->edge;
 		qhHalfEdge* edge = begin;
 		do
