@@ -89,7 +89,7 @@ public:
 
 	void Step()
 	{
-		Generate();
+		//Generate();
 
 		for (u32 i = 0; i < m_hull.vertexCount; ++i)
 		{
