@@ -664,40 +664,57 @@ static B3_FORCE_INLINE b3Vec3 b3Newell(const b3Vec3& a, const b3Vec3& b)
 	return b3Vec3((a.y - b.y) * (a.z + b.z), (a.z - b.z) * (a.x + b.x), (a.x - b.x) * (a.y + b.y));
 }
 
+// Compute face centroid, normal, and area
 static void b3ResetFaceData(qhFace* face)
 {
-	b3Vec3 n;
-	n.SetZero();
-
+	// Compute polygon centroid
 	b3Vec3 c;
 	c.SetZero();
-
+	
 	u32 count = 0;
 	qhHalfEdge* e = face->edge;
+	do
+	{
+		b3Vec3 v = e->tail->position;
+		c += v;
+		++count;
+		e = e->next;
+	} while (e != face->edge);
+
+	B3_ASSERT(count >= 3);
+	c /= float32(count);
+
+	// Compute normal  
+	b3Vec3 n; 
+	n.SetZero();
+	
+	e = face->edge;
 	do
 	{
 		b3Vec3 v1 = e->tail->position;
 		b3Vec3 v2 = e->next->tail->position;
 
-		n += b3Newell(v1, v2);
-		c += v1;
+		// Shift the polygon origin to the centroid
+		v1 -= c;
+		v2 -= c;
 
-		++count;
+		// Apply Newew's method
+		n += b3Newell(v1, v2);
+		
 		e = e->next;
 	} while (e != face->edge);
 
-	B3_ASSERT(count > 0);
-	c /= float32(count);
-
+	// Centroid
 	face->center = c;
-
+	
 	float32 len = b3Length(n);
-
-	face->area = 0.5f * len;
-
 	B3_ASSERT(len > B3_EPSILON);
 	n /= len;
 
+	// Area
+	face->area = 0.5f * len;
+
+	// Normal
 	face->plane.normal = n;
 	face->plane.offset = b3Dot(n, c);
 }
