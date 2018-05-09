@@ -82,6 +82,8 @@ struct qhVertex
 	qhVertex* prev;
 	qhVertex* next;
 
+	//qhHalfEdge* edge;
+
 	b3Vec3 position;
 
 	qhFace* conflictFace;
@@ -116,11 +118,20 @@ public:
 	// Get the number of iterations this algorithm ran.
 	u32 GetIterations() const;
 
-	// Validate this hull.
-	void Validate() const;
-	void Validate(const qhFace* face) const;
-	void Validate(const qhHalfEdge* edge) const;
+	// Validate convexity.
+	// Called at each iteration.
+	void ValidateConvexity() const;
 
+	// Validate connectivity. 
+	// Called at each iteration.
+	void Validate() const;
+
+	// Called anywhere.
+	void Validate(const qhFace* face) const;
+	
+	// Called anywhere.
+	void Validate(const qhHalfEdge* edge) const;
+	
 	// Draw this hull.
 	void Draw() const;
 private:
@@ -135,6 +146,8 @@ private:
 	bool MergeFace(qhFace* face);
 	
 	bool MergeLargeFace(qhFace* face);
+
+	void FixMerge(qhFace* face, qhHalfEdge* ein);
 
 	qhHalfEdge* FindHalfEdge(const qhVertex* v1, const qhVertex* v2) const;
 
