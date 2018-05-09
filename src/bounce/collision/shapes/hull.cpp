@@ -40,14 +40,17 @@ void b3Hull::Validate() const
 
 void b3Hull::Validate(const b3Face* face) const 
 {
+	u32 n = 0;
 	const b3HalfEdge* begin = GetEdge(face->edge);
 	const b3HalfEdge* edge = begin;
 	do
 	{	
 		B3_ASSERT(GetFace(edge->face) == face);
+		++n;
 		edge = edges + edge->next;
 	} while (edge != begin);
 
+	B3_ASSERT(n >= 3);
 	Validate(edges + face->edge);
 }
 
