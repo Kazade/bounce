@@ -698,7 +698,7 @@ static void b3ResetFaceData(qhFace* face)
 		v1 -= c;
 		v2 -= c;
 
-		// Apply Newew's method
+		// Apply Newell's method
 		n += b3Newell(v1, v2);
 		
 		e = e->next;
@@ -927,25 +927,22 @@ qhFace* qhHull::RemoveEdge(qhHalfEdge* edge)
 
 	// Maintained invariants:
 	// - Each vertex must have at least three neighbor faces  
-	// - Face 1 must be concave
+	// - Face 1 must be convex
 
-	// Searching a redundant vertex in face 1 boils down to 
-	// search for a incoming and outgoing edges in the face 1
+	// Search a incoming and outgoing edge in the face 1
 	// which have the same neighbour face.
 	qhHalfEdge* ein = face1->edge;
 	do
 	{
 		qhHalfEdge* eout = ein->next;
 
-		// Has a vertex in the face 1 become redundant?
+		// Has the outgoing vertex become redundant?
 		if (ein->twin->face == eout->twin->face)
 		{
 			qhHalfEdge* ein0 = ein;
 			ein = eout;
 
-			// Fix error. 
-			// This is were some edges and faces might 
-			// be deleted.
+			// Remove the outgoing vertex. 
 			FixMerge(face1, ein0);
 			continue;
 		}
@@ -1288,15 +1285,37 @@ void qhHull::ValidateConvexity() const
 			// Ensure topological health
 			B3_ASSERT(face != other);
 
-			// Ensure face convexity
+			// Ensure edge convexity
 			float32 d1 = b3Distance(other->center, face->plane);
 			B3_ASSERT(d1 < -m_tolerance);
 
 			float32 d2 = b3Distance(face->center, other->plane);
 			B3_ASSERT(d2 < -m_tolerance);
 
+			// Ensure polygon convexity
+			b3Vec3 P = edge->tail->position;
+			b3Vec3 Q = edge->twin->tail->position;
+			
+			b3Vec3 E = Q - P;
+			b3Vec3 D = b3Cross(E, face->plane.normal);
+
+			// Edge side plane
+			b3Plane plane;
+			plane.normal = b3Normalize(D);
+			plane.offset = b3Dot(plane.normal, P);
+
+			// All the other vertices must be behind the edge side plane
+			const qhHalfEdge* eother = edge->prev;
+			do
+			{
+				float32 d = b3Distance(eother->tail->position, plane);
+				B3_ASSERT(d <= 0.0f);
+
+				eother = eother->prev;
+			} while (eother != edge->next);
+
 			edge = edge->next;
-		} while (edge != face->edge);
+		} while (edge != edge);
 	}
 }
 
