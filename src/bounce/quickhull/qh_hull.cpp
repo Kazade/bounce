@@ -17,10 +17,9 @@
 */
 
 #include <bounce/quickhull/qh_hull.h>
-#include <bounce/common/template/array.h>
 #include <bounce/common/draw.h>
 
-static float32 qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Vec3* vertices, u32 count)
+static float32 qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Vec3* vs, u32 count)
 {
 	b3Vec3 min(B3_MAX_FLOAT, B3_MAX_FLOAT, B3_MAX_FLOAT);
 	iMin[0] = 0;
@@ -34,7 +33,7 @@ static float32 qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Vec3* vertices, u32 
 
 	for (u32 i = 0; i < count; ++i)
 	{
-		b3Vec3 v = vertices[i];
+		b3Vec3 v = vs[i];
 
 		for (u32 j = 0; j < 3; ++j)
 		{
@@ -98,6 +97,8 @@ qhHull::~qhHull()
 
 void qhHull::Construct(const b3Vec3* vs, u32 count)
 {
+	B3_ASSERT(count > 0 && count >= 4);
+
 	// Compute memory buffer size for the worst case.
 	u32 size = 0;
 
@@ -233,10 +234,10 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 	{
 		// Find the points that maximizes the distance along the 
 		// canonical axes.
-		// Store tolerance for coplanarity checks.
+		// Also store a tolerance for coplanarity checks.
 		u32 aabbMin[3], aabbMax[3];
 		m_tolerance = qhFindAABB(aabbMin, aabbMax, vertices, vertexCount);
-
+		
 		// Find the longest segment.
 		float32 d0 = 0.0f;
 
@@ -670,7 +671,7 @@ static void b3ResetFaceData(qhFace* face)
 	// Compute polygon centroid
 	b3Vec3 c;
 	c.SetZero();
-	
+
 	u32 count = 0;
 	qhHalfEdge* e = face->edge;
 	do
@@ -685,9 +686,9 @@ static void b3ResetFaceData(qhFace* face)
 	c /= float32(count);
 
 	// Compute normal  
-	b3Vec3 n; 
+	b3Vec3 n;
 	n.SetZero();
-	
+
 	e = face->edge;
 	do
 	{
@@ -700,13 +701,13 @@ static void b3ResetFaceData(qhFace* face)
 
 		// Apply Newell's method
 		n += b3Newell(v1, v2);
-		
+
 		e = e->next;
 	} while (e != face->edge);
 
 	// Centroid
 	face->center = c;
-	
+
 	float32 len = b3Length(n);
 	B3_ASSERT(len > B3_EPSILON);
 	n /= len;
@@ -1295,7 +1296,7 @@ void qhHull::ValidateConvexity() const
 			// Ensure polygon convexity
 			b3Vec3 P = edge->tail->position;
 			b3Vec3 Q = edge->twin->tail->position;
-			
+
 			b3Vec3 E = Q - P;
 			b3Vec3 D = b3Cross(E, face->plane.normal);
 
@@ -1339,20 +1340,41 @@ void qhHull::Validate(const qhHalfEdge* edge) const
 	B3_ASSERT(next->active == true);
 	B3_ASSERT(twin->tail == next->tail);
 
-	bool found = false;
-	const qhFace* face = edge->face;
-	const qhHalfEdge* e = face->edge;
-	do
 	{
-		if (e == edge)
+		// CCW
+		bool found = false;
+		const qhFace* face = edge->face;
+		const qhHalfEdge* e = face->edge;
+		do
 		{
-			found = true;
-			break;
-		}
-		e = e->next;
-	} while (e != face->edge);
+			if (e == edge)
+			{
+				found = true;
+				break;
+			}
+			e = e->next;
+		} while (e != face->edge);
 
-	B3_ASSERT(found == true);
+		B3_ASSERT(found == true);
+	}
+
+	{
+		// CW
+		bool found = false;
+		const qhFace* face = edge->face;
+		const qhHalfEdge* e = face->edge;
+		do
+		{
+			if (e == edge)
+			{
+				found = true;
+				break;
+			}
+			e = e->prev;
+		} while (e != face->edge);
+
+		B3_ASSERT(found == true);
+	}
 }
 
 void qhHull::Validate(const qhFace* face) const
@@ -1360,45 +1382,56 @@ void qhHull::Validate(const qhFace* face) const
 	B3_ASSERT(face->active == true);
 
 	// CCW
-	const qhHalfEdge* begin = face->edge;
-	const qhHalfEdge* edge = begin;
-	do
 	{
-		B3_ASSERT(edge->active == true);
-		B3_ASSERT(edge->face == face);
-
-		B3_ASSERT(edge->twin != NULL);
-		B3_ASSERT(edge->twin->active == true);
-
-		if (edge->twin->face != NULL)
+		const qhHalfEdge* edge = face->edge;
+		do
 		{
-			B3_ASSERT(edge->twin->face->active == true);
-			B3_ASSERT(edge->twin->face != face);
-		}
+			B3_ASSERT(edge->active == true);
+			B3_ASSERT(edge->face == face);
 
-		edge = edge->next;
-	} while (edge != begin);
+			B3_ASSERT(edge->twin != NULL);
+			B3_ASSERT(edge->twin->active == true);
+
+			if (edge->twin->face != NULL)
+			{
+				B3_ASSERT(edge->twin->face->active == true);
+				B3_ASSERT(edge->twin->face != face);
+			}
+
+			edge = edge->next;
+		} while (edge != face->edge);
+	}
 
 	// CW
-	edge = begin;
-	do
 	{
-		B3_ASSERT(edge->active == true);
-		B3_ASSERT(edge->face == face);
-
-		B3_ASSERT(edge->twin != NULL);
-		B3_ASSERT(edge->twin->active == true);
-
-		if (edge->twin->face != NULL)
+		const qhHalfEdge* edge = face->edge;
+		do
 		{
-			B3_ASSERT(edge->twin->face->active == true);
-			B3_ASSERT(edge->twin->face != face);
-		}
+			B3_ASSERT(edge->active == true);
+			B3_ASSERT(edge->face == face);
 
-		edge = edge->prev;
-	} while (edge != begin);
+			B3_ASSERT(edge->twin != NULL);
+			B3_ASSERT(edge->twin->active == true);
 
-	Validate(face->edge);
+			if (edge->twin->face != NULL)
+			{
+				B3_ASSERT(edge->twin->face->active == true);
+				B3_ASSERT(edge->twin->face != face);
+			}
+
+			edge = edge->prev;
+		} while (edge != face->edge);
+	}
+
+	{
+		const qhHalfEdge* edge = face->edge;
+		do
+		{
+			Validate(edge);
+
+			edge = edge->next;
+		} while (edge != face->edge);
+	}
 }
 
 void qhHull::Validate() const
@@ -1436,21 +1469,24 @@ void qhHull::Draw() const
 {
 	for (qhFace* face = m_faceList.head; face != NULL; face = face->next)
 	{
-		b3StackArray<b3Vec3, 256> polygon;
-		polygon.Resize(0);
-
-		const qhHalfEdge* begin = face->edge;
-		const qhHalfEdge* edge = begin;
-		do
-		{
-			polygon.PushBack(edge->tail->position);
-			edge = edge->next;
-		} while (edge != begin);
-
 		b3Vec3 c = face->center;
 		b3Vec3 n = face->plane.normal;
 
-		b3Draw_draw->DrawSolidPolygon(n, polygon.Begin(), polygon.Count(), b3Color(1.0f, 1.0f, 1.0f, 0.5f));
+		b3Draw_draw->DrawSegment(c, c + n, b3Color(1.0f, 1.0f, 1.0f));
+		
+		const qhHalfEdge* edge = face->edge;
+		do
+		{
+			qhVertex* v1 = face->edge->tail;
+			qhVertex* v2 = edge->tail;
+			const qhHalfEdge* next = edge->next;
+			qhVertex* v3 = next->tail;
+
+			b3Draw_draw->DrawTriangle(v1->position, v2->position, v3->position, b3Color(0.0f, 0.0f, 0.0f, 1.0f));
+			b3Draw_draw->DrawSolidTriangle(n, v1->position, v2->position, v3->position, b3Color(1.0f, 1.0f, 1.0f, 0.5f));
+
+			edge = next;
+		} while (edge->next != face->edge);
 
 		qhVertex* v = face->conflictList.head;
 		while (v)
@@ -1459,7 +1495,5 @@ void qhHull::Draw() const
 			b3Draw_draw->DrawSegment(c, v->position, b3Color(1.0f, 1.0f, 0.0f));
 			v = v->next;
 		}
-
-		b3Draw_draw->DrawSegment(c, c + n, b3Color(1.0f, 1.0f, 1.0f));
 	}
 }

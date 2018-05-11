@@ -95,8 +95,6 @@ struct qhVertex
 
 // A convex hull builder. 
 // Given a list of points constructs its convex hull. 
-// The output convex hull might contain polygonal faces and not only triangles. 
-// Coplanar face merging is necessary for stable physics simulation.
 class qhHull
 {
 public:
@@ -112,26 +110,12 @@ public:
 	// Get the list of faces in this convex hull.
 	const qhList<qhFace>& GetFaceList() const;
 
+	// Get the number of Quickhull iterations.
+	u32 GetIterations() const;
+
 	// Translate this hull.
 	void Translate(const b3Vec3& translation);
 
-	// Get the number of iterations this algorithm ran.
-	u32 GetIterations() const;
-
-	// Validate convexity.
-	// Called at each iteration.
-	void ValidateConvexity() const;
-
-	// Validate connectivity. 
-	// Called at each iteration.
-	void Validate() const;
-
-	// Called anywhere.
-	void Validate(const qhFace* face) const;
-	
-	// Called anywhere.
-	void Validate(const qhHalfEdge* edge) const;
-	
 	// Draw this hull.
 	void Draw() const;
 private:
@@ -141,6 +125,7 @@ private:
 	qhFace* RemoveEdge(qhHalfEdge* edge);
 
 	qhFace* AddFace(qhVertex* v1, qhVertex* v2, qhVertex* v3);
+	
 	qhFace* RemoveFace(qhFace* face);
 	
 	bool MergeFace(qhFace* face);
@@ -163,6 +148,20 @@ private:
 	void MergeNewFaces();
 	
 	void ResolveOrphans();
+
+	// Validate convexity.
+	// Called at each iteration.
+	void ValidateConvexity() const;
+
+	// Validate connectivity. 
+	// Called at each iteration.
+	void Validate() const;
+
+	// Called anywhere.
+	void Validate(const qhFace* face) const;
+
+	// Called anywhere.
+	void Validate(const qhHalfEdge* edge) const;
 
 	// List of active vertices
 	qhList<qhVertex> m_vertexList;

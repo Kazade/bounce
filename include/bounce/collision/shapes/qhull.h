@@ -43,9 +43,7 @@ struct b3QHull : public b3Hull
 	}
 
 	// Create a convex hull from an array of points.
-	// The counter must be in the range [0, B3_MAX_HULL_VERTICES].
-	// Coincident points are removed.
-	// Some coplanar faces are merged.
+	// If the creation has failed then this convex hull is not modified.
 	void Set(const b3Vec3* points, u32 count);
 
 	// Set this hull as a cylinder located at the origin.

@@ -144,15 +144,12 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 
 void b3QHull::Set(const b3Vec3* points, u32 count)
 {
-	B3_ASSERT(count >= 4 && count <= B3_MAX_HULL_VERTICES);
+	B3_ASSERT(count >= 4);
 
-	// Clamp vertices into range [0, B3_MAX_HULL_VERTICES]
-	u32 n = b3Min(count, u32(B3_MAX_HULL_VERTICES));
-
-	// Copy points into local buffer, weld coincident points.
-	b3Vec3 ps[B3_MAX_HULL_VERTICES];
+	// Copy points into local buffer, perform welding.
 	u32 psCount = 0;
-	for (u32 i = 0; i < n; ++i)
+	b3Vec3* ps = (b3Vec3*) b3Alloc(count * sizeof(b3Vec3));
+	for (u32 i = 0; i < count; ++i)
 	{
 		b3Vec3 p = points[i];
 
@@ -185,6 +182,7 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 	
 	qhHull primary;
 	primary.Construct(ps, psCount);
+	b3Free(ps);
 
 	// Simplify the constructed hull.
 
@@ -209,18 +207,20 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 		b3Plane plane = f->plane;
 		B3_ASSERT(plane.offset > 0.0f);
 		b3Vec3 v = plane.normal / plane.offset;
-			
+		b3Vec3 vn = plane.normal;
+
 		bool unique = true;
 
-		// There's a magic portion of code lost in the island that would cluster those planes.
-		// While we can't find it, simply keep the face which has the largest area.
 		for (u32 j = 0; j < dvCount; ++j)
 		{
 			qhFace*& df = dfs[j];
 			b3Vec3& dv = dvs[j];
+			b3Vec3 dvn = b3Normalize(dv);
 
-			const float32 kTol = 0.1f;
-			if (b3DistanceSquared(v, dv) <= kTol)
+			// ~20 degrees
+			const float32 kTol = 0.95f;
+			
+			if (b3Dot(vn, dvn) > kTol)
 			{
 				if (f->area > df->area)
 				{
@@ -242,6 +242,12 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 	}
 
 	b3Free(dfs);
+
+	if (dvCount < 4)
+	{
+		b3Free(dvs);
+		return;
+	}
 
 	qhHull dual;
 	dual.Construct(dvs, dvCount);
@@ -271,6 +277,12 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 		{
 			pvs[pvCount++] = v;
 		}
+	}
+
+	if (pvCount < 4)
+	{
+		b3Free(pvs);
+		return;
 	}
 
 	qhHull hull;
