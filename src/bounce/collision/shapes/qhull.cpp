@@ -217,8 +217,8 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 			b3Vec3& dv = dvs[j];
 			b3Vec3 dvn = b3Normalize(dv);
 
-			// ~20 degrees
-			const float32 kTol = 0.95f;
+			// ~45 degrees
+			const float32 kTol = 0.7f;
 			
 			if (b3Dot(vn, dvn) > kTol)
 			{
