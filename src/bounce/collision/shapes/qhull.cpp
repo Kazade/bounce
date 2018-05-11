@@ -296,6 +296,7 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 	
 	qhHull hull;
 	hull.Construct(ps, psCount);
+	b3Free(ps);
 
 #endif
 	
