@@ -173,6 +173,7 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 	if (psCount < 4)
 	{
 		// Polyhedron is degenerate.
+		b3Free(ps);
 		return;
 	}
 	
