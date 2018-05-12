@@ -132,7 +132,9 @@ private:
 	
 	bool MergeLargeFace(qhFace* face);
 
-	void FixMerge(qhFace* face, qhHalfEdge* ein);
+	bool FixFace(qhFace* face);
+
+	qhHalfEdge* FixMerge(qhFace* face, qhHalfEdge* ein);
 
 	qhHalfEdge* FindHalfEdge(const qhVertex* v1, const qhVertex* v2) const;
 

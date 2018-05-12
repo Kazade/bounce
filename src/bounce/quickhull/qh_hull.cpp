@@ -732,7 +732,7 @@ static u32 b3VertexCount(const qhFace* face)
 	return n;
 }
 
-void qhHull::FixMerge(qhFace* face1, qhHalfEdge* ein)
+qhHalfEdge* qhHull::FixMerge(qhFace* face1, qhHalfEdge* ein)
 {
 	qhHalfEdge* eout = ein->next;
 
@@ -745,8 +745,6 @@ void qhHull::FixMerge(qhFace* face1, qhHalfEdge* ein)
 	// Is the face 3 a triangle?
 	if (count == 3)
 	{
-		u32 vn = b3VertexCount(ein->face);
-
 		// Unlink incoming edge from face 1
 		B3_ASSERT(ein->prev->next == ein);
 		ein->prev->next = ein->twin->next;
@@ -854,6 +852,8 @@ void qhHull::FixMerge(qhFace* face1, qhHalfEdge* ein)
 		FreeEdge(eout->twin);
 		FreeEdge(eout);
 	}
+
+	return face1->edge;
 }
 
 qhFace* qhHull::RemoveEdge(qhHalfEdge* edge)
@@ -923,16 +923,24 @@ qhFace* qhHull::RemoveEdge(qhHalfEdge* edge)
 	FreeEdge(edge->twin);
 	FreeEdge(edge);
 
-	// Check for topological errors and apply a fix on them 
-	// if detected.
+	// Repair topological errors in the face 
+	while (FixFace(face1));
 
+	// Return face 1
+	return face1;
+}
+
+bool qhHull::FixFace(qhFace* face)
+{
 	// Maintained invariants:
 	// - Each vertex must have at least three neighbor faces  
 	// - Face 1 must be convex
 
-	// Search a incoming and outgoing edge in the face 1
+	// Search a incoming (and outgoing edge) in the face 1
 	// which have the same neighbour face.
-	qhHalfEdge* ein = face1->edge;
+	qhHalfEdge* edge = NULL;
+	
+	qhHalfEdge* ein = face->edge;
 	do
 	{
 		qhHalfEdge* eout = ein->next;
@@ -940,19 +948,22 @@ qhFace* qhHull::RemoveEdge(qhHalfEdge* edge)
 		// Has the outgoing vertex become redundant?
 		if (ein->twin->face == eout->twin->face)
 		{
-			qhHalfEdge* ein0 = ein;
-			ein = eout;
-
-			// Remove the outgoing vertex. 
-			FixMerge(face1, ein0);
-			continue;
+			edge = ein;
+			break;
 		}
 
 		ein = eout;
-	} while (ein != face1->edge);
+	} while (ein != face->edge);
 
-	// Return face 1
-	return face1;
+	if (edge)
+	{
+		// Remove the outgoing vertex. 
+		FixMerge(face, edge);
+		return true;
+	}
+
+	// Topological error not found.
+	return false;
 }
 
 qhFace* qhHull::AddFace(qhVertex* v1, qhVertex* v2, qhVertex* v3)
