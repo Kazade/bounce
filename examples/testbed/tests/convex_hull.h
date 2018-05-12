@@ -93,7 +93,7 @@ public:
 
 		for (u32 i = 0; i < m_hull.vertexCount; ++i)
 		{
-			b3Color solidColor(1.0f, 1.0f, 1.0f, 0.75f);
+			b3Color solidColor(0.0f, 1.0f, 0.0f, 0.75f);
 			g_draw->DrawPoint(m_hull.vertices[i], 4.0f, solidColor);
 		}
 
@@ -101,17 +101,6 @@ public:
 		{
 			b3Color solidColor(1.0f, 1.0f, 1.0f, 0.25f);
 			g_draw->DrawPoint(m_points[i], 4.0f, solidColor);
-		}
-
-		for (u32 i = 0; i < m_hull.edgeCount; i += 2)
-		{
-			const b3HalfEdge* edge = m_hull.GetEdge(i);
-			const b3HalfEdge* twin = m_hull.GetEdge(i + 1);
-
-			b3Vec3 v1 = m_hull.GetVertex(edge->origin);
-			b3Vec3 v2 = m_hull.GetVertex(twin->origin);
-
-			//g_draw->DrawSegment(v1, v2, b3Color_black);
 		}
 
 		g_draw->Flush();
@@ -139,7 +128,7 @@ public:
 				c += v1;
 				++vn;
 
-				b3Color solidColor(1.0f, 0.0f, 0.0f, 1.0f);
+				b3Color solidColor(0.0f, 0.0f, 1.0f, 1.0f);
 				g_draw->DrawSegment(v1, v2, solidColor);
 
 				g_draw->DrawString(b3Color_white, v1, "v%d", vn);
@@ -173,10 +162,9 @@ public:
 				b3Vec3 v3 = m_hull.GetVertex(i3);
 
 				b3Color solidColor(1.0f, 1.0f, 1.0f, 0.25f);
-				
 				if (i == m_selection)
 				{
-					solidColor.a = 1.0f;
+					solidColor.a = 0.75f;
 				}
 				
 				g_draw->DrawSolidTriangle(n, v1, v2, v3, solidColor);
