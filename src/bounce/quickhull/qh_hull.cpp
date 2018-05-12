@@ -745,6 +745,8 @@ qhHalfEdge* qhHull::FixMerge(qhFace* face1, qhHalfEdge* ein)
 	// Is the face 3 a triangle?
 	if (count == 3)
 	{
+		qhHalfEdge* nextEdge = eout->next;
+
 		// Unlink incoming edge from face 1
 		B3_ASSERT(ein->prev->next == ein);
 		ein->prev->next = ein->twin->next;
@@ -807,9 +809,14 @@ qhHalfEdge* qhHull::FixMerge(qhFace* face1, qhHalfEdge* ein)
 		// Remove face 3
 		m_faceList.Remove(face3);
 		FreeFace(face3);
+
+		// Return the next edge
+		return nextEdge;
 	}
 	else
 	{
+		qhHalfEdge* nextEdge = eout->next;
+
 		// Extend the incoming edge to the next vertex
 		B3_ASSERT(ein->twin->tail == eout->tail);
 		ein->twin->tail = eout->twin->tail;
@@ -851,9 +858,13 @@ qhHalfEdge* qhHull::FixMerge(qhFace* face1, qhHalfEdge* ein)
 		// Remove outgoing edge
 		FreeEdge(eout->twin);
 		FreeEdge(eout);
-	}
 
-	return face1->edge;
+		// Return the next edge
+		return nextEdge;
+	}
+	
+	// Return the next edge to the given edge
+	return eout;
 }
 
 qhFace* qhHull::RemoveEdge(qhHalfEdge* edge)
