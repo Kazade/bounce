@@ -21,10 +21,6 @@
 
 #define B3_NULL_HULL_FEATURE 0xFF
 
-// Enables or disables convex hull simplification.
-// This can speed up collision detection and stability significantly.
-#define B3_SIMPLIFY_HULL 1
-
 // Used to map pointers to indices 
 // If more performance is required then a use hash-map
 template<class T, u32 N>
@@ -142,13 +138,13 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 	return centroid;
 }
 
-void b3QHull::Set(const b3Vec3* points, u32 count)
+void b3QHull::Set(const b3Vec3* points, u32 count, bool simplify)
 {
 	B3_ASSERT(count >= 4);
 
 	// Copy points into local buffer, perform welding.
 	u32 psCount = 0;
-	b3Vec3* ps = (b3Vec3*) b3Alloc(count * sizeof(b3Vec3));
+	b3Vec3* ps = (b3Vec3*)b3Alloc(count * sizeof(b3Vec3));
 	for (u32 i = 0; i < count; ++i)
 	{
 		b3Vec3 p = points[i];
@@ -176,131 +172,129 @@ void b3QHull::Set(const b3Vec3* points, u32 count)
 		b3Free(ps);
 		return;
 	}
-	
+
 	// Create a convex hull.
+	qhHull hull;
 
-#if B3_SIMPLIFY_HULL == 1
-	
-	qhHull primary;
-	primary.Construct(ps, psCount);
-	b3Free(ps);
-
-	// Simplify the constructed hull.
-
-	// Put the origin inside the hull.
-	b3Vec3 s;
-	s.SetZero();
-	for (qhVertex* v = primary.GetVertexList().head; v; v = v->next)
+	if (simplify == true)
 	{
-		s += v->position;
-	}
-	s /= float32(primary.GetVertexList().count);
+		qhHull primary;
+		primary.Construct(ps, psCount);
+		b3Free(ps);
 
-	primary.Translate(-s);
+		// Simplify the constructed hull.
 
-	// Build the dual hull 
-	u32 dvCount = 0;
-	qhFace** dfs = (qhFace**)b3Alloc(primary.GetFaceList().count * sizeof(qhFace*));
-	b3Vec3* dvs = (b3Vec3*)b3Alloc(primary.GetFaceList().count * sizeof(b3Vec3));
-
-	for (qhFace* f = primary.GetFaceList().head; f; f = f->next)
-	{
-		b3Plane plane = f->plane;
-		B3_ASSERT(plane.offset > 0.0f);
-		b3Vec3 v = plane.normal / plane.offset;
-		b3Vec3 vn = plane.normal;
-
-		bool unique = true;
-
-		for (u32 j = 0; j < dvCount; ++j)
+		// Put the origin inside the hull.
+		b3Vec3 s;
+		s.SetZero();
+		for (qhVertex* v = primary.GetVertexList().head; v; v = v->next)
 		{
-			qhFace*& df = dfs[j];
-			b3Vec3& dv = dvs[j];
-			b3Vec3 dvn = b3Normalize(dv);
+			s += v->position;
+		}
+		s /= float32(primary.GetVertexList().count);
 
-			// ~45 degrees
-			const float32 kTol = 0.7f;
-			
-			if (b3Dot(vn, dvn) > kTol)
+		primary.Translate(-s);
+
+		// Build the dual hull 
+		u32 dvCount = 0;
+		qhFace** dfs = (qhFace**)b3Alloc(primary.GetFaceList().count * sizeof(qhFace*));
+		b3Vec3* dvs = (b3Vec3*)b3Alloc(primary.GetFaceList().count * sizeof(b3Vec3));
+
+		for (qhFace* f = primary.GetFaceList().head; f; f = f->next)
+		{
+			b3Plane plane = f->plane;
+			B3_ASSERT(plane.offset > 0.0f);
+			b3Vec3 v = plane.normal / plane.offset;
+			b3Vec3 vn = plane.normal;
+
+			bool unique = true;
+
+			for (u32 j = 0; j < dvCount; ++j)
 			{
-				if (f->area > df->area)
+				qhFace*& df = dfs[j];
+				b3Vec3& dv = dvs[j];
+				b3Vec3 dvn = b3Normalize(dv);
+
+				// ~45 degrees
+				const float32 kTol = 0.7f;
+
+				if (b3Dot(vn, dvn) > kTol)
 				{
-					df = f;
-					dv = v;
+					if (f->area > df->area)
+					{
+						df = f;
+						dv = v;
+					}
+
+					unique = false;
+					break;
 				}
-
-				unique = false;
-				break;
 			}
-		}
 
-		if (unique)
-		{
-			dfs[dvCount] = f;
-			dvs[dvCount] = v;
-			++dvCount;
-		}
-	}
-
-	b3Free(dfs);
-
-	if (dvCount < 4)
-	{
-		b3Free(dvs);
-		return;
-	}
-
-	qhHull dual;
-	dual.Construct(dvs, dvCount);
-	b3Free(dvs);
-
-	// Recover the simplified hull in primary space. 
-	u32 pvCount = 0;
-	b3Vec3* pvs = (b3Vec3*)b3Alloc(dual.GetFaceList().count * sizeof(b3Vec3));
-	for (qhFace* f = dual.GetFaceList().head; f; f = f->next)
-	{
-		b3Plane plane = f->plane;
-		B3_ASSERT(plane.offset > 0.0f);
-		b3Vec3 v = plane.normal / plane.offset;
-
-		bool unique = true;
-
-		for (u32 j = 0; j < pvCount; ++j)
-		{
-			if (b3DistanceSquared(v, pvs[j]) <= B3_LINEAR_SLOP * B3_LINEAR_SLOP)
+			if (unique)
 			{
-				unique = false;
-				break;
+				dfs[dvCount] = f;
+				dvs[dvCount] = v;
+				++dvCount;
 			}
 		}
 
-		if (unique)
+		b3Free(dfs);
+
+		if (dvCount < 4)
 		{
-			pvs[pvCount++] = v;
+			b3Free(dvs);
+			return;
 		}
-	}
 
-	if (pvCount < 4)
-	{
+		qhHull dual;
+		dual.Construct(dvs, dvCount);
+		b3Free(dvs);
+
+		// Recover the simplified hull in primary space. 
+		u32 pvCount = 0;
+		b3Vec3* pvs = (b3Vec3*)b3Alloc(dual.GetFaceList().count * sizeof(b3Vec3));
+		for (qhFace* f = dual.GetFaceList().head; f; f = f->next)
+		{
+			b3Plane plane = f->plane;
+			B3_ASSERT(plane.offset > 0.0f);
+			b3Vec3 v = plane.normal / plane.offset;
+
+			bool unique = true;
+
+			for (u32 j = 0; j < pvCount; ++j)
+			{
+				if (b3DistanceSquared(v, pvs[j]) <= B3_LINEAR_SLOP * B3_LINEAR_SLOP)
+				{
+					unique = false;
+					break;
+				}
+			}
+
+			if (unique)
+			{
+				pvs[pvCount++] = v;
+			}
+		}
+
+		if (pvCount < 4)
+		{
+			b3Free(pvs);
+			return;
+		}
+
+		hull.Construct(pvs, pvCount);
 		b3Free(pvs);
-		return;
+
+		// Translate the hull back to the origin
+		hull.Translate(s);
+	}
+	else
+	{
+		hull.Construct(ps, psCount);
+		b3Free(ps);
 	}
 
-	qhHull hull;
-	hull.Construct(pvs, pvCount);
-	b3Free(pvs);
-
-	// Translate the hull back to the origin
-	hull.Translate(s);
-
-#else
-	
-	qhHull hull;
-	hull.Construct(ps, psCount);
-	b3Free(ps);
-
-#endif
-	
 	if (hull.GetVertexList().count > B3_MAX_HULL_VERTICES)
 	{
 		// Vertex excess
@@ -464,7 +458,7 @@ void b3QHull::SetAsCylinder(float32 radius, float32 height)
 	}
 
 	// Set
-	Set(vs, count);
+	Set(vs, count, false);
 }
 
 void b3QHull::SetAsCone(float32 radius, float32 height)
@@ -499,5 +493,5 @@ void b3QHull::SetAsCone(float32 radius, float32 height)
 	vs[count++].Set(0.0f, height, 0.0f);
 
 	// Set
-	Set(vs, count);
+	Set(vs, count, false);
 }

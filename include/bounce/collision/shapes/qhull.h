@@ -44,7 +44,9 @@ struct b3QHull : public b3Hull
 
 	// Create a convex hull from an array of points.
 	// If the creation has failed then this convex hull is not modified.
-	void Set(const b3Vec3* points, u32 count);
+	// Use the flag simplify to tell the convex hull creation code to simplify the convex hull after 
+	// construction.
+	void Set(const b3Vec3* points, u32 count, bool simplify = true);
 
 	// Set this hull as a cylinder located at the origin.
 	void SetAsCylinder(float32 radius = 1.0f, float32 height = 1.0f);
