@@ -1517,7 +1517,7 @@ void qhHull::Draw() const
 			const qhHalfEdge* next = edge->next;
 			qhVertex* v3 = next->tail;
 
-			b3Draw_draw->DrawTriangle(v1->position, v2->position, v3->position, b3Color(0.0f, 0.0f, 0.0f, 1.0f));
+			b3Draw_draw->DrawSegment(v2->position, v3->position, b3Color(0.0f, 0.0f, 0.0f, 1.0f));
 			b3Draw_draw->DrawSolidTriangle(n, v1->position, v2->position, v3->position, b3Color(1.0f, 1.0f, 1.0f, 0.5f));
 
 			edge = next;
