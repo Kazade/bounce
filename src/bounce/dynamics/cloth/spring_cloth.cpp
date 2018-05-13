@@ -233,6 +233,9 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 		S->i1 = e->v1;
 		S->i2 = e->v2;
 		S->L0 = b3Distance(p1, p2);
+		
+		B3_ASSERT(S->L0 > B3_EPSILON);
+
 		S->ks = def.ks;
 		S->kd = def.kd;
 		++m_springCount;
@@ -306,17 +309,18 @@ void b3SpringCloth::GetTension(b3Array<b3Vec3>& T) const
 		b3Vec3 x2 = m_x[i2];
 		b3Vec3 v2 = m_v[i2];
 
-		// Strech
+		// Streching
 		b3Vec3 dx = x1 - x2;
 		float32 L = b3Length(dx);
 
-		float32 s = 1.0f;
-		if (L > 0.0f)
+		if (L < L0)
 		{
-			s -= L0 / L;
+			L = L0;
 		}
 
-		b3Vec3 sf1 = -ks * s * dx;
+		b3Vec3 n = dx / L;
+
+		b3Vec3 sf1 = -ks * (L - L0) * n;
 		b3Vec3 sf2 = -sf1;
 
 		T[i1] += sf1;

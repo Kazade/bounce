@@ -185,6 +185,7 @@ void b3SpringSolver::ApplySpringForces()
 		u32 i1 = S->i1;
 		u32 i2 = S->i2;
 		float32 L0 = S->L0;
+		B3_ASSERT(L0 > 0.0f);			
 		float32 ks = S->ks;
 		float32 kd = S->kd;
 
@@ -198,19 +199,23 @@ void b3SpringSolver::ApplySpringForces()
 		b3Vec3 dx = x1 - x2;
 		float32 L = b3Length(dx);
 
-		B3_ASSERT(L > 0.0f);
+		// Ensure force is a tension.
+		if (L < L0)
+		{
+			L = L0;
+		}
 
-		b3Vec3 sf1 = -ks * (1.0f - L0 / L) * dx;
+		b3Vec3 n = dx / L;
+
+		b3Vec3 sf1 = -ks * (L - L0) * n;
 		b3Vec3 sf2 = -sf1;
 
 		m_f[i1] += sf1;
 		m_f[i2] += sf2;
 
-		// C * n = 1 - L0 / L * dx
 		const b3Mat33 I = b3Mat33_identity;
 
-		float32 L3 = L * L * L;
-		b3Mat33 Jx11 = -ks * ((1.0f - L0 / L) * I + (L0 / L3) * b3Outer(dx, dx));
+		b3Mat33 Jx11 = -ks * (b3Outer(dx, dx) + (1.0f - L0 / L) * (I - b3Outer(dx, dx)));
 
 		m_Jx[i] = Jx11;
 
@@ -556,6 +561,8 @@ void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations
 		P[i] = b3Vec3(1.0f / D[0][0], 1.0f / D[1][1], 1.0f / D[2][2]);
 		inv_P[i] = b3Vec3(D[0][0], D[1][1], D[2][2]);
 	}
+
+	B3_ASSERT(isPD == true);
 
 	m_allocator->Free(diagA);
 	
