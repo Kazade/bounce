@@ -56,6 +56,22 @@ static float32 qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Vec3* vs, u32 count)
 
 qhHull::qhHull()
 {
+	m_vertexList.head = NULL;
+	m_vertexList.count = 0;
+
+	m_faceList.head = NULL;
+	m_faceList.count = 0;
+
+	m_buffer = NULL;
+
+	m_vertexCapacity = 0;
+	m_vertexCount = 0;
+
+	m_edgeCapacity = 0;
+	m_edgeCount = 0;
+
+	m_faceCapacity = 0;
+	m_faceCount = 0;
 }
 
 qhHull::~qhHull()
@@ -97,6 +113,7 @@ qhHull::~qhHull()
 
 void qhHull::Construct(const b3Vec3* vs, u32 count)
 {
+	B3_ASSERT(m_buffer == NULL);
 	B3_ASSERT(count > 0 && count >= 4);
 
 	// Compute memory buffer size for the worst case.
