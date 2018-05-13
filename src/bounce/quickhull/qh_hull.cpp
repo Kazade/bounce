@@ -194,19 +194,15 @@ void qhHull::Construct(const b3Vec3* vs, u32 count)
 	m_newFaces = (qhFace**)((u8*)m_conflictVertices + V * sizeof(qhVertex*));
 	m_newFaceCount = 0;
 
-	m_vertexList.head = NULL;
-	m_vertexList.count = 0;
-
-	m_faceList.head = NULL;
-	m_faceList.count = 0;
-
 	m_iterations = 0;
 
+	// Build initial tetrahedron
 	if (!BuildInitialHull(vs, count))
 	{
 		return;
 	}
 
+	// Run Quickhull
 	qhVertex* eye = FindEyeVertex();
 	while (eye)
 	{
