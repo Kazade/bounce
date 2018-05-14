@@ -313,18 +313,17 @@ void b3SpringCloth::GetTension(b3Array<b3Vec3>& T) const
 		b3Vec3 dx = x1 - x2;
 		float32 L = b3Length(dx);
 
-		if (L < L0)
+		if (L >= L0)
 		{
-			L = L0;
+			// Force is tension.
+			b3Vec3 n = dx / L;
+
+			b3Vec3 sf1 = -ks * (L - L0) * n;
+			b3Vec3 sf2 = -sf1;
+
+			T[i1] += sf1;
+			T[i2] += sf2;
 		}
-
-		b3Vec3 n = dx / L;
-
-		b3Vec3 sf1 = -ks * (L - L0) * n;
-		b3Vec3 sf2 = -sf1;
-
-		T[i1] += sf1;
-		T[i2] += sf2;
 
 		// Damping
 		b3Vec3 dv = v1 - v2;

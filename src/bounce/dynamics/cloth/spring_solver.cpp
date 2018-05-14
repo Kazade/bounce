@@ -195,31 +195,29 @@ void b3SpringSolver::ApplySpringForces()
 		b3Vec3 x2 = m_x[i2];
 		b3Vec3 v2 = m_v[i2];
 
-		// Compute strech forces
+		const b3Mat33 I = b3Mat33_identity;
+		
+		// Strech
 		b3Vec3 dx = x1 - x2;
 		float32 L = b3Length(dx);
 
-		// Ensure force is a tension.
-		if (L < L0)
+		if (L >= L0)
 		{
-			L = L0;
+			// Force is tension.
+			b3Vec3 n = dx / L;
+
+			b3Vec3 sf1 = -ks * (L - L0) * n;
+			b3Vec3 sf2 = -sf1;
+
+			m_f[i1] += sf1;
+			m_f[i2] += sf2;
+
+			b3Mat33 Jx11 = -ks * (b3Outer(dx, dx) + (1.0f - L0 / L) * (I - b3Outer(dx, dx)));
+			
+			m_Jx[i] = Jx11;
 		}
 
-		b3Vec3 n = dx / L;
-
-		b3Vec3 sf1 = -ks * (L - L0) * n;
-		b3Vec3 sf2 = -sf1;
-
-		m_f[i1] += sf1;
-		m_f[i2] += sf2;
-
-		const b3Mat33 I = b3Mat33_identity;
-
-		b3Mat33 Jx11 = -ks * (b3Outer(dx, dx) + (1.0f - L0 / L) * (I - b3Outer(dx, dx)));
-
-		m_Jx[i] = Jx11;
-
-		// Compute damping forces
+		// Damping
 		b3Vec3 dv = v1 - v2;
 
 		b3Vec3 df1 = -kd * dv;
