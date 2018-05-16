@@ -22,6 +22,8 @@
 #include <bounce/common/math/vec3.h>
 #include <bounce/common/math/mat33.h>
 
+class b3Shape;
+
 class b3SpringCloth;
 class b3StackAllocator;
 
@@ -56,15 +58,21 @@ private:
 	// Compute A and b in Ax = b
 	void Compute_A_b(b3SparseMat33& A, b3DenseVec3& b) const;
 
+	// Compute the initial guess for the iterative solver.
+	void Compute_x0(b3DenseVec3& x0);
+
+	// Compute the constraint projection matrix S.
+	void Compute_S(b3Mat33* S);
+	
 	// Solve Ax = b using the Modified Conjugate Gradient (MCG). 
 	// Output x and the residual error f.
-	void Solve_MCG(b3DenseVec3& x, b3DenseVec3& f, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b) const;
+	void Solve_MCG(b3DenseVec3& x0, b3DenseVec3& f, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b, const b3Mat33* S) const;
 
 	// Solve Ax = b using MCG with Jacobi preconditioning.
 	// Output x and the residual error f.
 	// This method is slower than MCG because we have to compute the preconditioning 
 	// matrix P, but it can improve convergence.
-	void Solve_MPCG(b3DenseVec3& x, b3DenseVec3& f, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b) const;
+	void Solve_MPCG(b3DenseVec3& x0, b3DenseVec3& f, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b, const b3Mat33* S) const;
 
 	b3SpringCloth * m_cloth;
 	float32 m_h;
@@ -87,6 +95,8 @@ private:
 	
 	b3Spring* m_springs;
 	u32 m_springCount;
+	
+	b3Shape** m_shapes;
 };
 
 inline u32 b3SpringSolver::GetIterations() const

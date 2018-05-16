@@ -25,7 +25,7 @@
 #include <bounce/common/memory/stack_allocator.h>
 #include <bounce/common/draw.h>
 
-#define B3_FORCE_THRESHOLD (0.1f)
+#define B3_FORCE_THRESHOLD 0.0f
 
 #define B3_CLOTH_BENDING 0
 
@@ -344,7 +344,7 @@ void b3SpringCloth::GetTension(b3Array<b3Vec3>& T) const
 	}
 }
 
-static B3_FORCE_INLINE void b3MakeTangents(b3Vec3& t1, b3Vec3& t2, const b3Vec3& dv, const b3Vec3& n)
+static B3_FORCE_INLINE void b3CreateTangents(b3Vec3& t1, b3Vec3& t2, const b3Vec3& dv, const b3Vec3& n)
 {
 	t1 = dv - b3Dot(dv, n) * n;
 	if (b3Dot(t1, t1) > B3_EPSILON * B3_EPSILON)
@@ -369,9 +369,18 @@ void b3SpringCloth::UpdateContacts()
 			continue;
 		}
 
+		// Relative velocity
+		b3Vec3 dv = m_v[i];
+
 		b3MassContact* c = m_contacts + i;
 
-		bool wasLockedN = c->lockN;
+		// Save the old contact
+		b3MassContact c0 = *c;
+
+		// Create a new contact
+		c->lockN = false;
+		c->lockT1 = false;
+		c->lockT2 = false;
 
 		b3Sphere s1;
 		s1.vertex = m_x[i];
@@ -384,13 +393,13 @@ void b3SpringCloth::UpdateContacts()
 
 		for (u32 j = 0; j < m_shapeCount; ++j)
 		{
-			b3Shape* shape = m_shapes[j];
+			b3Shape* s2 = m_shapes[j];
 
 			b3Transform xf2;
 			xf2.SetIdentity();
 
 			b3TestSphereOutput output;
-			if (shape->TestSphere(&output, s1, xf2) == false)
+			if (s2->TestSphere(&output, s1, xf2) == false)
 			{
 				continue;
 			}
@@ -403,123 +412,121 @@ void b3SpringCloth::UpdateContacts()
 			}
 		}
 
-		if (bestIndex == ~0)
+		if (bestIndex != ~0)
 		{
-			c->Fn = 0.0f;
-			c->Ft1 = 0.0f;
-			c->Ft2 = 0.0f;
-			c->lockN = false;
-			c->lockT1 = false;
-			c->lockT2 = false;
-			continue;
+			B3_ASSERT(bestSeparation <= 0.0f);
+
+			b3Shape* shape = m_shapes[bestIndex];
+			float32 s = bestSeparation;
+			b3Vec3 n = bestNormal;
+
+			// Update contact manifold
+			// Here the normal orientation is from the shape 2 (mass) to shape 1
+			c->j = bestIndex;
+			c->n = n;
+			c->lockN = true;
+
+			// Apply position correction
+			m_y[i] -= s * n;
 		}
-
-		B3_ASSERT(bestSeparation <= 0.0f);
-
-		b3Shape* shape = m_shapes[bestIndex];
-		float32 s = bestSeparation;
-		b3Vec3 n = bestNormal;
-
-		// Apply position correction
-		m_y[i] -= s * n;
 
 		// Update contact state
-		if (wasLockedN)
+		if (c0.lockN == true && c->lockN == true)
 		{
-			// Was the contact force attractive?
-			if (c->Fn < B3_FORCE_THRESHOLD)
+			// The contact persists
+			
+			// Is the contact constraint still violated?
+			if (c0.Fn <= -B3_FORCE_THRESHOLD)
 			{
-				// Terminate the contact.
-				c->Fn = 0.0f;
-				c->Ft1 = 0.0f;
-				c->Ft2 = 0.0f;
-				c->lockN = false;
-				c->lockT1 = false;
-				c->lockT2 = false;
-				continue;
-			}
+				// Contact force is attractive.
 
-			// Since the contact force was repulsive 
-			// maintain the normal acceleration constraint.
-			c->j = bestIndex;
-			c->n = n;
+				// Terminate the contact.
+				c->lockN = false;
+			}
 		}
-		else
+
+#if 0
+		// Notify the new contact state
+		if (wasLockedN == false && c->lockN == true)
 		{
-			// The contact has began.
-			c->j = bestIndex;
-			c->n = n;
-			c->Fn = 0.0f;
-			c->Ft1 = 0.0f;
-			c->Ft2 = 0.0f;
-			c->lockN = true;
-			c->lockT1 = false;
-			c->lockT2 = false;
+			// The contact has begun
+		}
+
+		if (wasLockedN == true && c->lockN == false)
+		{
+			// The contact has ended
+		}
+#endif
+		if (c->lockN == false)
+		{
+			continue;
 		}
 
 #if B3_CLOTH_FRICTION == 1
 
-		// Apply friction impulses
+		// A friction force requires an associated normal force.
+		if (c0.lockN == false)
+		{
+			continue;
+		}
 
-		// Relative velocity
-		b3Vec3 dv = m_v[i];
+		b3Shape* s = m_shapes[c->j];
+		b3Vec3 n = c->n;
+		float32 friction = s->GetFriction();
+		float32 normalForce = c0.Fn;
 
-		b3MakeTangents(c->t1, c->t2, dv, n);
-
-		// Note without a friction force, the tangential acceleration won't be 
-		// removed.
-
-		// Coefficients of friction for the solid
-		const float32 uk = shape->GetFriction();
-		const float32 us = 2.0f * uk;
-
-		float32 dvn = b3Dot(dv, n);
-		float32 normalImpulse = -m_inv_m[i] * dvn;
+		// Tangents
+		b3CreateTangents(c->t1, c->t2, dv, n);
 
 		b3Vec3 ts[2];
 		ts[0] = c->t1;
 		ts[1] = c->t2;
 
 		bool lockT[2];
+		lockT[0] = c->lockT1;
+		lockT[1] = c->lockT2;
+
+		bool lockT0[2];
+		lockT0[0] = c0.lockT1;
+		lockT0[1] = c0.lockT2;
+
+		float32 Ft0[2];
+		Ft0[0] = c0.Ft1;
+		Ft0[1] = c0.Ft2;
 
 		for (u32 k = 0; k < 2; ++k)
 		{
 			b3Vec3 t = ts[k];
 
+			// Relative tangential velocity
 			float32 dvt = b3Dot(dv, t);
-			float32 tangentImpulse = -m_inv_m[i] * dvt;
 
-			float32 maxStaticImpulse = us * normalImpulse;
-			if (tangentImpulse * tangentImpulse > maxStaticImpulse * maxStaticImpulse)
+			if (dvt * dvt <= B3_EPSILON * B3_EPSILON)
 			{
-				lockT[k] = false;
-
-				// Dynamic friction
-				float32 maxDynamicImpulse = uk * normalImpulse;
-				if (tangentImpulse * tangentImpulse > maxDynamicImpulse * maxDynamicImpulse)
-				{
-					b3Vec3 P = tangentImpulse * t;
-
-					m_v[i] += m_m[i] * P;
-				}
-			}
-			else
-			{
+				// Lock mass on surface
 				lockT[k] = true;
+			}
 
-				// Static friction
-				b3Vec3 P = tangentImpulse * t;
-
-				m_v[i] += m_m[i] * P;
+			if (lockT0[k] == true && lockT[k] == true)
+			{
+				// The contact persists
+				float32 maxForce = friction * normalForce;
+				
+				if (Ft0[k] * Ft0[k] > maxForce * maxForce)
+				{
+					// Unlock mass off surface
+					lockT[k] = false;
+				}
 			}
 		}
 
 		c->lockT1 = lockT[0];
 		c->lockT2 = lockT[1];
 
-#endif // #if B3_CLOTH_FRICTION
+#endif
 
 	}
+
 }
 
 void b3SpringCloth::Step(float32 dt)
@@ -532,7 +539,7 @@ void b3SpringCloth::Step(float32 dt)
 	// Update contacts
 	UpdateContacts();
 
-	// Apply gravity forces
+	// Apply weights
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
 		if (m_types[i] == b3MassType::e_dynamicMass)
@@ -560,14 +567,19 @@ void b3SpringCloth::Step(float32 dt)
 	// Store constraint forces for physics logic
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
-		b3Vec3 force = forces[i];
-
 		b3MassContact* c = m_contacts + i;
+
+		if (c->lockN == false)
+		{
+			continue;
+		}
+
+		b3Vec3 force = forces[i];
 
 		// Signed normal force magnitude
 		c->Fn = b3Dot(force, c->n);
 
-		// Signed tangent forces magnitude
+		// Signed tangent force magnitude
 		c->Ft1 = b3Dot(force, c->t1);
 		c->Ft2 = b3Dot(force, c->t2);
 	}
@@ -599,21 +611,7 @@ void b3SpringCloth::Draw() const
 
 	for (u32 i = 0; i < m->vertexCount; ++i)
 	{
-		if (m_contacts[i].lockN)
-		{
-			if (m_contacts[i].Fn < B3_FORCE_THRESHOLD)
-			{
-				b3Draw_draw->DrawPoint(m_x[i], 6.0f, b3Color_yellow);
-			}
-			else
-			{
-				b3Draw_draw->DrawPoint(m_x[i], 6.0f, b3Color_red);
-			}
-		}
-		else
-		{
-			b3Draw_draw->DrawPoint(m_x[i], 6.0f, b3Color_green);
-		}
+		b3Draw_draw->DrawPoint(m_x[i], 6.0f, b3Color_green);
 	}
 
 	for (u32 i = 0; i < m->triangleCount; ++i)
