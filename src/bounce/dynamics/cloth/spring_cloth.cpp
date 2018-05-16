@@ -386,7 +386,7 @@ void b3SpringCloth::UpdateContacts()
 		s1.vertex = m_x[i];
 		s1.radius = m_r;
 
-		// Solve the deepest penetration
+		// Find the deepest penetration
 		float32 bestSeparation = 0.0f;
 		b3Vec3 bestNormal(0.0f, 0.0f, 0.0f);
 		u32 bestIndex = ~0;
@@ -421,7 +421,7 @@ void b3SpringCloth::UpdateContacts()
 			b3Vec3 n = bestNormal;
 
 			// Update contact manifold
-			// Here the normal orientation is from the shape 2 (mass) to shape 1
+			// Remember the normal orientation is from shape 2 to shape 1 (mass)
 			c->j = bestIndex;
 			c->n = n;
 			c->lockN = true;
