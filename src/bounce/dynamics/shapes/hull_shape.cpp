@@ -374,7 +374,7 @@ bool b3HullShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere,
 
 	if (maxIndex != ~0)
 	{
-		output->separation = maxSeparation;
+		output->separation = maxSeparation - radius;
 		output->normal = b3Mul(xf.rotation, m_hull->GetPlane(maxIndex).normal);
 		return true;
 	}
