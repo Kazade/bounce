@@ -26,9 +26,7 @@
 // Here, we solve Ax = b using the Modified Conjugate Gradient method.
 // This work is based on the paper "Large Steps in Cloth Simulation - David Baraff, Andrew Witkin".
 
-// Enable preconditioning. It can be slow, depending on 
-// how the preconditioning matrix is computed, but it can help
-// to increase convergence.
+// Enable preconditioning.
 bool b3_enablePrecontitioning = false;
 
 b3SpringSolver::b3SpringSolver(const b3SpringSolverDef& def)
@@ -102,15 +100,8 @@ void b3SpringSolver::Solve(b3DenseVec3& f)
 		// S
 		b3Mat33* S = (b3Mat33*)m_allocator->Allocate(m_massCount * sizeof(b3Mat33));
 		Compute_S(S);
-
-		if (b3_enablePrecontitioning)
-		{
-			Solve_MPCG(x, f, m_iterations, A, b, S);
-		}
-		else
-		{
-			Solve_MCG(x, f, m_iterations, A, b, S);
-		}
+		
+		Solve(x, f, m_iterations, A, b, S);
 
 		// Update state
 		for (u32 i = 0; i < m_massCount; ++i)
@@ -314,17 +305,6 @@ void b3SpringSolver::Compute_A_b(b3SparseMat33& SA, b3DenseVec3& b) const
 	// Assembly sparsity
 	u32 nzCount = 0;
 
-#if 0
-	for (u32 i = 0; i < m_massCount * m_massCount; ++i)
-	{
-		b3Mat33 a = A[i];
-		if (b3IsZero(a) == false)
-		{
-			++nzCount;
-		}
-	}
-#endif
-
 	SA.row_ptrs[0] = 0;
 
 	for (u32 i = 0; i < m_massCount; ++i)
@@ -410,7 +390,7 @@ void b3SpringSolver::Compute_S(b3Mat33* out)
 				{
 					if (m_contacts[i].lockT1 == true)
 					{
-						b3Vec3 t1 = m_contacts[i].t2;
+						b3Vec3 t1 = m_contacts[i].t1;
 						
 						S -= b3Outer(t1, t1);
 					}
@@ -439,7 +419,7 @@ void b3SpringSolver::Compute_S(b3Mat33* out)
 	}
 }
 
-// Maintains invariants inside the MCG solver.
+// S * v
 static void b3Filter(b3DenseVec3& out,
 	const b3DenseVec3& v, const b3Mat33* S, u32 massCount)
 {
@@ -447,66 +427,6 @@ static void b3Filter(b3DenseVec3& out,
 	{
 		out[i] = S[i] * v[i];
 	}
-}
-
-void b3SpringSolver::Solve_MCG(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b, const b3Mat33* S) const
-{
-	// r = filter(b - Adv)
-	b3DenseVec3 r = b - A * dv;
-	b3Filter(r, r, S, m_massCount);
-
-	// c = r
-	b3DenseVec3 c = r;
-
-	// eps0 = dot(r, r)
-	float32 eps0 = b3Dot(r, r);
-
-	// epsNew = dot(r, r)
-	float32 epsNew = eps0;
-
-	// [0, 1]
-	const float32 kTol = 0.02f;
-
-	// Limit number of iterations to prevent cycling.
-	const u32 kMaxIters = 200;
-
-	// Main iteration loop.
-	u32 iter = 0;
-	while (iter < kMaxIters && epsNew > kTol * kTol * eps0)
-	{
-		// q = filter(A * c) 
-		b3DenseVec3 q = A * c;
-		b3Filter(q, q, S, m_massCount);
-
-		// alpha = epsNew / dot(c, q)
-		float32 alpha = epsNew / b3Dot(c, q);
-
-		// dv = dv + alpha * c
-		dv = dv + alpha * c;
-
-		// r = r - alpha * q 
-		r = r - alpha * q;
-
-		// epsOld = epsNew
-		float32 epsOld = epsNew;
-
-		// epsNew = dot(r, r) 
-		epsNew = b3Dot(r, r);
-
-		float32 beta = epsNew / epsOld;
-
-		// c = filter(r + beta * c) 
-		c = r + beta * c;
-		b3Filter(c, c, S, m_massCount);
-
-		++iter;
-	}
-
-	iterations = iter;
-
-	// Residual error
-	// f = A * x - b
-	e = A * dv - b;
 }
 
 // Sylvester's Criterion
@@ -528,40 +448,51 @@ static bool b3IsPD(const b3Mat33* diagA, u32 n)
 	return true;
 }
 
-void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b, const b3Mat33* S) const
+void b3SpringSolver::Solve(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b, const b3Mat33* S) const
 {
-	// P = diag(A)^-1
 	b3DenseVec3 P(m_massCount);
 
 	b3DenseVec3 inv_P(m_massCount);
 
-	// diag(A)
-	b3Mat33* diagA = (b3Mat33*)m_allocator->Allocate(m_massCount * sizeof(b3Mat33));
-	A.AssembleDiagonal(diagA);
-	
 	// Compute P, P^-1
-	bool isPD = true;
-
-	for (u32 i = 0; i < m_massCount; ++i)
+	if (b3_enablePrecontitioning)
 	{
-		b3Mat33 D = diagA[i];
+		// P = diag(A)^-1
+		
+		// diag(A)
+		b3Mat33* diagA = (b3Mat33*)m_allocator->Allocate(m_massCount * sizeof(b3Mat33));
+		A.AssembleDiagonal(diagA);
 
-		if (b3Det(D.x, D.y, D.z) <= B3_EPSILON)
+		for (u32 i = 0; i < m_massCount; ++i)
 		{
-			isPD = false;
+			b3Mat33 D = diagA[i];
+
+			// Sylvester's Criterion
+			B3_ASSERT(b3Det(D.x, D.y, D.z) <= B3_EPSILON);
+
+			B3_ASSERT(D[0][0] != 0.0f);
+			B3_ASSERT(D[1][1] != 0.0f);
+			B3_ASSERT(D[2][2] != 0.0f);
+
+			P[i] = b3Vec3(1.0f / D[0][0], 1.0f / D[1][1], 1.0f / D[2][2]);	
+			inv_P[i] = b3Vec3(D[0][0], D[1][1], D[2][2]);
 		}
 
-		B3_ASSERT(D[0][0] != 0.0f);
-		B3_ASSERT(D[1][1] != 0.0f);
-		B3_ASSERT(D[2][2] != 0.0f);
-
-		P[i] = b3Vec3(1.0f / D[0][0], 1.0f / D[1][1], 1.0f / D[2][2]);
-		inv_P[i] = b3Vec3(D[0][0], D[1][1], D[2][2]);
+		m_allocator->Free(diagA);
 	}
+	else
+	{
+		// P = I
+		for (u32 i = 0; i < m_massCount; ++i)
+		{
+			P[i].Set(1.0f, 1.0f, 1.0f);
+		}
 
-	B3_ASSERT(isPD == true);
-
-	m_allocator->Free(diagA);
+		for (u32 i = 0; i < m_massCount; ++i)
+		{
+			inv_P[i].Set(1.0f, 1.0f, 1.0f);
+		}
+	}
 
 	// eps0 = dot( filter(b), P * filter(b) )
 	b3DenseVec3 filtered_b(m_massCount);
@@ -595,10 +526,10 @@ void b3SpringSolver::Solve_MPCG(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations
 	float32 epsNew = b3Dot(r, c);
 
 	// [0, 1]
-	const float32 kTol = 0.02f;
+	const float32 kTol = 1000.0f * B3_EPSILON;
 
 	// Limit number of iterations to prevent cycling.
-	const u32 kMaxIters = 200;
+	const u32 kMaxIters = 1000;
 
 	// Main iteration loop.
 	u32 iter = 0;
