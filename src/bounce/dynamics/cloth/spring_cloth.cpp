@@ -435,7 +435,7 @@ void b3SpringCloth::UpdateContacts()
 		{
 			// The contact persists
 			
-			// Is the contact constraint still violated?
+			// Has the contact constraint been satisfied?
 			if (c0.Fn <= -B3_FORCE_THRESHOLD)
 			{
 				// Contact force is attractive.
