@@ -506,7 +506,7 @@ void b3SpringSolver::Solve(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, con
 		P_filtered_b[i][2] = P[i][2] * filtered_b[i][2];
 	}
 
-	float32 eps0 = b3Dot(filtered_b, P_filtered_b);
+	float32 delta0 = b3Dot(filtered_b, P_filtered_b);
 
 	// r = filter(b - Adv)
 	b3DenseVec3 r = b - A * dv;
@@ -522,26 +522,26 @@ void b3SpringSolver::Solve(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, con
 	}
 	b3Filter(c, c, S, m_massCount);
 
-	// epsNew = dot(r, c)
-	float32 epsNew = b3Dot(r, c);
+	// deltaNew = dot(r, c)
+	float32 deltaNew = b3Dot(r, c);
+	B3_ASSERT(b3IsValid(deltaNew));
 
 	// [0, 1]
-	const float32 kTol = 1000.0f * B3_EPSILON;
+	const float32 epsilon = 1000.0f * B3_EPSILON;
 
 	// Limit number of iterations to prevent cycling.
-	const u32 kMaxIters = 1000;
+	const u32 maxIters = 1000;
 
 	// Main iteration loop.
 	u32 iter = 0;
-	while (iter < kMaxIters && epsNew > kTol * kTol * eps0)
+	while (iter < maxIters && deltaNew > epsilon * epsilon * delta0)
 	{
 		// q = filter(A * c)
 		b3DenseVec3 q = A * c;
 		b3Filter(q, q, S, m_massCount);
 
-		// alpha = epsNew / dot(c, q)
-		B3_ASSERT(b3IsValid(b3Dot(c, q)));
-		float32 alpha = epsNew / b3Dot(c, q);
+		// alpha = deltaNew / dot(c, q)
+		float32 alpha = deltaNew / b3Dot(c, q);
 
 		// dv = dv + alpha * c
 		dv = dv + alpha * c;
@@ -558,16 +558,15 @@ void b3SpringSolver::Solve(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, con
 			s[i][2] = inv_P[i][2] * r[i][2];
 		}
 
-		// epsOld = epsNew
-		float32 epsOld = epsNew;
-		B3_ASSERT(b3IsValid(epsOld));
+		// deltaOld = deltaNew
+		float32 deltaOld = deltaNew;
 
-		// epsNew = dot(r, s)
-		epsNew = b3Dot(r, s);
-		B3_ASSERT(b3IsValid(epsNew));
+		// deltaNew = dot(r, s)
+		deltaNew = b3Dot(r, s);
+		B3_ASSERT(b3IsValid(deltaNew));
 
-		// beta = epsNew / epsOld
-		float32 beta = epsNew / epsOld;
+		// beta = deltaNew / deltaOld
+		float32 beta = deltaNew / deltaOld;
 
 		// c = filter(s + beta * c)
 		c = s + beta * c;
