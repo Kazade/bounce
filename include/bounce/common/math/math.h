@@ -25,7 +25,7 @@
 
 inline bool b3IsValid(float32 fx)
 {
-	u32 ix = *(u32*)(&fx);
+	i32 ix = *(i32*)(&fx);
 	return (ix & 0x7F800000) != 0x7F800000;
 }
 
