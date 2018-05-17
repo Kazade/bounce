@@ -462,7 +462,7 @@ void b3SpringSolver::Solve(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, con
 	b3DenseVec3 S_b(m_massCount);
 	b3Filter(S_b, b, S, m_massCount);
  
-	// P * S * b
+	// P * filter(b)
 	b3DenseVec3 P_S_b(m_massCount);
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
