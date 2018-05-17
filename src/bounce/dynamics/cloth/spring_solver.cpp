@@ -26,9 +26,6 @@
 // Here, we solve Ax = b using the Modified Conjugate Gradient method.
 // This work is based on the paper "Large Steps in Cloth Simulation - David Baraff, Andrew Witkin".
 
-// Enable preconditioning.
-bool b3_enablePrecontitioning = false;
-
 b3SpringSolver::b3SpringSolver(const b3SpringSolverDef& def)
 {
 	m_cloth = def.cloth;
@@ -100,7 +97,8 @@ void b3SpringSolver::Solve(b3DenseVec3& f)
 		// S
 		b3Mat33* S = (b3Mat33*)m_allocator->Allocate(m_massCount * sizeof(b3Mat33));
 		Compute_S(S);
-		
+
+		// Solve Ax = b
 		Solve(x, f, m_iterations, A, b, S);
 
 		// Update state
@@ -391,14 +389,14 @@ void b3SpringSolver::Compute_S(b3Mat33* out)
 					if (m_contacts[i].lockT1 == true)
 					{
 						b3Vec3 t1 = m_contacts[i].t1;
-						
+
 						S -= b3Outer(t1, t1);
 					}
 
 					if (m_contacts[i].lockT2 == true)
 					{
 						b3Vec3 t2 = m_contacts[i].t2;
-						
+
 						S -= b3Outer(t2, t2);
 					}
 				}
@@ -429,25 +427,6 @@ static void b3Filter(b3DenseVec3& out,
 	}
 }
 
-// Sylvester's Criterion
-static bool b3IsPD(const b3Mat33* diagA, u32 n)
-{
-	// Loop over the principal elements
-	for (u32 i = 0; i < n; ++i)
-	{
-		b3Mat33 a = diagA[i];
-
-		float32 D = b3Det(a.x, a.y, a.z);
-
-		if (D <= B3_EPSILON)
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
 void b3SpringSolver::Solve(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b, const b3Mat33* S) const
 {
 	b3DenseVec3 P(m_massCount);
@@ -455,58 +434,44 @@ void b3SpringSolver::Solve(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, con
 	b3DenseVec3 inv_P(m_massCount);
 
 	// Compute P, P^-1
-	if (b3_enablePrecontitioning)
-	{
-		// P = diag(A)^-1
-		
-		// diag(A)
-		b3Mat33* diagA = (b3Mat33*)m_allocator->Allocate(m_massCount * sizeof(b3Mat33));
-		A.AssembleDiagonal(diagA);
 
-		for (u32 i = 0; i < m_massCount; ++i)
-		{
-			b3Mat33 D = diagA[i];
+	// P = diag(A)^-1
 
-			// Sylvester's Criterion
-			B3_ASSERT(b3Det(D.x, D.y, D.z) <= B3_EPSILON);
+	// diag(A)
+	b3Mat33* diagA = (b3Mat33*)m_allocator->Allocate(m_massCount * sizeof(b3Mat33));
+	A.AssembleDiagonal(diagA);
 
-			B3_ASSERT(D[0][0] != 0.0f);
-			B3_ASSERT(D[1][1] != 0.0f);
-			B3_ASSERT(D[2][2] != 0.0f);
-
-			P[i] = b3Vec3(1.0f / D[0][0], 1.0f / D[1][1], 1.0f / D[2][2]);	
-			inv_P[i] = b3Vec3(D[0][0], D[1][1], D[2][2]);
-		}
-
-		m_allocator->Free(diagA);
-	}
-	else
-	{
-		// P = I
-		for (u32 i = 0; i < m_massCount; ++i)
-		{
-			P[i].Set(1.0f, 1.0f, 1.0f);
-		}
-
-		for (u32 i = 0; i < m_massCount; ++i)
-		{
-			inv_P[i].Set(1.0f, 1.0f, 1.0f);
-		}
-	}
-
-	// eps0 = dot( filter(b), P * filter(b) )
-	b3DenseVec3 filtered_b(m_massCount);
-	b3Filter(filtered_b, b, S, m_massCount);
-
-	b3DenseVec3 P_filtered_b(m_massCount);
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
-		P_filtered_b[i][0] = P[i][0] * filtered_b[i][0];
-		P_filtered_b[i][1] = P[i][1] * filtered_b[i][1];
-		P_filtered_b[i][2] = P[i][2] * filtered_b[i][2];
+		b3Mat33 D = diagA[i];
+
+		// Sylvester Criterion to ensure PD-ness
+		B3_ASSERT(b3Det(D.x, D.y, D.z) > B3_EPSILON);
+
+		B3_ASSERT(D[0][0] != 0.0f);
+		B3_ASSERT(D[1][1] != 0.0f);
+		B3_ASSERT(D[2][2] != 0.0f);
+
+		P[i] = b3Vec3(1.0f / D[0][0], 1.0f / D[1][1], 1.0f / D[2][2]);
+		inv_P[i] = b3Vec3(D[0][0], D[1][1], D[2][2]);
 	}
 
-	float32 delta0 = b3Dot(filtered_b, P_filtered_b);
+	m_allocator->Free(diagA);
+
+	// delta0 = dot(filter(b), P * filter(b))
+	b3DenseVec3 S_b(m_massCount);
+	b3Filter(S_b, b, S, m_massCount);
+ 
+	// P * S * b
+	b3DenseVec3 P_S_b(m_massCount);
+	for (u32 i = 0; i < m_massCount; ++i)
+	{
+		P_S_b[i][0] = P[i][0] * S_b[i][0];
+		P_S_b[i][1] = P[i][1] * S_b[i][1];
+		P_S_b[i][2] = P[i][2] * S_b[i][2];
+	}
+
+	float32 delta0 = b3Dot(S_b, P_S_b);
 
 	// r = filter(b - Adv)
 	b3DenseVec3 r = b - A * dv;
