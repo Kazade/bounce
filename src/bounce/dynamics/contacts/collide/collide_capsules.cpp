@@ -21,6 +21,7 @@
 #include <bounce/dynamics/contacts/manifold.h>
 #include <bounce/dynamics/shapes/capsule_shape.h>
 #include <bounce/collision/shapes/capsule.h>
+#include <bounce/common/math/mat22.h>
 
 // Compute the closest point on a segment to a point. 
 static b3Vec3 b3ClosestPoint(const b3Vec3& Q, const b3Capsule& hull)
@@ -90,43 +91,57 @@ static void b3ClosestPoints(b3Vec3& C1, b3Vec3& C2,
 		C2 = P2;
 		return;
 	}
-
-	// Here and in 3D we need to start "GJK" with the closest points between the two edges 
-	// since the cross product between their direction is a possible separating axis.
+	
 	B3_ASSERT(L1 > 0.0f);
-	B3_ASSERT(L2 > 0.0f);
-
 	b3Vec3 N1 = E1 / L1;
+	
+	B3_ASSERT(L2 > 0.0f);
 	b3Vec3 N2 = E2 / L2;
 	
-	float32 b = b3Dot(N1, N2);
-	float32 den = 1.0f - b * b;
+	// [1 -dot(n1, n2)][x1] = [-dot(n1, P1 - P2)] 
+	// [dot(n2, n1) -1][x2] = [-dot(n2, P1 - P2)]
+	// Ax = b
+	float32 a11 = 1.0f, a12 = -b3Dot(N1, N2);
+	float32 a21 = -a12, a22 = -1.0f;
 	
-	const float32 kTol = 0.005f;
+	b3Mat22 A;
+	A.x.Set(a11, a21);
+	A.y.Set(a12, a22);
+
+	float32 norm_A = b3Max(b3Abs(A.x.x) + b3Abs(A.x.y), b3Abs(A.y.x) + b3Abs(A.y.y));
 	
-	if (den < kTol * kTol)
+	float32 det_A = 1.0f / (a11 * a22 - a12 * a21);
+
+	b3Mat22 inv_A;
+	inv_A.x.Set(det_A * a22, -det_A * a21);
+	inv_A.y.Set(-det_A * a12, det_A * a11);
+
+	float32 norm_inv_A = b3Max(b3Abs(inv_A.x.x) + b3Abs(inv_A.x.y), b3Abs(inv_A.y.x) + b3Abs(inv_A.y.y));
+
+	float32 k_A = norm_A * norm_inv_A;
+
+	const float32 kMaxConditionNumber = 1000.0f;
+	
+	// Ensure a reasonable condition number.
+	if (b3IsInf(k_A) == false && k_A < kMaxConditionNumber)
 	{
-		C1 = P1;
-		C2 = P2;
+		// A is safe to invert.
+		b3Vec3 E3 = P1 - P2;
+
+		b3Vec2 b;
+		b.x = -b3Dot(N1, E3);
+		b.y = -b3Dot(N2, E3);
+
+		b3Vec2 x = inv_A * b;
+
+		C1 = P1 + x.x * N1;
+		C2 = P2 + x.y * N2;
 	}
 	else
 	{
-		// s - b * t = -d
-		// b * s - t = -e
-
-		// s = ( b * e - d ) / den 
-		// t = ( e - b * d ) / den 
-		b3Vec3 E3 = P1 - P2;
-
-		float32 d = b3Dot(N1, E3);
-		float32 e = b3Dot(N2, E3);
-		float32 inv_den = 1.0f / den;
-
-		float32 s = inv_den * (b * e - d);
-		float32 t = inv_den * (e - b * d);
-
-		C1 = P1 + s * N1;
-		C2 = P2 + t * N2;
+		// The lines are intersecting.
+		C1 = P1;
+		C2 = P2;
 	}
 
 	C1 = b3ClosestPoint(C1, hull1);
