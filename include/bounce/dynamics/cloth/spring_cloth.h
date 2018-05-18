@@ -22,7 +22,7 @@
 #include <bounce/common/math/mat33.h>
 #include <bounce/common/template/array.h>
 
-// Number of maximum shapes per cloth.
+// Maximum number of shapes per cloth.
 #define B3_CLOTH_SHAPE_CAPACITY 32
 
 class b3StackAllocator;
