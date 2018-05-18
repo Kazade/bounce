@@ -58,16 +58,16 @@
 #include <testbed/tests/varying_friction.h>
 #include <testbed/tests/varying_restitution.h>
 #include <testbed/tests/tumbler.h>
-#include <testbed/tests/single_pendulum.h>
 #include <testbed/tests/multiple_pendulum.h>
 #include <testbed/tests/cloth_test.h>
 #include <testbed/tests/spring_cloth_test.h>
 #include <testbed/tests/spring_cloth.h>
-#include <testbed/tests/spring_cloth_collision_test.h>
+#include <testbed/tests/spring_cloth_contact.h>
+#include <testbed/tests/mass_types.h>
 #include <testbed/tests/tension_mapping.h>
+#include <testbed/tests/single_pendulum.h>
 #include <testbed/tests/rope_test.h>
 #include <testbed/tests/mass_spring.h>
-#include <testbed/tests/shift_center.h>
 
 TestEntry g_tests[] =
 {
@@ -111,15 +111,15 @@ TestEntry g_tests[] =
 	{ "Varying Restitution", &VaryingRestitution::Create },
 	{ "Tumbler", &Tumbler::Create },
 	{ "Initial Overlap", &InitialOverlap::Create },
-	{ "Single Pendulum", &SinglePendulum::Create },
 	{ "Multiple Pendulum", &MultiplePendulum::Create },
 	{ "Cloth", &Cloth::Create },
-	{ "Spring Cloth", &SpringCloth::Create },
-	{ "Spring Cloth Collision", &SpringClothCollision::Create },
-	{ "Tension Mapping", &TensionMapping::Create },
-	{ "Rope", &Rope::Create },
 	{ "Mass-Spring System", &MassSpring::Create },
-	{ "Shift Center", &ShiftCenter::Create },
+	{ "Spring Cloth", &SpringCloth::Create },
+	{ "Spring Cloth Contact", &SpringClothContact::Create },
+	{ "Mass Types", &MassTypes::Create },
+	{ "Tension Mapping", &TensionMapping::Create },
+	{ "Single Pendulum", &SinglePendulum::Create },
+	{ "Rope", &Rope::Create },
 	{ NULL, NULL }
 };
 

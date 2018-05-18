@@ -16,13 +16,13 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef SPRING_CLOTH_COLLISION_H
-#define SPRING_CLOTH_COLLISION_H
+#ifndef SPRING_CLOTH_CONTACT_H
+#define SPRING_CLOTH_CONTACT_H
 
-class SpringClothCollision : public SpringClothTest
+class SpringClothContact : public SpringClothTest
 {
 public:
-	SpringClothCollision()
+	SpringClothContact()
 	{
 		b3SpringClothDef def;
 		def.allocator = &m_clothAllocator;
@@ -46,7 +46,7 @@ public:
 
 	static Test* Create()
 	{
-		return new SpringClothCollision();
+		return new SpringClothContact();
 	}
 
 	b3GridMesh<10, 10> m_clothMesh;
