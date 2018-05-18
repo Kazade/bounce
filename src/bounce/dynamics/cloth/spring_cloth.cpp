@@ -88,10 +88,9 @@ struct b3SharedEdge
 	u32 nsv1, nsv2;
 };
 
-static void b3FindEdges(b3UniqueEdge* uniqueEdges, u32& uniqueCount, b3SharedEdge* sharedEdges, u32& sharedCount, const b3Mesh* m)
+static u32 b3FindUniqueEdges(b3UniqueEdge* uniqueEdges, const b3Mesh* m)
 {
-	uniqueCount = 0;
-	sharedCount = 0;
+	u32 uniqueCount = 0;
 
 	for (u32 i = 0; i < m->triangleCount; ++i)
 	{
@@ -131,6 +130,64 @@ static void b3FindEdges(b3UniqueEdge* uniqueEdges, u32& uniqueCount, b3SharedEdg
 			}
 		}
 	}
+
+	return uniqueCount;
+}
+
+static u32 b3FindSharedEdges(b3SharedEdge* sharedEdges, const b3Mesh* m)
+{
+	u32 sharedCount = 0;
+
+	for (u32 i = 0; i < m->triangleCount; ++i)
+	{
+		b3Triangle* t1 = m->triangles + i;
+		u32 i1s[3] = { t1->v1, t1->v2, t1->v3 };
+
+		for (u32 j1 = 0; j1 < 3; ++j1)
+		{
+			u32 k1 = j1 + 1 < 3 ? j1 + 1 : 0;
+
+			u32 t1v1 = i1s[j1];
+			u32 t1v2 = i1s[k1];
+
+			for (u32 j = i + 1; j < m->triangleCount; ++j)
+			{
+				b3Triangle* t2 = m->triangles + j;
+				u32 i2s[3] = { t2->v1, t2->v2, t2->v3 };
+
+				for (u32 j2 = 0; j2 < 3; ++j2)
+				{
+					u32 k2 = j2 + 1 < 3 ? j2 + 1 : 0;
+
+					u32 t2v1 = i2s[j2];
+					u32 t2v2 = i2s[k2];
+
+					if (t1v1 == t2v2 && t1v2 == t2v1)
+					{
+						// The triangles are adjacent.
+						u32 k3 = k1 + 1 < 3 ? k1 + 1 : 0;
+						u32 t1v3 = i1s[k3];
+
+						u32 k4 = k2 + 1 < 3 ? k2 + 1 : 0;
+						u32 t2v3 = i2s[k4];
+
+						// Add shared edge and non-shared vertices.
+						b3SharedEdge se;
+						se.v1 = t1v1;
+						se.v2 = t1v2;
+						se.nsv1 = t1v3;
+						se.nsv2 = t2v3;
+
+						sharedEdges[sharedCount++] = se;
+
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	return sharedCount;
 }
 
 void b3SpringCloth::Initialize(const b3SpringClothDef& def)
@@ -209,15 +266,20 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 	// Initialize springs
 	u32 edgeCount = 3 * m->triangleCount;
 
-	b3SharedEdge* sharedEdges = (b3SharedEdge*)m_allocator->Allocate(edgeCount * sizeof(b3SharedEdge));
-	u32 sharedCount = 0;
-
 	b3UniqueEdge* uniqueEdges = (b3UniqueEdge*)m_allocator->Allocate(edgeCount * sizeof(b3UniqueEdge));
-	u32 uniqueCount = 0;
+	u32 uniqueCount = b3FindUniqueEdges(uniqueEdges, m);
 
-	b3FindEdges(uniqueEdges, uniqueCount, sharedEdges, sharedCount, m);
+	u32 springCapacity = uniqueCount;
+	
+#if B3_CLOTH_BENDING
+	
+	b3SharedEdge* sharedEdges = (b3SharedEdge*)m_allocator->Allocate(edgeCount * sizeof(b3SharedEdge));
+	u32 sharedCount = b3FindSharedEdges(sharedEdges, m);
 
-	u32 springCapacity = uniqueCount + sharedCount;
+	springCapacity += sharedCount;
+
+#endif
+	
 	m_springs = (b3Spring*)b3Alloc(springCapacity * sizeof(b3Spring));
 
 	// Streching
@@ -241,7 +303,8 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 		++m_springCount;
 	}
 
-#if B3_CLOTH_BENDING == 1
+#if B3_CLOTH_BENDING
+
 	// Bending
 	for (u32 i = 0; i < sharedCount; ++i)
 	{
@@ -260,10 +323,10 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 		++m_springCount;
 	}
 
-#endif // #if B3_CLOTH_BENDING
+	m_allocator->Free(sharedEdges);
+#endif
 
 	m_allocator->Free(uniqueEdges);
-	m_allocator->Free(sharedEdges);
 
 	B3_ASSERT(m_springCount <= springCapacity);
 }
@@ -344,21 +407,6 @@ void b3SpringCloth::GetTension(b3Array<b3Vec3>& T) const
 	}
 }
 
-static B3_FORCE_INLINE void b3CreateTangents(b3Vec3& t1, b3Vec3& t2, const b3Vec3& dv, const b3Vec3& n)
-{
-	t1 = dv - b3Dot(dv, n) * n;
-	if (b3Dot(t1, t1) > B3_EPSILON * B3_EPSILON)
-	{
-		t1.Normalize();
-		t2 = b3Cross(t1, n);
-	}
-	else
-	{
-		t1 = b3Perp(n);
-		t2 = b3Cross(t1, n);
-	}
-}
-
 void b3SpringCloth::UpdateContacts()
 {
 	for (u32 i = 0; i < m_massCount; ++i)
@@ -368,9 +416,6 @@ void b3SpringCloth::UpdateContacts()
 		{
 			continue;
 		}
-
-		// Relative velocity
-		b3Vec3 dv = m_v[i];
 
 		b3MassContact* c = m_contacts + i;
 
@@ -424,6 +469,8 @@ void b3SpringCloth::UpdateContacts()
 			// Remember the normal orientation is from shape 2 to shape 1 (mass)
 			c->j = bestIndex;
 			c->n = n;
+			c->t1 = b3Perp(n);
+			c->t2 = b3Cross(c->t1, n);
 			c->lockN = true;
 
 			// Apply position correction
@@ -472,11 +519,30 @@ void b3SpringCloth::UpdateContacts()
 
 		b3Shape* s = m_shapes[c->j];
 		b3Vec3 n = c->n;
-		float32 friction = s->GetFriction();
+		float32 u = s->GetFriction();
 		float32 normalForce = c0.Fn;
 
-		// Tangents
-		b3CreateTangents(c->t1, c->t2, dv, n);
+		// Relative velocity
+		b3Vec3 dv = m_v[i];
+
+		b3Vec3 t1 = dv - b3Dot(dv, n) * n;
+		if (b3Dot(t1, t1) > B3_EPSILON * B3_EPSILON)
+		{
+			// Create a dynamic basis
+			t1.Normalize();
+			
+			b3Vec3 t2 = b3Cross(t1, n);
+			t2.Normalize();
+
+			c->t1 = t1;
+			c->t2 = t2;
+		}
+		else
+		{
+			c->lockT1 = true;
+			c->lockT2 = true;
+			continue;
+		}
 
 		b3Vec3 ts[2];
 		ts[0] = c->t1;
@@ -510,7 +576,7 @@ void b3SpringCloth::UpdateContacts()
 			if (lockT0[k] == true && lockT[k] == true)
 			{
 				// The contact persists
-				float32 maxForce = friction * normalForce;
+				float32 maxForce = u * normalForce;
 				
 				if (Ft0[k] * Ft0[k] > maxForce * maxForce)
 				{
@@ -611,7 +677,31 @@ void b3SpringCloth::Draw() const
 
 	for (u32 i = 0; i < m->vertexCount; ++i)
 	{
-		b3Draw_draw->DrawPoint(m_x[i], 6.0f, b3Color_green);
+		b3MassContact* c = m_contacts + i;
+
+		if (c->lockN)
+		{
+			b3Draw_draw->DrawPoint(m_x[i], 6.0f, b3Color_green);
+			
+			b3Draw_draw->DrawSegment(m_x[i], m_x[i] + c->n, b3Color_yellow);
+			
+			b3Draw_draw->DrawSegment(m_x[i], m_x[i] + c->t1, b3Color_yellow);
+			
+			b3Draw_draw->DrawSegment(m_x[i], m_x[i] + c->t2, b3Color_yellow);
+		}
+	}
+
+	for (u32 i = 0; i < m_springCount; ++i)
+	{
+		b3Spring* s = m_springs + i;
+
+		b3Vec3 x1 = m_x[s->i1];
+		b3Vec3 x2 = m_x[s->i2];
+		
+		if (s->type == e_strechSpring)
+		{
+			b3Draw_draw->DrawSegment(x1, x2, b3Color_black);
+		}
 	}
 
 	for (u32 i = 0; i < m->triangleCount; ++i)
@@ -621,8 +711,6 @@ void b3SpringCloth::Draw() const
 		b3Vec3 v1 = m_x[t->v1];
 		b3Vec3 v2 = m_x[t->v2];
 		b3Vec3 v3 = m_x[t->v3];
-
-		b3Draw_draw->DrawTriangle(v1, v2, v3, b3Color_black);
 
 		b3Vec3 n1 = b3Cross(v2 - v1, v3 - v1);
 		n1.Normalize();

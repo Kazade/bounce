@@ -492,9 +492,9 @@ void b3SpringSolver::Solve(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, con
 	B3_ASSERT(b3IsValid(deltaNew));
 
 	// [0, 1]
-	const float32 epsilon = 1000.0f * B3_EPSILON;
+	const float32 epsilon = 10.0f * B3_EPSILON;
 
-	// Limit number of iterations to prevent cycling.
+	// Maximum number of iterations.
 	const u32 maxIters = 1000;
 
 	// Main iteration loop.
@@ -529,7 +529,7 @@ void b3SpringSolver::Solve(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, con
 		// deltaNew = dot(r, s)
 		deltaNew = b3Dot(r, s);
 		B3_ASSERT(b3IsValid(deltaNew));
-
+		
 		// beta = deltaNew / deltaOld
 		float32 beta = deltaNew / deltaOld;
 
