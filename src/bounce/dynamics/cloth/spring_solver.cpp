@@ -104,7 +104,10 @@ void b3SpringSolver::Solve(b3DenseVec3& f)
 		// Update state
 		for (u32 i = 0; i < m_massCount; ++i)
 		{
-			m_v[i] += x[i];
+			if (m_types[i] == b3MassType::e_dynamicMass)
+			{
+				m_v[i] += x[i];
+			}
 
 			// dx = h * (v0 + dv) + y = h * v1 + y
 			m_x[i] += m_h * m_v[i] + m_y[i];
@@ -365,54 +368,44 @@ void b3SpringSolver::Compute_S(b3Mat33* out)
 {
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
-		switch (m_types[i])
-		{
-		case b3MassType::e_staticMass:
+		out[i].SetIdentity();
+
+		if (m_types[i] == b3MassType::e_staticMass)
 		{
 			out[i].SetZero();
-			break;
+			continue;
 		}
-		case b3MassType::e_dynamicMass:
+
+		b3MassContact* c = m_contacts + i;
+
+		if (c->lockN == true)
 		{
-			if (m_contacts[i].lockN == true)
+			b3Vec3 n = c->n;
+
+			b3Mat33 S = b3Mat33_identity - b3Outer(n, n);
+
+			if (c->lockT1 == true && c->lockT2 == true)
 			{
-				b3Vec3 n = m_contacts[i].n;
-
-				b3Mat33 S = b3Mat33_identity - b3Outer(n, n);
-
-				if (m_contacts[i].lockT1 == true && m_contacts[i].lockT2 == true)
+				S.SetZero();
+			}
+			else
+			{
+				if (c->lockT1 == true)
 				{
-					S.SetZero();
-				}
-				else
-				{
-					if (m_contacts[i].lockT1 == true)
-					{
-						b3Vec3 t1 = m_contacts[i].t1;
+					b3Vec3 t1 = c->t1;
 
-						S -= b3Outer(t1, t1);
-					}
-
-					if (m_contacts[i].lockT2 == true)
-					{
-						b3Vec3 t2 = m_contacts[i].t2;
-
-						S -= b3Outer(t2, t2);
-					}
+					S -= b3Outer(t1, t1);
 				}
 
-				out[i] = S;
-				break;
+				if (c->lockT2 == true)
+				{
+					b3Vec3 t2 = c->t2;
+
+					S -= b3Outer(t2, t2);
+				}
 			}
 
-			out[i].SetIdentity();
-			break;
-		}
-		default:
-		{
-			B3_ASSERT(false);
-			break;
-		}
+			out[i] = S;
 		}
 	}
 }
@@ -461,7 +454,7 @@ void b3SpringSolver::Solve(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, con
 	// delta0 = dot(filter(b), P * filter(b))
 	b3DenseVec3 S_b(m_massCount);
 	b3Filter(S_b, b, S, m_massCount);
- 
+
 	// P * filter(b)
 	b3DenseVec3 P_S_b(m_massCount);
 	for (u32 i = 0; i < m_massCount; ++i)
@@ -529,7 +522,7 @@ void b3SpringSolver::Solve(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, con
 		// deltaNew = dot(r, s)
 		deltaNew = b3Dot(r, s);
 		B3_ASSERT(b3IsValid(deltaNew));
-		
+
 		// beta = deltaNew / deltaOld
 		float32 beta = deltaNew / deltaOld;
 

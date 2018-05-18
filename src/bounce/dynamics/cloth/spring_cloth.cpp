@@ -400,7 +400,7 @@ void b3SpringCloth::GetTension(b3Array<b3Vec3>& T) const
 
 	for (u32 i = 0; i < T.Count(); ++i)
 	{
-		if (m_types[i] == b3MassType::e_staticMass)
+		if (m_types[i] != b3MassType::e_dynamicMass)
 		{
 			T[i].SetZero();
 		}
@@ -677,11 +677,26 @@ void b3SpringCloth::Draw() const
 
 	for (u32 i = 0; i < m->vertexCount; ++i)
 	{
-		b3MassContact* c = m_contacts + i;
+		if (m_types[i] == b3MassType::e_staticMass)
+		{
+			b3Draw_draw->DrawPoint(m_x[i], 4.0f, b3Color_white);
+		}
+		
+		if (m_types[i] == b3MassType::e_kinematicMass)
+		{
+			b3Draw_draw->DrawPoint(m_x[i], 4.0f, b3Color_blue);
+		}
+		
+		if (m_types[i] == b3MassType::e_dynamicMass)
+		{
+			b3Draw_draw->DrawPoint(m_x[i], 4.0f, b3Color_green);
+		}
 
+		b3MassContact* c = m_contacts + i;
+		
 		if (c->lockN)
 		{
-			b3Draw_draw->DrawPoint(m_x[i], 6.0f, b3Color_green);
+			b3Draw_draw->DrawPoint(m_x[i], 6.0f, b3Color_yellow);
 			
 			b3Draw_draw->DrawSegment(m_x[i], m_x[i] + c->n, b3Color_yellow);
 			

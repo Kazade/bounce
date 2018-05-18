@@ -22,6 +22,7 @@
 #include <bounce/common/math/mat33.h>
 #include <bounce/common/template/array.h>
 
+// Number of maximum shapes per cloth.
 #define B3_CLOTH_SHAPE_CAPACITY 32
 
 class b3StackAllocator;
@@ -63,6 +64,8 @@ struct b3SpringClothDef
 	float32 kd;
 	
 	// Mass radius
+	// Typically this is value is small and is intended for correcting visual artifacts when 
+	// the cloth is colliding against a solid.
 	float32 r;
 	
 	// Acceleration due to gravity (m/s^2)
@@ -97,10 +100,12 @@ struct b3Spring
 };
 
 // Static masses have zero mass and velocity, and therefore they can't move.
+// Kinematic masses are't moved by external and internal forces but can be moved by contact forces.
 // Dynamic masses have non-zero mass and can move due to internal and external forces.
 enum class b3MassType : u32
 {
 	e_staticMass,
+	e_kinematicMass,
 	e_dynamicMass
 };
 
@@ -140,6 +145,9 @@ public:
 	// Units are m/s^2.
 	void SetGravity(const b3Vec3& gravity);
 
+	// Return the number of masses in this cloth.
+	u32 GetMassCount() const;
+
 	// Return the gravitational acceleration applied to this cloth.
 	const b3Vec3& GetGravity() const;
 
@@ -152,11 +160,17 @@ public:
 	// Set the position of a given point mass.
 	// This function will have effect on the position of the point mass 
 	// after performing a time step.
-	void SetPosition(u32 i, const b3Vec3& translation);
+	void SetPosition(u32 i, const b3Vec3& position);
 
 	// Return the position of a given point mass.
 	const b3Vec3& GetPosition(u32 i) const;
 
+	// Set the velocity of a given point mass.
+	void SetVelocity(u32 i, const b3Vec3& velocity);
+
+	// Return the velocity of a given point mass.
+	const b3Vec3& GetVelocity(u32 i) const;
+	
 	// Apply a force to a given point mass.
 	void ApplyForce(u32 i, const b3Vec3& force);
 
@@ -237,6 +251,11 @@ inline void b3SpringCloth::SetGravity(const b3Vec3& gravity)
 	m_gravity = gravity;
 }
 
+inline u32 b3SpringCloth::GetMassCount() const
+{
+	return m_massCount;
+}
+
 inline b3MassType b3SpringCloth::GetType(u32 i) const
 {
 	B3_ASSERT(i < m_massCount);
@@ -246,6 +265,7 @@ inline b3MassType b3SpringCloth::GetType(u32 i) const
 inline void b3SpringCloth::SetType(u32 i, b3MassType type)
 {
 	B3_ASSERT(i < m_massCount);
+	
 	if (m_types[i] == type)
 	{
 		return;
@@ -274,6 +294,24 @@ inline const b3Vec3& b3SpringCloth::GetPosition(u32 i) const
 {
 	B3_ASSERT(i < m_massCount);
 	return m_x[i];
+}
+
+inline void b3SpringCloth::SetVelocity(u32 i, const b3Vec3& velocity)
+{
+	B3_ASSERT(i < m_massCount);
+	
+	if (m_types[i] == b3MassType::e_staticMass)
+	{
+		return;
+	}
+
+	m_v[i] = velocity;
+}
+
+inline const b3Vec3& b3SpringCloth::GetVelocity(u32 i) const
+{
+	B3_ASSERT(i < m_massCount);
+	return m_v[i];
 }
 
 inline void b3SpringCloth::ApplyForce(u32 i, const b3Vec3& force)
