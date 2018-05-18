@@ -82,12 +82,6 @@ struct b3UniqueEdge
 	u32 v1, v2;
 };
 
-struct b3SharedEdge
-{
-	u32 v1, v2;
-	u32 nsv1, nsv2;
-};
-
 static u32 b3FindUniqueEdges(b3UniqueEdge* uniqueEdges, const b3Mesh* m)
 {
 	u32 uniqueCount = 0;
@@ -133,6 +127,12 @@ static u32 b3FindUniqueEdges(b3UniqueEdge* uniqueEdges, const b3Mesh* m)
 
 	return uniqueCount;
 }
+
+struct b3SharedEdge
+{
+	u32 v1, v2;
+	u32 nsv1, nsv2;
+};
 
 static u32 b3FindSharedEdges(b3SharedEdge* sharedEdges, const b3Mesh* m)
 {
