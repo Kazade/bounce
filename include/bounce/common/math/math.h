@@ -23,6 +23,16 @@
 #include <cstdlib> // For abs() with integral types
 #include <bounce/common/settings.h>
 
+inline bool b3IsInf(float32 x)
+{
+	return std::isinf(x);
+}
+
+inline bool b3IsNaN(float32 x)
+{
+	return std::isnan(x);
+}
+
 inline bool b3IsValid(float32 fx)
 {
 	i32 ix = *(i32*)(&fx);
