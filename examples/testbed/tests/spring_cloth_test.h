@@ -232,6 +232,9 @@ public:
 		b3SpringClothStep step = m_cloth.GetStep();
 
 		g_draw->DrawString(b3Color_white, "Iterations = %u", step.iterations);
+		
+		float32 E = m_cloth.GetEnergy();
+		g_draw->DrawString(b3Color_white, "E = %f", E);
 
 		if (m_clothDragger.IsSelected() == true)
 		{
