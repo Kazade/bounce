@@ -43,6 +43,8 @@ b3SpringCloth::b3SpringCloth()
 	m_v = nullptr;
 	m_f = nullptr;
 	m_y = nullptr;
+	m_z = nullptr;
+	m_x0 = nullptr;
 	m_m = nullptr;
 	m_inv_m = nullptr;
 	m_types = nullptr;
@@ -67,6 +69,8 @@ b3SpringCloth::~b3SpringCloth()
 	b3Free(m_inv_m);
 	b3Free(m_m);
 	b3Free(m_y);
+	b3Free(m_z);
+	b3Free(m_x0);
 	b3Free(m_types);
 	b3Free(m_contacts);
 	b3Free(m_springs);
@@ -212,6 +216,8 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 	m_m = (float32*)b3Alloc(m_massCount * sizeof(float32));
 	m_inv_m = (float32*)b3Alloc(m_massCount * sizeof(float32));
 	m_y = (b3Vec3*)b3Alloc(m_massCount * sizeof(b3Vec3));
+	m_z = (b3Vec3*)b3Alloc(m_massCount * sizeof(b3Vec3));
+	m_x0 = (b3Vec3*)b3Alloc(m_massCount * sizeof(b3Vec3));
 	m_types = (b3MassType*)b3Alloc(m_massCount * sizeof(b3MassType));
 	m_contacts = (b3MassContact*)b3Alloc(m_massCount * sizeof(b3MassContact));
 
@@ -230,6 +236,8 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 		m_m[i] = 0.0f;
 		m_inv_m[i] = 0.0f;
 		m_y[i].SetZero();
+		m_z[i].SetZero();
+		m_x0[i].SetZero();
 		m_types[i] = b3MassType::e_staticMass;
 	}
 
@@ -615,7 +623,6 @@ void b3SpringCloth::Step(float32 dt)
 	}
 
 	// Integrate
-
 	b3SpringSolverDef solverDef;
 	solverDef.cloth = this;
 	solverDef.dt = dt;

@@ -124,8 +124,7 @@ struct b3SpringClothStep
 	u32 iterations;
 };
 
-// This class implements a cloth. It treats cloth as a collection 
-// of masses connected by springs. 
+// A cloth it treats cloth as a collection of masses connected by springs. 
 // Large time steps can be taken.
 // If accuracy and stability are required, not performance, 
 // you can use this class instead of using b3Cloth.
@@ -177,7 +176,7 @@ public:
 	// Return the kinetic (or dynamic) energy in this system.
 	float32 GetEnergy() const;
 	
-	// Return the tension forces (due to springs) of each point mass.
+	// Return the tension forces (due to springs) acting at each point mass.
 	// Units are kg * m / s^2
 	void GetTension(b3Array<b3Vec3>& tensions) const;
 
@@ -222,6 +221,8 @@ protected:
 	float32* m_m;
 	float32* m_inv_m;
 	b3Vec3* m_y;
+	b3Vec3* m_z;
+	b3Vec3* m_x0;
 	b3MassType* m_types;
 	u32 m_massCount;
 

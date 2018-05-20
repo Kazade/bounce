@@ -28,6 +28,7 @@ class b3SpringCloth;
 class b3StackAllocator;
 
 struct b3DenseVec3;
+struct b3DiagMat33;
 struct b3SparseMat33;
 
 struct b3MassContact;
@@ -58,15 +59,15 @@ private:
 	// Compute A and b in Ax = b
 	void Compute_A_b(b3SparseMat33& A, b3DenseVec3& b) const;
 
-	// Compute the initial guess for the iterative solver.
-	void Compute_x0(b3DenseVec3& x0);
+	// Compute S.
+	void Compute_S(b3DiagMat33& S);
 
-	// Compute the constraint projection matrix S.
-	void Compute_S(b3Mat33* S);
+	// Compute z. 
+	void Compute_z(b3DenseVec3& z);
 
 	// Solve Ax = b.
 	// Output x and the residual error f = Ax - b ~ 0.
-	void Solve(b3DenseVec3& x0, b3DenseVec3& f, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b, const b3Mat33* S) const;
+	void Solve(b3DenseVec3& x, b3DenseVec3& f, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const;
 
 	b3SpringCloth * m_cloth;
 	float32 m_h;
@@ -82,6 +83,8 @@ private:
 	float32* m_m;
 	float32* m_inv_m;
 	b3Vec3* m_y;
+	b3Vec3* m_z;
+	b3Vec3* m_x0;
 	b3MassType* m_types;
 	u32 m_massCount;
 

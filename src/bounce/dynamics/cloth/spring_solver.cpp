@@ -19,12 +19,17 @@
 #include <bounce/dynamics/cloth/spring_solver.h>
 #include <bounce/dynamics/cloth/spring_cloth.h>
 #include <bounce/dynamics/cloth/dense_vec3.h>
+#include <bounce/dynamics/cloth/diag_mat33.h>
 #include <bounce/dynamics/cloth/sparse_mat33.h>
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/common/memory/stack_allocator.h>
 
-// Here, we solve Ax = b using the Modified Conjugate Gradient method.
-// This work is based on the paper "Large Steps in Cloth Simulation - David Baraff, Andrew Witkin".
+// Here, we solve Ax = b using the Modified Preconditioned Conjugate Gradient (MPCG) algorithm.
+// described in the paper:
+// "Large Steps in Cloth Simulation - David Baraff, Andrew Witkin".
+
+// Some improvements for the original MPCG algorithm are described in the paper:
+// "On the modified conjugate gradient method in cloth simulation - Uri M. Ascher, Eddy Boxerman".
 
 b3SpringSolver::b3SpringSolver(const b3SpringSolverDef& def)
 {
@@ -42,6 +47,8 @@ b3SpringSolver::b3SpringSolver(const b3SpringSolverDef& def)
 	m_m = m_cloth->m_m;
 	m_inv_m = m_cloth->m_inv_m;
 	m_y = m_cloth->m_y;
+	m_z = m_cloth->m_y;
+	m_x0 = m_cloth->m_x0;
 	m_types = m_cloth->m_types;
 	m_massCount = m_cloth->m_massCount;
 
@@ -58,8 +65,27 @@ b3SpringSolver::~b3SpringSolver()
 
 }
 
+static B3_FORCE_INLINE b3SparseMat33 b3AllocSparse(b3StackAllocator* allocator, u32 M, u32 N)
+{
+	u32 size = M * N;
+	b3Mat33* elements = (b3Mat33*)allocator->Allocate(size * sizeof(b3Mat33));
+	u32* cols = (u32*)allocator->Allocate(size * sizeof(u32));
+	u32* row_ptrs = (u32*)allocator->Allocate((M + 1) * sizeof(u32));
+
+	return b3SparseMat33(M, N, size, elements, row_ptrs, cols);
+}
+
+static B3_FORCE_INLINE void b3FreeSparse(b3SparseMat33& matrix, b3StackAllocator* allocator)
+{
+	allocator->Free(matrix.row_ptrs);
+	allocator->Free(matrix.cols);
+	allocator->Free(matrix.values);
+}
+
 void b3SpringSolver::Solve(b3DenseVec3& f)
 {
+	B3_PROFILE("Solve");
+
 	//
 	m_Jx = (b3Mat33*)m_allocator->Allocate(m_springCount * sizeof(b3Mat33));
 	m_Jv = (b3Mat33*)m_allocator->Allocate(m_springCount * sizeof(b3Mat33));
@@ -73,34 +99,42 @@ void b3SpringSolver::Solve(b3DenseVec3& f)
 	// A = M - h * dfdv - h * h * dfdx
 	// b = h * (f0 + h * dfdx * v0 + dfdx * y) 
 
-	// Allocate matrix memory for the worst case.
-	u32 nzCount = m_massCount * m_massCount;
-	b3Mat33* nzElements = (b3Mat33*)m_allocator->Allocate(nzCount * sizeof(b3Mat33));
-	u32* nzColumns = (u32*)m_allocator->Allocate(nzCount * sizeof(u32));
-	u32* rowPtrs = (u32*)m_allocator->Allocate((m_massCount + 1) * sizeof(u32));
-
 	{
-		b3SparseMat33 A(m_massCount, m_massCount, nzCount, nzElements, rowPtrs, nzColumns);
+		// A
+		b3SparseMat33 A = b3AllocSparse(m_allocator, m_massCount, m_massCount);
 
-		//
+		// b
 		b3DenseVec3 b(m_massCount);
 
-		// A, b
 		Compute_A_b(A, b);
+
+		// S
+		b3DiagMat33 S(m_massCount);
+		Compute_S(S);
+
+		// z
+		b3DenseVec3 z(m_massCount);
+		Compute_z(z);
+
+		// x0
+		b3DenseVec3 x0(m_massCount);
+		for (u32 i = 0; i < m_massCount; ++i)
+		{
+			x0[i] = m_x0[i];
+		}
 
 		// x
 		b3DenseVec3 x(m_massCount);
 
-		// x0
-		Compute_x0(x);
-
-		// S
-		b3Mat33* S = (b3Mat33*)m_allocator->Allocate(m_massCount * sizeof(b3Mat33));
-		Compute_S(S);
-
 		// Solve Ax = b
-		Solve(x, f, m_iterations, A, b, S);
+		Solve(x, f, m_iterations, A, b, S, z, x0);
 
+		// Store x0
+		for (u32 i = 0; i < m_massCount; ++i)
+		{
+			m_x0[i] = x[i];
+		}
+		
 		// Update state
 		for (u32 i = 0; i < m_massCount; ++i)
 		{
@@ -113,12 +147,8 @@ void b3SpringSolver::Solve(b3DenseVec3& f)
 			m_x[i] += m_h * m_v[i] + m_y[i];
 		}
 
-		m_allocator->Free(S);
+		b3FreeSparse(A, m_allocator);
 	}
-
-	m_allocator->Free(rowPtrs);
-	m_allocator->Free(nzColumns);
-	m_allocator->Free(nzElements);
 
 	m_allocator->Free(m_Jv);
 	m_allocator->Free(m_Jx);
@@ -128,6 +158,7 @@ void b3SpringSolver::Solve(b3DenseVec3& f)
 
 #define B3_INDEX(i, j, size) (i + j * size)
 
+//
 static void b3SetZero(b3Vec3* out, u32 size)
 {
 	for (u32 i = 0; i < size; ++i)
@@ -136,23 +167,16 @@ static void b3SetZero(b3Vec3* out, u32 size)
 	}
 }
 
+//
 static void b3SetZero(b3Mat33* out, u32 size)
 {
-	for (u32 i = 0; i < size * size; ++i)
+	for (u32 i = 0; i < size; ++i)
 	{
 		out[i].SetZero();
 	}
 }
 
-static void b3SetZero_Jacobian(b3Mat33* out, u32 springCount)
-{
-	for (u32 i = 0; i < springCount; ++i)
-	{
-		out[i].SetZero();
-	}
-}
-
-// J = dfdx or dvdx
+// 
 static void b3Mul_Jacobian(b3Vec3* out, const b3Vec3* v, u32 massCount,
 	const b3Mat33* J_ii, const b3Spring* springs, u32 springCount)
 {
@@ -177,8 +201,8 @@ static void b3Mul_Jacobian(b3Vec3* out, const b3Vec3* v, u32 massCount,
 void b3SpringSolver::ApplySpringForces()
 {
 	// Zero Jacobians
-	b3SetZero_Jacobian(m_Jx, m_springCount);
-	b3SetZero_Jacobian(m_Jv, m_springCount);
+	b3SetZero(m_Jx, m_springCount);
+	b3SetZero(m_Jv, m_springCount);
 
 	// Compute spring forces and Jacobians
 	for (u32 i = 0; i < m_springCount; ++i)
@@ -249,10 +273,10 @@ void b3SpringSolver::Compute_A_b(b3SparseMat33& SA, b3DenseVec3& b) const
 {
 	// Compute dfdx, dfdv
 	b3Mat33* dfdx = (b3Mat33*)m_allocator->Allocate(m_massCount * m_massCount * sizeof(b3Mat33));
-	b3SetZero(dfdx, m_massCount);
-
+	b3SetZero(dfdx, m_massCount * m_massCount);
+	
 	b3Mat33* dfdv = (b3Mat33*)m_allocator->Allocate(m_massCount * m_massCount * sizeof(b3Mat33));
-	b3SetZero(dfdv, m_massCount);
+	b3SetZero(dfdv, m_massCount * m_massCount);
 
 	for (u32 i = 0; i < m_springCount; ++i)
 	{
@@ -286,14 +310,14 @@ void b3SpringSolver::Compute_A_b(b3SparseMat33& SA, b3DenseVec3& b) const
 
 	// A = 0
 	b3Mat33* A = (b3Mat33*)m_allocator->Allocate(m_massCount * m_massCount * sizeof(b3Mat33));
-	b3SetZero(A, m_massCount);
+	b3SetZero(A, m_massCount * m_massCount);
 
 	// A += M
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
 		A[B3_INDEX(i, i, m_massCount)] += b3Diagonal(m_m[i]);
 	}
-
+	
 	// A += - h * dfdv - h * h * dfdx
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
@@ -359,12 +383,15 @@ void b3SpringSolver::Compute_A_b(b3SparseMat33& SA, b3DenseVec3& b) const
 	m_allocator->Free(dfdx);
 }
 
-void b3SpringSolver::Compute_x0(b3DenseVec3& x0)
+void b3SpringSolver::Compute_z(b3DenseVec3& z)
 {
-	x0.SetZero();
+	for (u32 i = 0; i < m_massCount; ++i)
+	{
+		z[i] = m_z[i];
+	}
 }
 
-void b3SpringSolver::Compute_S(b3Mat33* out)
+void b3SpringSolver::Compute_S(b3DiagMat33& out)
 {
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
@@ -410,80 +437,58 @@ void b3SpringSolver::Compute_S(b3Mat33* out)
 	}
 }
 
-// S * v
-static void b3Filter(b3DenseVec3& out,
-	const b3DenseVec3& v, const b3Mat33* S, u32 massCount)
+void b3SpringSolver::Solve(b3DenseVec3& x, b3DenseVec3& f, u32& iterations, 
+	const b3SparseMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const
 {
-	for (u32 i = 0; i < massCount; ++i)
-	{
-		out[i] = S[i] * v[i];
-	}
-}
+	// P = diag(A)
+	b3DiagMat33 inv_P(m_massCount);
+	A.AssembleDiagonal(inv_P);
 
-void b3SpringSolver::Solve(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b, const b3Mat33* S) const
-{
-	b3DenseVec3 P(m_massCount);
-
-	b3DenseVec3 inv_P(m_massCount);
-
-	// Compute P, P^-1
-
-	// P = diag(A)^-1
-
-	// diag(A)
-	b3Mat33* diagA = (b3Mat33*)m_allocator->Allocate(m_massCount * sizeof(b3Mat33));
-	A.AssembleDiagonal(diagA);
-
+	// Invert
 	for (u32 i = 0; i < m_massCount; ++i)
 	{
-		b3Mat33 D = diagA[i];
-
+		b3Mat33& D = inv_P[i];
+		
 		// Sylvester Criterion to ensure PD-ness
 		B3_ASSERT(b3Det(D.x, D.y, D.z) > B3_EPSILON);
 
-		B3_ASSERT(D[0][0] != 0.0f);
-		B3_ASSERT(D[1][1] != 0.0f);
-		B3_ASSERT(D[2][2] != 0.0f);
+		B3_ASSERT(D.x.x != 0.0f);
+		float32 xx = 1.0f / D.x.x;
 
-		P[i] = b3Vec3(1.0f / D[0][0], 1.0f / D[1][1], 1.0f / D[2][2]);
-		inv_P[i] = b3Vec3(D[0][0], D[1][1], D[2][2]);
+		B3_ASSERT(D.y.y != 0.0f);
+		float32 yy = 1.0f / D.y.y;
+		
+		B3_ASSERT(D.z.z != 0.0f);
+		float32 zz = 1.0f / D.z.z;
+
+		D = b3Diagonal(xx, yy, zz);
 	}
 
-	m_allocator->Free(diagA);
+	// I
+	b3DiagMat33 I(m_massCount);
+	I.SetIdentity();
 
-	// delta0 = dot(filter(b), P * filter(b))
-	b3DenseVec3 S_b(m_massCount);
-	b3Filter(S_b, b, S, m_massCount);
+	// x = S * y + (I - S) * z 
+	x = (S * y) + (I - S) * z;
 
-	// P * filter(b)
-	b3DenseVec3 P_S_b(m_massCount);
-	for (u32 i = 0; i < m_massCount; ++i)
-	{
-		P_S_b[i][0] = P[i][0] * S_b[i][0];
-		P_S_b[i][1] = P[i][1] * S_b[i][1];
-		P_S_b[i][2] = P[i][2] * S_b[i][2];
-	}
+	// b^ = S * (b - A * (I - S) * z)
+	b3DenseVec3 b_hat = S * (b - A * ((I - S) * z));
 
-	float32 delta0 = b3Dot(S_b, P_S_b);
+	// b_delta = dot(b^, P^-1 * b_^)
+	float32 b_delta = b3Dot(b_hat, inv_P * b_hat);
 
-	// r = filter(b - Adv)
-	b3DenseVec3 r = b - A * dv;
-	b3Filter(r, r, S, m_massCount);
+	// r = S * (b - A * x)
+	b3DenseVec3 r = S * (b - A * x);
 
-	// c = filter(P^-1 * r)
-	b3DenseVec3 c(m_massCount);
-	for (u32 i = 0; i < m_massCount; ++i)
-	{
-		c[i][0] = inv_P[i][0] * r[i][0];
-		c[i][1] = inv_P[i][1] * r[i][1];
-		c[i][2] = inv_P[i][2] * r[i][2];
-	}
-	b3Filter(c, c, S, m_massCount);
+	// p = S * (P^-1 * r)
+	b3DenseVec3 p = S * (inv_P * r);
 
-	// deltaNew = dot(r, c)
-	float32 deltaNew = b3Dot(r, c);
+	// deltaNew = dot(r, p)
+	float32 deltaNew = b3Dot(r, p);
 	B3_ASSERT(b3IsValid(deltaNew));
 
+	// Tolerance.
+	// This is the main stopping criteria.
 	// [0, 1]
 	const float32 epsilon = 10.0f * B3_EPSILON;
 
@@ -492,50 +497,41 @@ void b3SpringSolver::Solve(b3DenseVec3& dv, b3DenseVec3& e, u32& iterations, con
 
 	// Main iteration loop.
 	u32 iter = 0;
-	while (iter < maxIters && deltaNew > epsilon * epsilon * delta0)
+	while (iter < maxIters && deltaNew > epsilon * epsilon * b_delta)
 	{
-		// q = filter(A * c)
-		b3DenseVec3 q = A * c;
-		b3Filter(q, q, S, m_massCount);
+		// s = S(A * p)
+		b3DenseVec3 s = S * (A * p);
 
 		// alpha = deltaNew / dot(c, q)
-		float32 alpha = deltaNew / b3Dot(c, q);
+		float32 alpha = deltaNew / b3Dot(p, s);
 
-		// dv = dv + alpha * c
-		dv = dv + alpha * c;
+		// x = x + alpha * p
+		x = x + alpha * p;
 
-		// r = r - alpha * q
-		r = r - alpha * q;
-
-		// s = inv_P * r
-		b3DenseVec3 s(m_massCount);
-		for (u32 i = 0; i < m_massCount; ++i)
-		{
-			s[i][0] = inv_P[i][0] * r[i][0];
-			s[i][1] = inv_P[i][1] * r[i][1];
-			s[i][2] = inv_P[i][2] * r[i][2];
-		}
+		// r = r - alpha * s
+		r = r - alpha * s;
+		
+		// h = inv_P * r
+		b3DenseVec3 h = inv_P * r;
 
 		// deltaOld = deltaNew
 		float32 deltaOld = deltaNew;
 
-		// deltaNew = dot(r, s)
-		deltaNew = b3Dot(r, s);
+		// deltaNew = dot(r, h)
+		deltaNew = b3Dot(r, h);
 		B3_ASSERT(b3IsValid(deltaNew));
 
 		// beta = deltaNew / deltaOld
 		float32 beta = deltaNew / deltaOld;
 
-		// c = filter(s + beta * c)
-		c = s + beta * c;
-		b3Filter(c, c, S, m_massCount);
+		// p = S * (h + beta * p)
+		p = S * (h + beta * p);
 
 		++iter;
 	}
 
 	iterations = iter;
 
-	// Residual error
-	// f = A * x - b
-	e = A * dv - b;
+	// Residual
+	f = A * x - b;
 }
