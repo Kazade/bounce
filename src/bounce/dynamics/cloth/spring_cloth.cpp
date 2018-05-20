@@ -25,7 +25,7 @@
 #include <bounce/common/memory/stack_allocator.h>
 #include <bounce/common/draw.h>
 
-#define B3_FORCE_THRESHOLD 0.0f
+#define B3_FORCE_THRESHOLD 0.005f
 
 #define B3_CLOTH_BENDING 0
 
