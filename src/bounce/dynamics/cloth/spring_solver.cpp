@@ -485,21 +485,20 @@ void b3SpringSolver::Solve(b3DenseVec3& x, b3DenseVec3& f, u32& iterations,
 
 	// deltaNew = dot(r, p)
 	float32 deltaNew = b3Dot(r, p);
-	B3_ASSERT(b3IsValid(deltaNew));
 
 	// Tolerance.
 	// This is the main stopping criteria.
 	// [0, 1]
-	const float32 epsilon = 10.0f * B3_EPSILON;
+	const float32 tolerance = 10.0f * B3_EPSILON;
 
 	// Maximum number of iterations.
 	const u32 maxIters = 1000;
 
 	// Main iteration loop.
 	u32 iter = 0;
-	while (iter < maxIters && deltaNew > epsilon * epsilon * b_delta)
+	while (deltaNew > tolerance * tolerance * b_delta && iter < maxIters)
 	{
-		// s = S(A * p)
+		// s = S * (A * p)
 		b3DenseVec3 s = S * (A * p);
 
 		// alpha = deltaNew / dot(c, q)
@@ -510,7 +509,7 @@ void b3SpringSolver::Solve(b3DenseVec3& x, b3DenseVec3& f, u32& iterations,
 
 		// r = r - alpha * s
 		r = r - alpha * s;
-		
+
 		// h = inv_P * r
 		b3DenseVec3 h = inv_P * r;
 
@@ -519,7 +518,7 @@ void b3SpringSolver::Solve(b3DenseVec3& x, b3DenseVec3& f, u32& iterations,
 
 		// deltaNew = dot(r, h)
 		deltaNew = b3Dot(r, h);
-		B3_ASSERT(b3IsValid(deltaNew));
+		//B3_ASSERT(b3IsValid(deltaNew));
 
 		// beta = deltaNew / deltaOld
 		float32 beta = deltaNew / deltaOld;
@@ -532,6 +531,20 @@ void b3SpringSolver::Solve(b3DenseVec3& x, b3DenseVec3& f, u32& iterations,
 
 	iterations = iter;
 
-	// Residual
-	f = A * x - b;
+	float32 x2 = b3Dot(x, x);
+	if (b3IsValid(x2) == false)
+	{
+		// Probably the condition number of A is large.
+		// Solve unconstrained (S = I)?
+
+		// Reject the solution.
+		x.SetZero();
+		f.SetZero();
+	}
+	else
+	{
+		// Accept the solution.
+		// Residual
+		f = A * x - b;
+	}
 }

@@ -703,13 +703,7 @@ void b3SpringCloth::Draw() const
 		
 		if (c->lockN)
 		{
-			b3Draw_draw->DrawPoint(m_x[i], 6.0f, b3Color_yellow);
-			
 			b3Draw_draw->DrawSegment(m_x[i], m_x[i] + c->n, b3Color_yellow);
-			
-			b3Draw_draw->DrawSegment(m_x[i], m_x[i] + c->t1, b3Color_yellow);
-			
-			b3Draw_draw->DrawSegment(m_x[i], m_x[i] + c->t2, b3Color_yellow);
 		}
 	}
 
