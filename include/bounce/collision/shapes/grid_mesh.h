@@ -21,6 +21,7 @@
 
 #include <bounce/collision/shapes/mesh.h>
 
+// A (H + 1) x (W + 1) grid mesh stored in row-major order.
 template<u32 H = 1, u32 W = 1>
 struct b3GridMesh : public b3Mesh
 {
