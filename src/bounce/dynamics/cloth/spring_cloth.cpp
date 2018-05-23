@@ -20,8 +20,8 @@
 #include <bounce/dynamics/cloth/spring_solver.h>
 #include <bounce/dynamics/cloth/dense_vec3.h>
 #include <bounce/dynamics/cloth/sparse_mat33.h>
+#include <bounce/dynamics/cloth/cloth_mesh.h>
 #include <bounce/dynamics/shapes/shape.h>
-#include <bounce/collision/shapes/mesh.h>
 #include <bounce/common/memory/stack_allocator.h>
 #include <bounce/common/draw.h>
 
@@ -29,7 +29,7 @@
 
 #define B3_CLOTH_BENDING 0
 
-#define B3_CLOTH_FRICTION 0
+#define B3_CLOTH_FRICTION 1
 
 b3SpringCloth::b3SpringCloth()
 {
@@ -86,13 +86,13 @@ struct b3UniqueEdge
 	u32 v1, v2;
 };
 
-static u32 b3FindUniqueEdges(b3UniqueEdge* uniqueEdges, const b3Mesh* m)
+static u32 b3FindUniqueEdges(b3UniqueEdge* uniqueEdges, const b3ClothMesh* m)
 {
 	u32 uniqueCount = 0;
 
 	for (u32 i = 0; i < m->triangleCount; ++i)
 	{
-		b3Triangle* t1 = m->triangles + i;
+		b3ClothMeshTriangle* t1 = m->triangles + i;
 		u32 i1s[3] = { t1->v1, t1->v2, t1->v3 };
 
 		for (u32 j1 = 0; j1 < 3; ++j1)
@@ -138,13 +138,13 @@ struct b3SharedEdge
 	u32 nsv1, nsv2;
 };
 
-static u32 b3FindSharedEdges(b3SharedEdge* sharedEdges, const b3Mesh* m)
+static u32 b3FindSharedEdges(b3SharedEdge* sharedEdges, const b3ClothMesh* m)
 {
 	u32 sharedCount = 0;
 
 	for (u32 i = 0; i < m->triangleCount; ++i)
 	{
-		b3Triangle* t1 = m->triangles + i;
+		b3ClothMeshTriangle* t1 = m->triangles + i;
 		u32 i1s[3] = { t1->v1, t1->v2, t1->v3 };
 
 		for (u32 j1 = 0; j1 < 3; ++j1)
@@ -156,7 +156,7 @@ static u32 b3FindSharedEdges(b3SharedEdge* sharedEdges, const b3Mesh* m)
 
 			for (u32 j = i + 1; j < m->triangleCount; ++j)
 			{
-				b3Triangle* t2 = m->triangles + j;
+				b3ClothMeshTriangle* t2 = m->triangles + j;
 				u32 i2s[3] = { t2->v1, t2->v2, t2->v3 };
 
 				for (u32 j2 = 0; j2 < 3; ++j2)
@@ -207,7 +207,7 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 
 	m_gravity = def.gravity;
 
-	const b3Mesh* m = m_mesh;
+	const b3ClothMesh* m = m_mesh;
 
 	m_massCount = m->vertexCount;
 	m_x = (b3Vec3*)b3Alloc(m_massCount * sizeof(b3Vec3));
@@ -244,7 +244,7 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 	// Initialize mass
 	for (u32 i = 0; i < m->triangleCount; ++i)
 	{
-		b3Triangle* t = m->triangles + i;
+		b3ClothMeshTriangle* t = m->triangles + i;
 
 		b3Vec3 p1 = m->vertices[t->v1];
 		b3Vec3 p2 = m->vertices[t->v2];
@@ -288,9 +288,11 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 
 #endif
 	
+	springCapacity += m->sewingLineCount;
+
 	m_springs = (b3Spring*)b3Alloc(springCapacity * sizeof(b3Spring));
 
-	// Streching
+	// Tension
 	for (u32 i = 0; i < uniqueCount; ++i)
 	{
 		b3UniqueEdge* e = uniqueEdges + i;
@@ -335,6 +337,21 @@ void b3SpringCloth::Initialize(const b3SpringClothDef& def)
 #endif
 
 	m_allocator->Free(uniqueEdges);
+
+	// Sewing
+	for (u32 i = 0; i < m->sewingLineCount; ++i)
+	{
+		b3ClothMeshSewingLine* line = m->sewingLines + i;
+
+		b3Spring* S = m_springs + m_springCount;
+		S->type = e_strechSpring;
+		S->i1 = line->v1;
+		S->i2 = line->v2;
+		S->L0 = 0.0f;
+		S->ks = def.ks;
+		S->kd = def.kd;
+		++m_springCount;
+	}
 
 	B3_ASSERT(m_springCount <= springCapacity);
 }
@@ -680,7 +697,7 @@ void b3SpringCloth::Apply() const
 
 void b3SpringCloth::Draw() const
 {
-	const b3Mesh* m = m_mesh;
+	const b3ClothMesh* m = m_mesh;
 
 	for (u32 i = 0; i < m->vertexCount; ++i)
 	{
@@ -719,10 +736,20 @@ void b3SpringCloth::Draw() const
 			b3Draw_draw->DrawSegment(x1, x2, b3Color_black);
 		}
 	}
+	
+	for (u32 i = 0; i < m->sewingLineCount; ++i)
+	{
+		b3ClothMeshSewingLine* s = m->sewingLines + i;
+
+		b3Vec3 x1 = m_x[s->v1];
+		b3Vec3 x2 = m_x[s->v2];
+
+		b3Draw_draw->DrawSegment(x1, x2, b3Color_white);
+	}
 
 	for (u32 i = 0; i < m->triangleCount; ++i)
 	{
-		b3Triangle* t = m->triangles + i;
+		b3ClothMeshTriangle* t = m->triangles + i;
 
 		b3Vec3 v1 = m_x[t->v1];
 		b3Vec3 v2 = m_x[t->v2];

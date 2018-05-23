@@ -19,36 +19,16 @@
 #ifndef MASS_TYPES_H
 #define MASS_TYPES_H
 
-class MassTypes : public SpringClothTest
+class MassTypes : public PinnedCloth
 {
 public:
 	MassTypes()
 	{
-		b3SpringClothDef def;
-		def.allocator = &m_clothAllocator;
-		def.mesh = &m_clothMesh;
-		def.density = 0.2f;
-		def.ks = 100000.0f;
-		def.gravity.Set(0.0f, -10.0f, 0.0f);
-
-		m_cloth.Initialize(def);
-
-		b3AABB3 aabb;
-		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
-		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
-
-		for (u32 i = 0; i < def.mesh->vertexCount; ++i)
-		{
-			if (aabb.Contains(def.mesh->vertices[i]))
-			{
-				m_cloth.SetType(i, b3MassType::e_staticMass);
-			}
-		}
 	}
 
 	void Step()
 	{
-		SpringClothTest::Step();
+		PinnedCloth::Step();
 
 		g_draw->DrawString(b3Color_white, "S - Static");
 		g_draw->DrawString(b3Color_white, "D - Dynamic");
@@ -56,30 +36,29 @@ public:
 		g_draw->DrawString(b3Color_white, "Arrows - Apply Force/Velocity/Position");
 	}
 
+	void SetClothType(b3MassType type)
+	{
+		for (u32 i = 0; i < m_cloth.GetMassCount(); ++i)
+		{
+			m_cloth.SetType(i, type);
+		}
+	}
+
 	void KeyDown(int button)
 	{
 		if (button == GLFW_KEY_S)
 		{
-			for (u32 i = 0; i < m_cloth.GetMassCount(); ++i)
-			{
-				m_cloth.SetType(i, b3MassType::e_staticMass);
-			}
+			SetClothType(b3MassType::e_staticMass);
 		}
 
 		if (button == GLFW_KEY_K)
 		{
-			for (u32 i = 0; i < m_cloth.GetMassCount(); ++i)
-			{
-				m_cloth.SetType(i, b3MassType::e_kinematicMass);
-			}
+			SetClothType(b3MassType::e_kinematicMass);
 		}
 
 		if (button == GLFW_KEY_D)
 		{
-			for (u32 i = 0; i < m_cloth.GetMassCount(); ++i)
-			{
-				m_cloth.SetType(i, b3MassType::e_dynamicMass);
-			}
+			SetClothType(b3MassType::e_dynamicMass);
 		}
 
 		for (u32 i = 0; i < m_cloth.GetMassCount(); ++i)
@@ -191,8 +170,6 @@ public:
 	{
 		return new MassTypes();
 	}
-
-	b3GridMesh<10, 10> m_clothMesh;
 };
 
 #endif

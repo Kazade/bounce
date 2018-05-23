@@ -43,8 +43,8 @@ public:
 	{
 		B3_ASSERT(m_isSelected);
 
-		b3Mesh* m = m_cloth->GetMesh();
-		b3Triangle* t = m->triangles + m_selection;
+		b3ClothMesh* m = m_cloth->GetMesh();
+		b3ClothMeshTriangle* t = m->triangles + m_selection;
 
 		b3Vec3 A = m->vertices[t->v1];
 		b3Vec3 B = m->vertices[t->v2];
@@ -70,8 +70,8 @@ public:
 
 		m_isSelected = true;
 
-		b3Mesh* m = m_cloth->GetMesh();
-		b3Triangle* t = m->triangles + m_selection;
+		b3ClothMesh* m = m_cloth->GetMesh();
+		b3ClothMeshTriangle* t = m->triangles + m_selection;
 
 		m_t1 = m_cloth->GetType(t->v1);
 		m_cloth->SetType(t->v1, b3MassType::e_staticMass);
@@ -108,8 +108,8 @@ public:
 	{
 		B3_ASSERT(m_isSelected);
 
-		b3Mesh* m = m_cloth->GetMesh();
-		b3Triangle* t = m->triangles + m_selection;
+		b3ClothMesh* m = m_cloth->GetMesh();
+		b3ClothMeshTriangle* t = m->triangles + m_selection;
 
 		b3Vec3 A = GetPointA();
 		b3Vec3 B = GetPointB();
@@ -135,8 +135,8 @@ public:
 
 		m_isSelected = false;
 
-		b3Mesh* m = m_cloth->GetMesh();
-		b3Triangle* t = m->triangles + m_selection;
+		b3ClothMesh* m = m_cloth->GetMesh();
+		b3ClothMeshTriangle* t = m->triangles + m_selection;
 
 		m_cloth->SetType(t->v1, m_t1);
 		m_cloth->SetType(t->v2, m_t2);
@@ -144,21 +144,98 @@ public:
 	}
 
 private:
+	bool RayCast(b3RayCastOutput* output, u32 triangleIndex) const
+	{
+		b3ClothMesh* mesh = m_cloth->GetMesh();		
+		B3_ASSERT(triangleIndex < mesh->triangleCount);
+		b3ClothMeshTriangle* triangle = mesh->triangles + triangleIndex;
+		
+		b3Vec3 v1 = mesh->vertices[triangle->v1];
+		b3Vec3 v2 = mesh->vertices[triangle->v2];
+		b3Vec3 v3 = mesh->vertices[triangle->v3];
+
+		b3Vec3 p1 = m_ray->A();
+		b3Vec3 p2 = m_ray->B();
+		b3Vec3 d = p2 - p1;
+		float32 maxFraction = b3Length(d);
+
+		b3Vec3 n = b3Cross(v2 - v1, v3 - v1);
+		n.Normalize();
+
+		float32 numerator = b3Dot(n, v1 - p1);
+		float32 denominator = b3Dot(n, d);
+
+		if (denominator == 0.0f)
+		{
+			return false;
+		}
+
+		float32 t = numerator / denominator;
+
+		// Is the intersection not on the segment?
+		if (t < 0.0f || maxFraction < t)
+		{
+			return false;
+		}
+
+		b3Vec3 q = p1 + t * d;
+
+		// Barycentric coordinates for q
+		b3Vec3 Q = q;
+		b3Vec3 A = v1;
+		b3Vec3 B = v2;
+		b3Vec3 C = v3;
+
+		b3Vec3 AB = B - A;
+		b3Vec3 AC = C - A;
+
+		b3Vec3 QA = A - Q;
+		b3Vec3 QB = B - Q;
+		b3Vec3 QC = C - Q;
+
+		b3Vec3 QB_x_QC = b3Cross(QB, QC);
+		b3Vec3 QC_x_QA = b3Cross(QC, QA);
+		b3Vec3 QA_x_QB = b3Cross(QA, QB);
+
+		b3Vec3 AB_x_AC = b3Cross(AB, AC);
+
+		float32 u = b3Dot(QB_x_QC, AB_x_AC);
+		float32 v = b3Dot(QC_x_QA, AB_x_AC);
+		float32 w = b3Dot(QA_x_QB, AB_x_AC);
+
+		// This tolerance helps intersections lying on  
+		// shared edges to not be missed.
+		const float32 kTol = -0.005f;
+
+		// Is the intersection on the triangle?
+		if (u > kTol && v > kTol && w > kTol)
+		{
+			output->fraction = t;
+
+			// Does the ray start from below or above the triangle?
+			if (numerator > 0.0f)
+			{
+				output->normal = -n;
+			}
+			else
+			{
+				output->normal = n;
+			}
+
+			return true;
+		}
+
+		return false;
+	}
 
 	bool Select(u32& selection, float32& fraction) const
 	{
-		b3Mesh* m = m_cloth->GetMesh();
-
-		b3MeshShape ms;
-		ms.m_mesh = m;
+		b3ClothMesh* m = m_cloth->GetMesh();
 
 		b3RayCastInput input;
 		input.p1 = m_ray->A();
 		input.p2 = m_ray->B();
 		input.maxFraction = m_ray->fraction;
-
-		b3Transform transform;
-		transform.SetIdentity();
 
 		float32 minFraction = B3_MAX_FLOAT;
 		b3Vec3 minNormal(0.0f, 0.0f, 0.0f);
@@ -167,7 +244,7 @@ private:
 		for (u32 i = 0; i < m->triangleCount; ++i)
 		{
 			b3RayCastOutput subOutput;
-			if (ms.RayCast(&subOutput, input, transform, i) == true)
+			if (RayCast(&subOutput, i) == true)
 			{
 				if (subOutput.fraction < minFraction)
 				{

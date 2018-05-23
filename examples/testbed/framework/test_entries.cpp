@@ -61,8 +61,9 @@
 #include <testbed/tests/multiple_pendulum.h>
 #include <testbed/tests/cloth_test.h>
 #include <testbed/tests/spring_cloth_test.h>
-#include <testbed/tests/spring_cloth.h>
-#include <testbed/tests/spring_cloth_contact.h>
+#include <testbed/tests/table_cloth.h>
+#include <testbed/tests/pinned_cloth.h>
+#include <testbed/tests/shirt.h>
 #include <testbed/tests/mass_types.h>
 #include <testbed/tests/tension_mapping.h>
 #include <testbed/tests/single_pendulum.h>
@@ -113,11 +114,12 @@ TestEntry g_tests[] =
 	{ "Initial Overlap", &InitialOverlap::Create },
 	{ "Multiple Pendulum", &MultiplePendulum::Create },
 	{ "Cloth", &Cloth::Create },
-	{ "Mass-Spring System", &MassSpring::Create },
-	{ "Spring Cloth", &SpringCloth::Create },
-	{ "Spring Cloth Contact", &SpringClothContact::Create },
+	{ "Table Cloth", &TableCloth::Create },
+	{ "Pinned Cloth", &PinnedCloth::Create },
+	{ "Shirt", &Shirt::Create },
 	{ "Mass Types", &MassTypes::Create },
 	{ "Tension Mapping", &TensionMapping::Create },
+	{ "Mass-Spring System", &MassSpring::Create },
 	{ "Single Pendulum", &SinglePendulum::Create },
 	{ "Rope", &Rope::Create },
 	{ NULL, NULL }

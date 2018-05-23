@@ -29,7 +29,7 @@ class b3StackAllocator;
 
 class b3Shape;
 
-struct b3Mesh;
+struct b3ClothMesh;
 
 struct b3SpringClothDef
 {
@@ -49,7 +49,7 @@ struct b3SpringClothDef
 	b3StackAllocator* allocator;
 
 	// Cloth mesh	
-	b3Mesh* mesh;
+	b3ClothMesh* mesh;
 
 	// Cloth density in kg/m^3
 	float32 density;
@@ -64,8 +64,8 @@ struct b3SpringClothDef
 	float32 kd;
 	
 	// Mass radius
-	// Typically this is value is small and is intended for correcting visual artifacts when 
-	// the cloth is colliding against a solid.
+	// This should be a small value. It can be used for correcting visual artifacts when 
+	// the masses are colliding against a solid.
 	float32 r;
 	
 	// Acceleration due to gravity (m/s^2)
@@ -75,7 +75,8 @@ struct b3SpringClothDef
 enum b3SpringType
 {
 	e_strechSpring,
-	e_bendSpring
+	e_bendSpring,
+	// e_sewingSpring
 };
 
 struct b3Spring
@@ -138,7 +139,7 @@ public:
 	void Initialize(const b3SpringClothDef& def);
 
 	// Return the cloth mesh used to initialize this cloth.
-	b3Mesh* GetMesh() const;
+	b3ClothMesh* GetMesh() const;
 
 	// Set the gravitational acceleration applied to this cloth.
 	// Units are m/s^2.
@@ -210,7 +211,7 @@ protected:
 
 	b3StackAllocator* m_allocator;
 
-	b3Mesh* m_mesh;
+	b3ClothMesh* m_mesh;
 	float32 m_r;
 
 	b3Vec3 m_gravity;
@@ -237,7 +238,7 @@ protected:
 	b3SpringClothStep m_step;
 };
 
-inline b3Mesh* b3SpringCloth::GetMesh() const
+inline b3ClothMesh* b3SpringCloth::GetMesh() const
 {
 	return m_mesh;
 }

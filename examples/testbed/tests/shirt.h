@@ -16,41 +16,65 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef SPRING_CLOTH_CONTACT_H
-#define SPRING_CLOTH_CONTACT_H
+#ifndef SHIRT_H
+#define SHIRT_H
 
-class SpringClothContact : public SpringClothTest
+#include <bounce/garment/garment.h>
+#include <bounce/garment/sewing_pattern.h>
+#include <bounce/garment/garment_mesh.h>
+
+class Shirt : public SpringClothTest
 {
 public:
-	SpringClothContact()
+	Shirt()
 	{
+		// Generate 2D mesh
+		m_shirtGarmentMesh.Set(&m_shirtGarment, 0.1f);
+
+		// Create 3D mesh
+		m_shirtClothMesh.Set(&m_shirtGarmentMesh);
+
+		// Perform fitting
+		for (u32 i = 0; i < 3; ++i)
+		{
+			b3ClothMeshMesh* front = m_shirtClothMesh.meshes + i;
+			for (u32 j = 0; j < front->vertexCount; ++j)
+			{
+				u32 v = front->startVertex + j;
+				m_shirtClothMesh.vertices[v].z = -1.0f;
+			}
+		}
+
+		for (u32 i = 3; i < 6; ++i)
+		{
+			b3ClothMeshMesh* back = m_shirtClothMesh.meshes + i;
+			for (u32 j = 0; j < back->vertexCount; ++j)
+			{
+				u32 v = back->startVertex + j;
+				m_shirtClothMesh.vertices[v].z = 1.0f;
+			}
+		}
+
+		// Create cloth
 		b3SpringClothDef def;
 		def.allocator = &m_clothAllocator;
-		def.mesh = &m_clothMesh;
+		def.mesh = &m_shirtClothMesh;
 		def.density = 0.2f;
-		def.ks = 1000.0f;
-		def.kd = 0.0f;
+		def.ks = 10000.0f;
 		def.r = 0.2f;
 		def.gravity.Set(0.0f, -10.0f, 0.0f);
 
 		m_cloth.Initialize(def);
-
-		m_clothCapsule.m_centers[0].Set(0.0f, -2.0f, 2.0f);
-		m_clothCapsule.m_centers[1].Set(0.0f, -2.0f, -2.0f);
-		m_clothCapsule.m_radius = 2.0f;
-		
-		m_clothCapsule.SetFriction(1.0f);
-
-		m_cloth.AddShape(&m_clothCapsule);
 	}
 
 	static Test* Create()
 	{
-		return new SpringClothContact();
+		return new Shirt();
 	}
 
-	b3GridMesh<10, 10> m_clothMesh;
-	b3CapsuleShape m_clothCapsule;
+	b3ShirtGarment m_shirtGarment;
+	b3GarmentMesh m_shirtGarmentMesh;
+	b3GarmentClothMesh m_shirtClothMesh;
 };
 
 #endif
