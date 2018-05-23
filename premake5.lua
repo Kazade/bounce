@@ -93,7 +93,7 @@ solution (solution_name)
 		kind "StaticLib"
 		language "C++"
 		location ( solution_dir .. action )
-		includedirs { bounce_inc_dir }
+		includedirs { bounce_inc_dir, external_dir }
 		vpaths { [""] = "bounce" }
 
 		files 
@@ -252,6 +252,20 @@ solution (solution_name)
 			external_dir .. "/rapidjson/**.h", 
 			external_dir .. "/rapidjson/**.cpp" 
 		}
+		
+	project "triangle"
+		kind "StaticLib"
+		language "C"
+		location ( solution_dir .. action )
+		includedirs { external_dir } 
+		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.c" }		
+
+		files 
+		{ 
+			external_dir .. "/triangle/**.h", 
+			external_dir .. "/triangle/**.c" 
+		}
+		
 	project "testbed"
 		kind "ConsoleApp"
 		language "C++"
@@ -304,7 +318,7 @@ solution (solution_name)
 			}			
 		end
 		
-		links { "glfw", "glad", "imgui", "bounce" }
+		links { "glfw", "glad", "imgui", "triangle", "bounce" }
 
 		configuration { "windows" }
 			links { "opengl32", "winmm" }
