@@ -116,36 +116,85 @@ void Model::Update()
 	
 	if (g_settings->drawGrid)
 	{
-		b3Color color(0.2f, 0.2f, 0.2f, 1.0f);
+		const i32 h = 21;
+		const i32 w = 21;
 
-		b3Vec3 pn(0.0f, 1.0f, 0.0f);
-		b3Vec3 p(0.0f, 0.0f, 0.0f);
-		m_draw.DrawCircle(pn, p, 1.0f, color);
-
-		int n = 20;
+		b3Vec3 vs[h * w];
 
 		b3Vec3 t;
-		t.x = -0.5f * float32(n);
+		t.x = -0.5f * float32(w) + 0.5f;
 		t.y = 0.0f;
-		t.z = -0.5f * float32(n);
+		t.z = -0.5f * float32(h) + 0.5f;
 
-		for (int i = 0; i < n; i += 1)
+		for (u32 i = 0; i < h; ++i)
 		{
-			for (int j = 0; j < n; j += 1)
+			for (u32 j = 0; j < w; ++j)
 			{
-				b3Vec3 vs[4];
-				vs[0] = b3Vec3((float32)i, 0.0f, (float32)j);
-				vs[1] = b3Vec3((float32)i, 0.0f, (float32)j + 1);
-				vs[2] = b3Vec3((float32)i + 1, 0.0f, (float32)j + 1);
-				vs[3] = b3Vec3((float32)i + 1, 0.0f, (float32)j);
+				u32 iv = i * w + j;
 
-				vs[0] += t;
-				vs[1] += t;
-				vs[2] += t;
-				vs[3] += t;
+				b3Vec3 v;
+				v.x = float32(j);
+				v.y = 0.0f;
+				v.z = float32(i);
 
-				m_draw.DrawPolygon(vs, 4, color);
+				v += t;
+				
+				vs[iv] = v;
 			}
+		}
+
+		b3Color color(0.2f, 0.2f, 0.2f, 1.0f);
+
+		// Left-Right Lines
+		u32 hv1 = (h - 1) / 2 * w + 0;
+		u32 hv2 = (h - 1) / 2 * w + (w - 1);
+		{
+			b3Vec3 v1 = vs[hv1];
+			b3Vec3 v2 = vs[hv2];
+
+			b3Draw_draw->DrawSegment(v1, v2, b3Color_black);
+		}
+		
+		for (u32 i = 0; i < h; ++i)
+		{
+			if (i == hv1)
+			{
+				continue;
+			}
+
+			u32 iv1 = i * w + 0;
+			u32 iv2 = i * w + (w - 1);
+
+			b3Vec3 v1 = vs[iv1];
+			b3Vec3 v2 = vs[iv2];
+
+			b3Draw_draw->DrawSegment(v1, v2, color);
+		}
+
+		// Up-Bottom Lines
+		u32 wv1 = 0 * w + (w - 1) / 2;
+		u32 wv2 = (h - 1) * w + (w - 1) / 2;
+		{
+			b3Vec3 v1 = vs[wv1];
+			b3Vec3 v2 = vs[wv2];
+
+			b3Draw_draw->DrawSegment(v1, v2, b3Color_black);
+		}
+
+		for (u32 j = 0; j < w; ++j)
+		{
+			if (j == wv1)
+			{
+				continue;
+			}
+
+			u32 iv1 = 0 * w + j;
+			u32 iv2 = (h - 1) * w + j;
+
+			b3Vec3 v1 = vs[iv1];
+			b3Vec3 v2 = vs[iv2];
+
+			b3Draw_draw->DrawSegment(v1, v2, color);
 		}
 	}
 
