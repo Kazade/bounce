@@ -34,25 +34,25 @@ void b3ShapeGJKProxy::Set(const b3Shape* shape, u32 index)
 	case e_sphereShape:
 	{
 		const b3SphereShape* sphere = (b3SphereShape*)shape;
-		m_count = 1;
-		m_vertices = &sphere->m_center;
-		m_radius = sphere->m_radius;
+		vertexCount = 1;
+		vertices = &sphere->m_center;
+		radius = sphere->m_radius;
 		break;
 	}
 	case e_capsuleShape:
 	{
 		const b3CapsuleShape* capsule = (b3CapsuleShape*)shape;
-		m_count = 2;
-		m_vertices = capsule->m_centers;
-		m_radius = capsule->m_radius;
+		vertexCount = 2;
+		vertices = capsule->m_centers;
+		radius = capsule->m_radius;
 		break;
 	}
 	case e_hullShape:
 	{
 		const b3HullShape* hull = (b3HullShape*)shape;
-		m_count = hull->m_hull->vertexCount;
-		m_vertices = hull->m_hull->vertices;
-		m_radius = hull->m_radius;
+		vertexCount = hull->m_hull->vertexCount;
+		vertices = hull->m_hull->vertices;
+		radius = hull->m_radius;
 		break;
 	}
 	case e_meshShape:
@@ -64,13 +64,13 @@ void b3ShapeGJKProxy::Set(const b3Shape* shape, u32 index)
 
 		const b3Triangle& triangle = mesh->m_mesh->GetTriangle(index);
 
-		m_buffer[0] = mesh->m_mesh->vertices[triangle.v1];
-		m_buffer[1] = mesh->m_mesh->vertices[triangle.v2];
-		m_buffer[2] = mesh->m_mesh->vertices[triangle.v3];
+		vertexBuffer[0] = mesh->m_mesh->vertices[triangle.v1];
+		vertexBuffer[1] = mesh->m_mesh->vertices[triangle.v2];
+		vertexBuffer[2] = mesh->m_mesh->vertices[triangle.v3];
 
-		m_count = 3;
-		m_vertices = m_buffer;
-		m_radius = mesh->m_radius;
+		vertexCount = 3;
+		vertices = vertexBuffer;
+		radius = mesh->m_radius;
 		break;
 	}
 	default:

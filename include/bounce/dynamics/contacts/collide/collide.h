@@ -42,11 +42,10 @@ struct b3ConvexCache
 };
 
 // Used for computing the distance between two generic shapes.
-class b3ShapeGJKProxy : public b3GJKProxy
+struct b3ShapeGJKProxy : public b3GJKProxy
 {
-public:
 	b3ShapeGJKProxy() { }
-	
+
 	b3ShapeGJKProxy(const b3Shape* shape, u32 index)
 	{
 		Set(shape, index);

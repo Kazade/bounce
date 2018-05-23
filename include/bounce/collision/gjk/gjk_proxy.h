@@ -22,10 +22,12 @@
 #include <bounce/common/math/vec3.h>
 
 // A GJK proxy encapsulates any convex hull to be used by the GJK.
-class b3GJKProxy
+struct b3GJKProxy
 {
-public:
-	b3GJKProxy() : m_vertices(NULL), m_count(0), m_radius(0.0f) { }
+	const b3Vec3* vertices; // vertices in this proxy
+	u32 vertexCount; // number of vertices
+	float32 radius; // proxy radius
+	b3Vec3 vertexBuffer[3]; // vertex buffer for convenience
 
 	// Get the number of vertices in this proxy.
 	u32 GetVertexCount() const;
@@ -39,31 +41,26 @@ public:
 	// Convenience function.
 	// Get the support vertex in a given direction.
 	const b3Vec3& GetSupportVertex(const b3Vec3& direction) const;
-
-	const b3Vec3* m_vertices; // vertices in this proxy
-	u32 m_count; // number of vertices
-	float32 m_radius; // shape radius
-	b3Vec3 m_buffer[3]; // vertices from a child shape
 };
 
 inline u32 b3GJKProxy::GetVertexCount() const
 {
-	return m_count;
+	return vertexCount;
 }
 
 inline const b3Vec3& b3GJKProxy::GetVertex(u32 index) const
 {
-	B3_ASSERT(0 <= index && index < m_count);
-	return m_vertices[index];
+	B3_ASSERT(0 <= index && index < vertexCount);
+	return vertices[index];
 }
 
 inline u32 b3GJKProxy::GetSupportIndex(const b3Vec3& d) const
 {
 	u32 maxIndex = 0;
-	float32 maxProjection = b3Dot(d, m_vertices[maxIndex]);
-	for (u32 i = 1; i < m_count; ++i)
+	float32 maxProjection = b3Dot(d, vertices[maxIndex]);
+	for (u32 i = 1; i < vertexCount; ++i)
 	{
-		float32 projection = b3Dot(d, m_vertices[i]);
+		float32 projection = b3Dot(d, vertices[i]);
 		if (projection > maxProjection)
 		{
 			maxIndex = i;
@@ -76,7 +73,7 @@ inline u32 b3GJKProxy::GetSupportIndex(const b3Vec3& d) const
 inline const b3Vec3& b3GJKProxy::GetSupportVertex(const b3Vec3& d) const
 {
 	u32 index = GetSupportIndex(d);
-	return m_vertices[index];
+	return vertices[index];
 }
 
 #endif

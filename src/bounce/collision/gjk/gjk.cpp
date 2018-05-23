@@ -708,8 +708,8 @@ b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1,
 	// Apply radius if requested.
 	if (applyRadius)
 	{
-		float32 r1 = proxy1.m_radius;
-		float32 r2 = proxy2.m_radius;
+		float32 r1 = proxy1.radius;
+		float32 r2 = proxy2.radius;
 
 		if (output.distance > r1 + r2 && output.distance > B3_EPSILON)
 		{
