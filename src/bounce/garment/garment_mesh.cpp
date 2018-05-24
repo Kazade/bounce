@@ -147,6 +147,8 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 	mesh->triangleCount = out.numberoftriangles;
 	for (int i = 0; i < out.numberoftriangles; ++i)
 	{
+		B3_ASSERT(out.numberofcorners == 3);
+
 		b3SewingPatternMeshTriangle triangle;
 		triangle.v1 = out.trianglelist[3 * i + 0];
 		triangle.v2 = out.trianglelist[3 * i + 1];
@@ -154,7 +156,7 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 
 		mesh->triangles[i] = triangle;
 	}
-	
+
 	// Free the input structure
 	b3Free(in.pointlist);
 
