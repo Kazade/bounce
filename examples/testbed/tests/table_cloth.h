@@ -19,7 +19,7 @@
 #ifndef TABLE_CLOTH_H
 #define TABLE_CLOTH_H
 
-class TableCloth : public SpringClothTest
+class TableCloth : public ClothTest
 {
 public:
 	TableCloth()
@@ -48,14 +48,12 @@ public:
 		m_gridClothMesh.sewingLineCount = 0;
 		m_gridClothMesh.sewingLines = nullptr;
 
-		b3SpringClothDef def;
-		def.allocator = &m_clothAllocator;
+		b3ClothDef def;
 		def.mesh = &m_gridClothMesh;
 		def.density = 0.2f;
 		def.ks = 10000.0f;
 		def.kd = 0.0f;
 		def.r = 0.05f;
-		def.gravity.Set(0.0f, -10.0f, 0.0f);
 
 		m_cloth.Initialize(def);
 

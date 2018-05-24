@@ -23,7 +23,7 @@
 #include <bounce/garment/sewing_pattern.h>
 #include <bounce/garment/garment_mesh.h>
 
-class Shirt : public SpringClothTest
+class Shirt : public ClothTest
 {
 public:
 	Shirt()
@@ -56,13 +56,11 @@ public:
 		}
 
 		// Create cloth
-		b3SpringClothDef def;
-		def.allocator = &m_clothAllocator;
+		b3ClothDef def;
 		def.mesh = &m_shirtClothMesh;
 		def.density = 0.2f;
-		def.ks = 10000.0f;
 		def.r = 0.2f;
-		def.gravity.Set(0.0f, -10.0f, 0.0f);
+		def.ks = 10000.0f;
 
 		m_cloth.Initialize(def);
 	}

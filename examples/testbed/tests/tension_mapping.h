@@ -55,7 +55,7 @@ static inline b3Color Color(float32 x, float32 a, float32 b)
 	return c;
 }
 
-class TensionMapping : public SpringClothTest
+class TensionMapping : public ClothTest
 {
 public:
 	TensionMapping()
@@ -78,14 +78,12 @@ public:
 		m_gridClothMesh.sewingLineCount = 0;
 		m_gridClothMesh.sewingLines = nullptr;
 		
-		b3SpringClothDef def;
-		def.allocator = &m_clothAllocator;
+		b3ClothDef def;
 		def.mesh = &m_gridClothMesh;
 		def.density = 0.2f;
 		def.ks = 10000.0f;
 		def.kd = 0.0f;
 		def.r = 0.2f;
-		def.gravity.Set(0.0f, -10.0f, 0.0f);
 
 		m_cloth.Initialize(def);
 
@@ -93,11 +91,12 @@ public:
 		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
 		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
 
-		for (u32 i = 0; i < m_cloth.GetMassCount(); ++i)
+		for (u32 i = 0; i < m_cloth.GetParticleCount(); ++i)
 		{
-			if (aabb.Contains(m_cloth.GetPosition(i)))
+			b3Particle* p = m_cloth.GetParticle(i);
+			if (aabb.Contains(p->position))
 			{
-				m_cloth.SetType(i, b3MassType::e_staticMass);
+				m_cloth.SetType(p, e_staticParticle);
 			}
 		}
 	}
@@ -108,29 +107,30 @@ public:
 
 		m_cloth.Step(dt);
 		m_cloth.Apply();
-		
-		b3StackArray<b3Vec3, 100> T;
-		m_cloth.GetTension(T);
 
 		for (u32 i = 0; i < m_gridClothMesh.triangleCount; ++i)
 		{
 			b3ClothMeshTriangle* t = m_gridClothMesh.triangles + i;
 
-			b3Vec3 v1 = m_gridClothMesh.vertices[t->v1];
-			b3Vec3 v2 = m_gridClothMesh.vertices[t->v2];
-			b3Vec3 v3 = m_gridClothMesh.vertices[t->v3];
+			b3Particle* p1 = m_cloth.GetParticle(t->v1);
+			b3Particle* p2 = m_cloth.GetParticle(t->v2);
+			b3Particle* p3 = m_cloth.GetParticle(t->v3);
+
+			b3Vec3 v1 = p1->position;
+			b3Vec3 v2 = p2->position;
+			b3Vec3 v3 = p3->position;
 
 			b3Draw_draw->DrawSegment(v1, v2, b3Color_black);
 			b3Draw_draw->DrawSegment(v2, v3, b3Color_black);
 			b3Draw_draw->DrawSegment(v3, v1, b3Color_black);
 
-			b3Vec3 f1 = T[t->v1];
+			b3Vec3 f1 = p1->tension;
 			float32 L1 = b3Length(f1);
 
-			b3Vec3 f2 = T[t->v2];
+			b3Vec3 f2 = p2->tension;
 			float32 L2 = b3Length(f2);
 
-			b3Vec3 f3 = T[t->v3];
+			b3Vec3 f3 = p3->tension;
 			float32 L3 = b3Length(f3);
 
 			float32 L = (L1 + L2 + L3) / 3.0f;
@@ -140,16 +140,14 @@ public:
 			
 			b3Vec3 n1 = b3Cross(v2 - v1, v3 - v1);
 			n1.Normalize();
+			g_draw->DrawSolidTriangle(n1, v1, v2, v3, color);
 
 			b3Vec3 n2 = -n1;
-
-			g_draw->DrawSolidTriangle(n1, v1, v2, v3, color);
 			g_draw->DrawSolidTriangle(n2, v1, v3, v2, color);
 		}
 
-		b3SpringClothStep step = m_cloth.GetStep();
-
-		g_draw->DrawString(b3Color_white, "Iterations = %u", step.iterations);
+		extern u32 b3_clothSolverIterations;
+		g_draw->DrawString(b3Color_white, "Iterations = %u", b3_clothSolverIterations);
 
 		if (m_clothDragger.IsSelected() == true)
 		{

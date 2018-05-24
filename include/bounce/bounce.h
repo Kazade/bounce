@@ -60,7 +60,6 @@
 
 #include <bounce/dynamics/cloth/cloth_mesh.h>
 #include <bounce/dynamics/cloth/cloth.h>
-#include <bounce/dynamics/cloth/spring_cloth.h>
 
 #include <bounce/dynamics/body.h>
 

@@ -19,7 +19,7 @@
 #ifndef PINNED_CLOTH_H
 #define PINNED_CLOTH_H
 
-class PinnedCloth : public SpringClothTest
+class PinnedCloth : public ClothTest
 {
 public:
 	PinnedCloth()
@@ -42,14 +42,12 @@ public:
 		m_gridClothMesh.sewingLineCount = 0;
 		m_gridClothMesh.sewingLines = nullptr;
 
-		b3SpringClothDef def;
-		def.allocator = &m_clothAllocator;
+		b3ClothDef def;
 		def.mesh = &m_gridClothMesh;
 		def.density = 0.2f;
 		def.ks = 10000.0f;
 		def.kd = 0.0f;
 		def.r = 0.05f;
-		def.gravity.Set(0.0f, -10.0f, 0.0f);
 
 		m_cloth.Initialize(def);
 
@@ -57,11 +55,12 @@ public:
 		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
 		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
 
-		for (u32 i = 0; i < m_cloth.GetMassCount(); ++i)
+		for (u32 i = 0; i < m_cloth.GetParticleCount(); ++i)
 		{
-			if (aabb.Contains(m_cloth.GetPosition(i)))
+			b3Particle* p = m_cloth.GetParticle(i);
+			if (aabb.Contains(p->position))
 			{
-				m_cloth.SetType(i, b3MassType::e_staticMass);
+				m_cloth.SetType(p, e_staticParticle);
 			}
 		}
 	}
