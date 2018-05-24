@@ -409,10 +409,10 @@ void b3QHull::Set(const b3Vec3* points, u32 count, bool simplify)
 	centroid = b3ComputeCentroid(this);
 }
 
-void b3QHull::SetAsCylinder(float32 radius, float32 height)
+void b3QHull::SetAsCylinder(float32 radius, float32 ey)
 {
 	B3_ASSERT(radius > 0.0f);
-	B3_ASSERT(height > 0.0f);
+	B3_ASSERT(ey > 0.0f);
 
 	const u32 kEdgeCount = 20;
 	const u32 kVertexCount = 4 * kEdgeCount;
@@ -424,7 +424,7 @@ void b3QHull::SetAsCylinder(float32 radius, float32 height)
 	b3Quat q = b3QuatRotationY(kAngleInc);
 
 	{
-		b3Vec3 center(0.0f, -0.5f * height, 0.0f);
+		b3Vec3 center(0.0f, -ey, 0.0f);
 		b3Vec3 n1(1.0f, 0.0f, 0.0f);
 		b3Vec3 v1 = center + radius * n1;
 		for (u32 i = 0; i < kEdgeCount; ++i)
@@ -441,7 +441,7 @@ void b3QHull::SetAsCylinder(float32 radius, float32 height)
 	}
 
 	{
-		b3Vec3 center(0.0f, 0.5f * height, 0.0f);
+		b3Vec3 center(0.0f, ey, 0.0f);
 		b3Vec3 n1(1.0f, 0.0f, 0.0f);
 		b3Vec3 v1 = center + radius * n1;
 		for (u32 i = 0; i < kEdgeCount; ++i)
@@ -461,10 +461,10 @@ void b3QHull::SetAsCylinder(float32 radius, float32 height)
 	Set(vs, count, false);
 }
 
-void b3QHull::SetAsCone(float32 radius, float32 height)
+void b3QHull::SetAsCone(float32 radius, float32 ey)
 {
 	B3_ASSERT(radius > 0.0f);
-	B3_ASSERT(height > 0.0f);
+	B3_ASSERT(ey > 0.0f);
 
 	const u32 kEdgeCount = 20;
 	const u32 kVertexCount = 2 * kEdgeCount + 1;
@@ -475,7 +475,7 @@ void b3QHull::SetAsCone(float32 radius, float32 height)
 	float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
 	b3Quat q = b3QuatRotationY(kAngleInc);
 
-	b3Vec3 center(0.0f, -0.5f * height, 0.0f);
+	b3Vec3 center(0.0f, -ey, 0.0f);
 	b3Vec3 n1(1.0f, 0.0f, 0.0f);
 	b3Vec3 v1 = center + radius * n1;
 	for (u32 i = 0; i < kEdgeCount; ++i)
@@ -490,7 +490,7 @@ void b3QHull::SetAsCone(float32 radius, float32 height)
 		v1 = v2;
 	}
 
-	vs[count++].Set(0.0f, 0.5f * height, 0.0f);
+	vs[count++].Set(0.0f, ey, 0.0f);
 
 	// Set
 	Set(vs, count, false);
