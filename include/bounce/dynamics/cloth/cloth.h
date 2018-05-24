@@ -185,7 +185,7 @@ public:
 	// Set the type of a given particle.
 	void SetType(b3Particle* p, b3ParticleType type);
 
-	// Translate a particle in the next time step.
+	// Translate a given particle in the next time step.
 	void Translate(b3Particle* p, const b3Vec3& translation);
 
 	// Set the velocity of a given particle.
