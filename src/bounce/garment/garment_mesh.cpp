@@ -58,7 +58,7 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 	struct triangulateio in, mid, out;
 
 	// Prepare the input structure
-	in.pointlist = (REAL*)b3Alloc(pattern->vertexCount * 2 * sizeof(REAL));
+	in.pointlist = (REAL*)malloc(pattern->vertexCount * 2 * sizeof(REAL));
 	const float32* fp = (float32*)pattern->vertices;
 	for (u32 i = 0; i < 2 * pattern->vertexCount; ++i)
 	{
@@ -109,7 +109,7 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 	// Refine
 
 	// Prepare middle structure
-	mid.trianglearealist = (REAL*)b3Alloc(mid.numberoftriangles * sizeof(REAL));
+	mid.trianglearealist = (REAL*)malloc(mid.numberoftriangles * sizeof(REAL));
 	for (int i = 0; i < mid.numberoftriangles; ++i)
 	{
 		mid.trianglearealist[i] = desiredArea;
@@ -158,7 +158,7 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 	}
 
 	// Free the input structure
-	b3Free(in.pointlist);
+	free(in.pointlist);
 
 	// Free the middle structure
 	free(mid.pointlist);
