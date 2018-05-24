@@ -20,6 +20,7 @@
 #define B3_SEWING_PATTERN_H
 
 #include <bounce/common/math/vec2.h>
+#include <bounce/common/math/mat22.h>
 
 struct b3SewingPattern
 {
@@ -69,7 +70,7 @@ struct b3CirclePattern : public b3SewingPattern
 		for (u32 i = 1; i < E; ++i)
 		{
 			b3Vec2 ni = R * n;
-			circleVertices[i] = center + radius * n;
+			circleVertices[i] = center + radius * ni;
 			n = ni;
 		}
 
