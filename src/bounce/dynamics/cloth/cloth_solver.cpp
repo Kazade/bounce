@@ -573,7 +573,7 @@ void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
 		b3Mat33& D = inv_P[i];
 
 		// Sylvester Criterion to ensure PD-ness
-		B3_ASSERT(b3Det(D.x, D.y, D.z) > B3_EPSILON);
+		B3_ASSERT(b3Det(D.x, D.y, D.z) > 0.0f);
 
 		B3_ASSERT(D.x.x != 0.0f);
 		float32 xx = 1.0f / D.x.x;
