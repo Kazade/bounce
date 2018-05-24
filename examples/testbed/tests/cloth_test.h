@@ -210,7 +210,7 @@ private:
 
 		// This tolerance helps intersections lying on  
 		// shared edges to not be missed.
-		const float32 kTol = -0.005f;
+		const float32 kTol = -B3_EPSILON;
 
 		// Is the intersection on the triangle?
 		if (u > kTol && v > kTol && w > kTol)
