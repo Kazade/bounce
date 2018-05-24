@@ -630,9 +630,7 @@ void b3Cloth::Apply() const
 
 void b3Cloth::Draw() const
 {
-	const b3ClothMesh* m = m_mesh;
-
-	for (u32 i = 0; i < m->vertexCount; ++i)
+	for (u32 i = 0; i < m_particleCount; ++i)
 	{
 		b3Particle* p = m_particles + i;
 
@@ -671,6 +669,8 @@ void b3Cloth::Draw() const
 		}
 	}
 	
+	const b3ClothMesh* m = m_mesh;
+
 	for (u32 i = 0; i < m->sewingLineCount; ++i)
 	{
 		b3ClothMeshSewingLine* s = m->sewingLines + i;
