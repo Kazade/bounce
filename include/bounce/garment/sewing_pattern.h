@@ -55,8 +55,10 @@ struct b3CirclePattern : public b3SewingPattern
 {
 	b3Vec2 circleVertices[E];
 
-	b3CirclePattern(b3Vec2 center = b3Vec2_zero, float32 radius = 1.0f)
+	b3CirclePattern(float32 radius = 1.0f)
 	{
+		b3Vec2 center = b3Vec2_zero;
+
 		float32 x = 2.0f * B3_PI / float32(E);
 		float32 c = cos(x);
 		float32 s = sin(x);

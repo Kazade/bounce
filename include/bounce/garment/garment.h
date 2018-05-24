@@ -35,6 +35,40 @@ struct b3Garment
 	b3SewingLine* sewingLines;
 };
 
+struct b3RectangleGarment : public b3Garment
+{
+	b3RectanglePattern rectangle;
+	b3SewingPattern* rectanglePatterns[1];
+
+	b3RectangleGarment(float32 ex = 1.0f, float32 ey = 1.0f) : rectangle(ex, ey)
+	{
+		rectanglePatterns[0] = &rectangle;
+
+		patternCount = 1;
+		patterns = rectanglePatterns;
+
+		sewingCount = 0;
+		sewingLines = nullptr;
+	}
+};
+
+struct b3CircleGarment : public b3Garment
+{
+	b3CirclePattern<> circle;
+	b3SewingPattern* circlePatterns[1];
+
+	b3CircleGarment(float32 r = 1.0f) : circle(r)
+	{
+		circlePatterns[0] = &circle;
+
+		patternCount = 1;
+		patterns = circlePatterns;
+
+		sewingCount = 0;
+		sewingLines = nullptr;
+	}
+};
+
 struct b3ShirtGarment : public b3Garment
 {
 	b3RectanglePattern frontBody;
