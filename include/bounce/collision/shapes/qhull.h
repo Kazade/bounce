@@ -48,6 +48,10 @@ struct b3QHull : public b3Hull
 	// initial construction.
 	void Set(const b3Vec3* points, u32 count, bool simplify = true);
 
+	// Set this hull as a sphere located at the origin
+	// given the radius.
+	void SetAsSphere(float32 radius = 1.0f);
+
 	// Set this hull as a cylinder located at the origin
 	// given the radius and extent along the y axis.
 	void SetAsCylinder(float32 radius = 1.0f, float32 ey = 1.0f);

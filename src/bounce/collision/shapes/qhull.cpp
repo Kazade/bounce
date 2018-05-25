@@ -409,6 +409,39 @@ void b3QHull::Set(const b3Vec3* points, u32 count, bool simplify)
 	centroid = b3ComputeCentroid(this);
 }
 
+void b3QHull::SetAsSphere(float32 radius)
+{
+	enum
+	{
+		e_rings = 8,
+		e_sectors = 8,
+		e_vertexCount = e_rings * e_sectors
+	};
+
+	float32 R = 1.0f / float32(e_rings - 1);
+	float32 S = 1.0f / float32(e_sectors - 1);
+
+	b3Vec3 vs[e_vertexCount];
+
+	u32 vc = 0;
+	for (u32 r = 0; r < e_rings; r++)
+	{
+		for (u32 s = 0; s < e_sectors; s++)
+		{
+			float32 y = sin(-0.5f * B3_PI + B3_PI * r * R);
+			float32 x = cos(2.0f * B3_PI * s * S) * sin(B3_PI * r * R);
+			float32 z = sin(2.0f * B3_PI * s * S) * sin(B3_PI * r * R);
+
+			vs[vc].Set(x, y, z);
+			vs[vc] *= radius;
+			++vc;
+		}
+	}
+
+	// Set
+	Set(vs, e_vertexCount, false);
+}
+
 void b3QHull::SetAsCylinder(float32 radius, float32 ey)
 {
 	B3_ASSERT(radius > 0.0f);
