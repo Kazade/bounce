@@ -77,21 +77,18 @@ enum b3ParticleType
 // Read-only particle 
 struct b3Particle
 {
-	// Particle type
+	// Type
 	b3ParticleType type;
 
-	// Mass position
+	// Position
 	b3Vec3 position;
 
-	// Mass velocity
+	// Velocity
 	b3Vec3 velocity;
 	
-	// Mass force
+	// Applied external force
 	b3Vec3 force;
 	
-	// Mass tension force for visualization
-	b3Vec3 tension;
-
 	// Mass
 	float32 mass;
 	
@@ -123,6 +120,8 @@ enum b3SpringType
 	e_bendSpring,
 };
 
+struct b3ClothSolverData;
+
 // Read-only spring
 struct b3Spring
 {
@@ -143,6 +142,17 @@ struct b3Spring
 	
 	// Damping stiffness
 	float32 kd;
+
+	// Solver temp
+
+	// Action tensile force (f_i entry)
+	b3Vec3 tension;
+
+	// Jacobian (J_ii entry)
+	b3Mat33 Jx, Jv;
+
+	// Initialize solver data.
+	void Initialize(const b3ClothSolverData* data);
 };
 
 // Read-only contact
@@ -182,6 +192,10 @@ public:
 	// Return the particle at a given index in this cloth.
 	b3Particle* GetParticle(u32 i) const;
 	
+	// Convenience function.
+	// Return the index of a given particle.
+	u32 GetParticleIndex(const b3Particle* p) const;
+
 	// Set the type of a given particle.
 	void SetType(b3Particle* p, b3ParticleType type);
 
@@ -194,6 +208,12 @@ public:
 	// Apply a force to a given particle.
 	void ApplyForce(b3Particle* p, const b3Vec3& force);
 
+	// Return the number of springs in this cloth.
+	u32 GetSpringCount() const;
+
+	// Return the spring at a given index in this cloth.
+	b3Spring* GetSpring(u32 i) const;
+	
 	// Return the kinetic (or dynamic) energy in this system.
 	float32 GetEnergy() const;
 
@@ -273,6 +293,11 @@ inline b3Particle* b3Cloth::GetParticle(u32 i) const
 	return m_particles + i;
 }
 
+inline u32 b3Cloth::GetParticleIndex(const b3Particle* p) const
+{
+	return u32(p - m_particles);
+}
+
 inline void b3Cloth::SetType(b3Particle* p, b3ParticleType type)
 {
 	if (p->type == type)
@@ -317,6 +342,17 @@ inline void b3Cloth::ApplyForce(b3Particle* p, const b3Vec3& force)
 		return;
 	}
 	p->force += force;
+}
+
+inline u32 b3Cloth::GetSpringCount() const
+{
+	return m_springCount;
+}
+
+inline b3Spring* b3Cloth::GetSpring(u32 i) const
+{
+	B3_ASSERT(i < m_springCount);
+	return m_springs + i;
 }
 
 inline float32 b3Cloth::GetEnergy() const

@@ -41,6 +41,15 @@ struct b3ClothSolverDef
 	u32 contactCapacity;
 };
 
+struct b3ClothSolverData
+{
+	b3Vec3* x;
+	b3Vec3* v;
+	b3Vec3* f;
+	float32 dt;
+	float32 invdt;
+};
+
 class b3ClothSolver
 {
 public:
@@ -53,9 +62,6 @@ public:
 
 	void Solve(float32 dt, const b3Vec3& gravity);
 private:
-	// Compute forces.
-	void Compute_f(b3DenseVec3& f, const b3DenseVec3& x, const b3DenseVec3& v, const b3Vec3& gravity);
-	
 	// Compute A and b in Ax = b
 	void Compute_A_b(b3SparseMat33& A, b3DenseVec3& b, const b3DenseVec3& f, const b3DenseVec3& x, const b3DenseVec3& v, const b3DenseVec3& y) const;
 
@@ -71,8 +77,6 @@ private:
 
 	b3StackAllocator* m_allocator;
 
-	float32 m_h;
-	
 	u32 m_particleCapacity;
 	u32 m_particleCount;
 	b3Particle** m_particles;
@@ -80,12 +84,12 @@ private:
 	u32 m_springCapacity;
 	u32 m_springCount;
 	b3Spring** m_springs;
-	b3Mat33* m_Jx;
-	b3Mat33* m_Jv;
 
 	u32 m_contactCapacity;
 	u32 m_contactCount;
 	b3ParticleContact** m_contacts;
+
+	b3ClothSolverData m_solverData;
 };
 
 #endif

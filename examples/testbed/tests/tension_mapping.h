@@ -108,6 +108,27 @@ public:
 		m_cloth.Step(dt);
 		m_cloth.Apply();
 
+		b3StackArray<b3Vec3, 256> tension;
+		tension.Resize(m_cloth.GetParticleCount());
+		for (u32 i = 0; i < tension.Count(); ++i)
+		{
+			tension[i].SetZero();
+		}
+
+		for (u32 i = 0; i < m_cloth.GetSpringCount(); ++i)
+		{
+			b3Spring* s = m_cloth.GetSpring(i);
+
+			b3Particle* p1 = s->p1;
+			b3Particle* p2 = s->p2;
+
+			u32 i1 = m_cloth.GetParticleIndex(p1);
+			u32 i2 = m_cloth.GetParticleIndex(p2);
+
+			tension[i1] += s->tension;
+			tension[i2] -= s->tension;
+		}
+
 		for (u32 i = 0; i < m_gridClothMesh.triangleCount; ++i)
 		{
 			b3ClothMeshTriangle* t = m_gridClothMesh.triangles + i;
@@ -124,13 +145,13 @@ public:
 			b3Draw_draw->DrawSegment(v2, v3, b3Color_black);
 			b3Draw_draw->DrawSegment(v3, v1, b3Color_black);
 
-			b3Vec3 f1 = p1->tension;
+			b3Vec3 f1 = tension[t->v1];
 			float32 L1 = b3Length(f1);
 
-			b3Vec3 f2 = p2->tension;
+			b3Vec3 f2 = tension[t->v2];
 			float32 L2 = b3Length(f2);
 
-			b3Vec3 f3 = p3->tension;
+			b3Vec3 f3 = tension[t->v3];
 			float32 L3 = b3Length(f3);
 
 			float32 L = (L1 + L2 + L3) / 3.0f;

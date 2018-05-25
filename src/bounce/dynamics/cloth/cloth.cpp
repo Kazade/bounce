@@ -31,6 +31,58 @@
 
 #define B3_CLOTH_FRICTION 0
 
+// b3Spring
+void b3Spring::Initialize(const b3ClothSolverData* data)
+{
+	u32 i1 = p1->solverId;
+	u32 i2 = p2->solverId;
+
+	b3Vec3 x1 = data->x[i1];
+	b3Vec3 v1 = data->v[i1];
+
+	b3Vec3 x2 = data->x[i2];
+	b3Vec3 v2 = data->v[i2];
+
+	const b3Mat33 I = b3Mat33_identity;
+
+	b3Vec3 dx = x1 - x2;
+
+	if (b3Dot(dx, dx) >= L0 * L0)
+	{
+		// Tension
+		float32 L = b3Length(dx);
+		b3Vec3 n = dx / L;
+
+		b3Vec3 sf1 = -ks * (L - L0) * n;
+		b3Vec3 sf2 = -sf1;
+
+		tension = sf1;
+
+		data->f[i1] += sf1;
+		data->f[i2] += sf2;
+
+		// Jacobian
+		Jx = -ks * (b3Outer(dx, dx) + (1.0f - L0 / L) * (I - b3Outer(dx, dx)));
+	}
+	else
+	{
+		tension.SetZero();
+		Jx.SetZero();
+	}
+
+	// Damping
+	b3Vec3 dv = v1 - v2;
+
+	b3Vec3 df1 = -kd * dv;
+	b3Vec3 df2 = -df1;
+
+	data->f[i1] += df1;
+	data->f[i2] += df2;
+
+	Jv = -kd * I;
+}
+
+// b3Cloth
 b3Cloth::b3Cloth()
 {
 	m_gravity.SetZero();
@@ -204,7 +256,6 @@ void b3Cloth::Initialize(const b3ClothDef& def)
 
 		p->translation.SetZero();
 		p->x.SetZero();
-		p->tension.SetZero();
 
 		b3ParticleContact* c = m_contacts + i;
 		c->n_active = false;
@@ -254,6 +305,7 @@ void b3Cloth::Initialize(const b3ClothDef& def)
 		s->L0 = b3Distance(p1->position, p2->position);
 		s->ks = def.ks;
 		s->kd = def.kd;
+		s->tension.SetZero();
 	}
 
 #if B3_CLOTH_BENDING
@@ -276,6 +328,7 @@ void b3Cloth::Initialize(const b3ClothDef& def)
 		s->L0 = b3Distance(p1->position, p2->position);
 		s->ks = def.kb;
 		s->kd = def.kd;
+		s->tension.SetZero();
 	}
 
 	m_allocator.Free(sharedEdges);
@@ -298,6 +351,7 @@ void b3Cloth::Initialize(const b3ClothDef& def)
 		s->L0 = 0.0f;
 		s->ks = def.ks;
 		s->kd = def.kd;
+		s->tension.SetZero();
 	}
 
 	B3_ASSERT(m_springCount <= springCapacity);
@@ -556,12 +610,6 @@ void b3Cloth::UpdateContacts()
 void b3Cloth::Solve(float32 dt)
 {
 	B3_PROFILE("Solve");
-
-	// Clear tension
-	for (u32 i = 0; i < m_particleCount; ++i)
-	{
-		m_particles[i].tension.SetZero();
-	}
 
 	// Solve
 	b3ClothSolverDef solverDef;
