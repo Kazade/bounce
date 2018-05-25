@@ -33,9 +33,9 @@ struct b3ShapeDef;
 struct b3MassData;
 struct b3JointEdge;
 
-// Static bodies have zero mass and velocity, and therefore they can't move.
-// Kinematic bodies are't moved by external and internal forces but can be moved by contact forces.
-// Dynamic bodies have non-zero mass and can move due to internal and external forces.
+// Static body: Has zero mass, can be moved manually.
+// Kinematic body: Has zero mass, non-zero velocity, can be moved by the solver.
+// Dynamic body: Has non-zero mass, non-zero velocity determined by force, can be moved by the solver.
 enum b3BodyType 
 {
 	e_staticBody,
