@@ -50,6 +50,13 @@ struct b3ClothSolverData
 	float32 invdt;
 };
 
+struct b3AccelerationConstraint
+{
+	u32 i1;
+	u32 ndof;
+	b3Vec3 p, q, z;
+};
+
 class b3ClothSolver
 {
 public:
@@ -62,17 +69,16 @@ public:
 
 	void Solve(float32 dt, const b3Vec3& gravity);
 private:
+	// Initialize constraints.
+	void InitializeConstraints();
+	
 	// Compute A and b in Ax = b
 	void Compute_A_b(b3SparseMat33& A, b3DenseVec3& b, const b3DenseVec3& f, const b3DenseVec3& x, const b3DenseVec3& v, const b3DenseVec3& y) const;
 
-	// Compute S.
-	void Compute_S(b3DiagMat33& S);
-
-	// Compute z. 
-	void Compute_z(b3DenseVec3& z);
+	// Compute S and z.
+	void Compute_S_z(b3DiagMat33& S, b3DenseVec3& z);
 
 	// Solve Ax = b.
-	// Output x and the residual error f = Ax - b ~ 0.
 	void Solve(b3DenseVec3& x, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const;
 
 	b3StackAllocator* m_allocator;
@@ -88,6 +94,10 @@ private:
 	u32 m_contactCapacity;
 	u32 m_contactCount;
 	b3ParticleContact** m_contacts;
+
+	u32 m_constraintCapacity;
+	u32 m_constraintCount;
+	b3AccelerationConstraint* m_constraints;
 
 	b3ClothSolverData m_solverData;
 };

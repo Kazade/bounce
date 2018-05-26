@@ -32,7 +32,7 @@
 #define B3_CLOTH_FRICTION 0
 
 // b3Spring
-void b3Spring::Initialize(const b3ClothSolverData* data)
+void b3Spring::ApplyForces(const b3ClothSolverData* data)
 {
 	u32 i1 = p1->solverId;
 	u32 i2 = p2->solverId;
@@ -43,7 +43,7 @@ void b3Spring::Initialize(const b3ClothSolverData* data)
 	b3Vec3 x2 = data->x[i2];
 	b3Vec3 v2 = data->v[i2];
 
-	const b3Mat33 I = b3Mat33_identity;
+	b3Mat33 I; I.SetIdentity();
 
 	b3Vec3 dx = x1 - x2;
 
@@ -145,7 +145,7 @@ static u32 b3FindUniqueEdges(b3UniqueEdge* uniqueEdges, const b3ClothMesh* m)
 					unique = false;
 					break;
 				}
-				
+
 				if (ue->v2 == t1v1 && ue->v1 == t1v2)
 				{
 					unique = false;
@@ -238,13 +238,14 @@ void b3Cloth::Initialize(const b3ClothDef& def)
 
 	const b3ClothMesh* m = m_mesh;
 
+	// Create particles
 	m_particleCount = m->vertexCount;
 	m_particles = (b3Particle*)b3Alloc(m_particleCount * sizeof(b3Particle));
 	m_contacts = (b3ParticleContact*)b3Alloc(m_particleCount * sizeof(b3ParticleContact));
 
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
-		b3Particle* p = m_particles + i;	
+		b3Particle* p = m_particles + i;
 		p->type = e_dynamicParticle;
 		p->position = m->vertices[i];
 		p->velocity.SetZero();
@@ -266,23 +267,23 @@ void b3Cloth::Initialize(const b3ClothDef& def)
 	// Compute mass
 	ResetMass();
 
-	// Initialize springs
+	// Create springs
 	u32 edgeCount = 3 * m->triangleCount;
 
 	b3UniqueEdge* uniqueEdges = (b3UniqueEdge*)m_allocator.Allocate(edgeCount * sizeof(b3UniqueEdge));
 	u32 uniqueCount = b3FindUniqueEdges(uniqueEdges, m);
 
 	u32 springCapacity = uniqueCount;
-	
+
 #if B3_CLOTH_BENDING
-	
+
 	b3SharedEdge* sharedEdges = (b3SharedEdge*)m_allocator.Allocate(edgeCount * sizeof(b3SharedEdge));
 	u32 sharedCount = b3FindSharedEdges(sharedEdges, m);
 
 	springCapacity += sharedCount;
 
 #endif
-	
+
 	springCapacity += m->sewingLineCount;
 
 	m_springs = (b3Spring*)b3Alloc(springCapacity * sizeof(b3Spring));
@@ -340,7 +341,7 @@ void b3Cloth::Initialize(const b3ClothDef& def)
 	for (u32 i = 0; i < m->sewingLineCount; ++i)
 	{
 		b3ClothMeshSewingLine* line = m->sewingLines + i;
-		
+
 		b3Particle* p1 = m_particles + line->v1;
 		b3Particle* p2 = m_particles + line->v2;
 
@@ -368,7 +369,7 @@ void b3Cloth::ResetMass()
 	const float32 inv3 = 1.0f / 3.0f;
 	const float32 rho = m_density;
 
-	// Accumulate the mass about the body origin of all triangles.
+	// Accumulate the mass about the mesh origin of all triangles.
 	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
 	{
 		b3ClothMeshTriangle* triangle = m_mesh->triangles + i;
@@ -413,7 +414,7 @@ void b3Cloth::AddShape(b3Shape* shape)
 void b3Cloth::UpdateContacts()
 {
 	B3_PROFILE("Update Contacts");
-	
+
 	// Clear active flags
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
@@ -477,23 +478,21 @@ void b3Cloth::UpdateContacts()
 			b3Vec3 n = bestNormal;
 
 			// Update contact manifold
-			// Remember the normal orientation is from shape 2 to shape 1 (mass)
+			// Remember the normal points from shape 2 to shape 1 (mass)
 			c->n_active = true;
 			c->p1 = p;
 			c->s2 = shape;
+			c->s = s;
 			c->n = n;
 			c->t1 = b3Perp(n);
 			c->t2 = b3Cross(c->t1, n);
-
-			// Apply position correction
-			p->translation -= s * n;
 		}
 
 		// Update contact state
 		if (c0.n_active == true && c->n_active == true)
 		{
 			// The contact persists
-			
+
 			// Has the contact constraint been satisfied?
 			if (c0.Fn <= -B3_FORCE_THRESHOLD)
 			{
@@ -542,7 +541,7 @@ void b3Cloth::UpdateContacts()
 		{
 			// Create a dynamic basis
 			t1.Normalize();
-			
+
 			b3Vec3 t2 = b3Cross(t1, n);
 			t2.Normalize();
 
@@ -589,7 +588,7 @@ void b3Cloth::UpdateContacts()
 			{
 				// The contact persists
 				float32 maxForce = u * normalForce;
-				
+
 				if (Ft0[k] * Ft0[k] > maxForce * maxForce)
 				{
 					// Unlock particle off surface
@@ -686,19 +685,19 @@ void b3Cloth::Draw() const
 		{
 			b3Draw_draw->DrawPoint(p->position, 4.0f, b3Color_white);
 		}
-		
+
 		if (p->type == e_kinematicParticle)
 		{
 			b3Draw_draw->DrawPoint(p->position, 4.0f, b3Color_blue);
 		}
-		
+
 		if (p->type == e_dynamicParticle)
 		{
 			b3Draw_draw->DrawPoint(p->position, 4.0f, b3Color_green);
 		}
 
 		b3ParticleContact* c = m_contacts + i;
-		
+
 		if (c->n_active)
 		{
 			b3Draw_draw->DrawSegment(p->position, p->position + c->n, b3Color_yellow);
@@ -716,7 +715,7 @@ void b3Cloth::Draw() const
 			b3Draw_draw->DrawSegment(p1->position, p2->position, b3Color_black);
 		}
 	}
-	
+
 	const b3ClothMesh* m = m_mesh;
 
 	for (u32 i = 0; i < m->sewingLineCount; ++i)

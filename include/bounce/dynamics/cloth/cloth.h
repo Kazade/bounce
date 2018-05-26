@@ -64,9 +64,9 @@ struct b3ClothDef
 	float32 kd;
 };
 
-// Static particles have zero mass and velocity, and therefore they can't move.
-// Kinematic particles are't moved by external and internal forces but can be moved by contact forces.
-// Dynamic particles have non-zero mass and can move due to internal and external forces.
+// Static particle: Has zero mass, can be moved manually.
+// Kinematic particle: Has zero mass, non-zero velocity, can be moved by the solver.
+// Dynamic particle: Has non-zero mass, non-zero velocity determined by force, can be moved by the solver.
 enum b3ParticleType
 {
 	e_staticParticle,
@@ -98,10 +98,10 @@ struct b3Particle
 	// Radius
 	float32 radius;
 
-	// User data
+	// User data. 
 	void* userData;
 
-	// Translation used for direct position manipulation
+	// Applied external translation
 	b3Vec3 translation;
 
 	// Solver temp
@@ -125,6 +125,8 @@ struct b3ClothSolverData;
 // Read-only spring
 struct b3Spring
 {
+	// Solver shared
+	
 	// Spring type
 	b3SpringType type;
 
@@ -151,8 +153,8 @@ struct b3Spring
 	// Jacobian (J_ii entry)
 	b3Mat33 Jx, Jv;
 
-	// Initialize solver data.
-	void Initialize(const b3ClothSolverData* data);
+	// Apply spring forces.
+	void ApplyForces(const b3ClothSolverData* data);
 };
 
 // Read-only contact
@@ -160,6 +162,7 @@ struct b3ParticleContact
 {
 	b3Particle* p1;
 	b3Shape* s2;
+	float32 s;
 	b3Vec3 n, t1, t2;
 	float32 Fn, Ft1, Ft2;
 	bool n_active, t1_active, t2_active;
@@ -254,8 +257,8 @@ protected:
 	u32 m_particleCount;
 	b3Particle* m_particles;
 
-	b3Spring* m_springs;
 	u32 m_springCount;
+	b3Spring* m_springs;
 
 	b3ParticleContact* m_contacts;
 	//u32 m_contactCount;

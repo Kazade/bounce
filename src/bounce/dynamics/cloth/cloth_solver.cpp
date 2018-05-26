@@ -47,11 +47,16 @@ b3ClothSolver::b3ClothSolver(const b3ClothSolverDef& def)
 
 	m_contactCapacity = def.contactCapacity;
 	m_contactCount = 0;
-	m_contacts = (b3ParticleContact**)m_allocator->Allocate(m_contactCapacity * sizeof(b3ParticleContact*));;
+	m_contacts = (b3ParticleContact**)m_allocator->Allocate(m_contactCapacity * sizeof(b3ParticleContact*));
+	
+	m_constraintCapacity = def.particleCapacity;
+	m_constraintCount = 0;
+	m_constraints = (b3AccelerationConstraint*)m_allocator->Allocate(m_constraintCapacity * sizeof(b3AccelerationConstraint));
 }
 
 b3ClothSolver::~b3ClothSolver()
 {
+	m_allocator->Free(m_constraints);
 	m_allocator->Free(m_contacts);
 	m_allocator->Free(m_springs);
 	m_allocator->Free(m_particles);
@@ -71,6 +76,56 @@ void b3ClothSolver::Add(b3ParticleContact* c)
 void b3ClothSolver::Add(b3Spring* s)
 {
 	m_springs[m_springCount++] = s;
+}
+
+void b3ClothSolver::InitializeConstraints()
+{
+	for (u32 i = 0; i < m_particleCount; ++i)
+	{
+		b3Particle* p = m_particles[i];
+		if (p->type == e_staticParticle)
+		{
+			b3AccelerationConstraint* ac = m_constraints + m_constraintCount;
+			++m_constraintCount;
+			ac->i1 = i;
+			ac->ndof = 0;
+			ac->z.SetZero();
+		}
+	}
+
+	for (u32 i = 0; i < m_contactCount; ++i)
+	{
+		b3ParticleContact* pc = m_contacts[i];
+		b3Particle* p = pc->p1;
+
+		B3_ASSERT(p->type != e_staticParticle);
+
+		b3AccelerationConstraint* ac = m_constraints + m_constraintCount;
+		++m_constraintCount;
+		ac->i1 = p->solverId;
+		ac->ndof = 2;
+		ac->p = pc->n;
+		ac->z.SetZero();
+
+		if (pc->t1_active && pc->t2_active)
+		{
+			ac->ndof = 0;
+		}
+		else
+		{
+			if (pc->t1_active)
+			{
+				ac->ndof = 1;
+				ac->q = pc->t1;
+			}
+			
+			if (pc->t2_active)
+			{
+				ac->ndof = 1;
+				ac->q = pc->t2;
+			}
+		}
+	}
 }
 
 static B3_FORCE_INLINE b3SparseMat33 b3AllocSparse(b3StackAllocator* allocator, u32 M, u32 N)
@@ -124,12 +179,26 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		sx0[i] = p->x;
 	}
 
-	// Initialize spring forces
+	// Apply contact position corrections
+	for (u32 i = 0; i < m_contactCount; ++i)
+	{
+		b3ParticleContact* c = m_contacts[i];
+		b3Particle* p = c->p1;	
+		sy[p->solverId] -= c->s * c->n;
+	}
+
+	// Apply spring forces and derivatives
 	for (u32 i = 0; i < m_springCount; ++i)
 	{
-		b3Spring* s = m_springs[i];
-		s->Initialize(&m_solverData);
+		m_springs[i]->ApplyForces(&m_solverData);
 	}
+
+	// Initialize constraints
+	InitializeConstraints();
+
+	b3DiagMat33 S(m_particleCount);
+	b3DenseVec3 z(m_particleCount);
+	Compute_S_z(S, z);
 
 	// Solve Ax = b, where
 	// A = M - h * dfdv - h * h * dfdx
@@ -142,14 +211,6 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	b3DenseVec3 b(m_particleCount);
 
 	Compute_A_b(A, b, sf, sx, sv, sy);
-
-	// S
-	b3DiagMat33 S(m_particleCount);
-	Compute_S(S);
-
-	// z
-	b3DenseVec3 z(m_particleCount);
-	Compute_z(z);
 
 	// x
 	b3DenseVec3 x(m_particleCount);
@@ -379,67 +440,47 @@ void b3ClothSolver::Compute_A_b(b3SparseMat33& SA, b3DenseVec3& b, const b3Dense
 	b = h * (f + h * Jx_v + Jx_y);
 }
 
-void b3ClothSolver::Compute_z(b3DenseVec3& z)
+void b3ClothSolver::Compute_S_z(b3DiagMat33& S, b3DenseVec3& z)
 {
-	// TODO
+	S.SetIdentity();
 	z.SetZero();
-}
 
-void b3ClothSolver::Compute_S(b3DiagMat33& out)
-{
-	for (u32 i = 0; i < m_particleCount; ++i)
+	for (u32 i = 0; i < m_constraintCount; ++i)
 	{
-		b3Particle* p = m_particles[i];
+		b3AccelerationConstraint* ac = m_constraints + i;
+		u32 ip = ac->i1;
+		u32 ndof = ac->ndof;
+		b3Vec3 p = ac->p;
+		b3Vec3 q = ac->q;
+		b3Vec3 cz = ac->z;
 
-		if (p->type == e_staticParticle)
+		z[ip] = cz;
+
+		if (ndof == 2)
 		{
-			out[i].SetZero();
-			continue;
+			b3Mat33 I; I.SetIdentity();
+
+			S[ip] = I - b3Outer(p, p);
 		}
 
-		out[i].SetIdentity();
-	}
-
-	for (u32 i = 0; i < m_contactCount; ++i)
-	{
-		b3ParticleContact* c = m_contacts[i];
-		
-		B3_ASSERT(c->n_active);
-
-		b3Vec3 n = c->n;
-
-		b3Mat33 S = b3Mat33_identity - b3Outer(n, n);
-
-		if (c->t1_active == true && c->t2_active == true)
+		if (ndof == 1)
 		{
-			S.SetZero();
-		}
-		else
-		{
-			if (c->t1_active == true)
-			{
-				b3Vec3 t1 = c->t1;
+			b3Mat33 I; I.SetIdentity();
 
-				S -= b3Outer(t1, t1);
-			}
-
-			if (c->t2_active == true)
-			{
-				b3Vec3 t2 = c->t2;
-
-				S -= b3Outer(t2, t2);
-			}
+			S[ip] = I - b3Outer(p, p) - b3Outer(q, q);
 		}
 
-		b3Particle* p = c->p1;
-		out[p->solverId] = S;
+		if (ndof == 0)
+		{
+			S[ip].SetZero();
+		}
 	}
 }
 
 void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
 	const b3SparseMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const
 {
-	B3_PROFILE("Solve A * x = b");
+	B3_PROFILE("Solve Ax = b");
 
 	// P = diag(A)
 	b3DiagMat33 inv_P(m_particleCount);
