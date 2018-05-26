@@ -103,7 +103,7 @@ public:
 
 	void Step()
 	{
-		float32 dt = g_testSettings->inv_hertz;
+		Test::Step();
 
 		m_cloth->Apply();
 
@@ -168,6 +168,9 @@ public:
 
 		extern u32 b3_clothSolverIterations;
 		g_draw->DrawString(b3Color_white, "Iterations = %u", b3_clothSolverIterations);
+
+		float32 E = m_cloth->GetEnergy();
+		g_draw->DrawString(b3Color_white, "E = %f", E);
 
 		if (m_clothDragger.IsSelected() == true)
 		{
