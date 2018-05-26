@@ -47,7 +47,7 @@ b3ClothSolver::b3ClothSolver(const b3ClothSolverDef& def)
 
 	m_contactCapacity = def.contactCapacity;
 	m_contactCount = 0;
-	m_contacts = (b3ParticleContact**)m_allocator->Allocate(m_contactCapacity * sizeof(b3ParticleContact*));
+	m_contacts = (b3BodyContact**)m_allocator->Allocate(m_contactCapacity * sizeof(b3BodyContact*));
 	
 	m_constraintCapacity = def.particleCapacity;
 	m_constraintCount = 0;
@@ -68,7 +68,7 @@ void b3ClothSolver::Add(b3Particle* p)
 	m_particles[m_particleCount++] = p;
 }
 
-void b3ClothSolver::Add(b3ParticleContact* c)
+void b3ClothSolver::Add(b3BodyContact* c)
 {
 	m_contacts[m_contactCount++] = c;
 }
@@ -95,7 +95,7 @@ void b3ClothSolver::InitializeConstraints()
 
 	for (u32 i = 0; i < m_contactCount; ++i)
 	{
-		b3ParticleContact* pc = m_contacts[i];
+		b3BodyContact* pc = m_contacts[i];
 		b3Particle* p = pc->p1;
 
 		B3_ASSERT(p->type != e_staticParticle);
@@ -179,10 +179,10 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		sx0[i] = p->x;
 	}
 
-	// Apply contact position corrections
+	// Apply contact position correction
 	for (u32 i = 0; i < m_contactCount; ++i)
 	{
-		b3ParticleContact* c = m_contacts[i];
+		b3BodyContact* c = m_contacts[i];
 		b3Particle* p = c->p1;	
 		sy[p->solverId] -= c->s * c->n;
 	}
@@ -265,7 +265,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// These forces can be used in contact constraint logic.
 	for (u32 i = 0; i < m_contactCount; ++i)
 	{
-		b3ParticleContact* c = m_contacts[i];
+		b3BodyContact* c = m_contacts[i];
 		b3Particle* p = c->p1;
 
 		b3Vec3 force = f[p->solverId];

@@ -17,6 +17,7 @@
 */
 
 #include <bounce/dynamics/world.h>
+#include <bounce/dynamics/cloth/cloth.h>
 #include <bounce/dynamics/body.h>
 #include <bounce/dynamics/island.h>
 #include <bounce/dynamics/world_listeners.h>
@@ -30,7 +31,9 @@ extern u32 b3_convexCalls, b3_convexCacheHits;
 extern u32 b3_gjkCalls, b3_gjkIters, b3_gjkMaxIters;
 extern bool b3_convexCache;
 
-b3World::b3World() : m_bodyBlocks(sizeof(b3Body))
+b3World::b3World() : 
+	m_clothBlocks(sizeof(b3Cloth)),
+	m_bodyBlocks(sizeof(b3Body))
 {
 	b3_allocCalls = 0;
 	b3_maxAllocCalls = 0;
@@ -51,6 +54,14 @@ b3World::b3World() : m_bodyBlocks(sizeof(b3Body))
 
 b3World::~b3World()
 {
+	b3Cloth* c = m_clothList.m_head;
+	while (c)
+	{
+		b3Cloth* c0 = c;
+		c = c->m_next;
+		c0->~b3Cloth();
+	}
+		
 	b3Body* b = m_bodyList.m_head;
 	while (b)
 	{
@@ -80,6 +91,21 @@ void b3World::SetSleeping(bool flag)
 			b->SetAwake(true);
 		}
 	}
+}
+
+b3Cloth* b3World::CreateCloth(const b3ClothDef& def)
+{
+	void* mem = m_clothBlocks.Allocate();
+	b3Cloth* c = new(mem) b3Cloth(def, this);
+	m_clothList.PushFront(c);
+	return c;
+}
+
+void b3World::DestroyCloth(b3Cloth* c)
+{
+	m_clothList.Remove(c);
+	c->~b3Cloth();
+	m_clothBlocks.Free(c);
 }
 
 b3Body* b3World::CreateBody(const b3BodyDef& def)
@@ -142,6 +168,9 @@ void b3World::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 	}
 
 	//SolveTOI
+
+	// Step cloth dynamics
+	StepCloth(dt);
 }
 
 void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
@@ -334,6 +363,18 @@ void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
 
 		// Find new contacts.
 		m_contactMan.FindNewContacts();
+	}
+}
+
+void b3World::StepCloth(float32 dt)
+{
+	B3_PROFILE("Step Cloth");
+
+	b3Cloth* c = m_clothList.m_head;
+	while (c)
+	{
+		c->Step(dt, m_gravity);
+		c = c->GetNext();
 	}
 }
 

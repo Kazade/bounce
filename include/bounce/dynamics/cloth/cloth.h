@@ -19,13 +19,11 @@
 #ifndef B3_CLOTH_H
 #define B3_CLOTH_H
 
-#include <bounce/common/math/mat33.h>
-#include <bounce/common/template/array.h>
-#include <bounce/common/memory/stack_allocator.h>
+#include <bounce/common/math/transform.h>
+#include <bounce/common/template/list.h>
 
-// Maximum number of shapes per cloth.
-#define B3_CLOTH_SHAPE_CAPACITY 32
-
+class b3StackAllocator;
+class b3World;
 class b3Shape;
 
 struct b3ClothMesh;
@@ -157,8 +155,8 @@ struct b3Spring
 	void ApplyForces(const b3ClothSolverData* data);
 };
 
-// Read-only contact
-struct b3ParticleContact
+// Read-only body contact between a particle and a solid
+struct b3BodyContact
 {
 	b3Particle* p1;
 	b3Shape* s2;
@@ -173,21 +171,12 @@ struct b3ParticleContact
 class b3Cloth
 {
 public:
-	b3Cloth();
-	~b3Cloth();
-
-	// Initialize this cloth from a definition.
-	void Initialize(const b3ClothDef& def);
+	// Get the world the cloth belongs to.
+	const b3World* GetWorld() const;
+	b3World* GetWorld();
 
 	// Return the cloth mesh used to initialize this cloth.
 	b3ClothMesh* GetMesh() const;
-
-	// Set the gravitational acceleration applied to this cloth.
-	// Units are m/s^2.
-	void SetGravity(const b3Vec3& gravity);
-
-	// Return the gravitational acceleration applied to this cloth.
-	const b3Vec3& GetGravity() const;
 
 	// Return the number of particles in this cloth.
 	u32 GetParticleCount() const;
@@ -220,26 +209,28 @@ public:
 	// Return the kinetic (or dynamic) energy in this system.
 	float32 GetEnergy() const;
 
-	// Add a collision shape to the list of shapes in this cloth. 
-	// The cloth will be able to respond to collisions with each shape in the list of shapes.
-	// Current the shape will be treated as a static shape.
-	void AddShape(b3Shape* shape);
+	// Get the next cloth in the world cloth list.
+	const b3Cloth* GetNext() const;
 
-	// Return the number of collision shapes in this cloth.
-	u32 GetShapeCount() const;
-
-	// Return the list of collision shapes added to this cloth.
-	b3Shape** GetShapeList();
-
-	// Perform a time step.
-	void Step(float32 dt);
+	// Get the next cloth in the world cloth list.
+	b3Cloth* GetNext();
 
 	// Set the positions of the mesh vertices to the positions of their associated particles.
 	void Apply() const;
 	
 	// Debug draw the cloth using the associated cloth mesh.
 	void Draw() const;
-protected:
+private:
+	friend class b3World;
+
+	friend class b3List2<b3Cloth>;
+
+	b3Cloth(const b3ClothDef& def, b3World* world);
+	~b3Cloth();
+
+	// Perform a time step. Called only inside b3World.
+	void Step(float32 dt, const b3Vec3& gravity);
+
 	// Compute mass of each particle.
 	void ResetMass();
 
@@ -248,11 +239,12 @@ protected:
 	void UpdateContacts();
 
 	// Solve
-	void Solve(float32 dt);
+	void Solve(float32 dt, const b3Vec3& gravity);
 
-	b3StackAllocator m_allocator;
+	b3StackAllocator* m_allocator;
 
-	b3Vec3 m_gravity;
+	b3ClothMesh* m_mesh;
+	float32 m_density;
 
 	u32 m_particleCount;
 	b3Particle* m_particles;
@@ -260,29 +252,30 @@ protected:
 	u32 m_springCount;
 	b3Spring* m_springs;
 
-	b3ParticleContact* m_contacts;
+	b3BodyContact* m_contacts;
 	//u32 m_contactCount;
 
-	b3Shape* m_shapes[B3_CLOTH_SHAPE_CAPACITY];
-	u32 m_shapeCount;
-
-	b3ClothMesh* m_mesh;
-	float32 m_density;
+	// The parent world of this cloth.
+	b3World* m_world;
+	
+	// Links to the world cloth list.
+	b3Cloth* m_prev;
+	b3Cloth* m_next;
 };
+
+inline const b3World* b3Cloth::GetWorld() const
+{
+	return m_world;
+}
+
+inline b3World* b3Cloth::GetWorld()
+{
+	return m_world;
+}
 
 inline b3ClothMesh* b3Cloth::GetMesh() const
 {
 	return m_mesh;
-}
-
-inline const b3Vec3& b3Cloth::GetGravity() const
-{
-	return m_gravity;
-}
-
-inline void b3Cloth::SetGravity(const b3Vec3& gravity)
-{
-	m_gravity = gravity;
 }
 
 inline u32 b3Cloth::GetParticleCount() const
@@ -368,14 +361,14 @@ inline float32 b3Cloth::GetEnergy() const
 	return 0.5f * E;
 }
 
-inline u32 b3Cloth::GetShapeCount() const
+inline const b3Cloth* b3Cloth::GetNext() const
 {
-	return m_shapeCount;
+	return m_next;
 }
 
-inline b3Shape** b3Cloth::GetShapeList() 
+inline b3Cloth* b3Cloth::GetNext()
 {
-	return m_shapes;
+	return m_next;
 }
 
 #endif

@@ -28,7 +28,7 @@ struct b3SparseMat33;
 
 struct b3Particle;
 struct b3Spring;
-struct b3ParticleContact;
+struct b3BodyContact;
 
 class b3Shape;
 class b3StackAllocator;
@@ -65,7 +65,7 @@ public:
 	
 	void Add(b3Particle* p);
 	void Add(b3Spring* s);
-	void Add(b3ParticleContact* c);
+	void Add(b3BodyContact* c);
 
 	void Solve(float32 dt, const b3Vec3& gravity);
 private:
@@ -93,7 +93,7 @@ private:
 
 	u32 m_contactCapacity;
 	u32 m_contactCount;
-	b3ParticleContact** m_contacts;
+	b3BodyContact** m_contacts;
 
 	u32 m_constraintCapacity;
 	u32 m_constraintCount;

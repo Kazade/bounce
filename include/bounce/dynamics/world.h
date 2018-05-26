@@ -26,7 +26,10 @@
 #include <bounce/dynamics/joint_manager.h>
 #include <bounce/dynamics/contact_manager.h>
 
+struct b3ClothDef;
 struct b3BodyDef;
+
+class b3Cloth;
 class b3Body;
 class b3QueryListener;
 class b3RayCastListener;
@@ -67,6 +70,12 @@ public:
 	// The acceleration has units of m/s^2.
 	void SetGravity(const b3Vec3& gravity);
 
+	// Create a new deformable cloth.
+	b3Cloth* CreateCloth(const b3ClothDef& def);
+
+	// Destroy an existing deformable cloth.
+	void DestroyCloth(b3Cloth* cloth);
+	
 	// Create a new rigid body.
 	b3Body* CreateBody(const b3BodyDef& def);
 	
@@ -129,6 +138,7 @@ private :
 		e_clearForcesFlag = 0x0002,
 	};
 
+	friend class b3Cloth;
 	friend class b3Body;
 	friend class b3Shape;
 	friend class b3Contact;
@@ -138,14 +148,20 @@ private :
 
 	void Solve(float32 dt, u32 velocityIterations, u32 positionIterations);
 
+	void StepCloth(float32 dt);
+	
 	bool m_sleeping;
 	bool m_warmStarting;
 	u32 m_flags;
 	b3Vec3 m_gravity;
 
 	b3StackAllocator m_stackAllocator;
+	b3BlockPool m_clothBlocks;
 	b3BlockPool m_bodyBlocks;
 
+	// List of clothes
+	b3List2<b3Cloth> m_clothList;
+	
 	// List of bodies
 	b3List2<b3Body> m_bodyList;
 	

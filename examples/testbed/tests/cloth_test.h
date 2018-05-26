@@ -22,10 +22,8 @@
 class ClothDragger
 {
 public:
-	ClothDragger(Ray3* ray, b3Cloth* cloth)
+	ClothDragger(Ray3* ray, b3Cloth*& cloth) : m_ray(ray), m_cloth(cloth)
 	{
-		m_ray = ray;
-		m_cloth = cloth;
 		m_isSelected = false;
 	}
 
@@ -275,7 +273,7 @@ private:
 	Ray3* m_ray;
 	float32 m_x;
 
-	b3Cloth * m_cloth;
+	b3Cloth*& m_cloth;
 	u32 m_selection;
 	float32 m_u, m_v;
 	b3ParticleType m_t1, m_t2, m_t3;
@@ -284,39 +282,29 @@ private:
 class ClothTest : public Test
 {
 public:
-	ClothTest() : m_clothDragger(&m_clothRay, &m_cloth)
+	ClothTest() : m_clothDragger(&m_clothRay, m_cloth)
 	{
-		m_cloth.SetGravity(b3Vec3(0.0f, -10.0f, 0.0f));
+		m_world.SetGravity(b3Vec3(0.0f, -10.0f, 0.0f));
 
 		m_clothRay.origin.SetZero();
 		m_clothRay.direction.Set(0.0f, 0.0f, -1.0f);
 		m_clothRay.fraction = g_camera->m_zFar;
+
+		m_cloth = nullptr;
 	}
 
 	void Step()
 	{
-		float32 dt = g_testSettings->inv_hertz;
+		Test::Step();
 
-		m_cloth.Step(dt);
-		m_cloth.Apply();
+		m_cloth->Apply();
 
-		b3Shape** shapes = m_cloth.GetShapeList();
-		for (u32 i = 0; i < m_cloth.GetShapeCount(); ++i)
-		{
-			b3Shape* s = shapes[i];
-
-			b3Transform xf;
-			xf.SetIdentity();
-
-			g_draw->DrawSolidShape(s, b3Color_white, xf);
-		}
-
-		m_cloth.Draw();
+		m_cloth->Draw();
 
 		extern u32 b3_clothSolverIterations;
 		g_draw->DrawString(b3Color_white, "Iterations = %u", b3_clothSolverIterations);
 		
-		float32 E = m_cloth.GetEnergy();
+		float32 E = m_cloth->GetEnergy();
 		g_draw->DrawString(b3Color_white, "E = %f", E);
 
 		if (m_clothDragger.IsSelected() == true)
@@ -352,7 +340,7 @@ public:
 	}
 
 	Ray3 m_clothRay;
-	b3Cloth m_cloth;
+	b3Cloth* m_cloth;
 	ClothDragger m_clothDragger;
 };
 

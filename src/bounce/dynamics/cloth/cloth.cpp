@@ -22,6 +22,8 @@
 #include <bounce/dynamics/cloth/sparse_mat33.h>
 #include <bounce/dynamics/cloth/cloth_mesh.h>
 #include <bounce/dynamics/shapes/shape.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/dynamics/world.h>
 #include <bounce/common/memory/stack_allocator.h>
 #include <bounce/common/draw.h>
 
@@ -80,34 +82,6 @@ void b3Spring::ApplyForces(const b3ClothSolverData* data)
 	data->f[i2] += df2;
 
 	Jv = -kd * I;
-}
-
-// b3Cloth
-b3Cloth::b3Cloth()
-{
-	m_gravity.SetZero();
-
-	m_particleCount = 0;
-	m_particles = nullptr;
-
-	m_springs = nullptr;
-	m_springCount = 0;
-
-	m_contacts = nullptr;
-	//m_contactCount = 0;
-
-	m_shapeCount = 0;
-
-	m_mesh = nullptr;
-
-	m_gravity.SetZero();
-}
-
-b3Cloth::~b3Cloth()
-{
-	b3Free(m_particles);
-	b3Free(m_springs);
-	b3Free(m_contacts);
 }
 
 static B3_FORCE_INLINE u32 b3NextIndex(u32 i)
@@ -228,20 +202,22 @@ static u32 b3FindSharedEdges(b3SharedEdge* sharedEdges, const b3ClothMesh* m)
 	return sharedCount;
 }
 
-void b3Cloth::Initialize(const b3ClothDef& def)
+b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world)
 {
 	B3_ASSERT(def.mesh);
 	B3_ASSERT(def.density > 0.0f);
 
+	m_world = world;
+	m_allocator = &m_world->m_stackAllocator;
 	m_mesh = def.mesh;
 	m_density = def.density;
 
-	const b3ClothMesh* m = m_mesh;
+	b3ClothMesh* m = m_mesh;
 
 	// Create particles
 	m_particleCount = m->vertexCount;
 	m_particles = (b3Particle*)b3Alloc(m_particleCount * sizeof(b3Particle));
-	m_contacts = (b3ParticleContact*)b3Alloc(m_particleCount * sizeof(b3ParticleContact));
+	m_contacts = (b3BodyContact*)b3Alloc(m_particleCount * sizeof(b3BodyContact));
 
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
@@ -258,7 +234,7 @@ void b3Cloth::Initialize(const b3ClothDef& def)
 		p->translation.SetZero();
 		p->x.SetZero();
 
-		b3ParticleContact* c = m_contacts + i;
+		b3BodyContact* c = m_contacts + i;
 		c->n_active = false;
 		c->t1_active = false;
 		c->t2_active = false;
@@ -268,16 +244,18 @@ void b3Cloth::Initialize(const b3ClothDef& def)
 	ResetMass();
 
 	// Create springs
+	m_springCount = 0;
+
 	u32 edgeCount = 3 * m->triangleCount;
 
-	b3UniqueEdge* uniqueEdges = (b3UniqueEdge*)m_allocator.Allocate(edgeCount * sizeof(b3UniqueEdge));
+	b3UniqueEdge* uniqueEdges = (b3UniqueEdge*)m_allocator->Allocate(edgeCount * sizeof(b3UniqueEdge));
 	u32 uniqueCount = b3FindUniqueEdges(uniqueEdges, m);
 
 	u32 springCapacity = uniqueCount;
 
 #if B3_CLOTH_BENDING
 
-	b3SharedEdge* sharedEdges = (b3SharedEdge*)m_allocator.Allocate(edgeCount * sizeof(b3SharedEdge));
+	b3SharedEdge* sharedEdges = (b3SharedEdge*)m_allocator->Allocate(edgeCount * sizeof(b3SharedEdge));
 	u32 sharedCount = b3FindSharedEdges(sharedEdges, m);
 
 	springCapacity += sharedCount;
@@ -332,10 +310,10 @@ void b3Cloth::Initialize(const b3ClothDef& def)
 		s->tension.SetZero();
 	}
 
-	m_allocator.Free(sharedEdges);
+	m_allocator->Free(sharedEdges);
 #endif
 
-	m_allocator.Free(uniqueEdges);
+	m_allocator->Free(uniqueEdges);
 
 	// Sewing
 	for (u32 i = 0; i < m->sewingLineCount; ++i)
@@ -356,6 +334,13 @@ void b3Cloth::Initialize(const b3ClothDef& def)
 	}
 
 	B3_ASSERT(m_springCount <= springCapacity);
+}
+
+b3Cloth::~b3Cloth()
+{
+	b3Free(m_particles);
+	b3Free(m_springs);
+	b3Free(m_contacts);
 }
 
 void b3Cloth::ResetMass()
@@ -399,18 +384,6 @@ void b3Cloth::ResetMass()
 	}
 }
 
-void b3Cloth::AddShape(b3Shape* shape)
-{
-	B3_ASSERT(m_shapeCount < B3_CLOTH_SHAPE_CAPACITY);
-
-	if (m_shapeCount == B3_CLOTH_SHAPE_CAPACITY)
-	{
-		return;
-	}
-
-	m_shapes[m_shapeCount++] = shape;
-}
-
 void b3Cloth::UpdateContacts()
 {
 	B3_PROFILE("Update Contacts");
@@ -428,16 +401,16 @@ void b3Cloth::UpdateContacts()
 	{
 		b3Particle* p = m_particles + i;
 
-		// Static particles can't participate in collisions.
+		// Static particles can't participate in unilateral collisions.
 		if (p->type == e_staticParticle)
 		{
 			continue;
 		}
 
-		b3ParticleContact* c = m_contacts + i;
+		b3BodyContact* c = m_contacts + i;
 
 		// Save the old contact
-		b3ParticleContact c0 = *c;
+		b3BodyContact c0 = *c;
 
 		b3Sphere s1;
 		s1.vertex = p->position;
@@ -446,39 +419,34 @@ void b3Cloth::UpdateContacts()
 		// Find the deepest penetration
 		float32 bestSeparation = 0.0f;
 		b3Vec3 bestNormal(0.0f, 0.0f, 0.0f);
-		u32 bestIndex = ~0;
+		b3Shape* bestShape = nullptr;
 
-		for (u32 j = 0; j < m_shapeCount; ++j)
+		for (b3Body* body = m_world->GetBodyList().m_head; body; body = body->GetNext())
 		{
-			b3Shape* s2 = m_shapes[j];
-
-			b3Transform xf2;
-			xf2.SetIdentity();
-
-			b3TestSphereOutput output;
-			if (s2->TestSphere(&output, s1, xf2) == false)
+			b3Transform xf = body->GetTransform();
+			for (b3Shape* shape = body->GetShapeList().m_head; shape; shape = shape->GetNext())
 			{
-				continue;
-			}
-
-			if (output.separation < bestSeparation)
-			{
-				bestSeparation = output.separation;
-				bestNormal = output.normal;
-				bestIndex = j;
+				b3TestSphereOutput output;
+				if (shape->TestSphere(&output, s1, xf))
+				{
+					if (output.separation < bestSeparation)
+					{
+						bestSeparation = output.separation;
+						bestNormal = output.normal;
+						bestShape = shape;
+					}
+				}
 			}
 		}
 
-		if (bestIndex != ~0)
+		if (bestShape != nullptr)
 		{
-			B3_ASSERT(bestSeparation <= 0.0f);
-
-			b3Shape* shape = m_shapes[bestIndex];
+			b3Shape* shape = bestShape;
 			float32 s = bestSeparation;
 			b3Vec3 n = bestNormal;
 
-			// Update contact manifold
-			// Remember the normal points from shape 2 to shape 1 (mass)
+			// Store the contact manifold
+			// Here the normal points from shape 2 to shape 1 (mass)
 			c->n_active = true;
 			c->p1 = p;
 			c->s2 = shape;
@@ -606,13 +574,13 @@ void b3Cloth::UpdateContacts()
 
 }
 
-void b3Cloth::Solve(float32 dt)
+void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 {
 	B3_PROFILE("Solve");
 
 	// Solve
 	b3ClothSolverDef solverDef;
-	solverDef.stack = &m_allocator;
+	solverDef.stack = m_allocator;
 	solverDef.particleCapacity = m_particleCount;
 	solverDef.springCapacity = m_springCount;
 	solverDef.contactCapacity = m_particleCount;
@@ -638,7 +606,7 @@ void b3Cloth::Solve(float32 dt)
 	}
 
 	// Solve
-	solver.Solve(dt, m_gravity);
+	solver.Solve(dt, gravity);
 
 	// Clear external applied forces
 	for (u32 i = 0; i < m_particleCount; ++i)
@@ -653,7 +621,7 @@ void b3Cloth::Solve(float32 dt)
 	}
 }
 
-void b3Cloth::Step(float32 dt)
+void b3Cloth::Step(float32 dt, const b3Vec3& gravity)
 {
 	B3_PROFILE("Step");
 
@@ -663,7 +631,7 @@ void b3Cloth::Step(float32 dt)
 	// Solve constraints, integrate state, clear forces and translations. 
 	if (dt > 0.0f)
 	{
-		Solve(dt);
+		Solve(dt, gravity);
 	}
 }
 
@@ -696,7 +664,7 @@ void b3Cloth::Draw() const
 			b3Draw_draw->DrawPoint(p->position, 4.0f, b3Color_green);
 		}
 
-		b3ParticleContact* c = m_contacts + i;
+		b3BodyContact* c = m_contacts + i;
 
 		if (c->n_active)
 		{

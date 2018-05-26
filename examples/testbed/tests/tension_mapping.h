@@ -85,18 +85,18 @@ public:
 		def.kd = 0.0f;
 		def.r = 0.2f;
 
-		m_cloth.Initialize(def);
+		m_cloth = m_world.CreateCloth(def);
 
 		b3AABB3 aabb;
 		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
 		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
 
-		for (u32 i = 0; i < m_cloth.GetParticleCount(); ++i)
+		for (u32 i = 0; i < m_cloth->GetParticleCount(); ++i)
 		{
-			b3Particle* p = m_cloth.GetParticle(i);
+			b3Particle* p = m_cloth->GetParticle(i);
 			if (aabb.Contains(p->position))
 			{
-				m_cloth.SetType(p, e_staticParticle);
+				m_cloth->SetType(p, e_staticParticle);
 			}
 		}
 	}
@@ -105,25 +105,24 @@ public:
 	{
 		float32 dt = g_testSettings->inv_hertz;
 
-		m_cloth.Step(dt);
-		m_cloth.Apply();
+		m_cloth->Apply();
 
 		b3StackArray<b3Vec3, 256> tension;
-		tension.Resize(m_cloth.GetParticleCount());
+		tension.Resize(m_cloth->GetParticleCount());
 		for (u32 i = 0; i < tension.Count(); ++i)
 		{
 			tension[i].SetZero();
 		}
 
-		for (u32 i = 0; i < m_cloth.GetSpringCount(); ++i)
+		for (u32 i = 0; i < m_cloth->GetSpringCount(); ++i)
 		{
-			b3Spring* s = m_cloth.GetSpring(i);
+			b3Spring* s = m_cloth->GetSpring(i);
 
 			b3Particle* p1 = s->p1;
 			b3Particle* p2 = s->p2;
 
-			u32 i1 = m_cloth.GetParticleIndex(p1);
-			u32 i2 = m_cloth.GetParticleIndex(p2);
+			u32 i1 = m_cloth->GetParticleIndex(p1);
+			u32 i2 = m_cloth->GetParticleIndex(p2);
 
 			tension[i1] += s->tension;
 			tension[i2] -= s->tension;
@@ -133,9 +132,9 @@ public:
 		{
 			b3ClothMeshTriangle* t = m_gridClothMesh.triangles + i;
 
-			b3Particle* p1 = m_cloth.GetParticle(t->v1);
-			b3Particle* p2 = m_cloth.GetParticle(t->v2);
-			b3Particle* p3 = m_cloth.GetParticle(t->v3);
+			b3Particle* p1 = m_cloth->GetParticle(t->v1);
+			b3Particle* p2 = m_cloth->GetParticle(t->v2);
+			b3Particle* p3 = m_cloth->GetParticle(t->v3);
 
 			b3Vec3 v1 = p1->position;
 			b3Vec3 v2 = p2->position;

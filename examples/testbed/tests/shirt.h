@@ -62,7 +62,7 @@ public:
 		def.r = 0.2f;
 		def.ks = 10000.0f;
 
-		m_cloth.Initialize(def);
+		m_cloth = m_world.CreateCloth(def);
 	}
 
 	static Test* Create()

@@ -49,18 +49,18 @@ public:
 		def.kd = 0.0f;
 		def.r = 0.05f;
 
-		m_cloth.Initialize(def);
+		m_cloth = m_world.CreateCloth(def);
 
 		b3AABB3 aabb;
 		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
 		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
 
-		for (u32 i = 0; i < m_cloth.GetParticleCount(); ++i)
+		for (u32 i = 0; i < m_cloth->GetParticleCount(); ++i)
 		{
-			b3Particle* p = m_cloth.GetParticle(i);
+			b3Particle* p = m_cloth->GetParticle(i);
 			if (aabb.Contains(p->position))
 			{
-				m_cloth.SetType(p, e_staticParticle);
+				m_cloth->SetType(p, e_staticParticle);
 			}
 		}
 	}

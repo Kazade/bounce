@@ -38,10 +38,10 @@ public:
 
 	void SetClothType(b3ParticleType type)
 	{
-		for (u32 i = 0; i < m_cloth.GetParticleCount(); ++i)
+		for (u32 i = 0; i < m_cloth->GetParticleCount(); ++i)
 		{
-			b3Particle* p = m_cloth.GetParticle(i);
-			m_cloth.SetType(p, type);
+			b3Particle* p = m_cloth->GetParticle(i);
+			m_cloth->SetType(p, type);
 		}
 	}
 
@@ -62,9 +62,9 @@ public:
 			SetClothType(e_dynamicParticle);
 		}
 
-		for (u32 i = 0; i < m_cloth.GetParticleCount(); ++i)
+		for (u32 i = 0; i < m_cloth->GetParticleCount(); ++i)
 		{
-			b3Particle* p = m_cloth.GetParticle(i);
+			b3Particle* p = m_cloth->GetParticle(i);
 
 			b3Vec3 d;
 			d.SetZero();
@@ -96,7 +96,7 @@ public:
 			{
 				if (p->type == e_staticParticle)
 				{
-					m_cloth.Translate(p, d);
+					m_cloth->Translate(p, d);
 				}
 
 				if (p->type == e_kinematicParticle)
@@ -105,14 +105,14 @@ public:
 
 					v += 5.0f * d;
 
-					m_cloth.SetVelocity(p, d);
+					m_cloth->SetVelocity(p, d);
 				}
 
 				if (p->type == e_dynamicParticle)
 				{
 					b3Vec3 f = 100.0f * d;
 
-					m_cloth.ApplyForce(p, f);
+					m_cloth->ApplyForce(p, f);
 				}
 			}
 		}

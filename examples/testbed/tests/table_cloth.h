@@ -55,16 +55,26 @@ public:
 		def.kd = 0.0f;
 		def.r = 0.05f;
 
-		m_cloth.Initialize(def);
+		m_cloth = m_world.CreateCloth(def);
 
-		m_tableHull.SetAsCylinder(5.0f, 2.0f);
+		{
+			b3BodyDef bd;
+			bd.type = e_staticBody;
 
-		m_tableShape.m_hull = &m_tableHull;
-		m_tableShape.m_radius = 0.2f;
+			b3Body* b = m_world.CreateBody(bd);
 
-		m_tableShape.SetFriction(1.0f);
+			m_tableHull.SetAsCylinder(5.0f, 2.0f);
 
-		m_cloth.AddShape(&m_tableShape);
+			b3HullShape tableShape;
+			tableShape.m_hull = &m_tableHull;
+			tableShape.m_radius = 0.2f;
+
+			b3ShapeDef sd;
+			sd.shape = &tableShape;
+			sd.friction = 1.0f;
+
+			b->CreateShape(sd);
+		}
 	}
 
 	static Test* Create()
@@ -77,7 +87,6 @@ public:
 	b3ClothMesh m_gridClothMesh;
 	
 	b3QHull m_tableHull;
-	b3HullShape m_tableShape;
 };
 
 #endif

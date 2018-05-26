@@ -148,7 +148,7 @@ int main(int argc, char** args)
 #if defined(_WIN32)
 	// Report memory leaks
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF | _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG));
-	//_CrtSetBreakAlloc(x);
+	//_CrtSetBreakAlloc(0);
 #endif
 
 	if (glfwInit() == 0)
