@@ -145,14 +145,14 @@ struct b3Spring
 
 	// Solver temp
 
-	// Action tensile force (f_i entry)
-	b3Vec3 tension;
+	// Force (f_i entry)
+	b3Vec3 f;
 
 	// Jacobian (J_ii entry)
 	b3Mat33 Jx, Jv;
 
-	// Apply spring forces.
-	void ApplyForces(const b3ClothSolverData* data);
+	// Initialize forces and its derivatives.
+	void InitializeForces(const b3ClothSolverData* data);
 };
 
 // Read-only body contact between a particle and a solid
@@ -191,14 +191,14 @@ public:
 	// Set the type of a given particle.
 	void SetType(b3Particle* p, b3ParticleType type);
 
-	// Translate a given particle in the next time step.
-	void Translate(b3Particle* p, const b3Vec3& translation);
-
 	// Set the velocity of a given particle.
 	void SetVelocity(b3Particle* p, const b3Vec3& velocity);
 
 	// Apply a force to a given particle.
 	void ApplyForce(b3Particle* p, const b3Vec3& force);
+
+	// Apply a translation to a given particle.
+	void ApplyTranslation(b3Particle* p, const b3Vec3& translation);
 
 	// Return the number of springs in this cloth.
 	u32 GetSpringCount() const;
@@ -317,11 +317,6 @@ inline void b3Cloth::SetType(b3Particle* p, b3ParticleType type)
 	}
 }
 
-inline void b3Cloth::Translate(b3Particle* p, const b3Vec3& translation)
-{
-	p->translation += translation;
-}
-
 inline void b3Cloth::SetVelocity(b3Particle* p, const b3Vec3& velocity)
 {
 	if (p->type == e_staticParticle)
@@ -338,6 +333,11 @@ inline void b3Cloth::ApplyForce(b3Particle* p, const b3Vec3& force)
 		return;
 	}
 	p->force += force;
+}
+
+inline void b3Cloth::ApplyTranslation(b3Particle* p, const b3Vec3& translation)
+{
+	p->translation += translation;
 }
 
 inline u32 b3Cloth::GetSpringCount() const

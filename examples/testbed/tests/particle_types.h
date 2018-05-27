@@ -96,7 +96,7 @@ public:
 			{
 				if (p->type == e_staticParticle)
 				{
-					m_cloth->Translate(p, d);
+					m_cloth->ApplyTranslation(p, d);
 				}
 
 				if (p->type == e_kinematicParticle)

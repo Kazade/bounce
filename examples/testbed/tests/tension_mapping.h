@@ -124,8 +124,8 @@ public:
 			u32 i1 = m_cloth->GetParticleIndex(p1);
 			u32 i2 = m_cloth->GetParticleIndex(p2);
 
-			tension[i1] += s->tension;
-			tension[i2] -= s->tension;
+			tension[i1] += s->f;
+			tension[i2] -= s->f;
 		}
 
 		for (u32 i = 0; i < m_gridClothMesh.triangleCount; ++i)

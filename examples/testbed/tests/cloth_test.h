@@ -118,13 +118,13 @@ public:
 		b3Vec3 dx = B - A;
 
 		b3Particle* p1 = m_cloth->GetParticle(t->v1);
-		m_cloth->Translate(p1, dx);
+		m_cloth->ApplyTranslation(p1, dx);
 		
 		b3Particle* p2 = m_cloth->GetParticle(t->v2);
-		m_cloth->Translate(p2, dx);
+		m_cloth->ApplyTranslation(p2, dx);
 		
 		b3Particle* p3 = m_cloth->GetParticle(t->v3);
-		m_cloth->Translate(p3, dx);
+		m_cloth->ApplyTranslation(p3, dx);
 	}
 
 	void StopDragging()

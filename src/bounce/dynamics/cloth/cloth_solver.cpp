@@ -48,7 +48,7 @@ b3ClothSolver::b3ClothSolver(const b3ClothSolverDef& def)
 	m_contactCapacity = def.contactCapacity;
 	m_contactCount = 0;
 	m_contacts = (b3BodyContact**)m_allocator->Allocate(m_contactCapacity * sizeof(b3BodyContact*));
-	
+
 	m_constraintCapacity = def.particleCapacity;
 	m_constraintCount = 0;
 	m_constraints = (b3AccelerationConstraint*)m_allocator->Allocate(m_constraintCapacity * sizeof(b3AccelerationConstraint));
@@ -78,12 +78,20 @@ void b3ClothSolver::Add(b3Spring* s)
 	m_springs[m_springCount++] = s;
 }
 
+void b3ClothSolver::InitializeForces()
+{
+	for (u32 i = 0; i < m_springCount; ++i)
+	{
+		m_springs[i]->InitializeForces(&m_solverData);
+	}
+}
+
 void b3ClothSolver::InitializeConstraints()
 {
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
 		b3Particle* p = m_particles[i];
-		if (p->type == e_staticParticle)
+		if (p->type != e_dynamicParticle)
 		{
 			b3AccelerationConstraint* ac = m_constraints + m_constraintCount;
 			++m_constraintCount;
@@ -97,8 +105,6 @@ void b3ClothSolver::InitializeConstraints()
 	{
 		b3BodyContact* pc = m_contacts[i];
 		b3Particle* p = pc->p1;
-
-		B3_ASSERT(p->type != e_staticParticle);
 
 		b3AccelerationConstraint* ac = m_constraints + m_constraintCount;
 		++m_constraintCount;
@@ -118,7 +124,7 @@ void b3ClothSolver::InitializeConstraints()
 				ac->ndof = 1;
 				ac->q = pc->t1;
 			}
-			
+
 			if (pc->t2_active)
 			{
 				ac->ndof = 1;
@@ -128,22 +134,28 @@ void b3ClothSolver::InitializeConstraints()
 	}
 }
 
-static B3_FORCE_INLINE b3SparseMat33 b3AllocSparse(b3StackAllocator* allocator, u32 M, u32 N)
+struct b3SolverSparseMat33 : public b3SparseMat33
 {
-	u32 size = M * N;
-	b3Mat33* elements = (b3Mat33*)allocator->Allocate(size * sizeof(b3Mat33));
-	u32* cols = (u32*)allocator->Allocate(size * sizeof(u32));
-	u32* row_ptrs = (u32*)allocator->Allocate((M + 1) * sizeof(u32));
+	b3SolverSparseMat33(b3StackAllocator* a, u32 m, u32 n)
+	{
+		allocator = a;
+		M = m;
+		N = n;
+		valueCount = 0;
+		values = (b3Mat33*)allocator->Allocate(M * N * sizeof(b3Mat33));
+		cols = (u32*)allocator->Allocate(M * N * sizeof(u32));
+		row_ptrs = (u32*)allocator->Allocate((M + 1) * sizeof(u32));
+	}
 
-	return b3SparseMat33(M, N, size, elements, row_ptrs, cols);
-}
+	~b3SolverSparseMat33()
+	{
+		allocator->Free(row_ptrs);
+		allocator->Free(cols);
+		allocator->Free(values);
+	}
 
-static B3_FORCE_INLINE void b3FreeSparse(b3SparseMat33& matrix, b3StackAllocator* allocator)
-{
-	allocator->Free(matrix.row_ptrs);
-	allocator->Free(matrix.cols);
-	allocator->Free(matrix.values);
-}
+	b3StackAllocator* allocator;
+};
 
 void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 {
@@ -183,19 +195,25 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	for (u32 i = 0; i < m_contactCount; ++i)
 	{
 		b3BodyContact* c = m_contacts[i];
-		b3Particle* p = c->p1;	
+		b3Particle* p = c->p1;
 		sy[p->solverId] -= c->s * c->n;
 	}
 
-	// Apply spring forces and derivatives
+	// Initialize forces
+	InitializeForces();
+	
+	// Apply internal forces
 	for (u32 i = 0; i < m_springCount; ++i)
 	{
-		m_springs[i]->ApplyForces(&m_solverData);
+		b3Spring* s = m_springs[i];
+		sf[s->p1->solverId] += s->f;
+		sf[s->p2->solverId] -= s->f;
 	}
 
 	// Initialize constraints
 	InitializeConstraints();
 
+	// Compute S, z
 	b3DiagMat33 S(m_particleCount);
 	b3DenseVec3 z(m_particleCount);
 	Compute_S_z(S, z);
@@ -205,7 +223,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// b = h * (f0 + h * dfdx * v0 + dfdx * y) 
 
 	// A
-	b3SparseMat33 A = b3AllocSparse(m_allocator, m_particleCount, m_particleCount);
+	b3SolverSparseMat33 A(m_allocator, m_particleCount, m_particleCount);
 
 	// b
 	b3DenseVec3 b(m_particleCount);
@@ -220,38 +238,17 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	Solve(x, iterations, A, b, S, z, sx0);
 	b3_clothSolverIterations = iterations;
 
-	// f = A * x - b
-	b3DenseVec3 f = A * x - b;
-
-	// Update state
+	// Compute the new state
+	// Clamp large translations?
 	float32 h = dt;
+	sv = sv + x;
+	sx = sx + h * sv + sy;
 
+	// Copy state buffers back to the particles
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
-		b3Particle* p = m_particles[i];
-		b3ParticleType type = p->type;
-
-		b3Vec3 ix0 = sx[i];
-		b3Vec3 iv0 = sv[i];
-		b3Vec3 iy = sy[i];
-
-		b3Vec3 dv = x[i];
-
-		// v1 = v0 + dv
-		b3Vec3 v1 = iv0;
-		if (type == e_dynamicParticle)
-		{
-			v1 += dv;
-		}
-
-		// dx = h * (v0 + dv) + y = h * v1 + y
-		b3Vec3 dx = h * v1 + iy;
-
-		// x1 = x0 + dx
-		b3Vec3 x1 = ix0 + dx;
-
-		sv[i] = v1;
-		sx[i] = x1;
+		m_particles[i]->position = sx[i];
+		m_particles[i]->velocity = sv[i];
 	}
 
 	// Cache x to improve convergence
@@ -263,6 +260,10 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// Store the extra contact constraint forces that should have been 
 	// supplied to enforce the contact constraints exactly.
 	// These forces can be used in contact constraint logic.
+
+	// f = A * x - b
+	b3DenseVec3 f = A * x - b;
+
 	for (u32 i = 0; i < m_contactCount; ++i)
 	{
 		b3BodyContact* c = m_contacts[i];
@@ -277,15 +278,6 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		c->Ft1 = b3Dot(force, c->t1);
 		c->Ft2 = b3Dot(force, c->t2);
 	}
-
-	// Copy state buffers back to the particles
-	for (u32 i = 0; i < m_particleCount; ++i)
-	{
-		m_particles[i]->position = sx[i];
-		m_particles[i]->velocity = sv[i];
-	}
-
-	b3FreeSparse(A, m_allocator);
 }
 
 #define B3_INDEX(i, j, size) (i + j * size)
@@ -329,7 +321,7 @@ static B3_FORCE_INLINE bool b3IsZero(const b3Mat33& A)
 	return isZeroX * isZeroY * isZeroZ;
 }
 
-void b3ClothSolver::Compute_A_b(b3SparseMat33& SA, b3DenseVec3& b, const b3DenseVec3& f, const b3DenseVec3& x, const b3DenseVec3& v, const b3DenseVec3& y) const
+void b3ClothSolver::Compute_A_b(b3SolverSparseMat33& SA, b3DenseVec3& b, const b3DenseVec3& f, const b3DenseVec3& x, const b3DenseVec3& v, const b3DenseVec3& y) const
 {
 	float32 h = m_solverData.dt;
 
@@ -368,7 +360,7 @@ void b3ClothSolver::Compute_A_b(b3SparseMat33& SA, b3DenseVec3& b, const b3Dense
 	}
 
 	// Compute A
-	
+
 	// A = M - h * dfdv - h * h * dfdx
 
 	// A = 0
@@ -390,14 +382,14 @@ void b3ClothSolver::Compute_A_b(b3SparseMat33& SA, b3DenseVec3& b, const b3Dense
 		}
 	}
 
-	// Assembly sparsity
-	u32 nzCount = 0;
+	// Assembly sparsity. 
+	u32 valueCapacity = m_particleCapacity * m_particleCapacity;
 
 	SA.row_ptrs[0] = 0;
 
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
-		u32 rowNzCount = 0;
+		u32 rowValueCount = 0;
 
 		for (u32 j = 0; j < m_particleCount; ++j)
 		{
@@ -405,21 +397,17 @@ void b3ClothSolver::Compute_A_b(b3SparseMat33& SA, b3DenseVec3& b, const b3Dense
 
 			if (b3IsZero(a) == false)
 			{
-				B3_ASSERT(nzCount <= SA.valueCount);
-
-				SA.values[nzCount] = a;
-				SA.cols[nzCount] = j;
-
-				++nzCount;
-				++rowNzCount;
+				SA.values[SA.valueCount] = a;
+				SA.cols[SA.valueCount] = j;
+				++SA.valueCount;
+				++rowValueCount;
 			}
 		}
 
-		SA.row_ptrs[i + 1] = SA.row_ptrs[(i + 1) - 1] + rowNzCount;
+		SA.row_ptrs[i + 1] = SA.row_ptrs[(i + 1) - 1] + rowValueCount;
 	}
 
-	B3_ASSERT(nzCount <= SA.valueCount);
-	SA.valueCount = nzCount;
+	B3_ASSERT(SA.valueCount <= valueCapacity);
 
 	m_allocator->Free(A);
 
@@ -525,26 +513,34 @@ void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
 	// p = S * (P^-1 * r)
 	b3DenseVec3 p = S * (inv_P * r);
 
-	// deltaNew = dot(r, p)
-	float32 deltaNew = b3Dot(r, p);
+	// delta_new = dot(r, p)
+	float32 delta_new = b3Dot(r, p);
 
-	// Tolerance.
-	// This is the main stopping criteria.
-	// [0, 1]
-	const float32 tolerance = 10.0f * B3_EPSILON;
+	// Set the tolerance.
+	const float32 tolerance = 1.e-4f;
 
 	// Maximum number of iterations.
-	const u32 maxIters = 1000;
+	// Stop at this iteration if diverged.
+	const u32 max_iterations = 100;
+
+	u32 iteration = 0;
 
 	// Main iteration loop.
-	u32 iter = 0;
-	while (deltaNew > tolerance * tolerance * b_delta && iter < maxIters)
+	while (iteration < max_iterations)
 	{
+		B3_ASSERT(b3IsValid(delta_new));
+
+		// Convergence check.
+		if (delta_new <= tolerance * tolerance * b_delta)
+		{
+			break;
+		}
+
 		// s = S * (A * p)
 		b3DenseVec3 s = S * (A * p);
 
-		// alpha = deltaNew / dot(c, q)
-		float32 alpha = deltaNew / b3Dot(p, s);
+		// alpha = delta_new / dot(p, s)
+		float32 alpha = delta_new / b3Dot(p, s);
 
 		// x = x + alpha * p
 		x = x + alpha * p;
@@ -555,21 +551,20 @@ void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
 		// h = inv_P * r
 		b3DenseVec3 h = inv_P * r;
 
-		// deltaOld = deltaNew
-		float32 deltaOld = deltaNew;
+		// delta_old = delta_new
+		float32 delta_old = delta_new;
 
-		// deltaNew = dot(r, h)
-		deltaNew = b3Dot(r, h);
-		//B3_ASSERT(b3IsValid(deltaNew));
+		// delta_new = dot(r, h)
+		delta_new = b3Dot(r, h);
 
-		// beta = deltaNew / deltaOld
-		float32 beta = deltaNew / deltaOld;
+		// beta = delta_new / delta_old
+		float32 beta = delta_new / delta_old;
 
 		// p = S * (h + beta * p)
 		p = S * (h + beta * p);
 
-		++iter;
+		++iteration;
 	}
 
-	iterations = iter;
+	iterations = iteration;
 }

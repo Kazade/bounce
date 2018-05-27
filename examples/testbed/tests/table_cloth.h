@@ -69,6 +69,11 @@ public:
 			tableShape.m_hull = &m_tableHull;
 			tableShape.m_radius = 0.2f;
 
+			//b3CapsuleShape tableShape;
+			//tableShape.m_centers[0].Set(0.0f, 0.0f, -1.0f);
+			//tableShape.m_centers[1].Set(0.0f, 0.0f, 1.0f);
+			//tableShape.m_radius = 2.0f;
+
 			b3ShapeDef sd;
 			sd.shape = &tableShape;
 			sd.friction = 1.0f;
@@ -82,6 +87,7 @@ public:
 		return new TableCloth();
 	}
 
+	//b3GridMesh<2, 2> m_gridMesh;
 	b3GridMesh<10, 10> m_gridMesh;
 	b3ClothMeshMesh m_gridClothMeshMesh;
 	b3ClothMesh m_gridClothMesh;

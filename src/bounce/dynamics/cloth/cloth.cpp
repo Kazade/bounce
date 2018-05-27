@@ -31,10 +31,10 @@
 
 #define B3_CLOTH_BENDING 0
 
-#define B3_CLOTH_FRICTION 0
+#define B3_CLOTH_FRICTION 1
 
 // b3Spring
-void b3Spring::ApplyForces(const b3ClothSolverData* data)
+void b3Spring::InitializeForces(const b3ClothSolverData* data)
 {
 	u32 i1 = p1->solverId;
 	u32 i2 = p2->solverId;
@@ -51,36 +51,25 @@ void b3Spring::ApplyForces(const b3ClothSolverData* data)
 
 	if (b3Dot(dx, dx) >= L0 * L0)
 	{
-		// Tension
 		float32 L = b3Length(dx);
 		b3Vec3 n = dx / L;
 
-		b3Vec3 sf1 = -ks * (L - L0) * n;
-		b3Vec3 sf2 = -sf1;
-
-		tension = sf1;
-
-		data->f[i1] += sf1;
-		data->f[i2] += sf2;
+		// Tension
+		f = -ks * (L - L0) * n;
 
 		// Jacobian
 		Jx = -ks * (b3Outer(dx, dx) + (1.0f - L0 / L) * (I - b3Outer(dx, dx)));
 	}
 	else
 	{
-		tension.SetZero();
+		f.SetZero();
 		Jx.SetZero();
 	}
 
 	// Damping
 	b3Vec3 dv = v1 - v2;
 
-	b3Vec3 df1 = -kd * dv;
-	b3Vec3 df2 = -df1;
-
-	data->f[i1] += df1;
-	data->f[i2] += df2;
-
+	f += -kd * dv;
 	Jv = -kd * I;
 }
 
@@ -238,6 +227,9 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world)
 		c->n_active = false;
 		c->t1_active = false;
 		c->t2_active = false;
+		c->Fn = 0.0f;
+		c->Ft1 = 0.0f;
+		c->Ft2 = 0.0f;
 	}
 
 	// Compute mass
@@ -284,7 +276,7 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world)
 		s->L0 = b3Distance(p1->position, p2->position);
 		s->ks = def.ks;
 		s->kd = def.kd;
-		s->tension.SetZero();
+		s->f.SetZero();
 	}
 
 #if B3_CLOTH_BENDING
@@ -330,7 +322,7 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world)
 		s->L0 = 0.0f;
 		s->ks = def.ks;
 		s->kd = def.kd;
-		s->tension.SetZero();
+		s->f.SetZero();
 	}
 
 	B3_ASSERT(m_springCount <= springCapacity);
@@ -388,21 +380,13 @@ void b3Cloth::UpdateContacts()
 {
 	B3_PROFILE("Update Contacts");
 
-	// Clear active flags
-	for (u32 i = 0; i < m_particleCount; ++i)
-	{
-		m_contacts[i].n_active = false;
-		m_contacts[i].t1_active = false;
-		m_contacts[i].t2_active = false;
-	}
-
 	// Create contacts 
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
 		b3Particle* p = m_particles + i;
 
-		// Static particles can't participate in unilateral collisions.
-		if (p->type == e_staticParticle)
+		// Static and kinematic particles can't participate in unilateral collisions.
+		if (p->type != e_dynamicParticle)
 		{
 			continue;
 		}
@@ -411,6 +395,11 @@ void b3Cloth::UpdateContacts()
 
 		// Save the old contact
 		b3BodyContact c0 = *c;
+
+		// Create a new contact
+		c->n_active = false;
+		c->t1_active = false;
+		c->t2_active = false;
 
 		b3Sphere s1;
 		s1.vertex = p->position;
@@ -456,7 +445,7 @@ void b3Cloth::UpdateContacts()
 			c->t2 = b3Cross(c->t1, n);
 		}
 
-		// Update contact state
+		// Update the contact state
 		if (c0.n_active == true && c->n_active == true)
 		{
 			// The contact persists
@@ -496,7 +485,7 @@ void b3Cloth::UpdateContacts()
 			continue;
 		}
 
-		b3Shape* s = c->s;
+		b3Shape* s = c->s2;
 		b3Vec3 n = c->n;
 		float32 u = s->GetFriction();
 		float32 normalForce = c0.Fn;

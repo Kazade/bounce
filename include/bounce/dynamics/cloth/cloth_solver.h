@@ -25,6 +25,7 @@
 struct b3DenseVec3;
 struct b3DiagMat33;
 struct b3SparseMat33;
+struct b3SolverSparseMat33;
 
 struct b3Particle;
 struct b3Spring;
@@ -50,6 +51,13 @@ struct b3ClothSolverData
 	float32 invdt;
 };
 
+struct b3SpringForce
+{
+	u32 i1, i2;
+	b3Vec3 f;
+	b3Mat33 Jx, Jv;
+};
+
 struct b3AccelerationConstraint
 {
 	u32 i1;
@@ -69,11 +77,14 @@ public:
 
 	void Solve(float32 dt, const b3Vec3& gravity);
 private:
+	// Initialize forces.
+	void InitializeForces();
+	
 	// Initialize constraints.
 	void InitializeConstraints();
-	
+
 	// Compute A and b in Ax = b
-	void Compute_A_b(b3SparseMat33& A, b3DenseVec3& b, const b3DenseVec3& f, const b3DenseVec3& x, const b3DenseVec3& v, const b3DenseVec3& y) const;
+	void Compute_A_b(b3SolverSparseMat33& A, b3DenseVec3& b, const b3DenseVec3& f, const b3DenseVec3& x, const b3DenseVec3& v, const b3DenseVec3& y) const;
 
 	// Compute S and z.
 	void Compute_S_z(b3DiagMat33& S, b3DenseVec3& z);
