@@ -58,17 +58,16 @@
 
 #include <bounce/dynamics/rope/rope.h>
 
+#include <bounce/garment/sewing_pattern.h>
+#include <bounce/garment/garment.h>
+#include <bounce/garment/garment_mesh.h>
+
 #include <bounce/dynamics/cloth/cloth_mesh.h>
 #include <bounce/dynamics/cloth/cloth.h>
+#include <bounce/dynamics/cloth/particle.h>
+#include <bounce/dynamics/cloth/spring_force.h>
 
 #include <bounce/dynamics/body.h>
-
-//#include <bounce/dynamics/tree/joints/tree_weld_joint.h>
-//#include <bounce/dynamics/tree/joints/tree_prismatic_joint.h>
-//#include <bounce/dynamics/tree/joints/tree_revolute_joint.h>
-//#include <bounce/dynamics/tree/joints/tree_spherical_joint.h>
-//#include <bounce/dynamics/tree/tree_body.h>
-//#include <bounce/dynamics/tree/body_tree.h>
 
 #include <bounce/dynamics/world.h>
 #include <bounce/dynamics/world_listeners.h>

@@ -21,153 +21,66 @@
 
 #include <bounce/common/math/transform.h>
 #include <bounce/common/template/list.h>
+#include <bounce/common/memory/block_pool.h>
 
-class b3StackAllocator;
 class b3World;
 class b3Shape;
 
+class b3Particle;
+class b3Force;
+
+struct b3ParticleDef;
+struct b3ForceDef;
+
 struct b3ClothMesh;
 
-// Cloth mesh definition
+struct b3RayCastInput;
+
+struct b3ClothRayCastOutput
+{
+	u32 triangle; // intersected triangle
+	b3Vec3 point; // intersection point on surface
+	b3Vec3 normal; // surface normal of intersection
+	float32 fraction; // time of intersection on segment
+};
+
+// Cloth definition
+// This requires defining a cloth mesh which is typically bound to a render mesh
 struct b3ClothDef
 {
 	b3ClothDef()
 	{
 		mesh = nullptr;
 		density = 0.0f;
-		r = 0.05f;
-		ks = 0.0f;
-		kb = 0.0f;
-		kd = 0.0f;
+		radius = 0.05f;
+		structural = 0.0f;
+		bending = 0.0f;
+		damping = 0.0f;
 	}
 
-	// Cloth proxy mesh 
+	// Cloth mesh 
 	b3ClothMesh* mesh;
 
 	// Radius
 	// This should be a small value. It can be used for correcting visual artifacts when 
 	// the masses are colliding against a solid.
-	float32 r;
+	float32 radius;
 
 	// Cloth density in kg/m^3
 	float32 density;
 
-	// Streching stiffness
-	float32 ks;
+	// Structural stiffness
+	float32 structural;
 
 	// Bending stiffness
-	float32 kb;
+	float32 bending;
 
 	// Damping stiffness
-	float32 kd;
+	float32 damping;
 };
 
-// Static particle: Has zero mass, can be moved manually.
-// Kinematic particle: Has zero mass, non-zero velocity, can be moved by the solver.
-// Dynamic particle: Has non-zero mass, non-zero velocity determined by force, can be moved by the solver.
-enum b3ParticleType
-{
-	e_staticParticle,
-	e_kinematicParticle,
-	e_dynamicParticle
-};
-
-// Read-only particle 
-struct b3Particle
-{
-	// Type
-	b3ParticleType type;
-
-	// Position
-	b3Vec3 position;
-
-	// Velocity
-	b3Vec3 velocity;
-	
-	// Applied external force
-	b3Vec3 force;
-	
-	// Mass
-	float32 mass;
-	
-	// Inverse mass
-	float32 invMass;
-	
-	// Radius
-	float32 radius;
-
-	// User data. 
-	void* userData;
-
-	// Applied external translation
-	b3Vec3 translation;
-
-	// Solver temp
-
-	// Identifier
-	u32 solverId;
-	
-	// Solution
-	b3Vec3 x;
-};
-
-// Spring types
-enum b3SpringType
-{
-	e_strechSpring,
-	e_bendSpring,
-};
-
-struct b3ClothSolverData;
-
-// Read-only spring
-struct b3Spring
-{
-	// Solver shared
-	
-	// Spring type
-	b3SpringType type;
-
-	// Particle 1
-	b3Particle* p1;
-
-	// Particle 2
-	b3Particle* p2;
-
-	// Rest length
-	float32 L0;
-
-	// Structural stiffness
-	float32 ks;
-	
-	// Damping stiffness
-	float32 kd;
-
-	// Solver temp
-
-	// Force (f_i entry)
-	b3Vec3 f;
-
-	// Jacobian (J_ii entry)
-	b3Mat33 Jx, Jv;
-
-	// Initialize forces and its derivatives.
-	void InitializeForces(const b3ClothSolverData* data);
-};
-
-// Read-only body contact between a particle and a solid
-struct b3BodyContact
-{
-	b3Particle* p1;
-	b3Shape* s2;
-	float32 s;
-	b3Vec3 n, t1, t2;
-	float32 Fn, Ft1, Ft2;
-	bool n_active, t1_active, t2_active;
-};
-
-// A cloth represents a deformable surface/mesh.
-// b3Cloth simulates this surface motion using particles and springs.
+// A cloth represents a deformable surface as a collection of particles.
+// Particles may be connected with each other.
 class b3Cloth
 {
 public:
@@ -175,37 +88,33 @@ public:
 	const b3World* GetWorld() const;
 	b3World* GetWorld();
 
-	// Return the cloth mesh used to initialize this cloth.
+	// Create a particle.
+	b3Particle* CreateParticle(const b3ParticleDef& def);
+
+	// Destroy a particle
+	void DestroyParticle(b3Particle* particle);
+
+	// Create a force.
+	b3Force* CreateForce(const b3ForceDef& def);
+
+	// Destroy a force.
+	void DestroyForce(b3Force* force);
+
+	// Perform a ray cast with the cloth.
+	bool RayCast(b3ClothRayCastOutput* output, const b3RayCastInput* input) const;
+
+	// Perform a ray cast with a given cloth mesh triangle.
+	bool RayCast(b3ClothRayCastOutput* output, const b3RayCastInput* input, u32 triangleIndex) const;
+
+	// Return the cloth mesh proxy.
 	b3ClothMesh* GetMesh() const;
 
-	// Return the number of particles in this cloth.
-	u32 GetParticleCount() const;
+	// Return the list of particles in this cloth.
+	const b3List2<b3Particle>& GetParticleList() const;
 
-	// Return the particle at a given index in this cloth.
-	b3Particle* GetParticle(u32 i) const;
-	
-	// Convenience function.
-	// Return the index of a given particle.
-	u32 GetParticleIndex(const b3Particle* p) const;
+	// Return the list of forces in this cloth.
+	const b3List2<b3Force>& GetForceList() const;
 
-	// Set the type of a given particle.
-	void SetType(b3Particle* p, b3ParticleType type);
-
-	// Set the velocity of a given particle.
-	void SetVelocity(b3Particle* p, const b3Vec3& velocity);
-
-	// Apply a force to a given particle.
-	void ApplyForce(b3Particle* p, const b3Vec3& force);
-
-	// Apply a translation to a given particle.
-	void ApplyTranslation(b3Particle* p, const b3Vec3& translation);
-
-	// Return the number of springs in this cloth.
-	u32 GetSpringCount() const;
-
-	// Return the spring at a given index in this cloth.
-	b3Spring* GetSpring(u32 i) const;
-	
 	// Return the kinetic (or dynamic) energy in this system.
 	float32 GetEnergy() const;
 
@@ -228,11 +137,12 @@ private:
 	b3Cloth(const b3ClothDef& def, b3World* world);
 	~b3Cloth();
 
-	// Perform a time step. Called only inside b3World.
+	// Perform a time step. 
+	// Called only inside b3World.
 	void Step(float32 dt, const b3Vec3& gravity);
 
 	// Compute mass of each particle.
-	void ResetMass();
+	void ComputeMass();
 
 	// Update contacts. 
 	// This is where some contacts might be initiated or terminated.
@@ -241,19 +151,18 @@ private:
 	// Solve
 	void Solve(float32 dt, const b3Vec3& gravity);
 
-	b3StackAllocator* m_allocator;
-
+	// Proxy mesh
 	b3ClothMesh* m_mesh;
 	float32 m_density;
 
-	u32 m_particleCount;
-	b3Particle* m_particles;
+	// Particle pool
+	b3BlockPool m_particleBlocks;
 
-	u32 m_springCount;
-	b3Spring* m_springs;
-
-	b3BodyContact* m_contacts;
-	//u32 m_contactCount;
+	// List of particles
+	b3List2<b3Particle> m_particleList;
+	
+	// List of forces
+	b3List2<b3Force> m_forceList;
 
 	// The parent world of this cloth.
 	b3World* m_world;
@@ -278,87 +187,14 @@ inline b3ClothMesh* b3Cloth::GetMesh() const
 	return m_mesh;
 }
 
-inline u32 b3Cloth::GetParticleCount() const
+inline const b3List2<b3Particle>& b3Cloth::GetParticleList() const
 {
-	return m_particleCount;
+	return m_particleList;
 }
 
-inline b3Particle* b3Cloth::GetParticle(u32 i) const
+inline const b3List2<b3Force>& b3Cloth::GetForceList() const
 {
-	B3_ASSERT(i < m_particleCount);
-	return m_particles + i;
-}
-
-inline u32 b3Cloth::GetParticleIndex(const b3Particle* p) const
-{
-	return u32(p - m_particles);
-}
-
-inline void b3Cloth::SetType(b3Particle* p, b3ParticleType type)
-{
-	if (p->type == type)
-	{
-		return;
-	}
-
-	p->type = type;
-	p->force.SetZero();
-	
-	if (type == e_staticParticle)
-	{
-		p->velocity.SetZero();
-		p->translation.SetZero();
-
-		u32 ip = u32(p - m_particles);
-
-		m_contacts[ip].n_active = false;
-		m_contacts[ip].t1_active = false;
-		m_contacts[ip].t2_active = false;
-	}
-}
-
-inline void b3Cloth::SetVelocity(b3Particle* p, const b3Vec3& velocity)
-{
-	if (p->type == e_staticParticle)
-	{
-		return;
-	}
-	p->velocity = velocity;
-}
-
-inline void b3Cloth::ApplyForce(b3Particle* p, const b3Vec3& force)
-{
-	if (p->type != e_dynamicParticle)
-	{
-		return;
-	}
-	p->force += force;
-}
-
-inline void b3Cloth::ApplyTranslation(b3Particle* p, const b3Vec3& translation)
-{
-	p->translation += translation;
-}
-
-inline u32 b3Cloth::GetSpringCount() const
-{
-	return m_springCount;
-}
-
-inline b3Spring* b3Cloth::GetSpring(u32 i) const
-{
-	B3_ASSERT(i < m_springCount);
-	return m_springs + i;
-}
-
-inline float32 b3Cloth::GetEnergy() const
-{
-	float32 E = 0.0f;
-	for (u32 i = 0; i < m_particleCount; ++i)
-	{
-		E += m_particles[i].mass * b3Dot(m_particles[i].velocity, m_particles[i].velocity);
-	}
-	return 0.5f * E;
+	return m_forceList;
 }
 
 inline const b3Cloth* b3Cloth::GetNext() const

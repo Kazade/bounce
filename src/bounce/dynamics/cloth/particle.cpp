@@ -16,56 +16,54 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_CLOTH_MESH_H
-#define B3_CLOTH_MESH_H
+#include <bounce/dynamics/cloth/particle.h>
+#include <bounce/dynamics/cloth/cloth.h>
 
-#include <bounce/common/math/vec2.h>
-#include <bounce/common/math/vec3.h>
-
-struct b3ClothMeshTriangle
+b3Particle::b3Particle(const b3ParticleDef& def, b3Cloth* cloth)
 {
-	u32 v1, v2, v3;
-};
+	m_cloth = cloth;
+	m_type = def.type;
+	m_position = def.position;
+	m_velocity = def.velocity;
+	m_force = def.force;
+	m_translation.SetZero();
+	m_mass = 0.0f;
+	m_invMass = 0.0f;
+	m_radius = def.radius;
+	m_userData = nullptr;
+	m_x.SetZero();
+	m_vertex = ~0;
 
-struct b3ClothMeshMesh
+	m_contact.n_active = false;
+	m_contact.t1_active = false;
+	m_contact.t2_active = false;
+	m_contact.Fn = 0.0f;
+	m_contact.Ft1 = 0.0f;
+	m_contact.Ft2 = 0.0f;
+}
+
+b3Particle::~b3Particle()
 {
-	u32 vertexCount;
-	u32 startVertex;
-	u32 triangleCount;
-	u32 startTriangle;
-};
 
-struct b3ClothMeshSewingLine
+}
+
+void b3Particle::SetType(b3ParticleType type)
 {
-	u32 s1, s2;
-	u32 v1, v2;
-};
+	if (m_type == type)
+	{
+		return;
+	}
 
-class b3Particle;
+	m_type = type;
+	m_force.SetZero();
 
-struct b3ClothMesh
-{
-	u32 vertexCount;
-	b3Vec3* vertices;
-	b3Particle** particles;
-	u32 triangleCount;
-	b3ClothMeshTriangle* triangles;
-	u32 meshCount;
-	b3ClothMeshMesh* meshes;
-	u32 sewingLineCount;
-	b3ClothMeshSewingLine* sewingLines;
-};
+	if (type == e_staticParticle)
+	{
+		m_velocity.SetZero();
+		m_translation.SetZero();
 
-struct b3GarmentMesh;
-
-// Convenience structure.
-struct b3GarmentClothMesh : public b3ClothMesh
-{
-	b3GarmentClothMesh();
-	~b3GarmentClothMesh();
-
-	// Set this mesh from a 2D garment mesh.
-	void Set(const b3GarmentMesh* garment);
-};
-
-#endif
+		m_contact.n_active = false;
+		m_contact.t1_active = false;
+		m_contact.t2_active = false;
+	}
+}

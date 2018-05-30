@@ -18,11 +18,35 @@
 
 #include <bounce/dynamics/cloth/cloth_solver.h>
 #include <bounce/dynamics/cloth/cloth.h>
-#include <bounce/dynamics/shapes/shape.h>
-#include <bounce/common/memory/stack_allocator.h>
+#include <bounce/dynamics/cloth/particle.h>
+#include <bounce/dynamics/cloth/force.h>
 #include <bounce/dynamics/cloth/dense_vec3.h>
 #include <bounce/dynamics/cloth/diag_mat33.h>
-#include <bounce/dynamics/cloth/sparse_mat33.h>
+#include <bounce/dynamics/cloth/sparse_sym_mat33.h>
+#include <bounce/common/memory/stack_allocator.h>
+
+static B3_FORCE_INLINE void b3Mul(b3DenseVec3& out, const b3SymMat33& A, const b3DenseVec3& v)
+{
+	B3_ASSERT(A.N == v.n);
+	B3_ASSERT(out.n == A.M);
+
+	for (u32 row = 0; row < A.M; ++row)
+	{
+		out[row].SetZero();
+		
+		for (u32 column = 0; column < A.N; ++column)
+		{
+			out[row] += A(row, column) * v[column];
+		}
+	}
+}
+
+static B3_FORCE_INLINE b3DenseVec3 operator*(const b3SymMat33& m, const b3DenseVec3& v)
+{
+	b3DenseVec3 result(v.n);
+	b3Mul(result, m, v);
+	return result;
+}
 
 // Here, we solve Ax = b using the Modified Preconditioned Conjugate Gradient (MPCG) algorithm.
 // described in the paper:
@@ -41,9 +65,9 @@ b3ClothSolver::b3ClothSolver(const b3ClothSolverDef& def)
 	m_particleCount = 0;
 	m_particles = (b3Particle**)m_allocator->Allocate(m_particleCapacity * sizeof(b3Particle*));
 
-	m_springCapacity = def.springCapacity;
-	m_springCount = 0;
-	m_springs = (b3Spring**)m_allocator->Allocate(m_springCapacity * sizeof(b3Spring*));;
+	m_forceCapacity = def.forceCapacity;
+	m_forceCount = 0;
+	m_forces = (b3Force**)m_allocator->Allocate(m_forceCapacity * sizeof(b3Force*));;
 
 	m_contactCapacity = def.contactCapacity;
 	m_contactCount = 0;
@@ -58,13 +82,13 @@ b3ClothSolver::~b3ClothSolver()
 {
 	m_allocator->Free(m_constraints);
 	m_allocator->Free(m_contacts);
-	m_allocator->Free(m_springs);
+	m_allocator->Free(m_forces);
 	m_allocator->Free(m_particles);
 }
 
 void b3ClothSolver::Add(b3Particle* p)
 {
-	p->solverId = m_particleCount;
+	p->m_solverId = m_particleCount;
 	m_particles[m_particleCount++] = p;
 }
 
@@ -73,16 +97,24 @@ void b3ClothSolver::Add(b3BodyContact* c)
 	m_contacts[m_contactCount++] = c;
 }
 
-void b3ClothSolver::Add(b3Spring* s)
+void b3ClothSolver::Add(b3Force* f)
 {
-	m_springs[m_springCount++] = s;
+	m_forces[m_forceCount++] = f;
 }
 
 void b3ClothSolver::InitializeForces()
 {
-	for (u32 i = 0; i < m_springCount; ++i)
+	for (u32 i = 0; i < m_forceCount; ++i)
 	{
-		m_springs[i]->InitializeForces(&m_solverData);
+		m_forces[i]->Initialize(&m_solverData);
+	}
+}
+
+void b3ClothSolver::ApplyForces()
+{
+	for (u32 i = 0; i < m_forceCount; ++i)
+	{
+		m_forces[i]->Apply(&m_solverData);
 	}
 }
 
@@ -91,7 +123,7 @@ void b3ClothSolver::InitializeConstraints()
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
 		b3Particle* p = m_particles[i];
-		if (p->type != e_dynamicParticle)
+		if (p->m_type != e_dynamicParticle)
 		{
 			b3AccelerationConstraint* ac = m_constraints + m_constraintCount;
 			++m_constraintCount;
@@ -108,7 +140,7 @@ void b3ClothSolver::InitializeConstraints()
 
 		b3AccelerationConstraint* ac = m_constraints + m_constraintCount;
 		++m_constraintCount;
-		ac->i1 = p->solverId;
+		ac->i1 = p->m_solverId;
 		ac->ndof = 2;
 		ac->p = pc->n;
 		ac->z.SetZero();
@@ -134,29 +166,6 @@ void b3ClothSolver::InitializeConstraints()
 	}
 }
 
-struct b3SolverSparseMat33 : public b3SparseMat33
-{
-	b3SolverSparseMat33(b3StackAllocator* a, u32 m, u32 n)
-	{
-		allocator = a;
-		M = m;
-		N = n;
-		valueCount = 0;
-		values = (b3Mat33*)allocator->Allocate(M * N * sizeof(b3Mat33));
-		cols = (u32*)allocator->Allocate(M * N * sizeof(u32));
-		row_ptrs = (u32*)allocator->Allocate((M + 1) * sizeof(u32));
-	}
-
-	~b3SolverSparseMat33()
-	{
-		allocator->Free(row_ptrs);
-		allocator->Free(cols);
-		allocator->Free(values);
-	}
-
-	b3StackAllocator* allocator;
-};
-
 void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 {
 	B3_PROFILE("Integrate");
@@ -167,9 +176,17 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	b3DenseVec3 sy(m_particleCount);
 	b3DenseVec3 sx0(m_particleCount);
 
+	b3SymMat33 dfdx(m_allocator, m_particleCount, m_particleCount);
+	dfdx.SetZero();
+
+	b3SymMat33 dfdv(m_allocator, m_particleCount, m_particleCount);
+	dfdv.SetZero();
+
 	m_solverData.x = sx.v;
 	m_solverData.v = sv.v;
 	m_solverData.f = sf.v;
+	m_solverData.dfdx = &dfdx;
+	m_solverData.dfdv = &dfdv;
 	m_solverData.dt = dt;
 	m_solverData.invdt = 1.0f / dt;
 
@@ -177,18 +194,18 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	{
 		b3Particle* p = m_particles[i];
 
-		sx[i] = p->position;
-		sv[i] = p->velocity;
-		sf[i] = p->force;
+		sx[i] = p->m_position;
+		sv[i] = p->m_velocity;
+		sf[i] = p->m_force;
 
 		// Apply weight
-		if (p->type == e_dynamicParticle)
+		if (p->m_type == e_dynamicParticle)
 		{
-			sf[i] += p->mass * gravity;
+			sf[i] += p->m_mass * gravity;
 		}
 
-		sy[i] = p->translation;
-		sx0[i] = p->x;
+		sy[i] = p->m_translation;
+		sx0[i] = p->m_x;
 	}
 
 	// Apply contact position correction
@@ -196,19 +213,14 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	{
 		b3BodyContact* c = m_contacts[i];
 		b3Particle* p = c->p1;
-		sy[p->solverId] -= c->s * c->n;
+		sy[p->m_solverId] -= c->s * c->n;
 	}
 
-	// Initialize forces
+	// Initialize internal forces
 	InitializeForces();
-	
+
 	// Apply internal forces
-	for (u32 i = 0; i < m_springCount; ++i)
-	{
-		b3Spring* s = m_springs[i];
-		sf[s->p1->solverId] += s->f;
-		sf[s->p2->solverId] -= s->f;
-	}
+	ApplyForces();
 
 	// Initialize constraints
 	InitializeConstraints();
@@ -223,7 +235,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// b = h * (f0 + h * dfdx * v0 + dfdx * y) 
 
 	// A
-	b3SolverSparseMat33 A(m_allocator, m_particleCount, m_particleCount);
+	b3SparseSymMat33 A(m_allocator, m_particleCount, m_particleCount);
 
 	// b
 	b3DenseVec3 b(m_particleCount);
@@ -247,14 +259,14 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// Copy state buffers back to the particles
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
-		m_particles[i]->position = sx[i];
-		m_particles[i]->velocity = sv[i];
+		m_particles[i]->m_position = sx[i];
+		m_particles[i]->m_velocity = sv[i];
 	}
 
 	// Cache x to improve convergence
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
-		m_particles[i]->x = x[i];
+		m_particles[i]->m_x = x[i];
 	}
 
 	// Store the extra contact constraint forces that should have been 
@@ -269,7 +281,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		b3BodyContact* c = m_contacts[i];
 		b3Particle* p = c->p1;
 
-		b3Vec3 force = f[p->solverId];
+		b3Vec3 force = f[p->m_solverId];
 
 		// Signed normal force magnitude
 		c->Fn = b3Dot(force, c->n);
@@ -280,152 +292,45 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	}
 }
 
-#define B3_INDEX(i, j, size) (i + j * size)
-
-//
-static void b3SetZero(b3Mat33* out, u32 size)
-{
-	for (u32 i = 0; i < size; ++i)
-	{
-		out[i].SetZero();
-	}
-}
-
-// dfdx * v
-static void b3Mul_Jx(b3DenseVec3& out, b3Spring** springs, u32 springCount, const b3DenseVec3& v)
-{
-	out.SetZero();
-
-	for (u32 i = 0; i < springCount; ++i)
-	{
-		b3Spring* s = springs[i];
-		u32 i1 = s->p1->solverId;
-		u32 i2 = s->p2->solverId;
-
-		b3Mat33 J_11 = s->Jx;
-		b3Mat33 J_12 = -J_11;
-		b3Mat33 J_21 = J_12;
-		b3Mat33 J_22 = J_11;
-
-		out[i1] += J_11 * v[i1] + J_12 * v[i2];
-		out[i2] += J_21 * v[i1] + J_22 * v[i2];
-	}
-}
-
-static B3_FORCE_INLINE bool b3IsZero(const b3Mat33& A)
-{
-	bool isZeroX = b3Dot(A.x, A.x) == 0.0f;
-	bool isZeroY = b3Dot(A.y, A.y) == 0.0f;
-	bool isZeroZ = b3Dot(A.z, A.z) == 0.0f;
-
-	return isZeroX * isZeroY * isZeroZ;
-}
-
-void b3ClothSolver::Compute_A_b(b3SolverSparseMat33& SA, b3DenseVec3& b, const b3DenseVec3& f, const b3DenseVec3& x, const b3DenseVec3& v, const b3DenseVec3& y) const
+void b3ClothSolver::Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b, const b3DenseVec3& f, const b3DenseVec3& x, const b3DenseVec3& v, const b3DenseVec3& y) const
 {
 	float32 h = m_solverData.dt;
-
-	// Compute dfdx, dfdv
-	b3Mat33* dfdx = (b3Mat33*)m_allocator->Allocate(m_particleCount * m_particleCount * sizeof(b3Mat33));
-	b3SetZero(dfdx, m_particleCount * m_particleCount);
-
-	b3Mat33* dfdv = (b3Mat33*)m_allocator->Allocate(m_particleCount * m_particleCount * sizeof(b3Mat33));
-	b3SetZero(dfdv, m_particleCount * m_particleCount);
-
-	for (u32 i = 0; i < m_springCount; ++i)
-	{
-		b3Spring* s = m_springs[i];
-		u32 i1 = s->p1->solverId;
-		u32 i2 = s->p2->solverId;
-
-		b3Mat33 Jx11 = s->Jx;
-		b3Mat33 Jx12 = -Jx11;
-		b3Mat33 Jx21 = Jx12;
-		b3Mat33 Jx22 = Jx11;
-
-		dfdx[B3_INDEX(i1, i1, m_particleCount)] += Jx11;
-		dfdx[B3_INDEX(i1, i2, m_particleCount)] += Jx12;
-		dfdx[B3_INDEX(i2, i1, m_particleCount)] += Jx21;
-		dfdx[B3_INDEX(i2, i2, m_particleCount)] += Jx22;
-
-		b3Mat33 Jv11 = s->Jv;
-		b3Mat33 Jv12 = -Jv11;
-		b3Mat33 Jv21 = Jv12;
-		b3Mat33 Jv22 = Jv11;
-
-		dfdv[B3_INDEX(i1, i1, m_particleCount)] += Jv11;
-		dfdv[B3_INDEX(i1, i2, m_particleCount)] += Jv12;
-		dfdv[B3_INDEX(i2, i1, m_particleCount)] += Jv21;
-		dfdv[B3_INDEX(i2, i2, m_particleCount)] += Jv22;
-	}
+	b3SymMat33& dfdx = *m_solverData.dfdx;
+	b3SymMat33& dfdv = *m_solverData.dfdv;
 
 	// Compute A
-
 	// A = M - h * dfdv - h * h * dfdx
 
 	// A = 0
-	b3Mat33* A = (b3Mat33*)m_allocator->Allocate(m_particleCount * m_particleCount * sizeof(b3Mat33));
-	b3SetZero(A, m_particleCount * m_particleCount);
-
+	// Set the upper triangle zero
+	for (u32 i = 0; i < m_particleCount; ++i)
+	{
+		for (u32 j = i; j < m_particleCount; ++j)
+		{
+			A(i, j).SetZero();
+		}
+	}
+	
 	// A += M
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
-		A[B3_INDEX(i, i, m_particleCount)] += b3Diagonal(m_particles[i]->mass);
+		A(i, i) += b3Diagonal(m_particles[i]->m_mass);
 	}
 
 	// A += - h * dfdv - h * h * dfdx
+	// Set the upper triangle
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
-		for (u32 j = 0; j < m_particleCount; ++j)
+		for (u32 j = i; j < m_particleCount; ++j)
 		{
-			A[B3_INDEX(i, j, m_particleCount)] += (-h * dfdv[B3_INDEX(i, j, m_particleCount)]) + (-h * h * dfdx[B3_INDEX(i, j, m_particleCount)]);
+			A(i, j) += (-h * dfdv(i, j)) + (-h * h * dfdx(i, j));
 		}
 	}
-
-	// Assembly sparsity. 
-	u32 valueCapacity = m_particleCapacity * m_particleCapacity;
-
-	SA.row_ptrs[0] = 0;
-
-	for (u32 i = 0; i < m_particleCount; ++i)
-	{
-		u32 rowValueCount = 0;
-
-		for (u32 j = 0; j < m_particleCount; ++j)
-		{
-			b3Mat33 a = A[B3_INDEX(i, j, m_particleCount)];
-
-			if (b3IsZero(a) == false)
-			{
-				SA.values[SA.valueCount] = a;
-				SA.cols[SA.valueCount] = j;
-				++SA.valueCount;
-				++rowValueCount;
-			}
-		}
-
-		SA.row_ptrs[i + 1] = SA.row_ptrs[(i + 1) - 1] + rowValueCount;
-	}
-
-	B3_ASSERT(SA.valueCount <= valueCapacity);
-
-	m_allocator->Free(A);
-
-	m_allocator->Free(dfdv);
-	m_allocator->Free(dfdx);
 
 	// Compute b
 
-	// Jx_v = dfdx * v
-	b3DenseVec3 Jx_v(m_particleCount);
-	b3Mul_Jx(Jx_v, m_springs, m_springCount, v);
-
-	// Jx_y = dfdx * y
-	b3DenseVec3 Jx_y(m_particleCount);
-	b3Mul_Jx(Jx_y, m_springs, m_springCount, y);
-
-	// b = h * (f0 + h * Jx_v + Jx_y)
-	b = h * (f + h * Jx_v + Jx_y);
+	// b = h * (f0 + h * dfdx * v + dfdx * y)
+	b = h * (f + h * (dfdx * v) + dfdx * y);
 }
 
 void b3ClothSolver::Compute_S_z(b3DiagMat33& S, b3DenseVec3& z)
@@ -466,13 +371,13 @@ void b3ClothSolver::Compute_S_z(b3DiagMat33& S, b3DenseVec3& z)
 }
 
 void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
-	const b3SparseMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const
+	const b3SparseSymMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const
 {
 	B3_PROFILE("Solve Ax = b");
 
 	// P = diag(A)
 	b3DiagMat33 inv_P(m_particleCount);
-	A.AssembleDiagonal(inv_P);
+	A.Diagonal(inv_P);
 
 	// Invert
 	for (u32 i = 0; i < m_particleCount; ++i)
@@ -526,8 +431,14 @@ void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
 	u32 iteration = 0;
 
 	// Main iteration loop.
-	while (iteration < max_iterations)
+	for (;;)
 	{
+		// Divergence check.
+		if (iteration >= max_iterations)
+		{
+			break;
+		}
+
 		B3_ASSERT(b3IsValid(delta_new));
 
 		// Convergence check.

@@ -19,10 +19,6 @@
 #ifndef SHIRT_H
 #define SHIRT_H
 
-#include <bounce/garment/garment.h>
-#include <bounce/garment/sewing_pattern.h>
-#include <bounce/garment/garment_mesh.h>
-
 class Shirt : public ClothTest
 {
 public:
@@ -57,10 +53,10 @@ public:
 
 		// Create cloth
 		b3ClothDef def;
+		def.radius = 0.2f;
 		def.mesh = &m_shirtClothMesh;
 		def.density = 0.2f;
-		def.r = 0.2f;
-		def.ks = 10000.0f;
+		def.structural = 10000.0f;
 
 		m_cloth = m_world.CreateCloth(def);
 	}

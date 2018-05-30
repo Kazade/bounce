@@ -25,6 +25,7 @@ public:
 	ClothDragger(Ray3* ray, b3Cloth*& cloth) : m_ray(ray), m_cloth(cloth)
 	{
 		m_isSelected = false;
+		m_spring = false;
 	}
 
 	~ClothDragger()
@@ -61,31 +62,32 @@ public:
 	{
 		B3_ASSERT(m_isSelected == false);
 
-		if (Select(m_selection, m_x) == false)
+		b3RayCastInput rayIn;
+		rayIn.p1 = m_ray->A();
+		rayIn.p2 = m_ray->B();
+		rayIn.maxFraction = B3_MAX_FLOAT;
+
+		b3ClothRayCastOutput rayOut;
+		if (m_cloth->RayCast(&rayOut, &rayIn) == false)
 		{
 			return false;
 		}
 
 		m_isSelected = true;
+		
+		m_selection = rayOut.triangle;
+		m_x = rayOut.fraction;
 
 		b3ClothMesh* m = m_cloth->GetMesh();
 		b3ClothMeshTriangle* t = m->triangles + m_selection;
 
-		b3Particle* p1 = m_cloth->GetParticle(t->v1);
-		m_t1 = p1->type;
-		m_cloth->SetType(p1, e_staticParticle);
+		b3Particle* p1 = m->particles[t->v1];
+		b3Particle* p2 = m->particles[t->v2];
+		b3Particle* p3 = m->particles[t->v3];
 
-		b3Particle* p2 = m_cloth->GetParticle(t->v2);
-		m_t2 = p2->type;
-		m_cloth->SetType(p2, e_staticParticle);
-		
-		b3Particle* p3 = m_cloth->GetParticle(t->v3);
-		m_t3 = p3->type;
-		m_cloth->SetType(p3, e_staticParticle);
-
-		b3Vec3 v1 = p1->position;
-		b3Vec3 v2 = p2->position;
-		b3Vec3 v3 = p3->position;
+		b3Vec3 v1 = p1->GetPosition();
+		b3Vec3 v2 = p2->GetPosition();
+		b3Vec3 v3 = p3->GetPosition();
 
 		b3Vec3 B = GetPointB();
 
@@ -102,6 +104,53 @@ public:
 			m_u = m_v = 0.0f;
 		}
 
+		if (m_spring)
+		{
+			b3ParticleDef pd;
+			pd.type = e_staticParticle;
+			pd.position = B;
+
+			m_particle = m_cloth->CreateParticle(pd);
+			
+			{
+				b3SpringForceDef sfd;
+				sfd.p1 = m_particle;
+				sfd.p2 = p1;
+				sfd.restLength = 0.0f;
+				sfd.structural = 10000.0f;
+				m_s1 = (b3SpringForce*)m_cloth->CreateForce(sfd);
+			}
+			
+			{
+				b3SpringForceDef sfd;
+				sfd.p1 = m_particle;
+				sfd.p2 = p2;
+				sfd.restLength = 0.0f;
+				sfd.structural = 10000.0f;
+				m_s2 = (b3SpringForce*)m_cloth->CreateForce(sfd);
+			}
+
+			{
+				b3SpringForceDef sfd;
+				sfd.p1 = m_particle;
+				sfd.p2 = p3;
+				sfd.restLength = 0.0f;
+				sfd.structural = 10000.0f;
+				m_s3 = (b3SpringForce*)m_cloth->CreateForce(sfd);
+			}
+		}
+		else
+		{
+			m_t1 = p1->GetType();
+			p1->SetType(e_staticParticle);
+
+			m_t2 = p2->GetType();
+			p2->SetType(e_staticParticle);
+
+			m_t3 = p3->GetType();
+			p3->SetType(e_staticParticle);
+		}
+		
 		return true;
 	}
 
@@ -117,14 +166,21 @@ public:
 
 		b3Vec3 dx = B - A;
 
-		b3Particle* p1 = m_cloth->GetParticle(t->v1);
-		m_cloth->ApplyTranslation(p1, dx);
-		
-		b3Particle* p2 = m_cloth->GetParticle(t->v2);
-		m_cloth->ApplyTranslation(p2, dx);
-		
-		b3Particle* p3 = m_cloth->GetParticle(t->v3);
-		m_cloth->ApplyTranslation(p3, dx);
+		if (m_spring)
+		{
+			m_particle->ApplyTranslation(dx);
+		}
+		else
+		{
+			b3Particle* p1 = m->particles[t->v1];
+			p1->ApplyTranslation(dx);
+
+			b3Particle* p2 = m->particles[t->v2];
+			p2->ApplyTranslation(dx);
+
+			b3Particle* p3 = m->particles[t->v3];
+			p3->ApplyTranslation(dx);
+		}
 	}
 
 	void StopDragging()
@@ -133,141 +189,30 @@ public:
 
 		m_isSelected = false;
 
-		b3ClothMesh* m = m_cloth->GetMesh();
-		b3ClothMeshTriangle* t = m->triangles + m_selection;
+		if (m_spring)
+		{
+			m_cloth->DestroyForce(m_s1);
+			m_cloth->DestroyForce(m_s2);
+			m_cloth->DestroyForce(m_s3);
+			m_cloth->DestroyParticle(m_particle);
+		}
+		else
+		{
+			b3ClothMesh* m = m_cloth->GetMesh();
+			b3ClothMeshTriangle* t = m->triangles + m_selection;
 
-		b3Particle* p1 = m_cloth->GetParticle(t->v1);
-		m_cloth->SetType(p1, m_t1);
-		
-		b3Particle* p2 = m_cloth->GetParticle(t->v2);
-		m_cloth->SetType(p2, m_t2);
-		
-		b3Particle* p3 = m_cloth->GetParticle(t->v3);
-		m_cloth->SetType(p3, m_t3);
+			b3Particle* p1 = m->particles[t->v1];
+			p1->SetType(m_t1);
+
+			b3Particle* p2 = m->particles[t->v2];
+			p2->SetType(m_t2);
+
+			b3Particle* p3 = m->particles[t->v3];
+			p3->SetType(m_t3);
+		}
 	}
 
 private:
-	bool RayCast(b3RayCastOutput* output, u32 triangleIndex) const
-	{
-		b3ClothMesh* mesh = m_cloth->GetMesh();		
-		B3_ASSERT(triangleIndex < mesh->triangleCount);
-		b3ClothMeshTriangle* triangle = mesh->triangles + triangleIndex;
-		
-		b3Vec3 v1 = mesh->vertices[triangle->v1];
-		b3Vec3 v2 = mesh->vertices[triangle->v2];
-		b3Vec3 v3 = mesh->vertices[triangle->v3];
-
-		b3Vec3 p1 = m_ray->A();
-		b3Vec3 p2 = m_ray->B();
-		b3Vec3 d = p2 - p1;
-		float32 maxFraction = b3Length(d);
-
-		b3Vec3 n = b3Cross(v2 - v1, v3 - v1);
-		n.Normalize();
-
-		float32 numerator = b3Dot(n, v1 - p1);
-		float32 denominator = b3Dot(n, d);
-
-		if (denominator == 0.0f)
-		{
-			return false;
-		}
-
-		float32 t = numerator / denominator;
-
-		// Is the intersection not on the segment?
-		if (t < 0.0f || maxFraction < t)
-		{
-			return false;
-		}
-
-		b3Vec3 q = p1 + t * d;
-
-		// Barycentric coordinates for q
-		b3Vec3 Q = q;
-		b3Vec3 A = v1;
-		b3Vec3 B = v2;
-		b3Vec3 C = v3;
-
-		b3Vec3 AB = B - A;
-		b3Vec3 AC = C - A;
-
-		b3Vec3 QA = A - Q;
-		b3Vec3 QB = B - Q;
-		b3Vec3 QC = C - Q;
-
-		b3Vec3 QB_x_QC = b3Cross(QB, QC);
-		b3Vec3 QC_x_QA = b3Cross(QC, QA);
-		b3Vec3 QA_x_QB = b3Cross(QA, QB);
-
-		b3Vec3 AB_x_AC = b3Cross(AB, AC);
-
-		float32 u = b3Dot(QB_x_QC, AB_x_AC);
-		float32 v = b3Dot(QC_x_QA, AB_x_AC);
-		float32 w = b3Dot(QA_x_QB, AB_x_AC);
-
-		// This tolerance helps intersections lying on  
-		// shared edges to not be missed.
-		const float32 kTol = -B3_EPSILON;
-
-		// Is the intersection on the triangle?
-		if (u > kTol && v > kTol && w > kTol)
-		{
-			output->fraction = t;
-
-			// Does the ray start from below or above the triangle?
-			if (numerator > 0.0f)
-			{
-				output->normal = -n;
-			}
-			else
-			{
-				output->normal = n;
-			}
-
-			return true;
-		}
-
-		return false;
-	}
-
-	bool Select(u32& selection, float32& fraction) const
-	{
-		b3ClothMesh* m = m_cloth->GetMesh();
-
-		b3RayCastInput input;
-		input.p1 = m_ray->A();
-		input.p2 = m_ray->B();
-		input.maxFraction = m_ray->fraction;
-
-		float32 minFraction = B3_MAX_FLOAT;
-		b3Vec3 minNormal(0.0f, 0.0f, 0.0f);
-		u32 minIndex = ~0;
-
-		for (u32 i = 0; i < m->triangleCount; ++i)
-		{
-			b3RayCastOutput subOutput;
-			if (RayCast(&subOutput, i) == true)
-			{
-				if (subOutput.fraction < minFraction)
-				{
-					minFraction = subOutput.fraction;
-					minNormal = subOutput.normal;
-					minIndex = i;
-				}
-			}
-		}
-
-		if (minIndex != ~0)
-		{
-			selection = minIndex;
-			fraction = minFraction;
-			return true;
-		}
-
-		return false;
-	}
-
 	bool m_isSelected;
 
 	Ray3* m_ray;
@@ -276,6 +221,14 @@ private:
 	b3Cloth*& m_cloth;
 	u32 m_selection;
 	float32 m_u, m_v;
+	
+	bool m_spring;
+
+	b3Particle* m_particle;
+	b3SpringForce* m_s1;
+	b3SpringForce* m_s2;
+	b3SpringForce* m_s3;
+
 	b3ParticleType m_t1, m_t2, m_t3;
 };
 

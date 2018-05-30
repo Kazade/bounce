@@ -22,23 +22,22 @@
 #include <bounce/common/math/vec3.h>
 #include <bounce/common/math/mat33.h>
 
+class b3StackAllocator;
+
 struct b3DenseVec3;
 struct b3DiagMat33;
-struct b3SparseMat33;
-struct b3SolverSparseMat33;
+struct b3SparseSymMat33;
+struct b3SymMat33;
 
-struct b3Particle;
-struct b3Spring;
+class b3Particle;
+class b3Force;
 struct b3BodyContact;
-
-class b3Shape;
-class b3StackAllocator;
 
 struct b3ClothSolverDef
 {
 	b3StackAllocator* stack;
 	u32 particleCapacity;
-	u32 springCapacity;
+	u32 forceCapacity;
 	u32 contactCapacity;
 };
 
@@ -47,15 +46,10 @@ struct b3ClothSolverData
 	b3Vec3* x;
 	b3Vec3* v;
 	b3Vec3* f;
+	b3SymMat33* dfdx;
+	b3SymMat33* dfdv;
 	float32 dt;
 	float32 invdt;
-};
-
-struct b3SpringForce
-{
-	u32 i1, i2;
-	b3Vec3 f;
-	b3Mat33 Jx, Jv;
 };
 
 struct b3AccelerationConstraint
@@ -65,6 +59,45 @@ struct b3AccelerationConstraint
 	b3Vec3 p, q, z;
 };
 
+struct b3SymMat33
+{
+	b3SymMat33(b3StackAllocator* a, u32 m, u32 n)
+	{
+		allocator = a;
+		M = m;
+		N = n;
+		values = (b3Mat33*)b3Alloc(M * N * sizeof(b3Mat33));
+	}
+
+	~b3SymMat33()
+	{
+		b3Free(values);
+	}
+
+	b3Mat33& operator()(u32 i, u32 j)
+	{
+		return values[i * N + j];
+	}
+
+	const b3Mat33& operator()(u32 i, u32 j) const
+	{
+		return values[i * N + j];
+	}
+
+	void SetZero()
+	{
+		for (u32 v = 0; v < M * N; ++v)
+		{
+			values[v].SetZero();
+		}
+	}
+
+	u32 M;
+	u32 N;
+	b3Mat33* values;
+	b3StackAllocator* allocator;
+};
+
 class b3ClothSolver
 {
 public:
@@ -72,7 +105,7 @@ public:
 	~b3ClothSolver();
 	
 	void Add(b3Particle* p);
-	void Add(b3Spring* s);
+	void Add(b3Force* f);
 	void Add(b3BodyContact* c);
 
 	void Solve(float32 dt, const b3Vec3& gravity);
@@ -80,17 +113,20 @@ private:
 	// Initialize forces.
 	void InitializeForces();
 	
+	// Apply forces.
+	void ApplyForces();
+	
 	// Initialize constraints.
 	void InitializeConstraints();
 
 	// Compute A and b in Ax = b
-	void Compute_A_b(b3SolverSparseMat33& A, b3DenseVec3& b, const b3DenseVec3& f, const b3DenseVec3& x, const b3DenseVec3& v, const b3DenseVec3& y) const;
+	void Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b, const b3DenseVec3& f, const b3DenseVec3& x, const b3DenseVec3& v, const b3DenseVec3& y) const;
 
 	// Compute S and z.
 	void Compute_S_z(b3DiagMat33& S, b3DenseVec3& z);
 
 	// Solve Ax = b.
-	void Solve(b3DenseVec3& x, u32& iterations, const b3SparseMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const;
+	void Solve(b3DenseVec3& x, u32& iterations, const b3SparseSymMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const;
 
 	b3StackAllocator* m_allocator;
 
@@ -98,9 +134,9 @@ private:
 	u32 m_particleCount;
 	b3Particle** m_particles;
 
-	u32 m_springCapacity;
-	u32 m_springCount;
-	b3Spring** m_springs;
+	u32 m_forceCapacity;
+	u32 m_forceCount;
+	b3Force** m_forces;
 
 	u32 m_contactCapacity;
 	u32 m_contactCount;

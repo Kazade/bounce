@@ -58,32 +58,26 @@ static inline b3Color Color(float32 x, float32 a, float32 b)
 class TensionMapping : public ClothTest
 {
 public:
-	TensionMapping()
+	TensionMapping() : m_rectangleGarment(5.0f, 5.0f)
 	{
-		m_gridClothMesh.vertexCount = m_gridMesh.vertexCount;
-		m_gridClothMesh.vertices = m_gridMesh.vertices;
+		// Generate 2D mesh
+		m_rectangleGarmentMesh.Set(&m_rectangleGarment, 1.0f);
 
-		m_gridClothMesh.triangleCount = m_gridMesh.triangleCount;
-		m_gridClothMesh.triangles = (b3ClothMeshTriangle*)m_gridMesh.triangles;
-
-		m_gridClothMeshMesh.vertexCount = m_gridClothMesh.vertexCount;
-		m_gridClothMeshMesh.startVertex = 0;
+		// Create 3D mesh
+		m_rectangleClothMesh.Set(&m_rectangleGarmentMesh);
 		
-		m_gridClothMeshMesh.triangleCount = m_gridClothMesh.triangleCount;
-		m_gridClothMeshMesh.startTriangle = 0;
+		//  
+		b3Mat33 dq = b3Mat33RotationX(0.5f * B3_PI);
+		for (u32 i = 0; i < m_rectangleClothMesh.vertexCount; ++i)
+		{
+			m_rectangleClothMesh.vertices[i] = dq * m_rectangleClothMesh.vertices[i];
+		}
 
-		m_gridClothMesh.meshCount = 1;
-		m_gridClothMesh.meshes = &m_gridClothMeshMesh;
-
-		m_gridClothMesh.sewingLineCount = 0;
-		m_gridClothMesh.sewingLines = nullptr;
-		
 		b3ClothDef def;
-		def.mesh = &m_gridClothMesh;
+		def.mesh = &m_rectangleClothMesh;
+		def.radius = 0.2f;
 		def.density = 0.2f;
-		def.ks = 10000.0f;
-		def.kd = 0.0f;
-		def.r = 0.2f;
+		def.structural = 10000.0f;
 
 		m_cloth = m_world.CreateCloth(def);
 
@@ -91,12 +85,11 @@ public:
 		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
 		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
 
-		for (u32 i = 0; i < m_cloth->GetParticleCount(); ++i)
+		for (b3Particle* p = m_cloth->GetParticleList().m_head; p; p = p->GetNext())
 		{
-			b3Particle* p = m_cloth->GetParticle(i);
-			if (aabb.Contains(p->position))
+			if (aabb.Contains(p->GetPosition()))
 			{
-				m_cloth->SetType(p, e_staticParticle);
+				p->SetType(e_staticParticle);
 			}
 		}
 	}
@@ -107,38 +100,36 @@ public:
 
 		m_cloth->Apply();
 
+		b3ClothMesh* mesh = m_cloth->GetMesh();
+
 		b3StackArray<b3Vec3, 256> tension;
-		tension.Resize(m_cloth->GetParticleCount());
-		for (u32 i = 0; i < tension.Count(); ++i)
+		tension.Resize(mesh->vertexCount);
+		for (u32 i = 0; i < mesh->vertexCount; ++i)
 		{
 			tension[i].SetZero();
 		}
 
-		for (u32 i = 0; i < m_cloth->GetSpringCount(); ++i)
+		for (b3Force* f = m_cloth->GetForceList().m_head; f; f = f->GetNext())
 		{
-			b3Spring* s = m_cloth->GetSpring(i);
+			if (f->GetType() == e_springForce)
+			{
+				b3SpringForce* s = (b3SpringForce*)f;
 
-			b3Particle* p1 = s->p1;
-			b3Particle* p2 = s->p2;
+				u32 v1 = s->GetParticle1()->GetVertex();
+				u32 v2 = s->GetParticle2()->GetVertex();
 
-			u32 i1 = m_cloth->GetParticleIndex(p1);
-			u32 i2 = m_cloth->GetParticleIndex(p2);
-
-			tension[i1] += s->f;
-			tension[i2] -= s->f;
+				tension[v1] += s->GetActionForce();
+				tension[v2] -= s->GetActionForce();
+			}
 		}
 
-		for (u32 i = 0; i < m_gridClothMesh.triangleCount; ++i)
+		for (u32 i = 0; i < m_rectangleClothMesh.triangleCount; ++i)
 		{
-			b3ClothMeshTriangle* t = m_gridClothMesh.triangles + i;
+			b3ClothMeshTriangle* t = m_rectangleClothMesh.triangles + i;
 
-			b3Particle* p1 = m_cloth->GetParticle(t->v1);
-			b3Particle* p2 = m_cloth->GetParticle(t->v2);
-			b3Particle* p3 = m_cloth->GetParticle(t->v3);
-
-			b3Vec3 v1 = p1->position;
-			b3Vec3 v2 = p2->position;
-			b3Vec3 v3 = p3->position;
+			b3Vec3 v1 = mesh->vertices[t->v1];
+			b3Vec3 v2 = mesh->vertices[t->v2];
+			b3Vec3 v3 = mesh->vertices[t->v3];
 
 			b3Draw_draw->DrawSegment(v1, v2, b3Color_black);
 			b3Draw_draw->DrawSegment(v2, v3, b3Color_black);
@@ -183,9 +174,9 @@ public:
 		return new TensionMapping();
 	}
 
-	b3GridMesh<10, 10> m_gridMesh;
-	b3ClothMeshMesh m_gridClothMeshMesh;
-	b3ClothMesh m_gridClothMesh;
+	b3RectangleGarment m_rectangleGarment;
+	b3GarmentMesh m_rectangleGarmentMesh;
+	b3GarmentClothMesh m_rectangleClothMesh;
 };
 
 #endif

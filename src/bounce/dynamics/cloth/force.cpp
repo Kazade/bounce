@@ -16,56 +16,47 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_CLOTH_MESH_H
-#define B3_CLOTH_MESH_H
+#include <bounce/dynamics/cloth/force.h>
+#include <bounce/dynamics/cloth/spring_force.h>
 
-#include <bounce/common/math/vec2.h>
-#include <bounce/common/math/vec3.h>
-
-struct b3ClothMeshTriangle
+b3Force* b3Force::Create(const b3ForceDef* def)
 {
-	u32 v1, v2, v3;
-};
+	b3SpringForce* force = NULL;
+	switch (def->type)
+	{
+	case e_springForce:
+	{
+		void* block = b3Alloc(sizeof(b3SpringForce));
+		force = new (block) b3SpringForce((b3SpringForceDef*)def);
+		break;
+	}
+	default:
+	{
+		B3_ASSERT(false);
+		break;
+	}
+	}
+	return force;
+}
 
-struct b3ClothMeshMesh
+void b3Force::Destroy(b3Force* force)
 {
-	u32 vertexCount;
-	u32 startVertex;
-	u32 triangleCount;
-	u32 startTriangle;
-};
+	B3_ASSERT(force);
 
-struct b3ClothMeshSewingLine
-{
-	u32 s1, s2;
-	u32 v1, v2;
-};
-
-class b3Particle;
-
-struct b3ClothMesh
-{
-	u32 vertexCount;
-	b3Vec3* vertices;
-	b3Particle** particles;
-	u32 triangleCount;
-	b3ClothMeshTriangle* triangles;
-	u32 meshCount;
-	b3ClothMeshMesh* meshes;
-	u32 sewingLineCount;
-	b3ClothMeshSewingLine* sewingLines;
-};
-
-struct b3GarmentMesh;
-
-// Convenience structure.
-struct b3GarmentClothMesh : public b3ClothMesh
-{
-	b3GarmentClothMesh();
-	~b3GarmentClothMesh();
-
-	// Set this mesh from a 2D garment mesh.
-	void Set(const b3GarmentMesh* garment);
-};
-
-#endif
+	b3ForceType type = force->GetType();
+	switch (type)
+	{
+	case e_springForce:
+	{
+		b3SpringForce* o = (b3SpringForce*)force;
+		o->~b3SpringForce();
+		b3Free(force);
+		break;
+	}
+	default:
+	{
+		B3_ASSERT(false);
+		break;
+	}
+	};
+}

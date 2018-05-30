@@ -38,10 +38,9 @@ public:
 
 	void SetClothType(b3ParticleType type)
 	{
-		for (u32 i = 0; i < m_cloth->GetParticleCount(); ++i)
+		for (b3Particle* p = m_cloth->GetParticleList().m_head; p; p = p->GetNext())
 		{
-			b3Particle* p = m_cloth->GetParticle(i);
-			m_cloth->SetType(p, type);
+			p->SetType(type);
 		}
 	}
 
@@ -62,10 +61,8 @@ public:
 			SetClothType(e_dynamicParticle);
 		}
 
-		for (u32 i = 0; i < m_cloth->GetParticleCount(); ++i)
+		for (b3Particle* p = m_cloth->GetParticleList().m_head; p; p = p->GetNext())
 		{
-			b3Particle* p = m_cloth->GetParticle(i);
-
 			b3Vec3 d;
 			d.SetZero();
 
@@ -94,25 +91,25 @@ public:
 				button == GLFW_KEY_UP ||
 				button == GLFW_KEY_DOWN)
 			{
-				if (p->type == e_staticParticle)
+				if (p->GetType() == e_staticParticle)
 				{
-					m_cloth->ApplyTranslation(p, d);
+					p->ApplyTranslation(d);
 				}
 
-				if (p->type == e_kinematicParticle)
+				if (p->GetType() == e_kinematicParticle)
 				{
-					b3Vec3 v = p->velocity;
+					b3Vec3 v = p->GetVelocity();
 
 					v += 5.0f * d;
 
-					m_cloth->SetVelocity(p, d);
+					p->SetVelocity(v);
 				}
 
-				if (p->type == e_dynamicParticle)
+				if (p->GetType() == e_dynamicParticle)
 				{
 					b3Vec3 f = 100.0f * d;
 
-					m_cloth->ApplyForce(p, f);
+					p->ApplyForce(f);
 				}
 			}
 		}

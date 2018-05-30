@@ -22,38 +22,28 @@
 class TableCloth : public ClothTest
 {
 public:
-	TableCloth()
+	TableCloth() : m_rectangleGarment(5.0f, 5.0f)
 	{
-		// Shift vertices up
-		for (u32 i = 0; i < m_gridMesh.vertexCount; ++i)
+		// Generate 2D mesh
+		m_rectangleGarmentMesh.Set(&m_rectangleGarment, 1.0f);
+
+		// Create 3D mesh
+		m_rectangleClothMesh.Set(&m_rectangleGarmentMesh);
+
+		//  
+		b3Mat33 dq = b3Mat33RotationX(0.5f * B3_PI);
+		for (u32 i = 0; i < m_rectangleClothMesh.vertexCount; ++i)
 		{
-			m_gridMesh.vertices[i].y = 5.0f;
+			m_rectangleClothMesh.vertices[i] = dq * m_rectangleClothMesh.vertices[i];
+			m_rectangleClothMesh.vertices[i].y += 5.0f;
 		}
 
-		m_gridClothMesh.vertexCount = m_gridMesh.vertexCount;
-		m_gridClothMesh.vertices = m_gridMesh.vertices;
-		
-		m_gridClothMesh.triangleCount = m_gridMesh.triangleCount;
-		m_gridClothMesh.triangles = (b3ClothMeshTriangle*)m_gridMesh.triangles;
-
-		m_gridClothMeshMesh.vertexCount = m_gridClothMesh.vertexCount;
-		m_gridClothMeshMesh.startVertex = 0;
-		
-		m_gridClothMeshMesh.triangleCount = m_gridClothMesh.triangleCount;
-		m_gridClothMeshMesh.startTriangle = 0;
-
-		m_gridClothMesh.meshCount = 1;
-		m_gridClothMesh.meshes = &m_gridClothMeshMesh;
-
-		m_gridClothMesh.sewingLineCount = 0;
-		m_gridClothMesh.sewingLines = nullptr;
-
 		b3ClothDef def;
-		def.mesh = &m_gridClothMesh;
+		def.mesh = &m_rectangleClothMesh;
+		def.radius = 0.05f;
 		def.density = 0.2f;
-		def.ks = 10000.0f;
-		def.kd = 0.0f;
-		def.r = 0.05f;
+		def.structural = 10000.0f;
+		def.damping = 0.0f;
 
 		m_cloth = m_world.CreateCloth(def);
 
@@ -87,10 +77,9 @@ public:
 		return new TableCloth();
 	}
 
-	//b3GridMesh<2, 2> m_gridMesh;
-	b3GridMesh<10, 10> m_gridMesh;
-	b3ClothMeshMesh m_gridClothMeshMesh;
-	b3ClothMesh m_gridClothMesh;
+	b3RectangleGarment m_rectangleGarment;
+	b3GarmentMesh m_rectangleGarmentMesh;
+	b3GarmentClothMesh m_rectangleClothMesh;
 	
 	b3QHull m_tableHull;
 };
