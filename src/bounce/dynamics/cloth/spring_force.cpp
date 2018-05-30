@@ -40,6 +40,7 @@ b3SpringForce::b3SpringForce(const b3SpringForceDef* def)
 	m_L0 = def->restLength;
 	m_ks = def->structural;
 	m_kd = def->damping;
+	m_f.SetZero();
 }
 
 b3SpringForce::~b3SpringForce()
