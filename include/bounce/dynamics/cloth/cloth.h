@@ -52,7 +52,6 @@ struct b3ClothDef
 	{
 		mesh = nullptr;
 		density = 0.0f;
-		radius = 0.05f;
 		structural = 0.0f;
 		bending = 0.0f;
 		damping = 0.0f;
@@ -60,11 +59,6 @@ struct b3ClothDef
 
 	// Cloth mesh 
 	b3ClothMesh* mesh;
-
-	// Radius
-	// This should be a small value. It can be used for correcting visual artifacts when 
-	// the masses are colliding against a solid.
-	float32 radius;
 
 	// Cloth density in kg/m^3
 	float32 density;
@@ -91,13 +85,13 @@ public:
 	// Create a particle.
 	b3Particle* CreateParticle(const b3ParticleDef& def);
 
-	// Destroy a particle
+	// Destroy a given particle.
 	void DestroyParticle(b3Particle* particle);
 
 	// Create a force.
 	b3Force* CreateForce(const b3ForceDef& def);
 
-	// Destroy a force.
+	// Destroy a given force.
 	void DestroyForce(b3Force* force);
 
 	// Perform a ray cast with the cloth.

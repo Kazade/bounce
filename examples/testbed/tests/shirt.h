@@ -53,7 +53,6 @@ public:
 
 		// Create cloth
 		b3ClothDef def;
-		def.radius = 0.2f;
 		def.mesh = &m_shirtClothMesh;
 		def.density = 0.2f;
 		def.structural = 10000.0f;

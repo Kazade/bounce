@@ -40,7 +40,6 @@ public:
 
 		b3ClothDef def;
 		def.mesh = &m_rectangleClothMesh;
-		def.radius = 0.05f;
 		def.density = 0.2f;
 		def.structural = 10000.0f;
 		def.damping = 0.0f;

@@ -75,7 +75,6 @@ public:
 
 		b3ClothDef def;
 		def.mesh = &m_rectangleClothMesh;
-		def.radius = 0.2f;
 		def.density = 0.2f;
 		def.structural = 10000.0f;
 
@@ -157,16 +156,16 @@ public:
 			g_draw->DrawSolidTriangle(n2, v1, v3, v2, color);
 		}
 
+		if (m_clothDragger.IsSelected() == true)
+		{
+			g_draw->DrawSegment(m_clothDragger.GetPointA(), m_clothDragger.GetPointB(), b3Color_white);
+		}
+
 		extern u32 b3_clothSolverIterations;
 		g_draw->DrawString(b3Color_white, "Iterations = %u", b3_clothSolverIterations);
 
 		float32 E = m_cloth->GetEnergy();
 		g_draw->DrawString(b3Color_white, "E = %f", E);
-
-		if (m_clothDragger.IsSelected() == true)
-		{
-			g_draw->DrawSegment(m_clothDragger.GetPointA(), m_clothDragger.GetPointB(), b3Color_white);
-		}
 	}
 
 	static Test* Create()

@@ -94,11 +94,11 @@ void b3SpringForce::Apply(const b3ClothSolverData* data)
 	b3SymMat33& dfdx = *data->dfdx;
 	b3SymMat33& dfdv = *data->dfdv;
 
-	f[m_p1->m_solverId] += m_f;
-	f[m_p2->m_solverId] -= m_f;
-
 	u32 i1 = m_p1->m_solverId;
 	u32 i2 = m_p2->m_solverId;
+
+	f[i1] += m_f;
+	f[i2] -= m_f;
 
 	b3Mat33 Jx11 = m_Jx;
 	b3Mat33 Jx12 = -Jx11;

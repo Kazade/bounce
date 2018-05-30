@@ -31,7 +31,7 @@
 
 #define B3_FORCE_THRESHOLD 0.005f
 
-#define B3_CLOTH_BENDING 1
+#define B3_CLOTH_BENDING 0
 
 #define B3_CLOTH_FRICTION 1
 
@@ -271,6 +271,15 @@ b3Particle* b3Cloth::CreateParticle(const b3ParticleDef& def)
 
 void b3Cloth::DestroyParticle(b3Particle* particle)
 {
+	for (u32 i = 0; i > m_mesh->vertexCount; ++i)
+	{
+		if (m_mesh->particles[i] == particle)
+		{
+			m_mesh->particles[i] = NULL;
+			break;
+		}
+	}
+
 	m_particleList.Remove(particle);
 	particle->~b3Particle();
 	m_particleBlocks.Free(particle);
