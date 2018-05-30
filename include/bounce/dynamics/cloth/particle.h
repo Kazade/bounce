@@ -81,6 +81,11 @@ public:
 	// Get the vertex index.
 	u32 GetVertex() const;
 
+	// Set the particle position. 
+	// If the particle is dynamic changing the position directly might lead 
+	// to physically incorrect simulation behaviour.
+	void SetPosition(const b3Vec3& position);
+
 	// Get the particle position.
 	const b3Vec3& GetPosition() const;
 
@@ -173,6 +178,12 @@ inline b3ParticleType b3Particle::GetType() const
 inline u32 b3Particle::GetVertex() const
 {
 	return m_vertex;
+}
+
+inline void b3Particle::SetPosition(const b3Vec3& position)
+{
+	m_position = position;
+	m_translation.SetZero();
 }
 
 inline const b3Vec3& b3Particle::GetPosition() const

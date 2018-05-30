@@ -168,7 +168,7 @@ public:
 
 		if (m_spring)
 		{
-			m_particle->ApplyTranslation(dx);
+			m_particle->SetPosition(B);
 		}
 		else
 		{
