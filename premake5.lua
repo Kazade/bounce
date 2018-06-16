@@ -325,11 +325,8 @@ solution (solution_name)
 			
 		configuration { "not windows", "not macosx" }
 			links 
-			{ 		
-				"GL", "rt", "Xrandr", "Xinerama", "Xi", "Xcursor", 
-				"m", "dl", "Xrender", "drm", "Xdamage", "X11-xcb", "xcb-glx", 
-				"xcb-dri2", "xcb-dri3", "xcb-present", "xcb-sync", "xshmfence", 
-				"Xxf86vm", "Xfixes", "Xext", "X11", "pthread", "xcb", "Xau", "Xdmcp" 
+			{ 
+				"GL", "rt", "m", "dl", "pthread"			
 			}
 		
 	project "hello_world"
