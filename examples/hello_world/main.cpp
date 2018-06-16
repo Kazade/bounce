@@ -16,7 +16,8 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce\bounce.h>
+#include <bounce/bounce.h>
+#include <stdio.h>
 
 // We don't care for a profiler. This definition does nothing.
 void b3BeginProfileScope(const char* name)
