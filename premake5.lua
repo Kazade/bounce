@@ -318,7 +318,7 @@ solution (solution_name)
 			}			
 		end
 		
-		links { "glfw", "glad", "imgui", "triangle", "bounce" }
+		links { "glfw", "glad", "imgui", "bounce", "triangle" }
 
 		configuration { "windows" }
 			links { "opengl32", "winmm" }
