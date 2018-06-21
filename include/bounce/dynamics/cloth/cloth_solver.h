@@ -24,14 +24,13 @@
 
 class b3StackAllocator;
 
-struct b3DenseVec3;
-struct b3DiagMat33;
-struct b3SparseSymMat33;
-struct b3SymMat33;
-
 class b3Particle;
 class b3Force;
 struct b3BodyContact;
+
+struct b3DenseVec3;
+struct b3DiagMat33;
+struct b3SparseSymMat33;
 
 struct b3ClothSolverDef
 {
@@ -43,11 +42,12 @@ struct b3ClothSolverDef
 
 struct b3ClothSolverData
 {
-	b3Vec3* x;
-	b3Vec3* v;
-	b3Vec3* f;
-	b3SymMat33* dfdx;
-	b3SymMat33* dfdv;
+	b3DenseVec3* x;
+	b3DenseVec3* v;
+	b3DenseVec3* f;
+	b3DenseVec3* y;
+	b3SparseSymMat33* dfdx;
+	b3SparseSymMat33* dfdv;
 	float32 dt;
 	float32 invdt;
 };
@@ -57,45 +57,6 @@ struct b3AccelerationConstraint
 	u32 i1;
 	u32 ndof;
 	b3Vec3 p, q, z;
-};
-
-struct b3SymMat33
-{
-	b3SymMat33(b3StackAllocator* a, u32 m, u32 n)
-	{
-		allocator = a;
-		M = m;
-		N = n;
-		values = (b3Mat33*)b3Alloc(M * N * sizeof(b3Mat33));
-	}
-
-	~b3SymMat33()
-	{
-		b3Free(values);
-	}
-
-	b3Mat33& operator()(u32 i, u32 j)
-	{
-		return values[i * N + j];
-	}
-
-	const b3Mat33& operator()(u32 i, u32 j) const
-	{
-		return values[i * N + j];
-	}
-
-	void SetZero()
-	{
-		for (u32 v = 0; v < M * N; ++v)
-		{
-			values[v].SetZero();
-		}
-	}
-
-	u32 M;
-	u32 N;
-	b3Mat33* values;
-	b3StackAllocator* allocator;
 };
 
 class b3ClothSolver
@@ -120,7 +81,7 @@ private:
 	void InitializeConstraints();
 
 	// Compute A and b in Ax = b
-	void Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b, const b3DenseVec3& f, const b3DenseVec3& x, const b3DenseVec3& v, const b3DenseVec3& y) const;
+	void Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b) const;
 
 	// Compute S and z.
 	void Compute_S_z(b3DiagMat33& S, b3DenseVec3& z);

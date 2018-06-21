@@ -25,29 +25,6 @@
 #include <bounce/dynamics/cloth/sparse_sym_mat33.h>
 #include <bounce/common/memory/stack_allocator.h>
 
-static B3_FORCE_INLINE void b3Mul(b3DenseVec3& out, const b3SymMat33& A, const b3DenseVec3& v)
-{
-	B3_ASSERT(A.N == v.n);
-	B3_ASSERT(out.n == A.M);
-
-	for (u32 row = 0; row < A.M; ++row)
-	{
-		out[row].SetZero();
-		
-		for (u32 column = 0; column < A.N; ++column)
-		{
-			out[row] += A(row, column) * v[column];
-		}
-	}
-}
-
-static B3_FORCE_INLINE b3DenseVec3 operator*(const b3SymMat33& m, const b3DenseVec3& v)
-{
-	b3DenseVec3 result(v.n);
-	b3Mul(result, m, v);
-	return result;
-}
-
 // Here, we solve Ax = b using the Modified Preconditioned Conjugate Gradient (MPCG) algorithm.
 // described in the paper:
 // "Large Steps in Cloth Simulation - David Baraff, Andrew Witkin".
@@ -168,23 +145,22 @@ void b3ClothSolver::InitializeConstraints()
 
 void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 {
-	B3_PROFILE("Integrate");
-
 	b3DenseVec3 sx(m_particleCount);
 	b3DenseVec3 sv(m_particleCount);
 	b3DenseVec3 sf(m_particleCount);
 	b3DenseVec3 sy(m_particleCount);
 	b3DenseVec3 sx0(m_particleCount);
 
-	b3SymMat33 dfdx(m_allocator, m_particleCount, m_particleCount);
+	b3SparseSymMat33 dfdx(m_particleCount, m_particleCount);
 	dfdx.SetZero();
 
-	b3SymMat33 dfdv(m_allocator, m_particleCount, m_particleCount);
+	b3SparseSymMat33 dfdv(m_particleCount, m_particleCount);
 	dfdv.SetZero();
 
-	m_solverData.x = sx.v;
-	m_solverData.v = sv.v;
-	m_solverData.f = sf.v;
+	m_solverData.x = &sx;
+	m_solverData.v = &sv;
+	m_solverData.f = &sf;
+	m_solverData.y = &sy;
 	m_solverData.dfdx = &dfdx;
 	m_solverData.dfdv = &dfdv;
 	m_solverData.dt = dt;
@@ -235,12 +211,12 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// b = h * (f0 + h * dfdx * v0 + dfdx * y) 
 
 	// A
-	b3SparseSymMat33 A(m_allocator, m_particleCount, m_particleCount);
+	b3SparseSymMat33 A(m_particleCount, m_particleCount);
 
 	// b
 	b3DenseVec3 b(m_particleCount);
 
-	Compute_A_b(A, b, sf, sx, sv, sy);
+	Compute_A_b(A, b);
 
 	// x
 	b3DenseVec3 x(m_particleCount);
@@ -292,11 +268,17 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	}
 }
 
-void b3ClothSolver::Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b, const b3DenseVec3& f, const b3DenseVec3& x, const b3DenseVec3& v, const b3DenseVec3& y) const
+void b3ClothSolver::Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b) const
 {
+	B3_PROFILE("Compute A, b");
+	
+	b3DenseVec3& x = *m_solverData.x;
+	b3DenseVec3& v = *m_solverData.v;
+	b3DenseVec3& f = *m_solverData.f;
+	b3DenseVec3& y = *m_solverData.y;
+	b3SparseSymMat33& dfdx = *m_solverData.dfdx;
+	b3SparseSymMat33& dfdv = *m_solverData.dfdv;
 	float32 h = m_solverData.dt;
-	b3SymMat33& dfdx = *m_solverData.dfdx;
-	b3SymMat33& dfdv = *m_solverData.dfdv;
 
 	// Compute A
 	// A = M - h * dfdv - h * h * dfdx
@@ -438,8 +420,6 @@ void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
 		{
 			break;
 		}
-
-		B3_ASSERT(b3IsValid(delta_new));
 
 		// Convergence check.
 		if (delta_new <= tolerance * tolerance * b_delta)

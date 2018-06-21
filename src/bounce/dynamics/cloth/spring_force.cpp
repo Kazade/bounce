@@ -19,6 +19,8 @@
 #include <bounce/dynamics/cloth/spring_force.h>
 #include <bounce/dynamics/cloth/particle.h>
 #include <bounce/dynamics/cloth/cloth_solver.h>
+#include <bounce/dynamics/cloth/dense_vec3.h>
+#include <bounce/dynamics/cloth/sparse_sym_mat33.h>
 
 void b3SpringForceDef::Initialize(b3Particle* particle1, b3Particle* particle2, float32 structuralStiffness, float32 dampingStiffness)
 {
@@ -50,14 +52,17 @@ b3SpringForce::~b3SpringForce()
 
 void b3SpringForce::Initialize(const b3ClothSolverData* data)
 {
+	b3DenseVec3& x = *data->x;
+	b3DenseVec3& v = *data->v;
+
 	u32 i1 = m_p1->m_solverId;
 	u32 i2 = m_p2->m_solverId;
 
-	b3Vec3 x1 = data->x[i1];
-	b3Vec3 v1 = data->v[i1];
+	b3Vec3 x1 = x[i1];
+	b3Vec3 v1 = v[i1];
 
-	b3Vec3 x2 = data->x[i2];
-	b3Vec3 v2 = data->v[i2];
+	b3Vec3 x2 = x[i2];
+	b3Vec3 v2 = v[i2];
 
 	b3Mat33 I; I.SetIdentity();
 
@@ -90,9 +95,9 @@ void b3SpringForce::Initialize(const b3ClothSolverData* data)
 
 void b3SpringForce::Apply(const b3ClothSolverData* data)
 {
-	b3Vec3* f = data->f;
-	b3SymMat33& dfdx = *data->dfdx;
-	b3SymMat33& dfdv = *data->dfdv;
+	b3DenseVec3& f = *data->f;
+	b3SparseSymMat33& dfdx = *data->dfdx;
+	b3SparseSymMat33& dfdv = *data->dfdv;
 
 	u32 i1 = m_p1->m_solverId;
 	u32 i2 = m_p2->m_solverId;
@@ -102,21 +107,21 @@ void b3SpringForce::Apply(const b3ClothSolverData* data)
 
 	b3Mat33 Jx11 = m_Jx;
 	b3Mat33 Jx12 = -Jx11;
-	b3Mat33 Jx21 = Jx12;
+	//b3Mat33 Jx21 = Jx12;
 	b3Mat33 Jx22 = Jx11;
 
 	dfdx(i1, i1) += Jx11;
 	dfdx(i1, i2) += Jx12;
-	dfdx(i2, i1) += Jx21;
+	//dfdx(i2, i1) += Jx21;
 	dfdx(i2, i2) += Jx22;
 
 	b3Mat33 Jv11 = m_Jv;
 	b3Mat33 Jv12 = -Jv11;
-	b3Mat33 Jv21 = Jv12;
+	//b3Mat33 Jv21 = Jv12;
 	b3Mat33 Jv22 = Jv11;
 
 	dfdv(i1, i1) += Jv11;
 	dfdv(i1, i2) += Jv12;
-	dfdv(i2, i1) += Jv21;
+	//dfdv(i2, i1) += Jv21;
 	dfdv(i2, i2) += Jv22;
 }

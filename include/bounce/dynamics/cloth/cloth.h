@@ -147,6 +147,8 @@ private:
 
 	// Proxy mesh
 	b3ClothMesh* m_mesh;
+	
+	// Mesh density
 	float32 m_density;
 
 	// Particle pool

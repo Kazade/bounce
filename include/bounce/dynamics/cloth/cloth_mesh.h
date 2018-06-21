@@ -22,6 +22,8 @@
 #include <bounce/common/math/vec2.h>
 #include <bounce/common/math/vec3.h>
 
+class b3Particle;
+
 struct b3ClothMeshTriangle
 {
 	u32 v1, v2, v3;
@@ -40,8 +42,6 @@ struct b3ClothMeshSewingLine
 	u32 s1, s2;
 	u32 v1, v2;
 };
-
-class b3Particle;
 
 struct b3ClothMesh
 {

@@ -19,7 +19,6 @@
 #ifndef B3_SPARSE_SYM_MAT_33_H
 #define B3_SPARSE_SYM_MAT_33_H
 
-#include <bounce/common/memory/stack_allocator.h>
 #include <bounce/common/math/mat33.h>
 #include <bounce/dynamics/cloth/diag_mat33.h>
 #include <bounce/dynamics/cloth/dense_vec3.h>
@@ -27,7 +26,7 @@
 struct b3SparseSymMat33
 {
 	// 
-	b3SparseSymMat33(b3StackAllocator* a, u32 m, u32 n);
+	b3SparseSymMat33(u32 m, u32 n);
 	
 	//
 	~b3SparseSymMat33();
@@ -42,8 +41,8 @@ struct b3SparseSymMat33
 	void Diagonal(b3DiagMat33& out) const;
 
 	// 
+	void SetZero();
 
-	b3StackAllocator* allocator;
 	u32 M;
 	u32 N;
 	u32* row_ptrs; 
@@ -53,25 +52,24 @@ struct b3SparseSymMat33
 	u32* value_columns;
 };
 
-inline b3SparseSymMat33::b3SparseSymMat33(b3StackAllocator* a, u32 m, u32 n)
+inline b3SparseSymMat33::b3SparseSymMat33(u32 m, u32 n)
 {
 	B3_ASSERT(m == n);
-	allocator = a;
 	M = m;
 	N = n;
-	row_ptrs = (u32*)allocator->Allocate((M + 1) * sizeof(u32));
+	row_ptrs = (u32*)b3Alloc((M + 1) * sizeof(u32));
 	memset(row_ptrs, 0, (M + 1) * sizeof(u32));
 	value_count = 0;
-	value_capacity = n * (n + 1) / 2;
-	values = (b3Mat33*)allocator->Allocate(value_capacity * sizeof(b3Mat33));
-	value_columns = (u32*)allocator->Allocate(value_capacity * sizeof(u32));
+	value_capacity = M * (M + 1) / 2;
+	values = (b3Mat33*)b3Alloc(value_capacity * sizeof(b3Mat33));
+	value_columns = (u32*)b3Alloc(value_capacity * sizeof(u32));
 }
 
 inline b3SparseSymMat33::~b3SparseSymMat33()
 {
-	allocator->Free(value_columns);
-	allocator->Free(values);
-	allocator->Free(row_ptrs);
+	b3Free(value_columns);
+	b3Free(values);
+	b3Free(row_ptrs);
 }
 
 inline const b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j) const
@@ -103,7 +101,7 @@ inline const b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j) const
 }
 
 inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
-{
+{	
 	B3_ASSERT(i < M);
 	B3_ASSERT(j < N);
 
@@ -120,57 +118,44 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 	{
 		u32 row_value_index = row_value_begin + row_value;
 		u32 row_value_column = value_columns[row_value_index];
-
+		
 		if (row_value_column == j)
 		{
 			return values[row_value_index];
 		}
 	}
 
-	// Insert sorted by column
-	u32 max_column_row_value = 0;
+	// Find insert position
+	u32 row_value_k = 0;
 	for (u32 row_value = 0; row_value < row_value_count; ++row_value)
 	{
 		u32 row_value_index = row_value_begin + row_value;
 		u32 row_value_column = value_columns[row_value_index];
-
+		
 		if (row_value_column >= j)
 		{
-			max_column_row_value = row_value;
+			row_value_k = row_value;
 			break;
 		}
 	}
 
-	u32 max_column_row_value_index = row_value_begin + max_column_row_value;
+	// Shift the values
+	u32 right_count = value_count - row_value_begin - row_value_k;
+	memcpy(value_columns + row_value_begin + row_value_k + 1, value_columns + row_value_begin + row_value_k, right_count * sizeof(u32));
+	memcpy(values + row_value_begin + row_value_k + 1, values + row_value_begin + row_value_k, right_count * sizeof(b3Mat33));
 
-	// Copy the values to be shifted
-	u32 shift_count = value_count - max_column_row_value_index;
-
-	b3Mat33* shift_values = (b3Mat33*)allocator->Allocate(shift_count * sizeof(b3Mat33));
-	memcpy(shift_values, values + max_column_row_value_index, shift_count * sizeof(b3Mat33));
-
-	u32* shift_value_columns = (u32*)allocator->Allocate(shift_count * sizeof(u32));
-	memcpy(shift_value_columns, value_columns + max_column_row_value_index, shift_count * sizeof(u32));
-
-	// Insert the new value
-	B3_ASSERT(value_count < value_capacity);
-	value_columns[max_column_row_value_index] = j;
-	++value_count;
-
-	// Shift the old values
-	memcpy(values + max_column_row_value_index + 1, shift_values, shift_count * sizeof(b3Mat33));
-	memcpy(value_columns + max_column_row_value_index + 1, shift_value_columns, shift_count * sizeof(u32));
-
-	allocator->Free(shift_value_columns);
-	allocator->Free(shift_values);
-
-	// Shift the old row pointers as well
+	// Shift the row pointers 
 	for (u32 row_ptr_index = i + 1; row_ptr_index < M + 1; ++row_ptr_index)
 	{
 		++row_ptrs[row_ptr_index];
 	}
 
-	return values[max_column_row_value_index];
+	// Insert the value
+	value_columns[row_value_begin + row_value_k] = j;
+	++value_count;
+
+	// Return the value
+	return values[row_value_begin + row_value_k];
 }
 
 inline void b3SparseSymMat33::Diagonal(b3DiagMat33& out) const
@@ -194,6 +179,17 @@ inline void b3SparseSymMat33::Diagonal(b3DiagMat33& out) const
 				out[row] = values[row_value_index];
 				break;
 			}
+		}
+	}
+}
+
+inline void b3SparseSymMat33::SetZero()
+{
+	for (u32 i = 0; i < M; ++i)
+	{
+		for (u32 j = i; j < M; ++j)
+		{
+			(*this)(i, j).SetZero();
 		}
 	}
 }

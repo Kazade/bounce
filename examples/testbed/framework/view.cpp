@@ -53,7 +53,7 @@ static inline bool ImGui_GLFW_GL_Init(GLFWwindow* w, bool install_callbacks)
 	// error
 
 #endif
-
+	return false;
 }
 
 static inline void ImGui_GLFW_GL_Shutdown()
