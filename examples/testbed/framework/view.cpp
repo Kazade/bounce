@@ -50,8 +50,6 @@ static inline bool ImGui_GLFW_GL_Init(GLFWwindow* w, bool install_callbacks)
 
 #else
 
-	// error
-
 #endif
 	return false;
 }

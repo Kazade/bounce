@@ -151,10 +151,10 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	b3DenseVec3 sy(m_particleCount);
 	b3DenseVec3 sx0(m_particleCount);
 
-	b3SparseSymMat33 dfdx(m_particleCount, m_particleCount);
+	b3SparseSymMat33 dfdx(m_particleCount);
 	dfdx.SetZero();
 
-	b3SparseSymMat33 dfdv(m_particleCount, m_particleCount);
+	b3SparseSymMat33 dfdv(m_particleCount);
 	dfdv.SetZero();
 
 	m_solverData.x = &sx;
@@ -211,7 +211,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// b = h * (f0 + h * dfdx * v0 + dfdx * y) 
 
 	// A
-	b3SparseSymMat33 A(m_particleCount, m_particleCount);
+	b3SparseSymMat33 A(m_particleCount);
 
 	// b
 	b3DenseVec3 b(m_particleCount);
@@ -284,15 +284,8 @@ void b3ClothSolver::Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b) const
 	// A = M - h * dfdv - h * h * dfdx
 
 	// A = 0
-	// Set the upper triangle zero
-	for (u32 i = 0; i < m_particleCount; ++i)
-	{
-		for (u32 j = i; j < m_particleCount; ++j)
-		{
-			A(i, j).SetZero();
-		}
-	}
-	
+	A.SetZero();
+
 	// A += M
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{

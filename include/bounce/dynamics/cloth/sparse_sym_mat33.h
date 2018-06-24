@@ -26,7 +26,7 @@
 struct b3SparseSymMat33
 {
 	// 
-	b3SparseSymMat33(u32 m, u32 n);
+	b3SparseSymMat33(u32 m);
 	
 	//
 	~b3SparseSymMat33();
@@ -44,7 +44,6 @@ struct b3SparseSymMat33
 	void SetZero();
 
 	u32 M;
-	u32 N;
 	u32* row_ptrs; 
 	u32 value_capacity;
 	u32 value_count;
@@ -52,11 +51,9 @@ struct b3SparseSymMat33
 	u32* value_columns;
 };
 
-inline b3SparseSymMat33::b3SparseSymMat33(u32 m, u32 n)
+inline b3SparseSymMat33::b3SparseSymMat33(u32 m)
 {
-	B3_ASSERT(m == n);
 	M = m;
-	N = n;
 	row_ptrs = (u32*)b3Alloc((M + 1) * sizeof(u32));
 	memset(row_ptrs, 0, (M + 1) * sizeof(u32));
 	value_count = 0;
@@ -75,7 +72,7 @@ inline b3SparseSymMat33::~b3SparseSymMat33()
 inline const b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j) const
 {
 	B3_ASSERT(i < M);
-	B3_ASSERT(j < N);
+	B3_ASSERT(j < M);
 
 	// Ensure i, and j is on the upper triangle 
 	if (i > j)
@@ -103,7 +100,7 @@ inline const b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j) const
 inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 {	
 	B3_ASSERT(i < M);
-	B3_ASSERT(j < N);
+	B3_ASSERT(j < M);
 
 	// Ensure i, and j is on the upper triangle 
 	if (i > j)
@@ -140,9 +137,15 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 	}
 
 	// Shift the values
-	u32 right_count = value_count - row_value_begin - row_value_k;
-	memcpy(value_columns + row_value_begin + row_value_k + 1, value_columns + row_value_begin + row_value_k, right_count * sizeof(u32));
-	memcpy(values + row_value_begin + row_value_k + 1, values + row_value_begin + row_value_k, right_count * sizeof(b3Mat33));
+	for (u32 row_value = value_count; row_value > row_value_begin + row_value_k; --row_value)
+	{
+		values[row_value] = values[row_value - 1];
+		value_columns[row_value] = value_columns[row_value - 1];
+	}
+
+	// Insert the value
+	value_columns[row_value_begin + row_value_k] = j;
+	++value_count;
 
 	// Shift the row pointers 
 	for (u32 row_ptr_index = i + 1; row_ptr_index < M + 1; ++row_ptr_index)
@@ -150,17 +153,13 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 		++row_ptrs[row_ptr_index];
 	}
 
-	// Insert the value
-	value_columns[row_value_begin + row_value_k] = j;
-	++value_count;
-
-	// Return the value
+	// Return the inserted value
 	return values[row_value_begin + row_value_k];
 }
 
 inline void b3SparseSymMat33::Diagonal(b3DiagMat33& out) const
 {
-	B3_ASSERT(N == out.n);
+	B3_ASSERT(M == out.n);
 
 	for (u32 row = 0; row < M; ++row)
 	{
@@ -196,11 +195,11 @@ inline void b3SparseSymMat33::SetZero()
 
 inline void b3Mul(b3DenseVec3& out, const b3SparseSymMat33& A, const b3DenseVec3& v)
 {
-	B3_ASSERT(A.N == out.n);
+	B3_ASSERT(A.M == out.n);
 
 	out.SetZero();
 
-	for (u32 row = 0; row < A.N; ++row)
+	for (u32 row = 0; row < A.M; ++row)
 	{
 		u32 row_value_begin = A.row_ptrs[row];
 		u32 row_value_count = A.row_ptrs[row + 1] - row_value_begin;

@@ -51,7 +51,6 @@ protected:
 	friend class b3Cloth;
 	friend class b3ClothSolver;
 	friend class b3Particle;
-	friend class b3Force;
 
 	static b3Force* Create(const b3ForceDef* def);
 	static void Destroy(b3Force* f);
