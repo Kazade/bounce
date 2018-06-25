@@ -40,9 +40,6 @@ struct b3SparseSymMat33
 	// 
 	void Diagonal(b3DiagMat33& out) const;
 
-	// 
-	void SetZero();
-
 	u32 M;
 	u32* row_ptrs; 
 	u32 value_capacity;
@@ -137,6 +134,7 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 	}
 
 	// Shift the values
+	B3_ASSERT(value_count < value_capacity);
 	for (u32 row_value = value_count; row_value > row_value_begin + row_value_k; --row_value)
 	{
 		values[row_value] = values[row_value - 1];
@@ -145,6 +143,7 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 
 	// Insert the value
 	value_columns[row_value_begin + row_value_k] = j;
+	values[row_value_begin + row_value_k].SetZero();
 	++value_count;
 
 	// Shift the row pointers 
@@ -182,17 +181,6 @@ inline void b3SparseSymMat33::Diagonal(b3DiagMat33& out) const
 	}
 }
 
-inline void b3SparseSymMat33::SetZero()
-{
-	for (u32 i = 0; i < M; ++i)
-	{
-		for (u32 j = i; j < M; ++j)
-		{
-			(*this)(i, j).SetZero();
-		}
-	}
-}
-
 inline void b3Mul(b3DenseVec3& out, const b3SparseSymMat33& A, const b3DenseVec3& v)
 {
 	B3_ASSERT(A.M == out.n);
@@ -207,7 +195,6 @@ inline void b3Mul(b3DenseVec3& out, const b3SparseSymMat33& A, const b3DenseVec3
 		for (u32 row_value = 0; row_value < row_value_count; ++row_value)
 		{
 			u32 row_value_index = row_value_begin + row_value;
-
 			u32 row_value_column = A.value_columns[row_value_index];
 
 			out[row] += A.values[row_value_index] * v[row_value_column];

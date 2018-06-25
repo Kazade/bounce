@@ -150,12 +150,8 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	b3DenseVec3 sf(m_particleCount);
 	b3DenseVec3 sy(m_particleCount);
 	b3DenseVec3 sx0(m_particleCount);
-
 	b3SparseSymMat33 dfdx(m_particleCount);
-	dfdx.SetZero();
-
 	b3SparseSymMat33 dfdv(m_particleCount);
-	dfdv.SetZero();
 
 	m_solverData.x = &sx;
 	m_solverData.v = &sv;
@@ -284,7 +280,7 @@ void b3ClothSolver::Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b) const
 	// A = M - h * dfdv - h * h * dfdx
 
 	// A = 0
-	A.SetZero();
+	//A.SetZero();
 
 	// A += M
 	for (u32 i = 0; i < m_particleCount; ++i)
@@ -293,15 +289,37 @@ void b3ClothSolver::Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b) const
 	}
 
 	// A += - h * dfdv - h * h * dfdx
-	// Set the upper triangle
-	for (u32 i = 0; i < m_particleCount; ++i)
+	
+	// A += - h * dfdv 
+	for (u32 row = 0; row < dfdv.M; ++row)
 	{
-		for (u32 j = i; j < m_particleCount; ++j)
+		u32 row_value_begin = dfdv.row_ptrs[row];
+		u32 row_value_count = dfdv.row_ptrs[row + 1] - row_value_begin;
+
+		for (u32 row_value = 0; row_value < row_value_count; ++row_value)
 		{
-			A(i, j) += (-h * dfdv(i, j)) + (-h * h * dfdx(i, j));
+			u32 row_value_index = row_value_begin + row_value;
+			u32 row_value_column = dfdv.value_columns[row_value_index];
+			
+			A(row, row_value_column) += -h * dfdv.values[row_value_index];
 		}
 	}
 
+	// A += - h * h * dfdx
+	for (u32 row = 0; row < dfdx.M; ++row)
+	{
+		u32 row_value_begin = dfdx.row_ptrs[row];
+		u32 row_value_count = dfdx.row_ptrs[row + 1] - row_value_begin;
+
+		for (u32 row_value = 0; row_value < row_value_count; ++row_value)
+		{
+			u32 row_value_index = row_value_begin + row_value;
+			u32 row_value_column = dfdx.value_columns[row_value_index];
+
+			A(row, row_value_column) += -h * h * dfdx.values[row_value_index];
+		}
+	}
+	
 	// Compute b
 
 	// b = h * (f0 + h * dfdx * v + dfdx * y)
@@ -401,7 +419,7 @@ void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
 
 	// Maximum number of iterations.
 	// Stop at this iteration if diverged.
-	const u32 max_iterations = 100;
+	const u32 max_iterations = 20;
 
 	u32 iteration = 0;
 
