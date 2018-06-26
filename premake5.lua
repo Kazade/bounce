@@ -109,31 +109,44 @@ solution (solution_name)
 		includedirs { external_dir }
 		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.c" }	
 
-		if is_gfxapi("opengl_2") then
-			files 
-			{ 
-				external_dir .. "/glad_2/khrplatform.h",
-				external_dir .. "/glad_2/glad.h", 
-				external_dir .. "/glad_2/glad.c",
-			}
-		end
+		configuration { "windows" }		
+			if is_gfxapi("opengl_2") then
+				files 
+				{ 
+					external_dir .. "/glad_2/khrplatform.h",
+					external_dir .. "/glad_2/glad.h", 
+					external_dir .. "/glad_2/glad.c",
+				}
+			end
+			
+			if is_gfxapi("opengl_4") then
+				files 
+				{ 
+					external_dir .. "/glad_4/khrplatform.h",
+					external_dir .. "/glad_4/glad.h", 
+					external_dir .. "/glad_4/glad.c",
+				}
+			end
 		
-		if is_gfxapi("opengl_4") then
-			files 
-			{ 
-				external_dir .. "/glad_4/khrplatform.h",
-				external_dir .. "/glad_4/glad.h", 
-				external_dir .. "/glad_4/glad.c",
-			}
-		end
-		
-		configuration { "not windows", "not macosx" }
-			files 
-			{ 
-				external_dir .. "/glad_4/glad_glx.h", 
-				external_dir .. "/glad_4/glad_glx.c",
-			}	
-		 
+		configuration { "linux" }
+			if is_gfxapi("opengl_2") then
+				files 
+				{ 
+					external_dir .. "/glad_2/khrplatform.h",
+					external_dir .. "/glad_2/glad_glx.h", 
+					external_dir .. "/glad_2/glad_glx.c",
+				}
+			end
+			
+			if is_gfxapi("opengl_4") then
+				files 
+				{ 
+					external_dir .. "/glad_4/khrplatform.h",
+					external_dir .. "/glad_4/glad_glx.h", 
+					external_dir .. "/glad_4/glad_glx.c",
+				}
+			end
+			
 	project "glfw"
 		kind "StaticLib"
 		language "C"
@@ -179,7 +192,7 @@ solution (solution_name)
 			}
 
 		-- linux
-		configuration { "not windows", "not macosx" }
+		configuration { "linux" }
          	buildoptions { "-pthread" }
 			files 
 			{	 
@@ -323,11 +336,8 @@ solution (solution_name)
 		configuration { "windows" }
 			links { "opengl32", "winmm" }
 			
-		configuration { "not windows", "not macosx" }
-			links 
-			{ 
-				"GL", "rt", "m", "dl", "pthread"			
-			}
+		configuration { "linux" }
+			links { "GL", "X11", "Xrandr", "Xinerama", "Xcursor", "pthread", "dl" }
 		
 	project "hello_world"
 		kind "ConsoleApp"
