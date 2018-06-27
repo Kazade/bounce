@@ -58,10 +58,7 @@ protected:
 	b3Force() { }
 	virtual ~b3Force() { }
 
-	virtual void Initialize(const b3ClothSolverData* data) = 0;
 	virtual void Apply(const b3ClothSolverData* data) = 0;
-
-	// Solver shared
 
 	// Force type
 	b3ForceType m_type;

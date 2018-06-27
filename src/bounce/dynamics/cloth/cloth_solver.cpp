@@ -79,14 +79,6 @@ void b3ClothSolver::Add(b3Force* f)
 	m_forces[m_forceCount++] = f;
 }
 
-void b3ClothSolver::InitializeForces()
-{
-	for (u32 i = 0; i < m_forceCount; ++i)
-	{
-		m_forces[i]->Initialize(&m_solverData);
-	}
-}
-
 void b3ClothSolver::ApplyForces()
 {
 	for (u32 i = 0; i < m_forceCount; ++i)
@@ -95,8 +87,50 @@ void b3ClothSolver::ApplyForces()
 	}
 }
 
-void b3ClothSolver::InitializeConstraints()
+void b3AccelerationConstraint::Apply(const b3ClothSolverData* data)
 {
+	(*data->z)[i1] = z;
+
+	b3Mat33 I; I.SetIdentity();
+
+	switch (ndof)
+	{
+	case 3:
+	{
+		(*data->S)[i1] = I;
+		break;
+	}
+	case 2:
+	{
+		(*data->S)[i1] = I - b3Outer(p, p);
+		break;
+	}
+	case 1:
+	{
+		(*data->S)[i1] = I - b3Outer(p, p) - b3Outer(q, q);
+		break;
+	}
+	case 0:
+	{
+		(*data->S)[i1].SetZero();
+		break;
+	}
+	default:
+	{
+		B3_ASSERT(false);
+		break;
+	}
+	}
+}
+
+void b3ClothSolver::ApplyConstraints()
+{
+	b3DiagMat33& S = *m_solverData.S;
+	b3DenseVec3& z = *m_solverData.z;
+
+	S.SetIdentity();
+	z.SetZero();
+
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
 		b3Particle* p = m_particles[i];
@@ -141,6 +175,11 @@ void b3ClothSolver::InitializeConstraints()
 			}
 		}
 	}
+
+	for (u32 i = 0; i < m_constraintCount; ++i)
+	{
+		m_constraints[i].Apply(&m_solverData);
+	}
 }
 
 void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
@@ -152,6 +191,8 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	b3DenseVec3 sx0(m_particleCount);
 	b3SparseSymMat33 dfdx(m_particleCount);
 	b3SparseSymMat33 dfdv(m_particleCount);
+	b3DiagMat33 S(m_particleCount);
+	b3DenseVec3 z(m_particleCount);
 
 	m_solverData.x = &sx;
 	m_solverData.v = &sv;
@@ -159,6 +200,8 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	m_solverData.y = &sy;
 	m_solverData.dfdx = &dfdx;
 	m_solverData.dfdv = &dfdv;
+	m_solverData.S = &S;
+	m_solverData.z = &z;
 	m_solverData.dt = dt;
 	m_solverData.invdt = 1.0f / dt;
 
@@ -188,19 +231,11 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		sy[p->m_solverId] -= c->s * c->n;
 	}
 
-	// Initialize internal forces
-	InitializeForces();
-
 	// Apply internal forces
 	ApplyForces();
 
-	// Initialize constraints
-	InitializeConstraints();
-
-	// Compute S, z
-	b3DiagMat33 S(m_particleCount);
-	b3DenseVec3 z(m_particleCount);
-	Compute_S_z(S, z);
+	// Apply constraints
+	ApplyConstraints();
 
 	// Solve Ax = b, where
 	// A = M - h * dfdv - h * h * dfdx
@@ -267,7 +302,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 void b3ClothSolver::Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b) const
 {
 	B3_PROFILE("Compute A, b");
-	
+
 	b3DenseVec3& x = *m_solverData.x;
 	b3DenseVec3& v = *m_solverData.v;
 	b3DenseVec3& f = *m_solverData.f;
@@ -289,7 +324,7 @@ void b3ClothSolver::Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b) const
 	}
 
 	// A += - h * dfdv - h * h * dfdx
-	
+
 	// A += - h * dfdv 
 	for (u32 row = 0; row < dfdv.M; ++row)
 	{
@@ -300,7 +335,7 @@ void b3ClothSolver::Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b) const
 		{
 			u32 row_value_index = row_value_begin + row_value;
 			u32 row_value_column = dfdv.value_columns[row_value_index];
-			
+
 			A(row, row_value_column) += -h * dfdv.values[row_value_index];
 		}
 	}
@@ -319,48 +354,11 @@ void b3ClothSolver::Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b) const
 			A(row, row_value_column) += -h * h * dfdx.values[row_value_index];
 		}
 	}
-	
+
 	// Compute b
 
 	// b = h * (f0 + h * dfdx * v + dfdx * y)
 	b = h * (f + h * (dfdx * v) + dfdx * y);
-}
-
-void b3ClothSolver::Compute_S_z(b3DiagMat33& S, b3DenseVec3& z)
-{
-	S.SetIdentity();
-	z.SetZero();
-
-	for (u32 i = 0; i < m_constraintCount; ++i)
-	{
-		b3AccelerationConstraint* ac = m_constraints + i;
-		u32 ip = ac->i1;
-		u32 ndof = ac->ndof;
-		b3Vec3 p = ac->p;
-		b3Vec3 q = ac->q;
-		b3Vec3 cz = ac->z;
-
-		z[ip] = cz;
-
-		if (ndof == 2)
-		{
-			b3Mat33 I; I.SetIdentity();
-
-			S[ip] = I - b3Outer(p, p);
-		}
-
-		if (ndof == 1)
-		{
-			b3Mat33 I; I.SetIdentity();
-
-			S[ip] = I - b3Outer(p, p) - b3Outer(q, q);
-		}
-
-		if (ndof == 0)
-		{
-			S[ip].SetZero();
-		}
-	}
 }
 
 void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
@@ -415,7 +413,7 @@ void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
 	float32 delta_new = b3Dot(r, p);
 
 	// Set the tolerance.
-	const float32 tolerance = 1.e-4f;
+	const float32 tolerance = 10.0f * B3_EPSILON;
 
 	// Maximum number of iterations.
 	// Stop at this iteration if diverged.

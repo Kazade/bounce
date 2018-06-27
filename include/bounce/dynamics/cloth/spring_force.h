@@ -73,9 +73,7 @@ private:
 
 	b3SpringForce(const b3SpringForceDef* def);
 	~b3SpringForce();
-	
-	void Initialize(const b3ClothSolverData* data);
-	
+
 	void Apply(const b3ClothSolverData* data);
 
 	// Solver shared
@@ -95,16 +93,8 @@ private:
 	// Damping stiffness
 	float32 m_kd;
 
-	// Solver temp
-
-	// Force (f_1 entry)
+	// Applied internal force (on particle 1)
 	b3Vec3 m_f;
-
-	// Jacobian (J_11 entry)
-	b3Mat33 m_Jx;
-	
-	// Jacobian (J_11 entry)
-	b3Mat33 m_Jv;
 };
 
 inline b3Particle * b3SpringForce::GetParticle1()

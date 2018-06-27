@@ -50,10 +50,13 @@ b3SpringForce::~b3SpringForce()
 
 }
 
-void b3SpringForce::Initialize(const b3ClothSolverData* data)
+void b3SpringForce::Apply(const b3ClothSolverData* data)
 {
 	b3DenseVec3& x = *data->x;
 	b3DenseVec3& v = *data->v;
+	b3DenseVec3& f = *data->f;
+	b3SparseSymMat33& dfdx = *data->dfdx;
+	b3SparseSymMat33& dfdv = *data->dfdv;
 
 	u32 i1 = m_p1->m_solverId;
 	u32 i2 = m_p2->m_solverId;
@@ -70,6 +73,8 @@ void b3SpringForce::Initialize(const b3ClothSolverData* data)
 
 	float32 L = b3Length(dx);
 
+	b3Mat33 Jx;
+
 	if (L >= m_L0)
 	{
 		b3Vec3 n = dx / L;
@@ -78,34 +83,24 @@ void b3SpringForce::Initialize(const b3ClothSolverData* data)
 		m_f = -m_ks * (L - m_L0) * n;
 
 		// Jacobian
-		m_Jx = -m_ks * (b3Outer(dx, dx) + (1.0f - m_L0 / L) * (I - b3Outer(dx, dx)));
+		Jx = -m_ks * (b3Outer(dx, dx) + (1.0f - m_L0 / L) * (I - b3Outer(dx, dx)));
 	}
 	else
 	{
 		m_f.SetZero();
-		m_Jx.SetZero();
+		Jx.SetZero();
 	}
 
 	// Damping
 	b3Vec3 dv = v1 - v2;
 
 	m_f += -m_kd * dv;
-	m_Jv = -m_kd * I;
-}
-
-void b3SpringForce::Apply(const b3ClothSolverData* data)
-{
-	b3DenseVec3& f = *data->f;
-	b3SparseSymMat33& dfdx = *data->dfdx;
-	b3SparseSymMat33& dfdv = *data->dfdv;
-
-	u32 i1 = m_p1->m_solverId;
-	u32 i2 = m_p2->m_solverId;
+	b3Mat33 Jv = -m_kd * I;
 
 	f[i1] += m_f;
 	f[i2] -= m_f;
 
-	b3Mat33 Jx11 = m_Jx;
+	b3Mat33 Jx11 = Jx;
 	b3Mat33 Jx12 = -Jx11;
 	//b3Mat33 Jx21 = Jx12;
 	b3Mat33 Jx22 = Jx11;
@@ -115,7 +110,7 @@ void b3SpringForce::Apply(const b3ClothSolverData* data)
 	//dfdx(i2, i1) += Jx21;
 	dfdx(i2, i2) += Jx22;
 
-	b3Mat33 Jv11 = m_Jv;
+	b3Mat33 Jv11 = Jv;
 	b3Mat33 Jv12 = -Jv11;
 	//b3Mat33 Jv21 = Jv12;
 	b3Mat33 Jv22 = Jv11;

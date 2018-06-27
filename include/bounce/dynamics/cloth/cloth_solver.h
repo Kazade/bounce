@@ -48,6 +48,8 @@ struct b3ClothSolverData
 	b3DenseVec3* y;
 	b3SparseSymMat33* dfdx;
 	b3SparseSymMat33* dfdv;
+	b3DiagMat33* S;
+	b3DenseVec3* z;
 	float32 dt;
 	float32 invdt;
 };
@@ -57,6 +59,8 @@ struct b3AccelerationConstraint
 	u32 i1;
 	u32 ndof;
 	b3Vec3 p, q, z;
+
+	void Apply(const b3ClothSolverData* data);
 };
 
 class b3ClothSolver
@@ -71,20 +75,14 @@ public:
 
 	void Solve(float32 dt, const b3Vec3& gravity);
 private:
-	// Initialize forces.
-	void InitializeForces();
-	
 	// Apply forces.
 	void ApplyForces();
 	
-	// Initialize constraints.
-	void InitializeConstraints();
+	// Apply constraints.
+	void ApplyConstraints();
 
-	// Compute A and b in Ax = b
+	// Compute A and b in Ax = b.
 	void Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b) const;
-
-	// Compute S and z.
-	void Compute_S_z(b3DiagMat33& S, b3DenseVec3& z);
 
 	// Solve Ax = b.
 	void Solve(b3DenseVec3& x, u32& iterations, const b3SparseSymMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const;
