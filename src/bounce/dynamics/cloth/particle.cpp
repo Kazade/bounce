@@ -30,12 +30,16 @@ void b3FrictionForce::Apply(const b3ClothSolverData* data)
 
 	u32 i = m_p->m_solverId;
 
-	f[i] += -m_kd * v[i];
-	
-	b3Mat33 I; I.SetIdentity();
-	b3Mat33 Jv = -m_kd * I;
+	if (m_kd > 0.0f)
+	{
+		f[i] += -m_kd * v[i];
 
-	dfdv(i, i) += Jv;
+		b3Mat33 I; I.SetIdentity();
+		
+		b3Mat33 Jv = -m_kd * I;
+		
+		dfdv(i, i) += Jv;
+	}
 }
 
 b3Particle::b3Particle(const b3ParticleDef& def, b3Cloth* cloth)
@@ -83,6 +87,8 @@ void b3Particle::SetType(b3ParticleType type)
 		m_velocity.SetZero();
 		m_translation.SetZero();
 
+		m_contact.f1_active = false;
+		m_contact.f2_active = false;
 		m_contact.n_active = false;
 		m_contact.t1_active = false;
 		m_contact.t2_active = false;
