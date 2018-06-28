@@ -79,9 +79,9 @@ void b3SpringForce::Apply(const b3ClothSolverData* data)
 
 		if (L >= m_L0)
 		{
+			// Apply tension
 			b3Vec3 n = dx / L;
 
-			// Apply tension
 			m_f += -m_ks * (L - m_L0) * n;
 
 			// Jacobian
