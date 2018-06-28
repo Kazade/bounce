@@ -18,6 +18,25 @@
 
 #include <bounce/dynamics/cloth/particle.h>
 #include <bounce/dynamics/cloth/cloth.h>
+#include <bounce/dynamics/cloth/cloth_solver.h>
+#include <bounce/dynamics/cloth/dense_vec3.h>
+#include <bounce/dynamics/cloth/sparse_sym_mat33.h>
+
+void b3FrictionForce::Apply(const b3ClothSolverData* data)
+{
+	b3DenseVec3& v = *data->v;
+	b3DenseVec3& f = *data->f;
+	b3SparseSymMat33& dfdv = *data->dfdv;
+
+	u32 i = m_p->m_solverId;
+
+	f[i] += -m_kd * v[i];
+	
+	b3Mat33 I; I.SetIdentity();
+	b3Mat33 Jv = -m_kd * I;
+
+	dfdv(i, i) += Jv;
+}
 
 b3Particle::b3Particle(const b3ParticleDef& def, b3Cloth* cloth)
 {
@@ -34,6 +53,8 @@ b3Particle::b3Particle(const b3ParticleDef& def, b3Cloth* cloth)
 	m_x.SetZero();
 	m_vertex = ~0;
 
+	m_contact.f1_active = false;
+	m_contact.f2_active = false;
 	m_contact.n_active = false;
 	m_contact.t1_active = false;
 	m_contact.t2_active = false;

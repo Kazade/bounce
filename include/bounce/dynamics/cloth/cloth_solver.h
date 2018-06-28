@@ -26,7 +26,7 @@ class b3StackAllocator;
 
 class b3Particle;
 class b3Force;
-struct b3BodyContact;
+class b3BodyContact;
 
 struct b3DenseVec3;
 struct b3DiagMat33;

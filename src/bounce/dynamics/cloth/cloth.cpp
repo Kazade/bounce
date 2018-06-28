@@ -33,8 +33,6 @@
 
 #define B3_CLOTH_BENDING 0
 
-#define B3_CLOTH_FRICTION 1
-
 static B3_FORCE_INLINE u32 b3NextIndex(u32 i)
 {
 	return i + 1 < 3 ? i + 1 : 0;
@@ -217,7 +215,7 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) : m_particleBlocks(sizeo
 
 		b3SpringForceDef fd;
 		fd.Initialize(p1, p2, def.bending, def.damping);
-		
+
 		CreateForce(fd);
 	}
 
@@ -236,7 +234,7 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) : m_particleBlocks(sizeo
 
 		b3SpringForceDef fd;
 		fd.Initialize(p1, p2, def.structural, def.damping);
-		
+
 		CreateForce(fd);
 	}
 }
@@ -485,6 +483,8 @@ void b3Cloth::UpdateContacts()
 		b3BodyContact c0 = *c;
 
 		// Create a new contact
+		c->f1_active = false;
+		c->f2_active = false;
 		c->n_active = false;
 		c->t1_active = false;
 		c->t2_active = false;
@@ -565,8 +565,6 @@ void b3Cloth::UpdateContacts()
 			continue;
 		}
 
-#if B3_CLOTH_FRICTION == 1
-
 		// A friction force requires an associated normal force.
 		if (c0.n_active == false)
 		{
@@ -577,6 +575,7 @@ void b3Cloth::UpdateContacts()
 		b3Vec3 n = c->n;
 		float32 u = s->GetFriction();
 		float32 normalForce = c0.Fn;
+		float32 maxFrictionForce = u * normalForce;
 
 		// Relative velocity
 		b3Vec3 dv = p->m_velocity;
@@ -592,12 +591,6 @@ void b3Cloth::UpdateContacts()
 
 			c->t1 = t1;
 			c->t2 = t2;
-		}
-		else
-		{
-			c->t1_active = true;
-			c->t2_active = true;
-			continue;
 		}
 
 		b3Vec3 ts[2];
@@ -616,6 +609,18 @@ void b3Cloth::UpdateContacts()
 		Ft0[0] = c0.Ft1;
 		Ft0[1] = c0.Ft2;
 
+		bool f_active[2];
+		f_active[0] = c->f1_active;
+		f_active[1] = c->f2_active;
+
+		bool f_active0[2];
+		f_active0[0] = c0.f1_active;
+		f_active0[1] = c0.f2_active;
+
+		b3FrictionForce* sf[2];
+		sf[0] = &c->f1;
+		sf[1] = &c->f2;
+
 		for (u32 k = 0; k < 2; ++k)
 		{
 			b3Vec3 t = ts[k];
@@ -628,27 +633,33 @@ void b3Cloth::UpdateContacts()
 				// Lock particle on surface
 				t_active[k] = true;
 			}
-
+			
 			if (t_active0[k] == true && t_active[k] == true)
 			{
-				// The contact persists
-				float32 maxForce = u * normalForce;
+				float32 frictionForce = Ft0[k];
 
-				if (Ft0[k] * Ft0[k] > maxForce * maxForce)
+				// Dynamic friction
+				if (frictionForce * frictionForce > maxFrictionForce * maxFrictionForce)
 				{
 					// Unlock particle off surface
-					t_active[k] = false;
+					//t_active[k] = false;
+
+					// Apply dynamic friction
+					//f_active[k] = true;
+
+					//sf[k]->m_type = e_frictionForce;
+					//sf[k]->m_p = p;
+					//sf[k]->m_kd = 100.0f;
 				}
 			}
 		}
 
+		c->f1_active = f_active[0];
+		c->f2_active = f_active[1];
+
 		c->t1_active = t_active[0];
 		c->t2_active = t_active[1];
-
-#endif
-
 	}
-
 }
 
 void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
@@ -659,7 +670,7 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 	b3ClothSolverDef solverDef;
 	solverDef.stack = &m_world->m_stackAllocator;
 	solverDef.particleCapacity = m_particleList.m_count;
-	solverDef.forceCapacity = m_forceList.m_count;
+	solverDef.forceCapacity = m_forceList.m_count + (2 * m_particleList.m_count);
 	solverDef.contactCapacity = m_particleList.m_count;
 
 	b3ClothSolver solver(solverDef);
@@ -676,6 +687,16 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 
 	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
 	{
+		if (p->m_contact.f1_active)
+		{
+			solver.Add(&p->m_contact.f1);
+		}
+
+		if (p->m_contact.f2_active)
+		{
+			solver.Add(&p->m_contact.f2);
+		}
+
 		if (p->m_contact.n_active)
 		{
 			solver.Add(&p->m_contact);

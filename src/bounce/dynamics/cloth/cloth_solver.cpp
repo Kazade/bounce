@@ -268,11 +268,8 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	{
 		m_particles[i]->m_position = sx[i];
 		m_particles[i]->m_velocity = sv[i];
-	}
-
-	// Cache x to improve convergence
-	for (u32 i = 0; i < m_particleCount; ++i)
-	{
+		
+		// Cache x to improve convergence
 		m_particles[i]->m_x = x[i];
 	}
 

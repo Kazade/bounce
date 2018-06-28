@@ -21,6 +21,7 @@
 
 #include <bounce/common/math/transform.h>
 #include <bounce/common/template/list.h>
+#include <bounce/dynamics/cloth/force.h>
 
 class b3Shape;
 class b3Cloth;
@@ -57,15 +58,43 @@ struct b3ParticleDef
 	void* userData;
 };
 
-// A contact between a particle and a solid
-struct b3BodyContact
+class b3FrictionForce : public b3Force
 {
+public:
+	b3FrictionForce() { }
+
+	~b3FrictionForce() { }
+	
+	void Apply(const b3ClothSolverData* data);
+
+	b3Particle* m_p;
+	float32 m_kd;
+};
+
+// A contact between a particle and a solid
+class b3BodyContact
+{
+public:
+	b3BodyContact()
+	{
+
+	}
+
+	~b3BodyContact()
+	{
+
+	}
+
 	b3Particle* p1;
 	b3Shape* s2;
 	float32 s;
+
+	bool f1_active, f2_active;
+	b3FrictionForce f1, f2;
+	
+	bool n_active, t1_active, t2_active;
 	b3Vec3 n, t1, t2;
 	float32 Fn, Ft1, Ft2;
-	bool n_active, t1_active, t2_active;
 };
 
 // A cloth particle.
@@ -115,6 +144,7 @@ private:
 	friend class b3ClothSolver;
 	friend class b3Force;
 	friend class b3SpringForce;
+	friend class b3FrictionForce;
 
 	b3Particle(const b3ParticleDef& def, b3Cloth* cloth);
 	~b3Particle();
