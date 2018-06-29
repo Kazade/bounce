@@ -129,7 +129,7 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 		}
 	}
 
-	// Find insert position
+	// Select insert position
 	u32 row_value_position = 0;
 	for (u32 row_value = 0; row_value < row_value_count; ++row_value)
 	{
@@ -169,25 +169,9 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 inline void b3SparseSymMat33::Diagonal(b3DiagMat33& out) const
 {
 	B3_ASSERT(M == out.n);
-
 	for (u32 row = 0; row < M; ++row)
 	{
-		out[row].SetZero();
-
-		u32 row_value_begin = row_ptrs[row];
-		u32 row_value_count = row_ptrs[row + 1] - row_value_begin;
-
-		for (u32 row_value = 0; row_value < row_value_count; ++row_value)
-		{
-			u32 row_value_index = row_value_begin + row_value;
-			u32 row_value_column = value_columns[row_value_index];
-
-			if (row == row_value_column)
-			{
-				out[row] = values[row_value_index];
-				break;
-			}
-		}
+		out[row] = (*this)(row, row);
 	}
 }
 
