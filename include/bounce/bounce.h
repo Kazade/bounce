@@ -72,4 +72,7 @@
 #include <bounce/dynamics/world.h>
 #include <bounce/dynamics/world_listeners.h>
 
+#include <bounce/controllers/cloth_dragger.h>
+#include <bounce/controllers/body_dragger.h>
+
 #endif

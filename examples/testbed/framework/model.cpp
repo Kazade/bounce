@@ -76,21 +76,21 @@ void Model::Command_Release_Key(int button)
 
 void Model::Command_Press_Mouse_Left(const b3Vec2& ps)
 {
-	Ray3 pw = m_camera.ConvertScreenToWorld(ps);
+	b3Ray3 pw = m_camera.ConvertScreenToWorld(ps);
 
 	m_test->MouseLeftDown(pw);
 }
 
 void Model::Command_Release_Mouse_Left(const b3Vec2& ps)
 {
-	Ray3 pw = m_camera.ConvertScreenToWorld(ps);
+	b3Ray3 pw = m_camera.ConvertScreenToWorld(ps);
 
 	m_test->MouseLeftUp(pw);
 }
 
 void Model::Command_Move_Cursor(const b3Vec2& ps)
 {
-	Ray3 pw = m_camera.ConvertScreenToWorld(ps);
+	b3Ray3 pw = m_camera.ConvertScreenToWorld(ps);
 
 	m_test->MouseMove(pw);
 }

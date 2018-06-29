@@ -28,27 +28,6 @@ struct DrawWire;
 struct DrawSolid;
 
 //
-struct Ray3
-{
-	b3Vec3 A() const;
-	b3Vec3 B() const;
-
-	b3Vec3 direction;
-	b3Vec3 origin;
-	float32 fraction;
-};
-
-inline b3Vec3 Ray3::A() const
-{
-	return origin;
-}
-
-inline b3Vec3 Ray3::B() const
-{
-	return origin + fraction * direction;
-}
-
-//
 class Camera
 {
 public:
@@ -61,7 +40,7 @@ public:
 	b3Transform BuildWorldTransform() const;
 	
 	b3Vec2 ConvertWorldToScreen(const b3Vec3& pw) const;
-	Ray3 ConvertScreenToWorld(const b3Vec2& ps) const;
+	b3Ray3 ConvertScreenToWorld(const b3Vec2& ps) const;
 
 	float32 m_zoom;
 	b3Vec3 m_center;

@@ -115,7 +115,7 @@ void Test::Step()
 	}
 }
 
-void Test::MouseMove(const Ray3& pw)
+void Test::MouseMove(const b3Ray3& pw)
 {
 	m_bodyRay = pw;
 
@@ -125,7 +125,7 @@ void Test::MouseMove(const Ray3& pw)
 	}
 }
 
-void Test::MouseLeftDown(const Ray3& pw)
+void Test::MouseLeftDown(const b3Ray3& pw)
 {
 	if (m_bodyDragger.IsSelected() == false)
 	{
@@ -136,7 +136,7 @@ void Test::MouseLeftDown(const Ray3& pw)
 	}
 }
 
-void Test::MouseLeftUp(const Ray3& pw)
+void Test::MouseLeftUp(const b3Ray3& pw)
 {
 	if (m_bodyDragger.IsSelected() == true)
 	{

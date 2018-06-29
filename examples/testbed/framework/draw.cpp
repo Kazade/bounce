@@ -116,7 +116,7 @@ b3Vec2 Camera::ConvertWorldToScreen(const b3Vec3& pw3) const
 	return ps;
 }
 
-Ray3 Camera::ConvertScreenToWorld(const b3Vec2& ps) const
+b3Ray3 Camera::ConvertScreenToWorld(const b3Vec2& ps) const
 {
 	float32 w = m_width, h = m_height;
 	
@@ -133,7 +133,7 @@ Ray3 Camera::ConvertScreenToWorld(const b3Vec2& ps) const
 	b3Vec3 vw = xf.rotation * vv;
 	vw.Normalize();
 
-	Ray3 rw;
+	b3Ray3 rw;
 	rw.direction = vw;
 	rw.origin = xf.position;
 	rw.fraction = m_zFar;

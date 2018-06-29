@@ -22,6 +22,24 @@
 #include <bounce/common/math/math.h>
 #include <bounce/common/math/transform.h>
 
+// A ray.
+struct b3Ray3
+{
+	b3Vec3 A() const
+	{
+		return origin;
+	}
+	
+	b3Vec3 B() const
+	{
+		return origin + fraction * direction;
+	}
+
+	b3Vec3 direction;
+	b3Vec3 origin;
+	float32 fraction;
+};
+
 // A plane in constant normal form.
 // dot(n, p) - d = 0.
 struct b3Plane
