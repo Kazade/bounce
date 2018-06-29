@@ -483,8 +483,7 @@ void b3Cloth::UpdateContacts()
 		b3BodyContact c0 = *c;
 
 		// Create a new contact
-		c->f1_active = false;
-		c->f2_active = false;
+		c->f_active = false;
 		c->n_active = false;
 		c->t1_active = false;
 		c->t2_active = false;
@@ -591,6 +590,11 @@ void b3Cloth::UpdateContacts()
 
 			c->t1 = t1;
 			c->t2 = t2;
+
+			//c->f_active = true;
+			//c->f.m_type = e_frictionForce;
+			//c->f.m_p = p;
+			//c->f.m_kd = 10.0f;
 		}
 
 		b3Vec3 ts[2];
@@ -609,18 +613,6 @@ void b3Cloth::UpdateContacts()
 		Ft0[0] = c0.Ft1;
 		Ft0[1] = c0.Ft2;
 
-		bool f_active[2];
-		f_active[0] = c->f1_active;
-		f_active[1] = c->f2_active;
-
-		bool f_active0[2];
-		f_active0[0] = c0.f1_active;
-		f_active0[1] = c0.f2_active;
-
-		b3FrictionForce* sf[2];
-		sf[0] = &c->f1;
-		sf[1] = &c->f2;
-
 		for (u32 k = 0; k < 2; ++k)
 		{
 			b3Vec3 t = ts[k];
@@ -633,29 +625,7 @@ void b3Cloth::UpdateContacts()
 				// Lock particle on surface
 				t_active[k] = true;
 			}
-			
-			if (t_active0[k] == true && t_active[k] == true)
-			{
-				float32 frictionForce = Ft0[k];
-
-				// Dynamic friction
-				if (frictionForce * frictionForce > maxFrictionForce * maxFrictionForce)
-				{
-					// Unlock particle off surface
-					//t_active[k] = false;
-
-					// Apply dynamic friction
-					//f_active[k] = true;
-
-					//sf[k]->m_type = e_frictionForce;
-					//sf[k]->m_p = p;
-					//sf[k]->m_kd = 100.0f;
-				}
-			}
 		}
-
-		c->f1_active = f_active[0];
-		c->f2_active = f_active[1];
 
 		c->t1_active = t_active[0];
 		c->t2_active = t_active[1];
@@ -687,14 +657,9 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 
 	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
 	{
-		if (p->m_contact.f1_active)
+		if (p->m_contact.f_active)
 		{
-			solver.Add(&p->m_contact.f1);
-		}
-
-		if (p->m_contact.f2_active)
-		{
-			solver.Add(&p->m_contact.f2);
+			solver.Add(&p->m_contact.f);
 		}
 
 		if (p->m_contact.n_active)
@@ -706,8 +671,7 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 	// Solve
 	solver.Solve(dt, gravity);
 
-	// Clear external applied forces
-	// Clear translations
+	// Clear external applied forces and translations
 	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
 	{
 		p->m_force.SetZero();

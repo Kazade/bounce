@@ -85,6 +85,11 @@ inline const b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j) const
 		u32 row_value_index = row_value_begin + row_value;
 		u32 row_value_column = value_columns[row_value_index];
 
+		if (row_value_column < j)
+		{
+			break;
+		}
+
 		if (row_value_column == j)
 		{
 			return values[row_value_index];
@@ -112,7 +117,12 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 	{
 		u32 row_value_index = row_value_begin + row_value;
 		u32 row_value_column = value_columns[row_value_index];
-		
+
+		if (row_value_column < j)
+		{
+			break;
+		}
+
 		if (row_value_column == j)
 		{
 			return values[row_value_index];
@@ -120,30 +130,30 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 	}
 
 	// Find insert position
-	u32 row_value_k = 0;
+	u32 row_value_position = 0;
 	for (u32 row_value = 0; row_value < row_value_count; ++row_value)
 	{
 		u32 row_value_index = row_value_begin + row_value;
 		u32 row_value_column = value_columns[row_value_index];
 		
-		if (row_value_column >= j)
+		if (row_value_column > j)
 		{
-			row_value_k = row_value;
+			row_value_position = row_value;
 			break;
 		}
 	}
 
 	// Shift the values
 	B3_ASSERT(value_count < value_capacity);
-	for (u32 row_value = value_count; row_value > row_value_begin + row_value_k; --row_value)
+	for (u32 row_value = value_count; row_value > row_value_begin + row_value_position; --row_value)
 	{
 		values[row_value] = values[row_value - 1];
 		value_columns[row_value] = value_columns[row_value - 1];
 	}
 
 	// Insert the value
-	value_columns[row_value_begin + row_value_k] = j;
-	values[row_value_begin + row_value_k].SetZero();
+	value_columns[row_value_begin + row_value_position] = j;
+	values[row_value_begin + row_value_position].SetZero();
 	++value_count;
 
 	// Shift the row pointers 
@@ -153,7 +163,7 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 	}
 
 	// Return the inserted value
-	return values[row_value_begin + row_value_k];
+	return values[row_value_begin + row_value_position];
 }
 
 inline void b3SparseSymMat33::Diagonal(b3DiagMat33& out) const

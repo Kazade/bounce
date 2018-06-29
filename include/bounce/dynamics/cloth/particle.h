@@ -89,8 +89,8 @@ public:
 	b3Shape* s2;
 	float32 s;
 
-	bool f1_active, f2_active;
-	b3FrictionForce f1, f2;
+	bool f_active;
+	b3FrictionForce f;
 	
 	bool n_active, t1_active, t2_active;
 	b3Vec3 n, t1, t2;

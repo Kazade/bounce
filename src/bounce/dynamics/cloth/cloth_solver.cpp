@@ -223,7 +223,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		sx0[i] = p->m_x;
 	}
 
-	// Apply contact position correction
+	// Apply internal translations
 	for (u32 i = 0; i < m_contactCount; ++i)
 	{
 		b3BodyContact* c = m_contacts[i];
