@@ -51,7 +51,7 @@ public:
 		return 1.0f;
 	}
 	
-	b3ShapeRayCastSingleOutput hit;
+	b3RayCastSingleShapeOutput hit;
 };
 
 class Test : public b3ContactListener

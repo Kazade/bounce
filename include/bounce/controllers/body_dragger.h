@@ -48,7 +48,7 @@ public:
 	{
 		B3_ASSERT(m_mouseJoint == nullptr);
 
-		b3ShapeRayCastSingleOutput out;
+		b3RayCastSingleShapeOutput out;
 		if (m_world->RayCastSingleShape(&out, m_ray->A(), m_ray->B()) == false)
 		{
 			return false;

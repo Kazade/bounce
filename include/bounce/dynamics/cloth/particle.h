@@ -58,32 +58,24 @@ struct b3ParticleDef
 	void* userData;
 };
 
+//
 class b3FrictionForce : public b3Force
 {
 public:
 	b3FrictionForce() { }
-
 	~b3FrictionForce() { }
 	
 	void Apply(const b3ClothSolverData* data);
 
 	b3Particle* m_p;
-	float32 m_kd;
 };
 
 // A contact between a particle and a solid
 class b3BodyContact
 {
 public:
-	b3BodyContact()
-	{
-
-	}
-
-	~b3BodyContact()
-	{
-
-	}
+	b3BodyContact() { }
+	~b3BodyContact() { }
 
 	b3Particle* p1;
 	b3Shape* s2;

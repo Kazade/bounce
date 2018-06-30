@@ -178,7 +178,7 @@ public:
 
 	void CastRay(const b3Vec3 p1, const b3Vec3 p2) const
 	{
-		b3ShapeRayCastSingleOutput out;
+		b3RayCastSingleShapeOutput out;
 		if (m_world.RayCastSingleShape(&out, p1, p2))
 		{
 			g_draw->DrawSegment(p1, out.point, b3Color_green);

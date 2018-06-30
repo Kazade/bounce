@@ -352,7 +352,7 @@ void b3Cloth::RayCast(b3RayCastListener* listener, const b3RayCastInput* input) 
 {
 	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
 	{
-		b3ClothRayCastSingleOutput subOutput;
+		b3RayCastSingleClothOutput subOutput;
 		if (RayCast(&subOutput, input, i))
 		{
 			float32 newFraction = listener->ReportCloth(subOutput.cloth, subOutput.point, subOutput.normal, subOutput.fraction, subOutput.triangle);
@@ -366,7 +366,7 @@ void b3Cloth::RayCast(b3RayCastListener* listener, const b3RayCastInput* input) 
 	}
 }
 
-bool b3Cloth::RayCastSingle(b3ClothRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
+bool b3Cloth::RayCastSingle(b3RayCastSingleClothOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
 {
 	b3RayCastInput input;
 	input.p1 = p1;
@@ -378,7 +378,7 @@ bool b3Cloth::RayCastSingle(b3ClothRayCastSingleOutput* output, const b3Vec3& p1
 
 	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
 	{
-		b3ClothRayCastSingleOutput subOutput;
+		b3RayCastSingleClothOutput subOutput;
 		if (RayCast(&subOutput, &input, i))
 		{
 			if (subOutput.fraction < output->fraction)
@@ -396,7 +396,7 @@ bool b3Cloth::RayCastSingle(b3ClothRayCastSingleOutput* output, const b3Vec3& p1
 	return false;
 }
 
-bool b3Cloth::RayCast(b3ClothRayCastSingleOutput* output, const b3RayCastInput* input, u32 triangleIndex) const
+bool b3Cloth::RayCast(b3RayCastSingleClothOutput* output, const b3RayCastInput* input, u32 triangleIndex) const
 {
 	B3_ASSERT(triangleIndex < m_mesh->triangleCount);
 	b3ClothMeshTriangle* triangle = m_mesh->triangles + triangleIndex;

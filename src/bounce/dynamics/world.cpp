@@ -426,7 +426,7 @@ void b3World::RayCastShape(b3RayCastListener* listener, const b3Vec3& p1, const 
 	m_contactMan.m_broadPhase.RayCast(&callback, input);
 }
 
-struct b3ShapeRayCastSingleCallback
+struct b3RayCastSingleShapeCallback
 {
 	float32 Report(const b3RayCastInput& input, u32 proxyId)
 	{
@@ -458,14 +458,14 @@ struct b3ShapeRayCastSingleCallback
 	const b3BroadPhase* broadPhase;
 };
 
-bool b3World::RayCastSingleShape(b3ShapeRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
+bool b3World::RayCastSingleShape(b3RayCastSingleShapeOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
 {
 	b3RayCastInput input;
 	input.p1 = p1;
 	input.p2 = p2;
 	input.maxFraction = 1.0f;
 
-	b3ShapeRayCastSingleCallback callback;
+	b3RayCastSingleShapeCallback callback;
 	callback.shape0 = NULL;
 	callback.output0.fraction = B3_MAX_FLOAT;
 	callback.broadPhase = &m_contactMan.m_broadPhase;
@@ -504,7 +504,7 @@ void b3World::RayCastCloth(b3RayCastListener* listener, const b3Vec3& p1, const 
 	}
 }
 
-bool b3World::RayCastSingleCloth(b3ClothRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
+bool b3World::RayCastSingleCloth(b3RayCastSingleClothOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
 {
 	output->cloth = NULL;
 	output->triangle = ~0;
@@ -512,7 +512,7 @@ bool b3World::RayCastSingleCloth(b3ClothRayCastSingleOutput* output, const b3Vec
 	
 	for (b3Cloth* c = m_clothList.m_head; c; c = c->m_next)
 	{
-		b3ClothRayCastSingleOutput subOutput;
+		b3RayCastSingleClothOutput subOutput;
 		if (c->RayCastSingle(&subOutput, p1, p2))
 		{
 			if (subOutput.fraction < output->fraction)

@@ -52,7 +52,7 @@ public:
 	{
 		B3_ASSERT(IsDragging() == false);
 
-		b3ClothRayCastSingleOutput rayOut;
+		b3RayCastSingleClothOutput rayOut;
 		if (m_world->RayCastSingleCloth(&rayOut, m_ray->A(), m_ray->B()) == false)
 		{
 			return false;

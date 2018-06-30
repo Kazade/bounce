@@ -36,7 +36,7 @@ class b3RayCastListener;
 class b3ContactListener;
 class b3ContactFilter;
 
-struct b3ShapeRayCastSingleOutput
+struct b3RayCastSingleShapeOutput
 {
 	b3Shape* shape; // shape
 	b3Vec3 point; // intersection point on surface
@@ -44,7 +44,7 @@ struct b3ShapeRayCastSingleOutput
 	float32 fraction; // time of intersection on segment
 };
 
-struct b3ClothRayCastSingleOutput
+struct b3RayCastSingleClothOutput
 {
 	b3Cloth* cloth; // cloth
 	u32 triangle; // triangle
@@ -115,7 +115,7 @@ public:
 	// The ray cast output is the intercepted shape, the intersection 
 	// point in world space, the face normal on the shape associated with the point, 
 	// and the intersection fraction.
-	bool RayCastSingleShape(b3ShapeRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
+	bool RayCastSingleShape(b3RayCastSingleShapeOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
 
 	// Perform a ray cast with the world.
 	// The given ray cast listener will be notified when a ray intersects a shape 
@@ -130,7 +130,7 @@ public:
 	// The ray cast output is the intercepted cloth, the intersection 
 	// point in world space, the face normal on the cloth associated with the point, 
 	// and the intersection fraction.
-	bool RayCastSingleCloth(b3ClothRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
+	bool RayCastSingleCloth(b3RayCastSingleClothOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
 
 	// Perform a AABB query with the world.
 	// The query listener will be notified when two shape AABBs are overlapping.
