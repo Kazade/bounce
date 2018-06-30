@@ -348,14 +348,23 @@ void b3Cloth::ComputeMass()
 	}
 }
 
-void b3Cloth::RayCast(b3RayCastListener* listener, const b3RayCastInput* input) const
+void b3Cloth::RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) 
 {
+	b3RayCastInput input;
+	input.p1 = p1;
+	input.p2 = p2;
+	input.maxFraction = 1.0f;
+
 	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
 	{
-		b3RayCastSingleClothOutput subOutput;
-		if (RayCast(&subOutput, input, i))
+		b3RayCastOutput subOutput;
+		if (RayCast(&subOutput, &input, i))
 		{
-			float32 newFraction = listener->ReportCloth(subOutput.cloth, subOutput.point, subOutput.normal, subOutput.fraction, subOutput.triangle);
+			float32 fraction = subOutput.fraction;
+			b3Vec3 point = (1.0f - fraction) * input.p1 + fraction * input.p2;
+			b3Vec3 normal = subOutput.normal;
+
+			float32 newFraction = listener->ReportCloth(this, point, normal, fraction, i);
 
 			if (newFraction == 0.0f)
 			{
@@ -366,37 +375,44 @@ void b3Cloth::RayCast(b3RayCastListener* listener, const b3RayCastInput* input) 
 	}
 }
 
-bool b3Cloth::RayCastSingle(b3RayCastSingleClothOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
+bool b3Cloth::RayCastSingle(b3ClothRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
 {
 	b3RayCastInput input;
 	input.p1 = p1;
 	input.p2 = p2;
 	input.maxFraction = 1.0f;
 
-	output->triangle = ~0;
-	output->fraction = B3_MAX_FLOAT;
+	u32 triangle0 = ~0;
+	b3RayCastOutput output0;
+	output0.fraction = B3_MAX_FLOAT;
 
 	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
 	{
-		b3RayCastSingleClothOutput subOutput;
+		b3RayCastOutput subOutput;
 		if (RayCast(&subOutput, &input, i))
 		{
-			if (subOutput.fraction < output->fraction)
+			if (subOutput.fraction < output0.fraction)
 			{
-				*output = subOutput;
+				triangle0 = i;
+				output0.fraction = subOutput.fraction;
+				output0.normal = subOutput.normal;
 			}
 		}
 	}
 
-	if (output->triangle != ~0)
+	if (triangle0 != ~0)
 	{
+		output->triangle = triangle0;
+		output->fraction = output0.fraction;
+		output->normal = output0.normal;
+		
 		return true;
 	}
 
 	return false;
 }
 
-bool b3Cloth::RayCast(b3RayCastSingleClothOutput* output, const b3RayCastInput* input, u32 triangleIndex) const
+bool b3Cloth::RayCast(b3RayCastOutput* output, const b3RayCastInput* input, u32 triangleIndex) const
 {
 	B3_ASSERT(triangleIndex < m_mesh->triangleCount);
 	b3ClothMeshTriangle* triangle = m_mesh->triangles + triangleIndex;
@@ -468,9 +484,7 @@ bool b3Cloth::RayCast(b3RayCastSingleClothOutput* output, const b3RayCastInput* 
 	// Is the intersection on the triangle?
 	if (u > kTol && v > kTol && w > kTol)
 	{
-		output->triangle = triangleIndex;
 		output->fraction = fraction;
-		output->point = Q;
 
 		// Does the ray start from below or above the triangle?
 		if (numerator > 0.0f)

@@ -493,38 +493,44 @@ bool b3World::RayCastSingleShape(b3RayCastSingleShapeOutput* output, const b3Vec
 
 void b3World::RayCastCloth(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const
 {
-	b3RayCastInput input;
-	input.p1 = p1;
-	input.p2 = p2;
-	input.maxFraction = B3_MAX_FLOAT;
-
 	for (b3Cloth* c = m_clothList.m_head; c; c = c->m_next)
 	{
-		c->RayCast(listener, &input);
+		c->RayCast(listener, p1, p2);
 	}
 }
 
 bool b3World::RayCastSingleCloth(b3RayCastSingleClothOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
 {
-	output->cloth = NULL;
-	output->triangle = ~0;
-	output->fraction = B3_MAX_FLOAT;
-	
+	b3Cloth* cloth0 = NULL;
+	b3ClothRayCastSingleOutput output0;
+	output0.fraction = B3_MAX_FLOAT;
+
 	for (b3Cloth* c = m_clothList.m_head; c; c = c->m_next)
 	{
-		b3RayCastSingleClothOutput subOutput;
+		b3ClothRayCastSingleOutput subOutput;
 		if (c->RayCastSingle(&subOutput, p1, p2))
 		{
-			if (subOutput.fraction < output->fraction)
+			if (subOutput.fraction < output0.fraction)
 			{
-				subOutput.cloth = c;
-				*output = subOutput;
+				cloth0 = c;
+				output0 = subOutput;
 			}
 		}
 	}
 
-	if (output->cloth != NULL)
+	if (cloth0 != NULL)
 	{
+		u32 triangle = output0.triangle;
+		float32 fraction = output0.fraction;
+		b3Vec3 point = (1.0f - fraction) * p1 + fraction * p2;
+		b3Vec3 normal = output0.normal;
+
+		output->triangle = triangle;
+		output->cloth = cloth0;
+		output->point = point;
+		output->normal = normal;
+		output->fraction = fraction;
+
 		return true;
 	}
 

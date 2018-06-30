@@ -37,7 +37,14 @@ struct b3ClothMesh;
 class b3RayCastListener;
 
 struct b3RayCastInput;
-struct b3RayCastSingleClothOutput;
+struct b3RayCastOutput;
+
+struct b3ClothRayCastSingleOutput
+{
+	u32 triangle;
+	float32 fraction;
+	b3Vec3 normal;
+};
 
 // Cloth definition
 // This requires defining a cloth mesh which is typically bound to a render mesh
@@ -89,14 +96,14 @@ public:
 	// Destroy a given force.
 	void DestroyForce(b3Force* force);
 
+	// Perform a ray cast with the cloth.
+	void RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2);
+
+	// Perform a ray cast with the cloth.
+	bool RayCastSingle(b3ClothRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
+
 	// Perform a ray cast with a given cloth mesh triangle.
-	bool RayCast(b3RayCastSingleClothOutput* output, const b3RayCastInput* input, u32 triangleIndex) const;
-
-	// Perform a ray cast with the cloth.
-	void RayCast(b3RayCastListener* listener, const b3RayCastInput* input) const;
-
-	// Perform a ray cast with the cloth.
-	bool RayCastSingle(b3RayCastSingleClothOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
+	bool RayCast(b3RayCastOutput* output, const b3RayCastInput* input, u32 triangleIndex) const;
 
 	// Return the cloth mesh proxy.
 	b3ClothMesh* GetMesh() const;

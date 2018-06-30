@@ -41,11 +41,6 @@ public:
 		
 		float32 E = m_cloth->GetEnergy();
 		g_draw->DrawString(b3Color_white, "E = %f", E);
-
-		if (m_clothDragger.IsDragging() == true)
-		{
-			g_draw->DrawSegment(m_clothDragger.GetPointA(), m_clothDragger.GetPointB(), b3Color_white);
-		}
 	}
 	
 	b3Cloth* m_cloth;

@@ -115,6 +115,11 @@ void Test::Step()
 		g_draw->DrawString(b3Color_white, "Convex Cache Hits %d (%f)", b3_convexCacheHits, convexCacheHitRatio);
 		g_draw->DrawString(b3Color_white, "Frame Allocations %d (%d)", b3_allocCalls, b3_maxAllocCalls);
 	}
+
+	if (m_clothDragger.IsDragging() == true)
+	{
+		g_draw->DrawSegment(m_clothDragger.GetPointA(), m_clothDragger.GetPointB(), b3Color_white);
+	}
 }
 
 void Test::MouseMove(const b3Ray3& pw)
