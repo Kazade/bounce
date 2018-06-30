@@ -35,16 +35,18 @@ void b3EndProfileScope()
 	g_profiler->PopEvent();
 }
 
-Test::Test() : m_bodyDragger(&m_bodyRay, &m_world)
+Test::Test() : 
+	m_bodyDragger(&m_ray, &m_world),
+	m_clothDragger(&m_ray, &m_world)
 {
 	b3Draw_draw = g_draw;
 	b3_convexCache = g_testSettings->convexCache;
 
 	m_world.SetContactListener(this);
 
-	m_bodyRay.origin.SetZero();
-	m_bodyRay.direction.Set(0.0f, 0.0f, -1.0f);
-	m_bodyRay.fraction = g_camera->m_zFar;
+	m_ray.origin.SetZero();
+	m_ray.direction.Set(0.0f, 0.0f, -1.0f);
+	m_ray.fraction = g_camera->m_zFar;
 
 	m_groundHull.Set(50.0f, 1.0f, 50.0f);
 	m_groundMesh.BuildTree();
@@ -117,19 +119,32 @@ void Test::Step()
 
 void Test::MouseMove(const b3Ray3& pw)
 {
-	m_bodyRay = pw;
+	m_ray = pw;
 
-	if (m_bodyDragger.IsSelected() == true)
+	if (m_bodyDragger.IsDragging() == true)
 	{
 		m_bodyDragger.Drag();
+	}
+	
+	if (m_clothDragger.IsDragging() == true)
+	{
+		m_clothDragger.Drag();
 	}
 }
 
 void Test::MouseLeftDown(const b3Ray3& pw)
 {
-	if (m_bodyDragger.IsSelected() == false)
+	if (m_bodyDragger.IsDragging() == false)
 	{
 		if (m_bodyDragger.StartDragging() == true)
+		{
+			BeginDragging();
+		}
+	}
+
+	if (m_clothDragger.IsDragging() == false)
+	{
+		if (m_clothDragger.StartDragging() == true)
 		{
 			BeginDragging();
 		}
@@ -138,9 +153,16 @@ void Test::MouseLeftDown(const b3Ray3& pw)
 
 void Test::MouseLeftUp(const b3Ray3& pw)
 {
-	if (m_bodyDragger.IsSelected() == true)
+	if (m_bodyDragger.IsDragging() == true)
 	{
 		m_bodyDragger.StopDragging();
+
+		EndDragging();
+	}
+	
+	if (m_clothDragger.IsDragging() == true)
+	{
+		m_clothDragger.StopDragging();
 
 		EndDragging();
 	}

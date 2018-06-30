@@ -22,14 +22,9 @@
 class ClothTest : public Test
 {
 public:
-	ClothTest() : m_clothDragger(&m_clothRay, m_cloth)
+	ClothTest()
 	{
 		m_world.SetGravity(b3Vec3(0.0f, -10.0f, 0.0f));
-
-		m_clothRay.origin.SetZero();
-		m_clothRay.direction.Set(0.0f, 0.0f, -1.0f);
-		m_clothRay.fraction = g_camera->m_zFar;
-
 		m_cloth = nullptr;
 	}
 
@@ -47,41 +42,13 @@ public:
 		float32 E = m_cloth->GetEnergy();
 		g_draw->DrawString(b3Color_white, "E = %f", E);
 
-		if (m_clothDragger.IsSelected() == true)
+		if (m_clothDragger.IsDragging() == true)
 		{
 			g_draw->DrawSegment(m_clothDragger.GetPointA(), m_clothDragger.GetPointB(), b3Color_white);
 		}
 	}
-
-	void MouseMove(const b3Ray3& pw)
-	{
-		m_clothRay = pw;
-
-		if (m_clothDragger.IsSelected() == true)
-		{
-			m_clothDragger.Drag();
-		}
-	}
-
-	void MouseLeftDown(const b3Ray3& pw)
-	{
-		if (m_clothDragger.IsSelected() == false)
-		{
-			m_clothDragger.StartDragging();
-		}
-	}
-
-	void MouseLeftUp(const b3Ray3& pw)
-	{
-		if (m_clothDragger.IsSelected() == true)
-		{
-			m_clothDragger.StopDragging();
-		}
-	}
-
-	b3Ray3 m_clothRay;
+	
 	b3Cloth* m_cloth;
-	b3ClothDragger m_clothDragger;
 };
 
 #endif

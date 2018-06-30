@@ -378,7 +378,7 @@ void b3World::StepCloth(float32 dt)
 	}
 }
 
-struct b3RayCastCallback
+struct b3ShapeRayCastCallback
 {
 	float32 Report(const b3RayCastInput& input, u32 proxyId)
 	{
@@ -413,20 +413,20 @@ struct b3RayCastCallback
 	const b3BroadPhase* broadPhase;
 };
 
-void b3World::RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const
+void b3World::RayCastShape(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const
 {
 	b3RayCastInput input;
 	input.p1 = p1;
 	input.p2 = p2;
 	input.maxFraction = 1.0f;
 	
-	b3RayCastCallback callback;
+	b3ShapeRayCastCallback callback;
 	callback.listener = listener;
 	callback.broadPhase = &m_contactMan.m_broadPhase;
 	m_contactMan.m_broadPhase.RayCast(&callback, input);
 }
 
-struct b3RayCastSingleCallback
+struct b3ShapeRayCastSingleCallback
 {
 	float32 Report(const b3RayCastInput& input, u32 proxyId)
 	{
@@ -458,14 +458,14 @@ struct b3RayCastSingleCallback
 	const b3BroadPhase* broadPhase;
 };
 
-bool b3World::RayCastSingle(b3RayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
+bool b3World::RayCastSingleShape(b3ShapeRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
 {
 	b3RayCastInput input;
 	input.p1 = p1;
 	input.p2 = p2;
 	input.maxFraction = 1.0f;
 
-	b3RayCastSingleCallback callback;
+	b3ShapeRayCastSingleCallback callback;
 	callback.shape0 = NULL;
 	callback.output0.fraction = B3_MAX_FLOAT;
 	callback.broadPhase = &m_contactMan.m_broadPhase;
@@ -488,6 +488,46 @@ bool b3World::RayCastSingle(b3RayCastSingleOutput* output, const b3Vec3& p1, con
 		return true;
 	}
 	
+	return false;
+}
+
+void b3World::RayCastCloth(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const
+{
+	b3RayCastInput input;
+	input.p1 = p1;
+	input.p2 = p2;
+	input.maxFraction = B3_MAX_FLOAT;
+
+	for (b3Cloth* c = m_clothList.m_head; c; c = c->m_next)
+	{
+		c->RayCast(listener, &input);
+	}
+}
+
+bool b3World::RayCastSingleCloth(b3ClothRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
+{
+	output->cloth = NULL;
+	output->triangle = ~0;
+	output->fraction = B3_MAX_FLOAT;
+	
+	for (b3Cloth* c = m_clothList.m_head; c; c = c->m_next)
+	{
+		b3ClothRayCastSingleOutput subOutput;
+		if (c->RayCastSingle(&subOutput, p1, p2))
+		{
+			if (subOutput.fraction < output->fraction)
+			{
+				subOutput.cloth = c;
+				*output = subOutput;
+			}
+		}
+	}
+
+	if (output->cloth != NULL)
+	{
+		return true;
+	}
+
 	return false;
 }
 

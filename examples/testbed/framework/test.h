@@ -45,7 +45,13 @@ public:
 		return 1.0f;
 	}
 
-	b3RayCastSingleOutput hit;
+	float32 ReportCloth(b3Shape* shape, const b3Vec3& point, const b3Vec3& normal, float32 fraction)
+	{
+		B3_ASSERT(false);
+		return 1.0f;
+	}
+	
+	b3ShapeRayCastSingleOutput hit;
 };
 
 class Test : public b3ContactListener
@@ -73,7 +79,8 @@ public:
 
 	b3World m_world;
 
-	b3Ray3 m_bodyRay;
+	b3Ray3 m_ray;
+	b3ClothDragger m_clothDragger;
 	b3BodyDragger m_bodyDragger;
 
 	b3BoxHull m_groundHull;

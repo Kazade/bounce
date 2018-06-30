@@ -69,7 +69,7 @@ public:
 
 	void Step()
 	{
-		if (m_bodyDragger.IsSelected())
+		if (m_bodyDragger.IsDragging())
 		{
 			if (m_bodyDragger.GetBody() != m_character)
 			{

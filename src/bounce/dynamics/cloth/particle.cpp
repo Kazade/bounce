@@ -24,22 +24,7 @@
 
 void b3FrictionForce::Apply(const b3ClothSolverData* data)
 {
-	b3DenseVec3& v = *data->v;
-	b3DenseVec3& f = *data->f;
-	b3SparseSymMat33& dfdv = *data->dfdv;
-
-	u32 i = m_p->m_solverId;
-
-	if (m_kd > 0.0f)
-	{
-		f[i] += -m_kd * v[i];
-
-		b3Mat33 I; I.SetIdentity();
-		
-		b3Mat33 Jv = -m_kd * I;
-		
-		dfdv(i, i) += Jv;
-	}
+	// TODO
 }
 
 b3Particle::b3Particle(const b3ParticleDef& def, b3Cloth* cloth)

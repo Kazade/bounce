@@ -156,7 +156,7 @@ public:
 			g_draw->DrawSolidTriangle(n2, v1, v3, v2, color);
 		}
 
-		if (m_clothDragger.IsSelected() == true)
+		if (m_clothDragger.IsDragging() == true)
 		{
 			g_draw->DrawSegment(m_clothDragger.GetPointA(), m_clothDragger.GetPointB(), b3Color_white);
 		}

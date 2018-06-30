@@ -39,12 +39,17 @@ public:
 
 	}
 
+	bool IsDragging() const
+	{
+		return m_shape != nullptr;
+	}
+
 	bool StartDragging()
 	{
 		B3_ASSERT(m_mouseJoint == nullptr);
 
-		b3RayCastSingleOutput out;
-		if (m_world->RayCastSingle(&out, m_ray->A(), m_ray->B()) == false)
+		b3ShapeRayCastSingleOutput out;
+		if (m_world->RayCastSingleShape(&out, m_ray->A(), m_ray->B()) == false)
 		{
 			return false;
 		}
@@ -87,12 +92,6 @@ public:
 		m_world->DestroyBody(groundBody);
 		m_shape = nullptr;
 	}
-
-	bool IsSelected() const
-	{
-		return m_mouseJoint != nullptr;
-	}
-
 
 	b3Ray3* GetRay() const
 	{

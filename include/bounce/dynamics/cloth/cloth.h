@@ -34,15 +34,10 @@ struct b3ForceDef;
 
 struct b3ClothMesh;
 
-struct b3RayCastInput;
+class b3RayCastListener;
 
-struct b3ClothRayCastOutput
-{
-	u32 triangle; // intersected triangle
-	b3Vec3 point; // intersection point on surface
-	b3Vec3 normal; // surface normal of intersection
-	float32 fraction; // time of intersection on segment
-};
+struct b3RayCastInput;
+struct b3ClothRayCastSingleOutput;
 
 // Cloth definition
 // This requires defining a cloth mesh which is typically bound to a render mesh
@@ -94,11 +89,14 @@ public:
 	// Destroy a given force.
 	void DestroyForce(b3Force* force);
 
-	// Perform a ray cast with the cloth.
-	bool RayCast(b3ClothRayCastOutput* output, const b3RayCastInput* input) const;
-
 	// Perform a ray cast with a given cloth mesh triangle.
-	bool RayCast(b3ClothRayCastOutput* output, const b3RayCastInput* input, u32 triangleIndex) const;
+	bool RayCast(b3ClothRayCastSingleOutput* output, const b3RayCastInput* input, u32 triangleIndex) const;
+
+	// Perform a ray cast with the cloth.
+	void RayCast(b3RayCastListener* listener, const b3RayCastInput* input) const;
+
+	// Perform a ray cast with the cloth.
+	bool RayCastSingle(b3ClothRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
 
 	// Return the cloth mesh proxy.
 	b3ClothMesh* GetMesh() const;

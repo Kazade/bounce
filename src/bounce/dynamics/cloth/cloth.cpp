@@ -23,6 +23,7 @@
 #include <bounce/dynamics/cloth/spring_force.h>
 #include <bounce/dynamics/cloth/cloth_solver.h>
 #include <bounce/dynamics/world.h>
+#include <bounce/dynamics/world_listeners.h>
 #include <bounce/dynamics/body.h>
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/collision/collision.h>
@@ -347,15 +348,38 @@ void b3Cloth::ComputeMass()
 	}
 }
 
-bool b3Cloth::RayCast(b3ClothRayCastOutput* output, const b3RayCastInput* input) const
+void b3Cloth::RayCast(b3RayCastListener* listener, const b3RayCastInput* input) const
 {
+	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
+	{
+		b3ClothRayCastSingleOutput subOutput;
+		if (RayCast(&subOutput, input, i))
+		{
+			float32 newFraction = listener->ReportCloth(subOutput.cloth, subOutput.point, subOutput.normal, subOutput.fraction, subOutput.triangle);
+
+			if (newFraction == 0.0f)
+			{
+				// The client has stopped the query.
+				return;
+			}
+		}
+	}
+}
+
+bool b3Cloth::RayCastSingle(b3ClothRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
+{
+	b3RayCastInput input;
+	input.p1 = p1;
+	input.p2 = p2;
+	input.maxFraction = 1.0f;
+
 	output->triangle = ~0;
-	output->fraction = input->maxFraction;
+	output->fraction = B3_MAX_FLOAT;
 
 	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
 	{
-		b3ClothRayCastOutput subOutput;
-		if (RayCast(&subOutput, input, i))
+		b3ClothRayCastSingleOutput subOutput;
+		if (RayCast(&subOutput, &input, i))
 		{
 			if (subOutput.fraction < output->fraction)
 			{
@@ -372,7 +396,7 @@ bool b3Cloth::RayCast(b3ClothRayCastOutput* output, const b3RayCastInput* input)
 	return false;
 }
 
-bool b3Cloth::RayCast(b3ClothRayCastOutput* output, const b3RayCastInput* input, u32 triangleIndex) const
+bool b3Cloth::RayCast(b3ClothRayCastSingleOutput* output, const b3RayCastInput* input, u32 triangleIndex) const
 {
 	B3_ASSERT(triangleIndex < m_mesh->triangleCount);
 	b3ClothMeshTriangle* triangle = m_mesh->triangles + triangleIndex;

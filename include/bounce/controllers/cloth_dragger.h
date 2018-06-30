@@ -21,18 +21,21 @@
 
 #include <bounce/collision/collision.h>
 #include <bounce/dynamics/cloth/cloth.h>
+#include <bounce/dynamics/cloth/cloth_mesh.h>
 #include <bounce/dynamics/cloth/particle.h>
 #include <bounce/dynamics/cloth/spring_force.h>
-#include <bounce/dynamics/cloth/cloth_mesh.h>
+#include <bounce/dynamics/world.h>
 
 // A cloth triangle dragger.
 class b3ClothDragger
 {
 public:
-	b3ClothDragger(b3Ray3* ray, b3Cloth*& cloth) : m_ray(ray), m_cloth(cloth)
+	b3ClothDragger(b3Ray3* ray, b3World* world) 
 	{
-		m_isSelected = false;
 		m_spring = false;
+		m_ray = ray;
+		m_world = world;
+		m_cloth = nullptr;
 	}
 
 	~b3ClothDragger()
@@ -40,57 +43,29 @@ public:
 
 	}
 
-	bool IsSelected() const
+	bool IsDragging() const
 	{
-		return m_isSelected;
-	}
-
-	b3Vec3 GetPointA() const
-	{
-		B3_ASSERT(m_isSelected);
-
-		b3ClothMesh* m = m_cloth->GetMesh();
-		b3ClothMeshTriangle* t = m->triangles + m_selection;
-
-		b3Vec3 A = m->vertices[t->v1];
-		b3Vec3 B = m->vertices[t->v2];
-		b3Vec3 C = m->vertices[t->v3];
-
-		return m_u * A + m_v * B + (1.0f - m_u - m_v) * C;
-	}
-
-	b3Vec3 GetPointB() const
-	{
-		B3_ASSERT(m_isSelected);
-		return (1.0f - m_x) * m_ray->A() + m_x * m_ray->B();
+		return m_cloth != nullptr;
 	}
 
 	bool StartDragging()
 	{
-		B3_ASSERT(m_isSelected == false);
+		B3_ASSERT(IsDragging() == false);
 
-		b3RayCastInput rayIn;
-		rayIn.p1 = m_ray->A();
-		rayIn.p2 = m_ray->B();
-		rayIn.maxFraction = B3_MAX_FLOAT;
-
-		b3ClothRayCastOutput rayOut;
-		if (m_cloth->RayCast(&rayOut, &rayIn) == false)
+		b3ClothRayCastSingleOutput rayOut;
+		if (m_world->RayCastSingleCloth(&rayOut, m_ray->A(), m_ray->B()) == false)
 		{
 			return false;
 		}
 
-		m_isSelected = true;
-
-		m_selection = rayOut.triangle;
+		m_cloth = rayOut.cloth;
+		m_mesh = m_cloth->GetMesh();
+		m_triangle = m_mesh->triangles + rayOut.triangle;
 		m_x = rayOut.fraction;
 
-		b3ClothMesh* m = m_cloth->GetMesh();
-		b3ClothMeshTriangle* t = m->triangles + m_selection;
-
-		b3Particle* p1 = m->particles[t->v1];
-		b3Particle* p2 = m->particles[t->v2];
-		b3Particle* p3 = m->particles[t->v3];
+		b3Particle* p1 = m_mesh->particles[m_triangle->v1];
+		b3Particle* p2 = m_mesh->particles[m_triangle->v2];
+		b3Particle* p3 = m_mesh->particles[m_triangle->v3];
 
 		b3Vec3 v1 = p1->GetPosition();
 		b3Vec3 v2 = p2->GetPosition();
@@ -163,10 +138,7 @@ public:
 
 	void Drag()
 	{
-		B3_ASSERT(m_isSelected);
-
-		b3ClothMesh* m = m_cloth->GetMesh();
-		b3ClothMeshTriangle* t = m->triangles + m_selection;
+		B3_ASSERT(IsDragging() == true);
 
 		b3Vec3 A = GetPointA();
 		b3Vec3 B = GetPointB();
@@ -179,22 +151,22 @@ public:
 		}
 		else
 		{
-			b3Particle* p1 = m->particles[t->v1];
+			b3Particle* p1 = m_mesh->particles[m_triangle->v1];
 			p1->ApplyTranslation(dx);
 
-			b3Particle* p2 = m->particles[t->v2];
+			b3Particle* p2 = m_mesh->particles[m_triangle->v2];
 			p2->ApplyTranslation(dx);
 
-			b3Particle* p3 = m->particles[t->v3];
+			b3Particle* p3 = m_mesh->particles[m_triangle->v3];
 			p3->ApplyTranslation(dx);
 		}
 	}
 
 	void StopDragging()
 	{
-		B3_ASSERT(m_isSelected);
+		B3_ASSERT(IsDragging() == true);
 
-		m_isSelected = false;
+		m_cloth = nullptr;
 
 		if (m_spring)
 		{
@@ -205,28 +177,42 @@ public:
 		}
 		else
 		{
-			b3ClothMesh* m = m_cloth->GetMesh();
-			b3ClothMeshTriangle* t = m->triangles + m_selection;
-
-			b3Particle* p1 = m->particles[t->v1];
+			b3Particle* p1 = m_mesh->particles[m_triangle->v1];
 			p1->SetType(m_t1);
 
-			b3Particle* p2 = m->particles[t->v2];
+			b3Particle* p2 = m_mesh->particles[m_triangle->v2];
 			p2->SetType(m_t2);
 
-			b3Particle* p3 = m->particles[t->v3];
+			b3Particle* p3 = m_mesh->particles[m_triangle->v3];
 			p3->SetType(m_t3);
 		}
 	}
 
-private:
-	bool m_isSelected;
+	b3Vec3 GetPointA() const
+	{
+		B3_ASSERT(IsDragging() == true);
+		
+		b3Vec3 A = m_mesh->vertices[m_triangle->v1];
+		b3Vec3 B = m_mesh->vertices[m_triangle->v2];
+		b3Vec3 C = m_mesh->vertices[m_triangle->v3];
 
+		return m_u * A + m_v * B + (1.0f - m_u - m_v) * C;
+	}
+
+	b3Vec3 GetPointB() const
+	{
+		B3_ASSERT(IsDragging() == true);
+		
+		return (1.0f - m_x) * m_ray->A() + m_x * m_ray->B();
+	}
+private:
 	b3Ray3* m_ray;
 	float32 m_x;
 
-	b3Cloth*& m_cloth;
-	u32 m_selection;
+	b3World* m_world;
+	b3Cloth* m_cloth;
+	b3ClothMesh* m_mesh;
+	b3ClothMeshTriangle* m_triangle;
 	float32 m_u, m_v;
 
 	bool m_spring;

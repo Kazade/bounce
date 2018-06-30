@@ -36,9 +36,18 @@ class b3RayCastListener;
 class b3ContactListener;
 class b3ContactFilter;
 
-struct b3RayCastSingleOutput
+struct b3ShapeRayCastSingleOutput
 {
 	b3Shape* shape; // shape
+	b3Vec3 point; // intersection point on surface
+	b3Vec3 normal; // surface normal of intersection
+	float32 fraction; // time of intersection on segment
+};
+
+struct b3ClothRayCastSingleOutput
+{
+	b3Cloth* cloth; // cloth
+	u32 triangle; // triangle
 	b3Vec3 point; // intersection point on surface
 	b3Vec3 normal; // surface normal of intersection
 	float32 fraction; // time of intersection on segment
@@ -92,13 +101,6 @@ public:
 	// The function parameters are the ammount of time to simulate, 
 	// and the number of constraint solver iterations.
 	void Step(float32 dt, u32 velocityIterations, u32 positionIterations);
-	
-	// Perform a ray cast with the world.
-	// If the ray doesn't intersect with a shape in the world then return false.
-	// The ray cast output is the intercepted shape, the intersection 
-	// point in world space, the face normal on the shape associated with the point, 
-	// and the intersection fraction.
-	bool RayCastSingle(b3RayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
 
 	// Perform a ray cast with the world.
 	// The given ray cast listener will be notified when a ray intersects a shape 
@@ -106,7 +108,29 @@ public:
 	// The ray cast output is the intercepted shape, the intersection 
 	// point in world space, the face normal on the shape associated with the point, 
 	// and the intersection fraction.
-	void RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const;
+	void RayCastShape(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const;
+
+	// Perform a ray cast with the world.
+	// If the ray doesn't intersect with a shape in the world then return false.
+	// The ray cast output is the intercepted shape, the intersection 
+	// point in world space, the face normal on the shape associated with the point, 
+	// and the intersection fraction.
+	bool RayCastSingleShape(b3ShapeRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
+
+	// Perform a ray cast with the world.
+	// The given ray cast listener will be notified when a ray intersects a shape 
+	// in the world. 
+	// The ray cast output is the intercepted cloth, the intersection 
+	// point in world space, the face normal on the cloth associated with the point, 
+	// and the intersection fraction.
+	void RayCastCloth(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const;
+
+	// Perform a ray cast with the world.
+	// If the ray doesn't intersect with a cloth in the world then return false.
+	// The ray cast output is the intercepted cloth, the intersection 
+	// point in world space, the face normal on the cloth associated with the point, 
+	// and the intersection fraction.
+	bool RayCastSingleCloth(b3ClothRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
 
 	// Perform a AABB query with the world.
 	// The query listener will be notified when two shape AABBs are overlapping.
