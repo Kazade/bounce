@@ -46,7 +46,7 @@ public:
 
 	bool StartDragging()
 	{
-		B3_ASSERT(m_mouseJoint == nullptr);
+		B3_ASSERT(IsDragging() == false);
 
 		b3RayCastSingleShapeOutput out;
 		if (m_world->RayCastSingleShape(&out, m_ray->A(), m_ray->B()) == false)
@@ -78,14 +78,13 @@ public:
 
 	void Drag()
 	{
-		B3_ASSERT(m_mouseJoint);
+		B3_ASSERT(IsDragging() == true);
 		m_mouseJoint->SetTarget(GetPointB());
 	}
 
 	void StopDragging()
 	{
-		B3_ASSERT(m_mouseJoint);
-
+		B3_ASSERT(IsDragging() == true);
 		b3Body* groundBody = m_mouseJoint->GetBodyA();
 		m_world->DestroyJoint(m_mouseJoint);
 		m_mouseJoint = nullptr;
@@ -100,19 +99,19 @@ public:
 
 	b3Body* GetBody() const
 	{
-		B3_ASSERT(m_shape);
+		B3_ASSERT(IsDragging() == true);
 		return m_shape->GetBody();
 	}
 
 	b3Vec3 GetPointA() const
 	{
-		B3_ASSERT(m_shape);
+		B3_ASSERT(IsDragging() == true);
 		return m_shape->GetBody()->GetWorldPoint(m_p);
 	}
 
 	b3Vec3 GetPointB() const
 	{
-		B3_ASSERT(m_mouseJoint);
+		B3_ASSERT(IsDragging() == true);
 		return (1.0f - m_x) * m_ray->A() + m_x * m_ray->B();
 	}
 
@@ -121,10 +120,10 @@ private:
 	float32 m_x;
 
 	b3World* m_world;
+	
 	b3Shape* m_shape;
 	b3Vec3 m_p;
 	b3MouseJoint* m_mouseJoint;
 };
-
 
 #endif

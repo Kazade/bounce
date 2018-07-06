@@ -525,8 +525,8 @@ bool b3World::RayCastSingleCloth(b3RayCastSingleClothOutput* output, const b3Vec
 		b3Vec3 point = (1.0f - fraction) * p1 + fraction * p2;
 		b3Vec3 normal = output0.normal;
 
-		output->triangle = triangle;
 		output->cloth = cloth0;
+		output->triangle = triangle;
 		output->point = point;
 		output->normal = normal;
 		output->fraction = fraction;

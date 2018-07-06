@@ -210,6 +210,7 @@ private:
 	float32 m_x;
 
 	b3World* m_world;
+
 	b3Cloth* m_cloth;
 	b3ClothMesh* m_mesh;
 	b3ClothMeshTriangle* m_triangle;
