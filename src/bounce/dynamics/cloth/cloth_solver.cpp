@@ -205,6 +205,8 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	m_solverData.dt = dt;
 	m_solverData.invdt = 1.0f / dt;
 
+	float32 h = dt;
+
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
 		b3Particle* p = m_particles[i];
@@ -240,26 +242,26 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// Solve Ax = b, where
 	// A = M - h * dfdv - h * h * dfdx
 	// b = h * (f0 + h * dfdx * v0 + dfdx * y) 
-
+	
 	// A
 	b3SparseSymMat33 A(m_particleCount);
+	for (u32 i = 0; i < m_particleCount; ++i)
+	{
+		A(i, i) = b3Diagonal(m_particles[i]->m_mass);
+	}
+	A += -h * dfdv - h * h * dfdx;
 
 	// b
-	b3DenseVec3 b(m_particleCount);
-
-	Compute_A_b(A, b);
+	b3DenseVec3 b = h * (sf + h * (dfdx * sv) + dfdx * sy);
 
 	// x
 	b3DenseVec3 x(m_particleCount);
-
-	// Solve Ax = b
 	u32 iterations = 0;
+	
 	Solve(x, iterations, A, b, S, z, sx0);
 	b3_clothSolverIterations = iterations;
 
 	// Compute the new state
-	// Clamp large translations?
-	float32 h = dt;
 	sv = sv + x;
 	sx = sx + h * sv + sy;
 
@@ -294,68 +296,6 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		c->Ft1 = b3Dot(force, c->t1);
 		c->Ft2 = b3Dot(force, c->t2);
 	}
-}
-
-void b3ClothSolver::Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b) const
-{
-	B3_PROFILE("Compute A, b");
-
-	b3DenseVec3& x = *m_solverData.x;
-	b3DenseVec3& v = *m_solverData.v;
-	b3DenseVec3& f = *m_solverData.f;
-	b3DenseVec3& y = *m_solverData.y;
-	b3SparseSymMat33& dfdx = *m_solverData.dfdx;
-	b3SparseSymMat33& dfdv = *m_solverData.dfdv;
-	float32 h = m_solverData.dt;
-
-	// Compute A
-	// A = M - h * dfdv - h * h * dfdx
-
-	// A = 0
-	//A.SetZero();
-
-	// A += M
-	for (u32 i = 0; i < m_particleCount; ++i)
-	{
-		A(i, i) += b3Diagonal(m_particles[i]->m_mass);
-	}
-
-	// A += - h * dfdv - h * h * dfdx
-
-	// A += - h * dfdv 
-	for (u32 row = 0; row < dfdv.M; ++row)
-	{
-		u32 row_value_begin = dfdv.row_ptrs[row];
-		u32 row_value_count = dfdv.row_ptrs[row + 1] - row_value_begin;
-
-		for (u32 row_value = 0; row_value < row_value_count; ++row_value)
-		{
-			u32 row_value_index = row_value_begin + row_value;
-			u32 row_value_column = dfdv.value_columns[row_value_index];
-
-			A(row, row_value_column) += -h * dfdv.values[row_value_index];
-		}
-	}
-
-	// A += - h * h * dfdx
-	for (u32 row = 0; row < dfdx.M; ++row)
-	{
-		u32 row_value_begin = dfdx.row_ptrs[row];
-		u32 row_value_count = dfdx.row_ptrs[row + 1] - row_value_begin;
-
-		for (u32 row_value = 0; row_value < row_value_count; ++row_value)
-		{
-			u32 row_value_index = row_value_begin + row_value;
-			u32 row_value_column = dfdx.value_columns[row_value_index];
-
-			A(row, row_value_column) += -h * h * dfdx.values[row_value_index];
-		}
-	}
-
-	// Compute b
-
-	// b = h * (f0 + h * dfdx * v + dfdx * y)
-	b = h * (f + h * (dfdx * v) + dfdx * y);
 }
 
 void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,

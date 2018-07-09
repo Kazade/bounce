@@ -81,9 +81,6 @@ private:
 	// Apply constraints.
 	void ApplyConstraints();
 
-	// Compute A and b in Ax = b.
-	void Compute_A_b(b3SparseSymMat33& A, b3DenseVec3& b) const;
-
 	// Solve Ax = b.
 	void Solve(b3DenseVec3& x, u32& iterations, const b3SparseSymMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const;
 
