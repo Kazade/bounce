@@ -25,14 +25,20 @@ extern u32 b3_convexCalls, b3_convexCacheHits;
 extern u32 b3_gjkCalls, b3_gjkIters, b3_gjkMaxIters;
 extern bool b3_convexCache;
 
+static bool push_ok = false;
+
 void b3BeginProfileScope(const char* name)
 {
-	g_profiler->PushEvent(name);
+	push_ok = g_profiler->PushEvent(name);
 }
 
 void b3EndProfileScope()
 {
-	g_profiler->PopEvent();
+	if (push_ok)
+	{
+		g_profiler->PopEvent();
+		push_ok = false;
+	}
 }
 
 Test::Test() : 
