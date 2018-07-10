@@ -107,10 +107,6 @@ public:
 	// Get the list of vertices in this convex hull.
 	const qhList<qhVertex>& GetVertexList() const;
 
-	// Get the list of half-edges in this convex hull.
-	// Return the number of edges.
-	u32 GetEdgeList(qhHalfEdge** edges, u32 edgeCapacity) const;
-
 	// Get the list of faces in this convex hull.
 	const qhList<qhFace>& GetFaceList() const;
 

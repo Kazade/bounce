@@ -52,27 +52,6 @@ inline const qhList<qhFace>& qhHull::GetFaceList() const
 	return m_faceList;
 }
 
-inline u32 qhHull::GetEdgeList(qhHalfEdge** edges, u32 edgeCapacity) const
-{
-	u32 edgeCount = 0;
-	for (qhFace* f = m_faceList.head; f; f = f->next)
-	{
-		qhHalfEdge* edge = f->edge;
-		do
-		{
-			if (edgeCount == edgeCapacity)
-			{
-				return edgeCount;
-			}
-
-			edges[edgeCount++] = edge;
-			
-			edge = edge->next;
-		} while (edge != f->edge);
-	}
-	return edgeCount;
-}
-
 inline u32 qhHull::GetIterations() const
 {
 	return m_iterations;
