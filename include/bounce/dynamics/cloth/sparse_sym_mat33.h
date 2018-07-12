@@ -82,7 +82,8 @@ inline b3SparseSymMat33::b3SparseSymMat33(u32 m)
 	row_ptrs = (u32*)b3Alloc((M + 1) * sizeof(u32));
 	memset(row_ptrs, 0, (M + 1) * sizeof(u32));
 	value_count = 0;
-	value_capacity = M * (M + 1) / 2;
+	//value_capacity = M * (M + 1) / 2;
+	value_capacity = 256;
 	values = (b3Mat33*)b3Alloc(value_capacity * sizeof(b3Mat33));
 	value_columns = (u32*)b3Alloc(value_capacity * sizeof(u32));
 }
@@ -93,7 +94,7 @@ inline b3SparseSymMat33::b3SparseSymMat33(const b3SparseSymMat33& m)
 	row_ptrs = (u32*)b3Alloc((M + 1) * sizeof(u32));
 	memset(row_ptrs, 0, (M + 1) * sizeof(u32));
 	value_count = m.value_count;
-	value_capacity = M * (M + 1) / 2;
+	value_capacity = m.value_capacity;
 	values = (b3Mat33*)b3Alloc(value_capacity * sizeof(b3Mat33));
 	value_columns = (u32*)b3Alloc(value_capacity * sizeof(u32));
 
@@ -113,13 +114,7 @@ inline b3SparseSymMat33& b3SparseSymMat33::operator=(const b3SparseSymMat33& _m)
 	{
 		return *this;
 	}
-
-	if (M == _m.M)
-	{
-		Copy(_m);
-		return *this;
-	}
-
+	
 	b3Free(row_ptrs);
 	b3Free(values);
 	b3Free(value_columns);
@@ -224,8 +219,25 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 		}
 	}
 
-	// Shift the values
+	if (value_count == value_capacity)
+	{
+		b3Mat33* old_values = values;
+		u32* old_columns = value_columns;
+
+		value_capacity *= 2;
+		values = (b3Mat33*)b3Alloc(value_capacity * sizeof(b3Mat33));
+		value_columns = (u32*)b3Alloc(value_capacity * sizeof(u32));
+		
+		memcpy(values, old_values, value_count * sizeof(b3Mat33));
+		memcpy(value_columns, old_columns, value_count * sizeof(u32));
+
+		b3Free(old_values);
+		b3Free(old_columns);
+	}
+	
 	B3_ASSERT(value_count < value_capacity);
+
+	// Shift the values
 	for (u32 row_value = value_count; row_value > row_value_begin + row_value_position; --row_value)
 	{
 		values[row_value] = values[row_value - 1];
