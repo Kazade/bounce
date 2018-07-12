@@ -83,7 +83,7 @@ inline b3SparseSymMat33::b3SparseSymMat33(u32 m)
 	memset(row_ptrs, 0, (M + 1) * sizeof(u32));
 	value_count = 0;
 	//value_capacity = M * (M + 1) / 2;
-	value_capacity = 256;
+	value_capacity = 32 * 32;
 	values = (b3Mat33*)b3Alloc(value_capacity * sizeof(b3Mat33));
 	value_columns = (u32*)b3Alloc(value_capacity * sizeof(u32));
 }
@@ -109,7 +109,7 @@ inline b3SparseSymMat33::~b3SparseSymMat33()
 
 inline b3SparseSymMat33& b3SparseSymMat33::operator=(const b3SparseSymMat33& _m)
 {
-	if (_m.values == values)
+	if (_m.row_ptrs == row_ptrs)
 	{
 		return *this;
 	}
