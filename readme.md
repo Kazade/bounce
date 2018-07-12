@@ -1,6 +1,6 @@
 ### About
 
-Bounce is a 3D physics engine for games.
+Bounce is a 3D physics engine.
 
 To get started with Bounce see readme.txt.
 
