@@ -92,7 +92,6 @@ inline b3SparseSymMat33::b3SparseSymMat33(const b3SparseSymMat33& m)
 {
 	M = m.M;
 	row_ptrs = (u32*)b3Alloc((M + 1) * sizeof(u32));
-	memset(row_ptrs, 0, (M + 1) * sizeof(u32));
 	value_count = m.value_count;
 	value_capacity = m.value_capacity;
 	values = (b3Mat33*)b3Alloc(value_capacity * sizeof(b3Mat33));
