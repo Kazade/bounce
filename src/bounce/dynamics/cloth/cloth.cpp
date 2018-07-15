@@ -160,6 +160,7 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) : m_particleBlocks(sizeo
 	m_world = world;
 	m_mesh = def.mesh;
 	m_density = def.density;
+	m_xf.SetIdentity();
 
 	b3ClothMesh* m = m_mesh;
 
@@ -537,6 +538,11 @@ void b3Cloth::UpdateContacts()
 
 		for (b3Body* body = m_world->GetBodyList().m_head; body; body = body->GetNext())
 		{
+			if (body->GetType() != e_staticBody)
+			{
+				continue;
+			}
+
 			b3Transform xf = body->GetTransform();
 			for (b3Shape* shape = body->GetShapeList().m_head; shape; shape = shape->GetNext())
 			{
