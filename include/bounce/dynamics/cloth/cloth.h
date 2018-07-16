@@ -156,7 +156,7 @@ private:
 	// Mesh density
 	float32 m_density;
 
-	// Particle pool
+	// Pool of particles
 	b3BlockPool m_particleBlocks;
 
 	// List of particles

@@ -160,7 +160,6 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) : m_particleBlocks(sizeo
 	m_world = world;
 	m_mesh = def.mesh;
 	m_density = def.density;
-	m_xf.SetIdentity();
 
 	b3ClothMesh* m = m_mesh;
 
