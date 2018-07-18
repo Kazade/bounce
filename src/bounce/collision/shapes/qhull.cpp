@@ -24,24 +24,16 @@
 // Used to map pointers to indices 
 // If more performance is required then a use hash-map
 template<class T, u32 N>
-struct b3UniqueArray
+struct b3UniqueStackArray
 {
-	b3UniqueArray()
+	b3UniqueStackArray()
 	{
 		count = 0;
 	}
 
-	// Add the value 
-	void Add(const T& value)
-	{
-		B3_ASSERT(count < N);
-		values[count++] = value;
-	}
-
-	// Add the value if not found
 	// Return value index if added
 	// Return N if the array is full
-	u32 Find(const T& value)
+	u32 PushBack(const T& value)
 	{
 		for (u32 i = 0; i < count; ++i)
 		{
@@ -308,15 +300,14 @@ void b3QHull::Set(const b3Vec3* points, u32 count, bool simplify)
 	}
 
 	// Convert the constructed hull into a run-time hull.
-	b3UniqueArray<qhVertex*, B3_MAX_HULL_VERTICES> vs;
-	b3UniqueArray<qhHalfEdge*, B3_MAX_HULL_EDGES> es;
+	b3UniqueStackArray<qhVertex*, B3_MAX_HULL_VERTICES> vs;
+	b3UniqueStackArray<qhHalfEdge*, B3_MAX_HULL_EDGES> es;
 	u32 fs_count = 0;
 
 	// Add vertices to the map
 	for (qhVertex* vertex = hull.GetVertexList().head; vertex != NULL; vertex = vertex->next)
 	{
-		// Add vertex
-		vs.Add(vertex);
+		vs.PushBack(vertex);
 	}
 
 	// Add faces and half-edges to the map
@@ -332,7 +323,7 @@ void b3QHull::Set(const b3Vec3* points, u32 count, bool simplify)
 		do
 		{
 			// Add half-edge
-			u32 iedge = es.Find(edge);
+			u32 iedge = es.PushBack(edge);
 			if (iedge == B3_MAX_HULL_EDGES)
 			{
 				// Half-edge excess
@@ -340,7 +331,7 @@ void b3QHull::Set(const b3Vec3* points, u32 count, bool simplify)
 			}
 
 			// Add half-edge just after its twin
-			u32 itwin = es.Find(edge->twin);
+			u32 itwin = es.PushBack(edge->twin);
 			if (itwin == B3_MAX_HULL_EDGES)
 			{
 				// Half-edge excess
@@ -361,29 +352,29 @@ void b3QHull::Set(const b3Vec3* points, u32 count, bool simplify)
 		planes[iface] = face->plane;
 
 		qhHalfEdge* begin = face->edge;
-		hface->edge = (u8)es.Find(begin);
+		hface->edge = (u8)es.PushBack(begin);
 
 		qhHalfEdge* edge = begin;
 		do
 		{
 			qhVertex* v = edge->tail;
-			u8 iv = (u8)vs.Find(v);
+			u8 iv = (u8)vs.PushBack(v);
 			vertices[iv] = v->position;
 
-			u8 iedge = (u8)es.Find(edge);
+			u8 iedge = (u8)es.PushBack(edge);
 			b3HalfEdge* hedge = edges + iedge;
 			hedge->face = u8(iface);
 			hedge->origin = iv;
 
 			qhHalfEdge* twin = edge->twin;
-			u8 itwin = (u8)es.Find(twin);
+			u8 itwin = (u8)es.PushBack(twin);
 			b3HalfEdge* htwin = edges + itwin;
 			htwin->twin = iedge;
 
 			hedge->twin = itwin;
 
 			qhHalfEdge* next = edge->next;
-			u8 inext = (u8)es.Find(next);
+			u8 inext = (u8)es.PushBack(next);
 
 			edges[iedge].next = inext;
 
