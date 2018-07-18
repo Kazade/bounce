@@ -681,7 +681,7 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 	b3ClothSolverDef solverDef;
 	solverDef.stack = &m_world->m_stackAllocator;
 	solverDef.particleCapacity = m_particleList.m_count;
-	solverDef.forceCapacity = m_forceList.m_count + (2 * m_particleList.m_count);
+	solverDef.forceCapacity = m_forceList.m_count + (1 * m_particleList.m_count);
 	solverDef.contactCapacity = m_particleList.m_count;
 
 	b3ClothSolver solver(solverDef);
