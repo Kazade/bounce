@@ -160,6 +160,9 @@ private:
 	// Applied external force
 	b3Vec3 m_force;
 
+	// Applied external translation
+	b3Vec3 m_translation;
+
 	// Mass
 	float32 m_mass;
 
@@ -174,9 +177,6 @@ private:
 
 	// Cloth mesh vertex index.
 	u32 m_vertex;
-
-	// Applied external translation
-	b3Vec3 m_translation;
 
 	// Contact
 	b3BodyContact m_contact;

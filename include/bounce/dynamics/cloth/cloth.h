@@ -123,9 +123,6 @@ public:
 	// Get the next cloth in the world cloth list.
 	b3Cloth* GetNext();
 
-	// Set the positions of the mesh vertices to the positions of their associated particles.
-	void Apply() const;
-	
 	// Debug draw the cloth using the associated cloth mesh.
 	void Draw() const;
 private:

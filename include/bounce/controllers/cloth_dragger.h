@@ -192,9 +192,9 @@ public:
 	{
 		B3_ASSERT(IsDragging() == true);
 		
-		b3Vec3 A = m_mesh->vertices[m_triangle->v1];
-		b3Vec3 B = m_mesh->vertices[m_triangle->v2];
-		b3Vec3 C = m_mesh->vertices[m_triangle->v3];
+		b3Vec3 A = m_mesh->particles[m_triangle->v1]->GetPosition();
+		b3Vec3 B = m_mesh->particles[m_triangle->v2]->GetPosition();
+		b3Vec3 C = m_mesh->particles[m_triangle->v3]->GetPosition();
 
 		return m_u * A + m_v * B + (1.0f - m_u - m_v) * C;
 	}

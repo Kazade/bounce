@@ -32,8 +32,6 @@ public:
 	{
 		Test::Step();
 
-		m_cloth->Apply();
-
 		m_cloth->Draw();
 
 		extern u32 b3_clothSolverIterations;

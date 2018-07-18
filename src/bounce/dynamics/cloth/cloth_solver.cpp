@@ -91,7 +91,10 @@ void b3ClothSolver::ApplyForces()
 
 void b3AccelerationConstraint::Apply(const b3ClothSolverData* data)
 {
-	(*data->z)[i1] = z;
+	b3DiagMat33& sS = *data->S;
+	b3DenseVec3& sz = *data->z;
+
+	sz[i1] = z;
 
 	b3Mat33 I; I.SetIdentity();
 
@@ -99,22 +102,22 @@ void b3AccelerationConstraint::Apply(const b3ClothSolverData* data)
 	{
 	case 3:
 	{
-		(*data->S)[i1] = I;
+		sS[i1] = I;
 		break;
 	}
 	case 2:
 	{
-		(*data->S)[i1] = I - b3Outer(p, p);
+		sS[i1] = I - b3Outer(p, p);
 		break;
 	}
 	case 1:
 	{
-		(*data->S)[i1] = I - b3Outer(p, p) - b3Outer(q, q);
+		sS[i1] = I - b3Outer(p, p) - b3Outer(q, q);
 		break;
 	}
 	case 0:
 	{
-		(*data->S)[i1].SetZero();
+		sS[i1].SetZero();
 		break;
 	}
 	default:
@@ -129,6 +132,7 @@ void b3ClothSolver::ApplyConstraints()
 {
 	b3DiagMat33& S = *m_solverData.S;
 	b3DenseVec3& z = *m_solverData.z;
+	float32 h = m_solverData.dt;
 
 	S.SetIdentity();
 	z.SetZero();

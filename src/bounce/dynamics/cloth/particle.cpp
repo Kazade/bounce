@@ -31,6 +31,7 @@ b3Particle::b3Particle(const b3ParticleDef& def, b3Cloth* cloth)
 {
 	m_cloth = cloth;
 	m_type = def.type;
+	
 	m_position = def.position;
 	m_velocity = def.velocity;
 	m_force = def.force;
@@ -42,13 +43,10 @@ b3Particle::b3Particle(const b3ParticleDef& def, b3Cloth* cloth)
 	m_x.SetZero();
 	m_vertex = ~0;
 
-	m_contact.f_active = false;
 	m_contact.n_active = false;
 	m_contact.t1_active = false;
 	m_contact.t2_active = false;
-	m_contact.Fn = 0.0f;
-	m_contact.Ft1 = 0.0f;
-	m_contact.Ft2 = 0.0f;
+	m_contact.f_active = false;
 }
 
 b3Particle::~b3Particle()

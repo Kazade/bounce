@@ -97,8 +97,6 @@ public:
 	{
 		Test::Step();
 
-		m_cloth->Apply();
-
 		b3ClothMesh* mesh = m_cloth->GetMesh();
 
 		b3StackArray<b3Vec3, 256> tension;
@@ -126,9 +124,9 @@ public:
 		{
 			b3ClothMeshTriangle* t = m_rectangleClothMesh.triangles + i;
 
-			b3Vec3 v1 = mesh->vertices[t->v1];
-			b3Vec3 v2 = mesh->vertices[t->v2];
-			b3Vec3 v3 = mesh->vertices[t->v3];
+			b3Vec3 v1 = mesh->particles[t->v1]->GetPosition();
+			b3Vec3 v2 = mesh->particles[t->v2]->GetPosition();
+			b3Vec3 v3 = mesh->particles[t->v3]->GetPosition();
 
 			b3Draw_draw->DrawSegment(v1, v2, b3Color_black);
 			b3Draw_draw->DrawSegment(v2, v3, b3Color_black);

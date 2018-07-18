@@ -270,13 +270,9 @@ b3Particle* b3Cloth::CreateParticle(const b3ParticleDef& def)
 
 void b3Cloth::DestroyParticle(b3Particle* particle)
 {
-	for (u32 i = 0; i > m_mesh->vertexCount; ++i)
+	if (particle->m_vertex != ~0)
 	{
-		if (m_mesh->particles[i] == particle)
-		{
-			m_mesh->particles[i] = NULL;
-			break;
-		}
+		m_mesh->particles[particle->m_vertex] = NULL;
 	}
 
 	m_particleList.Remove(particle);
@@ -417,9 +413,9 @@ bool b3Cloth::RayCast(b3RayCastOutput* output, const b3RayCastInput* input, u32 
 	B3_ASSERT(triangleIndex < m_mesh->triangleCount);
 	b3ClothMeshTriangle* triangle = m_mesh->triangles + triangleIndex;
 
-	b3Vec3 v1 = m_mesh->vertices[triangle->v1];
-	b3Vec3 v2 = m_mesh->vertices[triangle->v2];
-	b3Vec3 v3 = m_mesh->vertices[triangle->v3];
+	b3Vec3 v1 = m_mesh->particles[triangle->v1]->m_position;
+	b3Vec3 v2 = m_mesh->particles[triangle->v2]->m_position;
+	b3Vec3 v3 = m_mesh->particles[triangle->v3]->m_position;
 
 	b3Vec3 p1 = input->p1;
 	b3Vec3 p2 = input->p2;
@@ -735,17 +731,6 @@ void b3Cloth::Step(float32 dt, const b3Vec3& gravity)
 	if (dt > 0.0f)
 	{
 		Solve(dt, gravity);
-	}
-}
-
-void b3Cloth::Apply() const
-{
-	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
-	{
-		if (p->m_vertex != ~0)
-		{
-			m_mesh->vertices[p->m_vertex] = p->m_position;
-		}
 	}
 }
 
