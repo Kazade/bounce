@@ -370,11 +370,9 @@ void b3World::StepCloth(float32 dt)
 {
 	B3_PROFILE("Step Cloth");
 
-	b3Cloth* c = m_clothList.m_head;
-	while (c)
+	for (b3Cloth* c = m_clothList.m_head; c; c = c->GetNext())
 	{
 		c->Step(dt, m_gravity);
-		c = c->GetNext();
 	}
 }
 
