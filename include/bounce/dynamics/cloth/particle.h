@@ -64,9 +64,7 @@ class b3FrictionForce : public b3Force
 public:
 	b3FrictionForce() { }
 	~b3FrictionForce() { }
-	
-	void SolvePositionConstraints(const b3ClothSolverData* data);
-	
+
 	void Apply(const b3ClothSolverData* data);
 
 	b3Particle* m_p;
