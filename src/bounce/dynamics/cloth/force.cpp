@@ -21,7 +21,7 @@
 
 b3Force* b3Force::Create(const b3ForceDef* def)
 {
-	b3SpringForce* force = NULL;
+	b3Force* force = NULL;
 	switch (def->type)
 	{
 	case e_springForce:
