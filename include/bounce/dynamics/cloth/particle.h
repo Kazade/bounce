@@ -65,6 +65,8 @@ public:
 	b3FrictionForce() { }
 	~b3FrictionForce() { }
 	
+	void SolvePositionConstraints(const b3ClothSolverData* data);
+	
 	void Apply(const b3ClothSolverData* data);
 
 	b3Particle* m_p;
@@ -79,14 +81,21 @@ public:
 
 	b3Particle* p1;
 	b3Shape* s2;
-	float32 s;
 
+	// Contact constraint
+	bool n_active;
+	b3Vec3 p;
+	b3Vec3 n;
+	float32 Fn;
+
+	// Friction constraint
+	bool t1_active, t2_active;
+	b3Vec3 t1, t2;
+	float32 Ft1, Ft2;
+
+	// Friction force
 	bool f_active;
 	b3FrictionForce f;
-	
-	bool n_active, t1_active, t2_active;
-	b3Vec3 n, t1, t2;
-	float32 Fn, Ft1, Ft2;
 };
 
 // A cloth particle.

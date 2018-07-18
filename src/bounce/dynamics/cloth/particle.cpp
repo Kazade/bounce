@@ -22,6 +22,11 @@
 #include <bounce/dynamics/cloth/dense_vec3.h>
 #include <bounce/dynamics/cloth/sparse_sym_mat33.h>
 
+void b3FrictionForce::SolvePositionConstraints(const b3ClothSolverData* data)
+{
+	B3_NOT_USED(data);
+}
+
 void b3FrictionForce::Apply(const b3ClothSolverData* data)
 {
 	// TODO

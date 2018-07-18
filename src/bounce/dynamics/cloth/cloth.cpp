@@ -509,9 +509,9 @@ void b3Cloth::UpdateContacts()
 	// Create contacts 
 	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
 	{
-		// Static and kinematic particles can't participate in unilateral collisions.
-		if (p->m_type != e_dynamicParticle)
+		if (p->m_type == e_staticParticle)
 		{
+			// TODO
 			continue;
 		}
 
@@ -537,8 +537,9 @@ void b3Cloth::UpdateContacts()
 
 		for (b3Body* body = m_world->GetBodyList().m_head; body; body = body->GetNext())
 		{
-			if (body->GetType() != e_staticBody)
+			if (p->m_type != e_dynamicParticle && body->GetType() != e_dynamicBody)
 			{
+				// At least one body should be kinematic or dynamic.
 				continue;
 			}
 
@@ -563,13 +564,14 @@ void b3Cloth::UpdateContacts()
 			b3Shape* shape = bestShape;
 			float32 s = bestSeparation;
 			b3Vec3 n = bestNormal;
+			b3Vec3 cp = p->m_position - s * n;
 
 			// Store the contact manifold
-			// Here the normal points from shape 2 to shape 1 (mass)
-			c->n_active = true;
+			// Here the normal points from shape 2 to the particle
 			c->p1 = p;
 			c->s2 = shape;
-			c->s = s;
+			c->n_active = true;
+			c->p = cp;
 			c->n = n;
 			c->t1 = b3Perp(n);
 			c->t2 = b3Cross(c->t1, n);
@@ -711,7 +713,7 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 		}
 	}
 
-	// Solve
+	// Solve	
 	solver.Solve(dt, gravity);
 
 	// Clear external applied forces and translations
@@ -766,9 +768,11 @@ void b3Cloth::Draw() const
 			b3Draw_draw->DrawPoint(p->m_position, 4.0f, b3Color_green);
 		}
 
-		if (p->m_contact.n_active)
+		b3BodyContact* c = &p->m_contact;
+		
+		if (c->n_active)
 		{
-			b3Draw_draw->DrawSegment(p->m_position, p->m_position + p->m_contact.n, b3Color_yellow);
+			b3Draw_draw->DrawSegment(c->p, c->p + c->n, b3Color_yellow);
 		}
 	}
 

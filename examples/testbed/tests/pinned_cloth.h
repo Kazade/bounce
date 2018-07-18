@@ -40,21 +40,48 @@ public:
 		b3ClothDef def;
 		def.mesh = &m_rectangleClothMesh;
 		def.density = 0.2f;
-		def.structural = 10000.0f;
+		def.structural = 100000.0f;
 		def.damping = 0.0f;
 
 		m_cloth = m_world.CreateCloth(def);
 
-		b3AABB3 aabb;
-		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
-		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
+		b3AABB3 aabb1;
+		aabb1.m_lower.Set(-5.0f, -1.0f, -6.0f);
+		aabb1.m_upper.Set(5.0f, 1.0f, -4.0f);
+
+		b3AABB3 aabb2;
+		aabb2.m_lower.Set(-5.0f, -1.0f, 4.0f);
+		aabb2.m_upper.Set(5.0f, 1.0f, 6.0f);
 
 		for (b3Particle* p = m_cloth->GetParticleList().m_head; p; p = p->GetNext())
 		{
-			if (aabb.Contains(p->GetPosition()))
+			if (aabb1.Contains(p->GetPosition()))
 			{
 				p->SetType(e_staticParticle);
 			}
+
+			if (aabb2.Contains(p->GetPosition()))
+			{
+				p->SetType(e_staticParticle);
+			}
+		}
+
+		{
+			b3BodyDef bd;
+			bd.type = e_dynamicBody;
+			bd.position.Set(0.0f, 5.0f, 0.0f);
+
+			b3Body* b = m_world.CreateBody(bd);
+
+			b3SphereShape sphere;
+			sphere.m_center.SetZero();
+			sphere.m_radius = 2.0f;
+
+			b3ShapeDef sd;
+			sd.shape = &sphere;
+			sd.density = 1.0f;
+
+			b3Shape* s = b->CreateShape(sd);
 		}
 	}
 

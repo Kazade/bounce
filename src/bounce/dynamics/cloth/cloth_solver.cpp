@@ -23,6 +23,8 @@
 #include <bounce/dynamics/cloth/dense_vec3.h>
 #include <bounce/dynamics/cloth/diag_mat33.h>
 #include <bounce/dynamics/cloth/sparse_sym_mat33.h>
+#include <bounce/dynamics/shapes/shape.h>
+#include <bounce/dynamics/body.h>
 #include <bounce/common/memory/stack_allocator.h>
 
 // Here, we solve Ax = b using the Modified Preconditioned Conjugate Gradient (MPCG) algorithm.
@@ -149,6 +151,11 @@ void b3ClothSolver::ApplyConstraints()
 		b3BodyContact* pc = m_contacts[i];
 		b3Particle* p = pc->p1;
 
+		if (p->m_type != e_dynamicParticle)
+		{
+			continue;
+		}
+
 		b3AccelerationConstraint* ac = m_constraints + m_constraintCount;
 		++m_constraintCount;
 		ac->i1 = p->m_solverId;
@@ -230,7 +237,10 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	{
 		b3BodyContact* c = m_contacts[i];
 		b3Particle* p = c->p1;
-		sy[p->m_solverId] -= c->s * c->n;
+
+		b3Vec3 dx = c->p - p->m_position;
+
+		sy[p->m_solverId] += dx;
 	}
 
 	// Apply internal forces
@@ -242,7 +252,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// Solve Ax = b, where
 	// A = M - h * dfdv - h * h * dfdx
 	// b = h * (f0 + h * dfdx * v0 + dfdx * y) 
-	
+
 	// A
 	b3SparseSymMat33 A(m_particleCount);
 	for (u32 i = 0; i < m_particleCount; ++i)
@@ -257,7 +267,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// x
 	b3DenseVec3 x(m_particleCount);
 	u32 iterations = 0;
-	
+
 	Solve(x, iterations, A, b, S, z, sx0);
 	b3_clothSolverIterations = iterations;
 
@@ -268,16 +278,14 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// Copy state buffers back to the particles
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
-		m_particles[i]->m_position = sx[i];
-		m_particles[i]->m_velocity = sv[i];
-		
-		// Cache x to improve convergence
-		m_particles[i]->m_x = x[i];
-	}
+		b3Particle* p = m_particles[i];
 
-	// Store the extra contact constraint forces that should have been 
-	// supplied to enforce the contact constraints exactly.
-	// These forces can be used in contact constraint logic.
+		p->m_position = sx[i];
+		p->m_velocity = sv[i];
+
+		// Cache x to improve convergence
+		p->m_x = x[i];
+	}
 
 	// f = A * x - b
 	b3DenseVec3 f = A * x - b;
@@ -285,16 +293,32 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	for (u32 i = 0; i < m_contactCount; ++i)
 	{
 		b3BodyContact* c = m_contacts[i];
-		b3Particle* p = c->p1;
 
-		b3Vec3 force = f[p->m_solverId];
+		b3Particle* p1 = c->p1;
+		b3Body* b2 = c->s2->GetBody();
+
+		b3Vec3 f1 = f[p1->m_solverId];
+		b3Vec3 f2 = -f1;
+
+		// Apply constraint reaction force at the contact point on the body 
+		b2->ApplyForce(f2, c->p, true);
+
+		// Store constraint force acted on the particle
 
 		// Signed normal force magnitude
-		c->Fn = b3Dot(force, c->n);
+		c->Fn = b3Dot(f1, c->n);
 
-		// Signed tangent force magnitude
-		c->Ft1 = b3Dot(force, c->t1);
-		c->Ft2 = b3Dot(force, c->t2);
+		if (c->t1_active)
+		{
+			// Signed tangent force magnitude
+			c->Ft1 = b3Dot(f1, c->t1);
+		}
+
+		if (c->t2_active)
+		{
+			// Signed tangent force magnitude
+			c->Ft2 = b3Dot(f1, c->t2);
+		}
 	}
 }
 
