@@ -36,16 +36,18 @@ void b3Manifold::Initialize(const b3Manifold& oldManifold)
 	tangentImpulse = oldManifold.tangentImpulse;
 	motorImpulse = oldManifold.motorImpulse;
 
-	for (u32 i = 0; i < oldManifold.pointCount; ++i)
+	for (u32 i = 0; i < pointCount; ++i)
 	{
-		const b3ManifoldPoint* p1 = oldManifold.points + i;
-		for (u32 j = 0; j < pointCount; ++j)
+		b3ManifoldPoint* p1 = points + i;
+		
+		for (u32 j = 0; j < oldManifold.pointCount; ++j)
 		{
-			b3ManifoldPoint* p2 = points + j;
-			if (p2->triangleKey == p1->triangleKey && p2->key == p1->key)
+			const b3ManifoldPoint* p2 = oldManifold.points + j;
+			
+			if (p2->key == p1->key)
 			{
-				p2->normalImpulse = p1->normalImpulse;
-				p2->persisting = 1;
+				p1->normalImpulse = p2->normalImpulse;
+				p1->persisting = 1;
 				break;
 			}
 		}

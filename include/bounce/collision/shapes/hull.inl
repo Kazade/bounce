@@ -1,10 +1,10 @@
 inline b3HalfEdge b3MakeEdge(u32 origin, u32 twin, u32 face, u32 next)
 {
 	b3HalfEdge edge;
-	edge.origin = u8(origin);
-	edge.twin = u8(twin);
-	edge.face = u8(face);
-	edge.next = u8(next);
+	edge.origin = origin;
+	edge.twin = twin;
+	edge.face = face;
+	edge.next = next;
 	return edge;
 }
 

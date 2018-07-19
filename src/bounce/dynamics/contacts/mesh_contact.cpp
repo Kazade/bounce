@@ -259,7 +259,7 @@ void b3MeshContact::Collide()
 		
 		for (u32 j = 0; j < manifold->pointCount; ++j)
 		{
-			manifold->points[j].triangleKey = triangleIndex;
+			manifold->points[j].key.triangleKey = triangleIndex;
 		}
 		
 		++tempCount;

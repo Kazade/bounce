@@ -46,7 +46,7 @@ public:
 		{
 			b3QHull* hull = hulls + i;
 
-			const u32 count = B3_MAX_HULL_VERTICES / 4;
+			const u32 count = 32;
 			b3Vec3 points[count];
 
 			for (u32 j = 0; j < count; ++j)

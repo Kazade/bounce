@@ -87,7 +87,6 @@ void b3BuildEdgeContact(b3Manifold& manifold,
 	manifold.points[0].localNormal1 = b3MulT(xf1.rotation, N);
 	manifold.points[0].localPoint1 = b3MulT(xf1, c1);
 	manifold.points[0].localPoint2 = b3MulT(xf2, c2);
-	manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
 	manifold.points[0].key = b3MakeKey(pair);
 }
 
@@ -190,7 +189,6 @@ void b3BuildFaceContact(b3Manifold& manifold,
 			mp->localNormal1 = b3MulT(xf2.rotation, s_normal);
 			mp->localPoint1 = b3MulT(xf2, v2.position);
 			mp->localPoint2 = b3MulT(xf1, v1);
-			mp->triangleKey = B3_NULL_TRIANGLE;
 			mp->key = b3MakeKey(pair);
 		}
 		else
@@ -198,7 +196,6 @@ void b3BuildFaceContact(b3Manifold& manifold,
 			mp->localNormal1 = b3MulT(xf1.rotation, normal);
 			mp->localPoint1 = b3MulT(xf1, v1);
 			mp->localPoint2 = b3MulT(xf2, v2.position);
-			mp->triangleKey = B3_NULL_TRIANGLE;
 			mp->key = b3MakeKey(v2.pair);
 		}
 	}

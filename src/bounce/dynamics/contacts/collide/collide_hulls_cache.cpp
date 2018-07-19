@@ -106,7 +106,6 @@ static void b3RebuildEdgeContact(b3Manifold& manifold,
 		manifold.points[0].localNormal1 = b3MulT(xf1.rotation, N);
 		manifold.points[0].localPoint1 = b3MulT(xf1, c1);
 		manifold.points[0].localPoint2 = b3MulT(xf2, c2);
-		manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
 		manifold.points[0].key = b3MakeKey(pair);
 	}
 }

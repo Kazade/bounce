@@ -22,39 +22,25 @@
 #include <bounce/common/template/array.h>
 #include <bounce/common/geometry.h>
 
-#define B3_NULL_EDGE (0xFF)
+#define B3_NULL_EDGE B3_MAX_U32
 
 // A combination of features used to uniquely identify a vertex on a feature.
 struct b3FeaturePair
 {
-	u8 inEdge1; // incoming edge on hull 1
-	u8 inEdge2; // incoming edge on hull 2
-	u8 outEdge1; // outgoing edge on hull 1
-	u8 outEdge2; // outgoing edge on hull 2
+	u32 inEdge1; // incoming edge on hull 1
+	u32 outEdge1; // outgoing edge on hull 1
+	u32 inEdge2; // incoming edge on hull 2
+	u32 outEdge2; // outgoing edge on hull 2
 };
 
 inline b3FeaturePair b3MakePair(u32 inEdge1, u32 inEdge2, u32 outEdge1, u32 outEdge2)
 {
 	b3FeaturePair out;
-	out.inEdge1 = u8(inEdge1);
-	out.inEdge2 = u8(inEdge2);
-	out.outEdge1 = u8(outEdge1);
-	out.outEdge2 = u8(outEdge2);
+	out.inEdge1 = inEdge1;
+	out.inEdge2 = inEdge2;
+	out.outEdge1 = outEdge1;
+	out.outEdge2 = outEdge2;
 	return out;
-}
-
-// Make a 32-bit key for a feature pair.
-inline u32 b3MakeKey(const b3FeaturePair& featurePair)
-{
-	union b3FeaturePairKey
-	{
-		b3FeaturePair pair;
-		u32 key;
-	};
-
-	b3FeaturePairKey key;
-	key.pair = featurePair;
-	return key.key;
 }
 
 // A clip vertex.

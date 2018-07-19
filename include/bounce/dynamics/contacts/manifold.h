@@ -20,9 +20,47 @@
 #define B3_MANIFOLD_H
 
 #include <bounce/common/math/vec2.h>
-#include <bounce/common/geometry.h>
+#include <bounce/dynamics/contacts/collide/clip.h>
 
 #define B3_NULL_TRIANGLE (0xFFFFFFFF)
+
+// A contact manifold point.
+struct b3ManifoldPointKey
+{
+	bool operator==(const b3ManifoldPointKey& other) const
+	{
+		return triangleKey == other.triangleKey &&
+			key1 == other.key1 && key2 == other.key2;
+	}
+
+	u32 triangleKey; 
+	u64 key1; 
+	u64 key2; 
+};
+
+inline b3ManifoldPointKey b3MakeKey(const b3FeaturePair& featurePair)
+{
+	struct b3Key128
+	{
+		u64 key1;
+		u64 key2;
+	};
+
+	union b3FeaturePairKey
+	{
+		b3FeaturePair pair;
+		b3Key128 key;
+	};
+
+	b3FeaturePairKey fpkey;
+	fpkey.pair = featurePair;
+
+	b3ManifoldPointKey key;
+	key.triangleKey = B3_NULL_TRIANGLE;
+	key.key1 = fpkey.key.key1;
+	key.key2 = fpkey.key.key2;
+	return key;
+}
 
 // A contact manifold point.
 struct b3ManifoldPoint
@@ -31,8 +69,7 @@ struct b3ManifoldPoint
 	b3Vec3 localPoint1; // local point on the first shape without its radius
 	b3Vec3 localPoint2; // local point on the other shape without its radius
 
-	u32 triangleKey; // triangle identifier
-	u32 key; // point identifier
+	b3ManifoldPointKey key; // point identifier
 
 	float32 normalImpulse; // normal impulse
 	u32 persisting; // is this point persistent?

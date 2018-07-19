@@ -85,7 +85,6 @@ static void b3BuildEdgeContact(b3Manifold& manifold,
 	manifold.points[0].localNormal1 = b3MulT(xf1.rotation, N);
 	manifold.points[0].localPoint1 = b3MulT(xf1, c1);
 	manifold.points[0].localPoint2 = b3MulT(xf2, c2);
-	manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
 	manifold.points[0].key = b3MakeKey(pair);
 }
 
@@ -131,7 +130,6 @@ static void b3BuildFaceContact(b3Manifold& manifold,
 			mp->localNormal1 = b3MulT(xf1.rotation, n1);
 			mp->localPoint1 = b3MulT(xf1, c1);
 			mp->localPoint2 = b3MulT(xf2, c2);
-			mp->triangleKey = B3_NULL_TRIANGLE;
 			mp->key = b3MakeKey(clipEdge1[i].pair);
 			
 			++pointCount;
@@ -193,9 +191,10 @@ void b3CollideCapsuleAndHull(b3Manifold& manifold,
 		manifold.points[0].localNormal1 = b3MulT(xf1.rotation, N1);
 		manifold.points[0].localPoint1 = b3MulT(xf1, gjk.point1);
 		manifold.points[0].localPoint2 = b3MulT(xf2, gjk.point2);
-		manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
-		manifold.points[0].key = 0;
-		
+		manifold.points[0].key.triangleKey = B3_NULL_TRIANGLE;
+		manifold.points[0].key.key1 = 0;
+		manifold.points[0].key.key2 = 0;
+
 		return;
 	}
 	

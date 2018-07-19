@@ -19,41 +19,24 @@
 #include <bounce/collision/shapes/qhull.h>
 #include <bounce/quickhull/qh_hull.h>
 
-#define B3_NULL_HULL_FEATURE 0xFF
-
-// Used to map pointers to indices 
-// If more performance is required then a use hash-map
-template<class T, u32 N>
+template <class T>
 struct b3UniqueStackArray
 {
-	b3UniqueStackArray()
+	u32 PushBack(const T& e)
 	{
-		count = 0;
-	}
-
-	// Return value index if added
-	// Return N if the array is full
-	u32 PushBack(const T& value)
-	{
-		for (u32 i = 0; i < count; ++i)
+		for (u32 i = 0; i < elements.Count(); ++i)
 		{
-			if (values[i] == value)
+			if (elements[i] == e)
 			{
 				return i;
 			}
 		}
 
-		if (count == N)
-		{
-			return N;
-		}
-
-		values[count++] = value;
-		return count - 1;
+		elements.PushBack(e);
+		return elements.Count() - 1;
 	}
 
-	T values[N];
-	u32 count;
+	b3StackArray<T, 256> elements;
 };
 
 //
@@ -287,22 +270,9 @@ void b3QHull::Set(const b3Vec3* points, u32 count, bool simplify)
 		b3Free(ps);
 	}
 
-	if (hull.GetVertexList().count > B3_MAX_HULL_VERTICES)
-	{
-		// Vertex excess
-		return;
-	}
-
-	if (hull.GetFaceList().count > B3_MAX_HULL_FACES)
-	{
-		// Face excess
-		return;
-	}
-
 	// Convert the constructed hull into a run-time hull.
-	b3UniqueStackArray<qhVertex*, B3_MAX_HULL_VERTICES> vs;
-	b3UniqueStackArray<qhHalfEdge*, B3_MAX_HULL_EDGES> es;
-	u32 fs_count = 0;
+	b3UniqueStackArray<qhVertex*> vs;
+	b3UniqueStackArray<qhHalfEdge*> es;
 
 	// Add vertices to the map
 	for (qhVertex* vertex = hull.GetVertexList().head; vertex != NULL; vertex = vertex->next)
@@ -310,13 +280,9 @@ void b3QHull::Set(const b3Vec3* points, u32 count, bool simplify)
 		vs.PushBack(vertex);
 	}
 
-	// Add faces and half-edges to the map
+	// Add half-edges to the map
 	for (qhFace* face = hull.GetFaceList().head; face != NULL; face = face->next)
 	{
-		// Add face
-		B3_ASSERT(fs_count < B3_MAX_HULL_FACES);
-		++fs_count;
-
 		// Add half-edges 
 		qhHalfEdge* begin = face->edge;
 		qhHalfEdge* edge = begin;
@@ -324,59 +290,54 @@ void b3QHull::Set(const b3Vec3* points, u32 count, bool simplify)
 		{
 			// Add half-edge
 			u32 iedge = es.PushBack(edge);
-			if (iedge == B3_MAX_HULL_EDGES)
-			{
-				// Half-edge excess
-				return;
-			}
 
 			// Add half-edge just after its twin
 			u32 itwin = es.PushBack(edge->twin);
-			if (itwin == B3_MAX_HULL_EDGES)
-			{
-				// Half-edge excess
-				return;
-			}
 
 			edge = edge->next;
 		} while (edge != begin);
 	}
+
+	hullVertices.Resize(hull.GetVertexList().count);
+	hullEdges.Resize(es.elements.Count());
+	hullFaces.Resize(hull.GetFaceList().count);
+	hullPlanes.Resize(hull.GetFaceList().count);
 
 	// Build and link the features
 	u32 iface = 0;
 	for (qhFace* face = hull.GetFaceList().head; face != NULL; face = face->next)
 	{
 		// Build and link the half-edges 
-		b3Face* hface = faces + iface;
+		b3Face* hface = hullFaces.Get(iface);
 
-		planes[iface] = face->plane;
+		hullPlanes[iface] = face->plane;
 
 		qhHalfEdge* begin = face->edge;
-		hface->edge = (u8)es.PushBack(begin);
+		hface->edge = es.PushBack(begin);
 
 		qhHalfEdge* edge = begin;
 		do
 		{
 			qhVertex* v = edge->tail;
-			u8 iv = (u8)vs.PushBack(v);
-			vertices[iv] = v->position;
+			u32 iv = vs.PushBack(v);
+			hullVertices[iv] = v->position;
 
-			u8 iedge = (u8)es.PushBack(edge);
-			b3HalfEdge* hedge = edges + iedge;
-			hedge->face = u8(iface);
+			u32 iedge = es.PushBack(edge);
+			b3HalfEdge* hedge = hullEdges.Get(iedge);
+			hedge->face = iface;
 			hedge->origin = iv;
 
 			qhHalfEdge* twin = edge->twin;
-			u8 itwin = (u8)es.PushBack(twin);
-			b3HalfEdge* htwin = edges + itwin;
+			u32 itwin = es.PushBack(twin);
+			b3HalfEdge* htwin = hullEdges.Get(itwin);
 			htwin->twin = iedge;
 
 			hedge->twin = itwin;
 
 			qhHalfEdge* next = edge->next;
-			u8 inext = (u8)es.PushBack(next);
+			u32 inext = es.PushBack(next);
 
-			edges[iedge].next = inext;
+			hullEdges[iedge].next = inext;
 
 			edge = next;
 		} while (edge != begin);
@@ -384,14 +345,9 @@ void b3QHull::Set(const b3Vec3* points, u32 count, bool simplify)
 		++iface;
 	}
 
-	B3_ASSERT(vs.count <= B3_MAX_HULL_VERTICES);
-	vertexCount = vs.count;
-
-	B3_ASSERT(es.count <= B3_MAX_HULL_EDGES);
-	edgeCount = es.count;
-
-	B3_ASSERT(fs_count <= B3_MAX_HULL_FACES);
-	faceCount = fs_count;
+	vertexCount = hullVertices.Count();
+	edgeCount = hullEdges.Count();
+	faceCount = hullFaces.Count();
 
 	// Validate
 	Validate();

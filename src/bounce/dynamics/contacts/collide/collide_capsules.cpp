@@ -233,13 +233,11 @@ void b3CollideCapsuleAndCapsule(b3Manifold& manifold,
 					manifold.points[0].localNormal1 = b3MulT(xf1.rotation, n1);
 					manifold.points[0].localPoint1 = b3MulT(xf1, clipEdge1[0].position);
 					manifold.points[0].localPoint2 = b3MulT(xf2, cp1);
-					manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
 					manifold.points[0].key = b3MakeKey(clipEdge1[0].pair);
 
 					manifold.points[1].localNormal1 = b3MulT(xf1.rotation, n2);
 					manifold.points[1].localPoint1 = b3MulT(xf1, clipEdge1[1].position);
 					manifold.points[1].localPoint2 = b3MulT(xf2, cp2);
-					manifold.points[1].triangleKey = B3_NULL_TRIANGLE;
 					manifold.points[1].key = b3MakeKey(clipEdge1[1].pair);
 
 					return;
@@ -253,8 +251,9 @@ void b3CollideCapsuleAndCapsule(b3Manifold& manifold,
 		manifold.points[0].localNormal1 = b3MulT(xf1.rotation, normal);
 		manifold.points[0].localPoint1 = b3MulT(xf1, point1);
 		manifold.points[0].localPoint2 = b3MulT(xf2, point2);
-		manifold.points[0].triangleKey = B3_NULL_TRIANGLE;
-		manifold.points[0].key = 0;
+		manifold.points[0].key.triangleKey = B3_NULL_TRIANGLE;
+		manifold.points[0].key.key1 = 0;
+		manifold.points[0].key.key2 = 0;
 
 		return;
 	}

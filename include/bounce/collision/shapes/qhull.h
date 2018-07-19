@@ -20,25 +20,25 @@
 #define B3_Q_HULL_H
 
 #include <bounce/collision/shapes/hull.h>
+#include <bounce/common/template/array.h>
 
 // This hull can be constructed from an array of points.
 struct b3QHull : public b3Hull
 {
-	b3Vec3 hullVertices[B3_MAX_HULL_VERTICES];
-	b3HalfEdge hullEdges[B3_MAX_HULL_EDGES];
-	b3Face hullFaces[B3_MAX_HULL_FACES];
-	b3Plane hullPlanes[B3_MAX_HULL_FACES];
+	b3StackArray<b3Vec3, 256> hullVertices;
+	b3StackArray<b3HalfEdge, 256> hullEdges;
+	b3StackArray<b3Face, 256> hullFaces;
+	b3StackArray<b3Plane, 256> hullPlanes;
 
 	b3QHull()
 	{
-		// Zero the counters since the user manipulates via setters
-		vertices = hullVertices;
+		vertices = hullVertices.Begin();
 		vertexCount = 0;
-		edges = hullEdges;
+		edges = hullEdges.Begin();
 		edgeCount = 0;
-		faces = hullFaces;
+		faces = hullFaces.Begin();
 		faceCount = 0;
-		planes = hullPlanes;
+		planes = hullPlanes.Begin();
 		centroid.SetZero();
 	}
 

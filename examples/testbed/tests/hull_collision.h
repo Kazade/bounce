@@ -24,8 +24,7 @@ class HullCollision : public Collide
 public:
 	enum
 	{
-		// Half to avoid generation failure due to many vertices
-		e_count = B3_MAX_HULL_VERTICES / 2
+		e_count = 256
 	};
 
 	HullCollision()
