@@ -143,6 +143,7 @@ private:
 	friend class b3ClothSolver;
 	friend class b3Force;
 	friend class b3SpringForce;
+	friend class b3BendForce;
 	friend class b3FrictionForce;
 
 	b3Particle(const b3ParticleDef& def, b3Cloth* cloth);

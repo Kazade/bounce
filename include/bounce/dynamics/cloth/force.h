@@ -31,6 +31,7 @@ enum b3ForceType
 {
 	e_frictionForce,
 	e_springForce,
+	e_bendForce,
 };
 
 struct b3ForceDef

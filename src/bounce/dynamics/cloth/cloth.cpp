@@ -21,6 +21,7 @@
 #include <bounce/dynamics/cloth/particle.h>
 #include <bounce/dynamics/cloth/force.h>
 #include <bounce/dynamics/cloth/spring_force.h>
+#include <bounce/dynamics/cloth/bend_force.h>
 #include <bounce/dynamics/cloth/cloth_solver.h>
 #include <bounce/dynamics/world.h>
 #include <bounce/dynamics/world_listeners.h>
@@ -29,10 +30,6 @@
 #include <bounce/collision/collision.h>
 #include <bounce/common/memory/stack_allocator.h>
 #include <bounce/common/draw.h>
-
-#define B3_FORCE_THRESHOLD 0.005f
-
-#define B3_CLOTH_BENDING 0
 
 static B3_FORCE_INLINE u32 b3NextIndex(u32 i)
 {
@@ -204,23 +201,21 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) : m_particleBlocks(sizeo
 		CreateForce(fd);
 	}
 
-#if B3_CLOTH_BENDING
-
 	// Bending
 	for (u32 i = 0; i < sharedCount; ++i)
 	{
 		b3SharedEdge* e = sharedEdges + i;
 
-		b3Particle* p1 = m->particles[e->nsv1];
-		b3Particle* p2 = m->particles[e->nsv2];
-
-		b3SpringForceDef fd;
-		fd.Initialize(p1, p2, def.bending, def.damping);
+		b3Particle* p1 = m->particles[e->v1];
+		b3Particle* p2 = m->particles[e->v2];
+		b3Particle* p3 = m->particles[e->nsv1];
+		b3Particle* p4 = m->particles[e->nsv2];
+		
+		b3BendForceDef fd;
+		fd.Initialize(p1, p2, p3, p4, def.bending, def.damping);
 
 		CreateForce(fd);
 	}
-
-#endif
 
 	allocator->Free(sharedEdges);
 	allocator->Free(uniqueEdges);
@@ -579,7 +574,7 @@ void b3Cloth::UpdateContacts()
 			// The contact persists
 
 			// Has the contact constraint been satisfied?
-			if (c0.Fn <= -B3_FORCE_THRESHOLD)
+			if (c0.Fn <= 0.0f)
 			{
 				// Contact force is attractive.
 
