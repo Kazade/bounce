@@ -60,7 +60,7 @@ struct b3ClothDef
 	}
 
 	// Cloth mesh 
-	b3ClothMesh* mesh;
+	const b3ClothMesh* mesh;
 
 	// Cloth density in kg/m^3
 	float32 density;
@@ -106,7 +106,10 @@ public:
 	bool RayCast(b3RayCastOutput* output, const b3RayCastInput* input, u32 triangleIndex) const;
 
 	// Return the cloth mesh proxy.
-	b3ClothMesh* GetMesh() const;
+	const b3ClothMesh* GetMesh() const;
+
+	// Return the particle associated with the given vertex.
+	b3Particle* GetVertexParticle(u32 i);
 
 	// Return the list of particles in this cloth.
 	const b3List2<b3Particle>& GetParticleList() const;
@@ -148,8 +151,11 @@ private:
 	void Solve(float32 dt, const b3Vec3& gravity);
 
 	// Proxy mesh
-	b3ClothMesh* m_mesh;
+	const b3ClothMesh* m_mesh;
 	
+	// Vertex particles
+	b3Particle** m_vertexParticles;
+
 	// Mesh density
 	float32 m_density;
 
@@ -180,7 +186,7 @@ inline b3World* b3Cloth::GetWorld()
 	return m_world;
 }
 
-inline b3ClothMesh* b3Cloth::GetMesh() const
+inline const b3ClothMesh* b3Cloth::GetMesh() const
 {
 	return m_mesh;
 }

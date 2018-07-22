@@ -157,8 +157,10 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) : m_particleBlocks(sizeo
 	m_world = world;
 	m_mesh = def.mesh;
 	m_density = def.density;
+	
+	const b3ClothMesh* m = m_mesh;
 
-	b3ClothMesh* m = m_mesh;
+	m_vertexParticles = (b3Particle**)b3Alloc(m->vertexCount * sizeof(b3Particle*));
 
 	// Create particles
 	for (u32 i = 0; i < m->vertexCount; ++i)
@@ -170,7 +172,8 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) : m_particleBlocks(sizeo
 		b3Particle* p = CreateParticle(pd);
 
 		p->m_vertex = i;
-		m->particles[i] = p;
+		
+		m_vertexParticles[i] = p;
 	}
 
 	// Compute mass
@@ -192,8 +195,8 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) : m_particleBlocks(sizeo
 	{
 		b3UniqueEdge* e = uniqueEdges + i;
 
-		b3Particle* p1 = m->particles[e->v1];
-		b3Particle* p2 = m->particles[e->v2];
+		b3Particle* p1 = m_vertexParticles[e->v1];
+		b3Particle* p2 = m_vertexParticles[e->v2];
 
 		b3SpringForceDef fd;
 		fd.Initialize(p1, p2, def.structural, def.damping);
@@ -206,10 +209,10 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) : m_particleBlocks(sizeo
 	{
 		b3SharedEdge* e = sharedEdges + i;
 
-		b3Particle* p1 = m->particles[e->v1];
-		b3Particle* p2 = m->particles[e->v2];
-		b3Particle* p3 = m->particles[e->nsv1];
-		b3Particle* p4 = m->particles[e->nsv2];
+		b3Particle* p1 = m_vertexParticles[e->v1];
+		b3Particle* p2 = m_vertexParticles[e->v2];
+		b3Particle* p3 = m_vertexParticles[e->nsv1];
+		b3Particle* p4 = m_vertexParticles[e->nsv2];
 		
 		b3BendForceDef fd;
 		fd.Initialize(p1, p2, p3, p4, def.bending, def.damping);
@@ -225,8 +228,8 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) : m_particleBlocks(sizeo
 	{
 		b3ClothMeshSewingLine* line = m->sewingLines + i;
 
-		b3Particle* p1 = m->particles[line->v1];
-		b3Particle* p2 = m->particles[line->v2];
+		b3Particle* p1 = m_vertexParticles[line->v1];
+		b3Particle* p2 = m_vertexParticles[line->v2];
 
 		b3SpringForceDef fd;
 		fd.Initialize(p1, p2, def.structural, def.damping);
@@ -244,6 +247,8 @@ b3Cloth::~b3Cloth()
 		p = p->m_next;
 		p0->~b3Particle();
 	}
+
+	b3Free(m_vertexParticles);
 
 	b3Force* f = m_forceList.m_head;
 	while (f)
@@ -267,7 +272,7 @@ void b3Cloth::DestroyParticle(b3Particle* particle)
 {
 	if (particle->m_vertex != ~0)
 	{
-		m_mesh->particles[particle->m_vertex] = NULL;
+		m_vertexParticles[particle->m_vertex] = NULL;
 	}
 
 	m_particleList.Remove(particle);
@@ -298,6 +303,12 @@ float32 b3Cloth::GetEnergy() const
 	return 0.5f * E;
 }
 
+b3Particle* b3Cloth::GetVertexParticle(u32 i)
+{
+	B3_ASSERT(i < m_mesh->vertexCount);
+	return m_vertexParticles[i];
+}
+
 void b3Cloth::ComputeMass()
 {
 	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
@@ -322,9 +333,9 @@ void b3Cloth::ComputeMass()
 
 		float32 mass = rho * area;
 
-		b3Particle* p1 = m_mesh->particles[triangle->v1];
-		b3Particle* p2 = m_mesh->particles[triangle->v2];
-		b3Particle* p3 = m_mesh->particles[triangle->v3];
+		b3Particle* p1 = m_vertexParticles[triangle->v1];
+		b3Particle* p2 = m_vertexParticles[triangle->v2];
+		b3Particle* p3 = m_vertexParticles[triangle->v3];
 
 		p1->m_mass += inv3 * mass;
 		p2->m_mass += inv3 * mass;
@@ -408,9 +419,9 @@ bool b3Cloth::RayCast(b3RayCastOutput* output, const b3RayCastInput* input, u32 
 	B3_ASSERT(triangleIndex < m_mesh->triangleCount);
 	b3ClothMeshTriangle* triangle = m_mesh->triangles + triangleIndex;
 
-	b3Vec3 v1 = m_mesh->particles[triangle->v1]->m_position;
-	b3Vec3 v2 = m_mesh->particles[triangle->v2]->m_position;
-	b3Vec3 v3 = m_mesh->particles[triangle->v3]->m_position;
+	b3Vec3 v1 = m_vertexParticles[triangle->v1]->m_position;
+	b3Vec3 v2 = m_vertexParticles[triangle->v2]->m_position;
+	b3Vec3 v3 = m_vertexParticles[triangle->v3]->m_position;
 
 	b3Vec3 p1 = input->p1;
 	b3Vec3 p2 = input->p2;
@@ -773,8 +784,8 @@ void b3Cloth::Draw() const
 	for (u32 i = 0; i < m->sewingLineCount; ++i)
 	{
 		b3ClothMeshSewingLine* s = m->sewingLines + i;
-		b3Particle* p1 = m->particles[s->v1];
-		b3Particle* p2 = m->particles[s->v2];
+		b3Particle* p1 = m_vertexParticles[s->v1];
+		b3Particle* p2 = m_vertexParticles[s->v2];
 
 		b3Draw_draw->DrawSegment(p1->m_position, p2->m_position, b3Color_white);
 	}
@@ -783,9 +794,9 @@ void b3Cloth::Draw() const
 	{
 		b3ClothMeshTriangle* t = m->triangles + i;
 
-		b3Particle* p1 = m->particles[t->v1];
-		b3Particle* p2 = m->particles[t->v2];
-		b3Particle* p3 = m->particles[t->v3];
+		b3Particle* p1 = m_vertexParticles[t->v1];
+		b3Particle* p2 = m_vertexParticles[t->v2];
+		b3Particle* p3 = m_vertexParticles[t->v3];
 
 		b3Vec3 v1 = p1->m_position;
 		b3Vec3 v2 = p2->m_position;

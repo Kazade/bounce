@@ -22,8 +22,6 @@
 #include <bounce/common/math/vec2.h>
 #include <bounce/common/math/vec3.h>
 
-class b3Particle;
-
 struct b3ClothMeshTriangle
 {
 	u32 v1, v2, v3;
@@ -47,7 +45,6 @@ struct b3ClothMesh
 {
 	u32 vertexCount;
 	b3Vec3* vertices;
-	b3Particle** particles;
 	u32 triangleCount;
 	b3ClothMeshTriangle* triangles;
 	u32 meshCount;

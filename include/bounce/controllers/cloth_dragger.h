@@ -63,9 +63,9 @@ public:
 		m_triangle = m_mesh->triangles + rayOut.triangle;
 		m_x = rayOut.fraction;
 
-		b3Particle* p1 = m_mesh->particles[m_triangle->v1];
-		b3Particle* p2 = m_mesh->particles[m_triangle->v2];
-		b3Particle* p3 = m_mesh->particles[m_triangle->v3];
+		b3Particle* p1 = m_cloth->GetVertexParticle(m_triangle->v1);
+		b3Particle* p2 = m_cloth->GetVertexParticle(m_triangle->v2);
+		b3Particle* p3 = m_cloth->GetVertexParticle(m_triangle->v3);
 
 		b3Vec3 v1 = p1->GetPosition();
 		b3Vec3 v2 = p2->GetPosition();
@@ -151,13 +151,13 @@ public:
 		}
 		else
 		{
-			b3Particle* p1 = m_mesh->particles[m_triangle->v1];
+			b3Particle* p1 = m_cloth->GetVertexParticle(m_triangle->v1);
 			p1->ApplyTranslation(dx);
 
-			b3Particle* p2 = m_mesh->particles[m_triangle->v2];
+			b3Particle* p2 = m_cloth->GetVertexParticle(m_triangle->v2);
 			p2->ApplyTranslation(dx);
 
-			b3Particle* p3 = m_mesh->particles[m_triangle->v3];
+			b3Particle* p3 = m_cloth->GetVertexParticle(m_triangle->v3);
 			p3->ApplyTranslation(dx);
 		}
 	}
@@ -165,8 +165,6 @@ public:
 	void StopDragging()
 	{
 		B3_ASSERT(IsDragging() == true);
-
-		m_cloth = nullptr;
 
 		if (m_spring)
 		{
@@ -177,24 +175,21 @@ public:
 		}
 		else
 		{
-			b3Particle* p1 = m_mesh->particles[m_triangle->v1];
-			p1->SetType(m_t1);
-
-			b3Particle* p2 = m_mesh->particles[m_triangle->v2];
-			p2->SetType(m_t2);
-
-			b3Particle* p3 = m_mesh->particles[m_triangle->v3];
-			p3->SetType(m_t3);
+			m_cloth->GetVertexParticle(m_triangle->v1)->SetType(m_t1);
+			m_cloth->GetVertexParticle(m_triangle->v2)->SetType(m_t2);
+			m_cloth->GetVertexParticle(m_triangle->v3)->SetType(m_t3);
 		}
+
+		m_cloth = nullptr;
 	}
 
 	b3Vec3 GetPointA() const
 	{
 		B3_ASSERT(IsDragging() == true);
 		
-		b3Vec3 A = m_mesh->particles[m_triangle->v1]->GetPosition();
-		b3Vec3 B = m_mesh->particles[m_triangle->v2]->GetPosition();
-		b3Vec3 C = m_mesh->particles[m_triangle->v3]->GetPosition();
+		b3Vec3 A = m_cloth->GetVertexParticle(m_triangle->v1)->GetPosition();
+		b3Vec3 B = m_cloth->GetVertexParticle(m_triangle->v2)->GetPosition();
+		b3Vec3 C = m_cloth->GetVertexParticle(m_triangle->v3)->GetPosition();
 
 		return m_u * A + m_v * B + (1.0f - m_u - m_v) * C;
 	}
@@ -212,7 +207,7 @@ private:
 	b3World* m_world;
 
 	b3Cloth* m_cloth;
-	b3ClothMesh* m_mesh;
+	const b3ClothMesh* m_mesh;
 	b3ClothMeshTriangle* m_triangle;
 	float32 m_u, m_v;
 

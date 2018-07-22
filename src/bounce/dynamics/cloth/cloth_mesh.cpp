@@ -25,7 +25,6 @@ b3GarmentClothMesh::b3GarmentClothMesh()
 {
 	vertexCount = 0;
 	vertices = nullptr;
-	particles = nullptr;
 	triangleCount = 0;
 	triangles = nullptr;
 	meshCount = 0;
@@ -37,7 +36,6 @@ b3GarmentClothMesh::b3GarmentClothMesh()
 b3GarmentClothMesh::~b3GarmentClothMesh()
 {
 	b3Free(vertices);
-	b3Free(particles);
 	b3Free(triangles);
 	b3Free(meshes);
 	b3Free(sewingLines);
@@ -51,9 +49,7 @@ void b3GarmentClothMesh::Set(const b3GarmentMesh* garment)
 		vertexCount += garment->meshes[i].vertexCount;
 	}
 	vertices = (b3Vec3*)b3Alloc(vertexCount * sizeof(b3Vec3));
-	particles = (b3Particle**)b3Alloc(vertexCount * sizeof(b3Particle*));
-	memset(particles, 0, vertexCount * sizeof(b3Particle*));
-
+	
 	B3_ASSERT(triangleCount == 0);
 	for (u32 i = 0; i < garment->meshCount; ++i)
 	{
