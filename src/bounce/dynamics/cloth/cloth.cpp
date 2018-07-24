@@ -594,18 +594,6 @@ void b3Cloth::UpdateContacts()
 			}
 		}
 
-#if 0
-		// Notify the new contact state
-		if (c0.n_active == false && c->n_active == true)
-		{
-			// The contact has begun
-		}
-
-		if (c0.n_active == true && c->active_n == false)
-		{
-			// The contact has ended
-		}
-#endif
 		if (c->n_active == false)
 		{
 			continue;
@@ -618,13 +606,16 @@ void b3Cloth::UpdateContacts()
 		}
 
 		b3Shape* s = c->s2;
+		b3Body* b = s->GetBody();
 		b3Vec3 n = c->n;
 		float32 u = s->GetFriction();
 		float32 normalForce = c0.Fn;
 		float32 maxFrictionForce = u * normalForce;
 
-		// Relative velocity
-		b3Vec3 dv = p->m_velocity;
+		// Relative velocity at contact point
+		b3Vec3 v1 = b->GetPointVelocity(c->p);
+		b3Vec3 v2 = p->m_velocity;
+		b3Vec3 dv = v2 - v1;
 
 		b3Vec3 t1 = dv - b3Dot(dv, n) * n;
 		if (b3Dot(t1, t1) > B3_EPSILON * B3_EPSILON)
@@ -637,11 +628,6 @@ void b3Cloth::UpdateContacts()
 
 			c->t1 = t1;
 			c->t2 = t2;
-
-			//c->f_active = true;
-			//c->f.m_type = e_frictionForce;
-			//c->f.m_p = p;
-			//c->f.m_kd = 10.0f;
 		}
 
 		b3Vec3 ts[2];
@@ -676,6 +662,22 @@ void b3Cloth::UpdateContacts()
 
 		c->t1_active = t_active[0];
 		c->t2_active = t_active[1];
+
+		if (c0.t1_active == true)
+		{
+			if (c0.Ft1 > maxFrictionForce)
+			{
+				c->t1_active = false;
+			}
+		}
+
+		if (c0.t2_active == true)
+		{
+			if (c0.Ft2 > maxFrictionForce)
+			{
+				c->t2_active = false;
+			}
+		}
 	}
 }
 

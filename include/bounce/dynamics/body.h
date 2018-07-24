@@ -152,6 +152,9 @@ public:
 
 	// Get the local position of the center of mass.
 	b3Vec3 GetLocalCenter() const;
+	
+	// Get the velocity at a given point.
+	b3Vec3 GetPointVelocity(const b3Vec3& point) const;
 
 	// Get the linear velocity of the center of mass.
 	b3Vec3 GetLinearVelocity() const;
@@ -554,6 +557,11 @@ inline void b3Body::SetGravityScale(float32 scale)
 	{
 		m_gravityScale = scale;
 	}
+}
+
+inline b3Vec3 b3Body::GetPointVelocity(const b3Vec3& point) const
+{
+	return m_linearVelocity + b3Cross(m_angularVelocity, point - m_sweep.worldCenter);
 }
 
 inline b3Vec3 b3Body::GetLinearVelocity() const
