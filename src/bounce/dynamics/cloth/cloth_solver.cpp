@@ -272,16 +272,6 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 			break;
 		}
 	}
-#endif
-
-	// Copy state buffers back to the particles
-	for (u32 i = 0; i < m_particleCount; ++i)
-	{
-		b3Particle* p = m_particles[i];
-
-		p->m_position = sx[i];
-		p->m_velocity = sv[i];
-	}
 
 	// Synchronize bodies
 	for (u32 i = 0; i < m_contactCount; ++i)
@@ -291,8 +281,18 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		body->SynchronizeTransform();
 
 		body->m_worldInvI = b3RotateToFrame(body->m_invI, body->m_xf.rotation);
-		
+
 		body->SynchronizeShapes();
+	}
+#endif
+
+	// Copy state buffers back to the particles
+	for (u32 i = 0; i < m_particleCount; ++i)
+	{
+		b3Particle* p = m_particles[i];
+
+		p->m_position = sx[i];
+		p->m_velocity = sv[i];
 	}
 }
 
