@@ -556,17 +556,20 @@ void b3Cloth::UpdateContacts()
 		}
 
 		b3Shape* shape = bestShape;
+		b3Body* body = shape->GetBody();
 		float32 s = bestSeparation;
 		b3Vec3 n = bestNormal;
-		b3Vec3 cp = p->m_position - s * n;
+		b3Vec3 cp2r = p->m_position - s * n;
+		b3Vec3 cp2 = cp2r - shape->m_radius * n;
 
-		// Store the contact manifold
-		// Here the normal points from shape 2 to the particle
+		// Store the local contact manifold
+		// Ensure the the normal points from the particle 1 to shape 2
 		c->active = true;
 		c->p1 = p;
 		c->s2 = shape;
-		c->p = cp;
-		c->n = n;
+		c->localNormal1 = -n;
+		c->localPoint1.SetZero();
+		c->localPoint2 = body->GetLocalPoint(cp2);
 		c->t1 = b3Perp(n);
 		c->t2 = b3Cross(c->t1, n);
 		c->normalImpulse = 0.0f;
@@ -590,7 +593,7 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 	b3ClothSolverDef solverDef;
 	solverDef.stack = &m_world->m_stackAllocator;
 	solverDef.particleCapacity = m_particleList.m_count;
-	solverDef.forceCapacity = m_forceList.m_count + (1 * m_particleList.m_count);
+	solverDef.forceCapacity = m_forceList.m_count;
 	solverDef.contactCapacity = m_particleList.m_count;
 
 	b3ClothSolver solver(solverDef);
@@ -661,7 +664,19 @@ void b3Cloth::Draw() const
 
 		if (c->active)
 		{
-			b3Draw_draw->DrawSegment(c->p, c->p + c->n, b3Color_yellow);
+			b3Particle* pA = c->p1;
+			b3Body* bB = c->s2->GetBody();
+
+			b3Transform xfA;
+			xfA.rotation.SetIdentity();
+			xfA.position = pA->m_position;
+
+			b3Transform xfB = bB->GetTransform();
+
+			b3BodyContactWorldPoint cp;
+			cp.Initialize(c, pA->m_radius, xfA, c->s2->m_radius, xfB);
+
+			b3Draw_draw->DrawSegment(cp.point, cp.point + cp.normal, b3Color_yellow);
 		}
 	}
 

@@ -22,9 +22,18 @@
 #include <bounce/dynamics/cloth/dense_vec3.h>
 #include <bounce/dynamics/cloth/sparse_sym_mat33.h>
 
-void b3FrictionForce::Apply(const b3ClothSolverData* data)
+void b3BodyContactWorldPoint::Initialize(const b3BodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB)
 {
-	// TODO
+	b3Vec3 nA = xfA.rotation * c->localNormal1;
+	b3Vec3 cA = xfA * c->localPoint1;
+	b3Vec3 cB = xfB * c->localPoint2;
+
+	b3Vec3 pA = cA + rA * nA;
+	b3Vec3 pB = cB - rB * nA;
+
+	point = 0.5f * (pA + pB);
+	normal = nA;
+	separation = b3Dot(cB - cA, nA) - rA - rB;
 }
 
 b3Particle::b3Particle(const b3ParticleDef& def, b3Cloth* cloth)

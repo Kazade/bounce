@@ -82,8 +82,9 @@ public:
 	b3Shape* s2;
 
 	// Contact constraint
-	b3Vec3 p;
-	b3Vec3 n;
+	b3Vec3 localNormal1;
+	b3Vec3 localPoint1;
+	b3Vec3 localPoint2;
 	float32 normalImpulse;
 
 	// Friction constraint
@@ -95,6 +96,15 @@ public:
 
 	// 
 	bool active;
+};
+
+struct b3BodyContactWorldPoint
+{
+	void Initialize(const b3BodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB);
+
+	b3Vec3 point;
+	b3Vec3 normal;
+	float32 separation;
 };
 
 // A cloth particle.

@@ -64,7 +64,7 @@ struct b3AccelerationConstraint
 	void Apply(const b3ClothSolverData* data);
 };
 
-struct b3ClothContactVelocityConstraint
+struct b3ClothSolverContactVelocityConstraint
 {
 	u32 indexA;
 	float32 invMassA;
@@ -94,6 +94,28 @@ struct b3ClothContactVelocityConstraint
 	float32 motorImpulse;
 };
 
+struct b3ClothSolverContactPositionConstraint
+{
+	u32 indexA;
+	float32 invMassA;
+	b3Mat33 invIA;
+	float32 radiusA;
+	b3Vec3 localCenterA;
+	
+	b3Body* bodyB;
+	b3Vec3 localCenterB;
+	float32 invMassB;
+	b3Mat33 invIB;
+	float32 radiusB;
+
+	b3Vec3 rA;
+	b3Vec3 rB;
+
+	b3Vec3 localNormalA;
+	b3Vec3 localPointA;
+	b3Vec3 localPointB;
+};
+
 class b3ClothSolver
 {
 public:
@@ -116,7 +138,7 @@ private:
 	void Solve(b3DenseVec3& x, u32& iterations, const b3SparseSymMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const;
 
 	// 
-	void InitializeVelocityConstraints();
+	void InitializeConstraints();
 	
 	//
 	void WarmStart();
@@ -127,6 +149,9 @@ private:
 	// 
 	void StoreImpulses();
 
+	// 
+	bool SolvePositionConstraints();
+	
 	b3StackAllocator* m_allocator;
 
 	u32 m_particleCapacity;
@@ -136,16 +161,17 @@ private:
 	u32 m_forceCapacity;
 	u32 m_forceCount;
 	b3Force** m_forces;
+	
+	u32 m_constraintCapacity;
+	u32 m_constraintCount;
+	b3AccelerationConstraint* m_constraints;
 
 	u32 m_contactCapacity;
 	u32 m_contactCount;
 	b3BodyContact** m_contacts;
 
-	u32 m_constraintCapacity;
-	u32 m_constraintCount;
-	b3AccelerationConstraint* m_constraints;
-
-	b3ClothContactVelocityConstraint* m_velocityConstraints;
+	b3ClothSolverContactVelocityConstraint* m_velocityConstraints;
+	b3ClothSolverContactPositionConstraint* m_positionConstraints;
 
 	b3ClothSolverData m_solverData;
 };
