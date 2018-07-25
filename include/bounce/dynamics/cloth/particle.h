@@ -90,9 +90,6 @@ public:
 	// Friction constraint
 	b3Vec3 t1, t2;
 	b3Vec2 tangentImpulse;
-	
-	// Motor constraint
-	float32 motorImpulse;
 
 	// 
 	bool active;

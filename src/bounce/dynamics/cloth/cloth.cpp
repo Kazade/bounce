@@ -574,13 +574,11 @@ void b3Cloth::UpdateContacts()
 		c->t2 = b3Cross(c->t1, n);
 		c->normalImpulse = 0.0f;
 		c->tangentImpulse.SetZero();
-		c->motorImpulse = 0.0f;
 
 		if (c0.active == true)
 		{
 			c->normalImpulse = c->normalImpulse;
 			c->tangentImpulse = c->tangentImpulse;
-			c->motorImpulse = c->motorImpulse;
 		}
 	}
 }

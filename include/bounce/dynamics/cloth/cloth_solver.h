@@ -89,9 +89,6 @@ struct b3ClothSolverContactVelocityConstraint
 	b3Vec3 tangent2;
 	b3Mat22 tangentMass;
 	b3Vec2 tangentImpulse;	
-	
-	float32 motorMass;
-	float32 motorImpulse;
 };
 
 struct b3ClothSolverContactPositionConstraint

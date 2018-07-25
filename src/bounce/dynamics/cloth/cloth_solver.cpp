@@ -498,7 +498,6 @@ void b3ClothSolver::InitializeConstraints()
 
 		vc->normalImpulse = c->normalImpulse;
 		vc->tangentImpulse = c->tangentImpulse;
-		vc->motorImpulse = c->motorImpulse;
 
 		{
 			b3Vec3 n = vc->normal;
@@ -536,11 +535,6 @@ void b3ClothSolver::InitializeConstraints()
 
 			vc->tangentMass = b3Inverse(K);
 		}
-
-		{
-			float32 mass = b3Dot(vc->normal, (iA + iB) * vc->normal);
-			vc->motorMass = mass > 0.0f ? 1.0f / mass : 0.0f;
-		}
 	}
 }
 
@@ -577,13 +571,12 @@ void b3ClothSolver::WarmStart()
 
 		b3Vec3 P1 = vc->tangentImpulse.x * vc->tangent1;
 		b3Vec3 P2 = vc->tangentImpulse.y * vc->tangent2;
-		b3Vec3 P3 = vc->motorImpulse * vc->normal;
 
 		vA -= mA * (P1 + P2);
-		wA -= iA * (b3Cross(vc->rA, P1 + P2) + P3);
+		wA -= iA * b3Cross(vc->rA, P1 + P2);
 
 		vB += mB * (P1 + P2);
-		wB += iB * (b3Cross(vc->rB, P1 + P2) + P3);
+		wB += iB * b3Cross(vc->rB, P1 + P2);
 
 		v[indexA] = vA;
 
@@ -680,21 +673,6 @@ void b3ClothSolver::SolveVelocityConstraints()
 			wB += iB * b3Cross(rB, P);
 		}
 
-		// Solve motor constraint.
-		{
-			float32 Cdot = b3Dot(vc->normal, wB - wA);
-			float32 impulse = -vc->motorMass * Cdot;
-			float32 oldImpulse = vc->motorImpulse;
-			float32 maxImpulse = vc->friction * vc->normalImpulse;
-			vc->motorImpulse = b3Clamp(vc->motorImpulse + impulse, -maxImpulse, maxImpulse);
-			impulse = vc->motorImpulse - oldImpulse;
-
-			b3Vec3 P = impulse * vc->normal;
-
-			wA -= iA * P;
-			wB += iB * P;
-		}
-
 		v[indexA] = vA;
 
 		bodyB->SetLinearVelocity(vB);
@@ -711,7 +689,6 @@ void b3ClothSolver::StoreImpulses()
 
 		c->normalImpulse = vc->normalImpulse;
 		c->tangentImpulse = vc->tangentImpulse;
-		c->motorImpulse = vc->motorImpulse;
 	}
 }
 
