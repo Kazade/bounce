@@ -19,12 +19,13 @@
 #ifndef B3_CLOTH_SOLVER_H
 #define B3_CLOTH_SOLVER_H
 
-#include <bounce/common/math/vec3.h>
+#include <bounce/common/math/mat22.h>
 #include <bounce/common/math/mat33.h>
 
 class b3StackAllocator;
 
 class b3Particle;
+class b3Body;
 class b3Force;
 class b3BodyContact;
 
@@ -63,6 +64,36 @@ struct b3AccelerationConstraint
 	void Apply(const b3ClothSolverData* data);
 };
 
+struct b3ClothContactVelocityConstraint
+{
+	u32 indexA;
+	float32 invMassA;
+	b3Mat33 invIA;
+
+	b3Body* bodyB;
+	float32 invMassB;
+	b3Mat33 invIB;
+	
+	float32 friction;
+
+	b3Vec3 point;
+	b3Vec3 rA;
+	b3Vec3 rB;
+	
+	b3Vec3 normal;
+	float32 normalMass;
+	float32 normalImpulse;
+	float32 velocityBias;
+
+	b3Vec3 tangent1;
+	b3Vec3 tangent2;
+	b3Mat22 tangentMass;
+	b3Vec2 tangentImpulse;	
+	
+	float32 motorMass;
+	float32 motorImpulse;
+};
+
 class b3ClothSolver
 {
 public:
@@ -84,6 +115,18 @@ private:
 	// Solve Ax = b.
 	void Solve(b3DenseVec3& x, u32& iterations, const b3SparseSymMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const;
 
+	// 
+	void InitializeVelocityConstraints();
+	
+	//
+	void WarmStart();
+
+	// 
+	void SolveVelocityConstraints();
+
+	// 
+	void StoreImpulses();
+
 	b3StackAllocator* m_allocator;
 
 	u32 m_particleCapacity;
@@ -101,6 +144,8 @@ private:
 	u32 m_constraintCapacity;
 	u32 m_constraintCount;
 	b3AccelerationConstraint* m_constraints;
+
+	b3ClothContactVelocityConstraint* m_velocityConstraints;
 
 	b3ClothSolverData m_solverData;
 };

@@ -55,10 +55,13 @@ b3ClothSolver::b3ClothSolver(const b3ClothSolverDef& def)
 	m_constraintCapacity = def.particleCapacity;
 	m_constraintCount = 0;
 	m_constraints = (b3AccelerationConstraint*)m_allocator->Allocate(m_constraintCapacity * sizeof(b3AccelerationConstraint));
+
+	m_velocityConstraints = (b3ClothContactVelocityConstraint*)m_allocator->Allocate(m_contactCount * sizeof(b3ClothContactVelocityConstraint));
 }
 
 b3ClothSolver::~b3ClothSolver()
 {
+	m_allocator->Free(m_velocityConstraints);
 	m_allocator->Free(m_constraints);
 	m_allocator->Free(m_contacts);
 	m_allocator->Free(m_forces);
@@ -132,7 +135,6 @@ void b3ClothSolver::ApplyConstraints()
 {
 	b3DiagMat33& S = *m_solverData.S;
 	b3DenseVec3& z = *m_solverData.z;
-	float32 h = m_solverData.dt;
 
 	S.SetIdentity();
 	z.SetZero();
@@ -147,43 +149,6 @@ void b3ClothSolver::ApplyConstraints()
 			ac->i1 = i;
 			ac->ndof = 0;
 			ac->z.SetZero();
-		}
-	}
-
-	for (u32 i = 0; i < m_contactCount; ++i)
-	{
-		b3BodyContact* pc = m_contacts[i];
-		b3Particle* p = pc->p1;
-
-		if (p->m_type != e_dynamicParticle)
-		{
-			continue;
-		}
-
-		b3AccelerationConstraint* ac = m_constraints + m_constraintCount;
-		++m_constraintCount;
-		ac->i1 = p->m_solverId;
-		ac->ndof = 2;
-		ac->p = pc->n;
-		ac->z.SetZero();
-
-		if (pc->t1_active && pc->t2_active)
-		{
-			ac->ndof = 0;
-		}
-		else
-		{
-			if (pc->t1_active)
-			{
-				ac->ndof = 1;
-				ac->q = pc->t1;
-			}
-
-			if (pc->t2_active)
-			{
-				ac->ndof = 1;
-				ac->q = pc->t2;
-			}
 		}
 	}
 
@@ -242,11 +207,15 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		b3BodyContact* c = m_contacts[i];
 		b3Particle* p = c->p1;
 
-		b3Vec3 dx = c->p - p->m_position;
-
-		sy[p->m_solverId] += dx;
+		if (p->m_type == e_dynamicParticle)
+		{
+			b3Vec3 dx = c->p - p->m_position;
+			sy[p->m_solverId] += dx;
+		}
 	}
 
+	// Integrate velocities
+	
 	// Apply internal forces
 	ApplyForces();
 
@@ -275,8 +244,22 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	Solve(x, iterations, A, b, S, z, sx0);
 	b3_clothSolverIterations = iterations;
 
-	// Compute the new state
 	sv = sv + x;
+
+	// Initialize velocity constraints
+	InitializeVelocityConstraints();
+
+	// Warm start velocity constraints
+	WarmStart();
+
+	// Solve velocity constraints
+	const u32 kVelocityIterations = 10;
+	for (u32 i = 0; i < kVelocityIterations; ++i)
+	{
+		SolveVelocityConstraints();
+	}
+
+	// Integrate positions
 	sx = sx + h * sv + sy;
 
 	// Copy state buffers back to the particles
@@ -289,40 +272,6 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 
 		// Cache x to improve convergence
 		p->m_x = x[i];
-	}
-
-	// f = A * x - b
-	b3DenseVec3 f = A * x - b;
-
-	for (u32 i = 0; i < m_contactCount; ++i)
-	{
-		b3BodyContact* c = m_contacts[i];
-
-		b3Particle* p1 = c->p1;
-		b3Body* b2 = c->s2->GetBody();
-
-		b3Vec3 f1 = f[p1->m_solverId];
-		b3Vec3 f2 = -f1;
-
-		// Apply constraint reaction force at the contact point on the body 
-		b2->ApplyForce(f2, c->p, true);
-
-		// Store constraint force acted on the particle
-
-		// Signed normal force magnitude
-		c->Fn = b3Dot(f1, c->n);
-
-		if (c->t1_active)
-		{
-			// Signed tangent force magnitude
-			c->Ft1 = b3Dot(f1, c->t1);
-		}
-
-		if (c->t2_active)
-		{
-			// Signed tangent force magnitude
-			c->Ft2 = b3Dot(f1, c->t2);
-		}
 	}
 }
 
@@ -432,4 +381,273 @@ void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
 	}
 
 	iterations = iteration;
+}
+
+void b3ClothSolver::InitializeVelocityConstraints()
+{
+	b3DenseVec3& x = *m_solverData.x;
+	b3DenseVec3& v = *m_solverData.v;
+
+	for (u32 i = 0; i < m_contactCount; ++i)
+	{
+		b3BodyContact* c = m_contacts[i];
+		b3ClothContactVelocityConstraint* vc = m_velocityConstraints + i;
+
+		vc->indexA = c->p1->m_solverId;
+		vc->bodyB = c->s2->GetBody();
+
+		vc->invMassA = c->p1->m_type == e_staticParticle ? 0.0f : c->p1->m_invMass;
+		vc->invMassB = vc->bodyB->GetInverseMass();
+
+		vc->invIA.SetZero();
+		vc->invIB = vc->bodyB->GetWorldInverseInertia();
+
+		vc->friction = c->s2->GetFriction();
+	}
+
+	for (u32 i = 0; i < m_contactCount; ++i)
+	{
+		b3BodyContact* c = m_contacts[i];
+		b3ClothContactVelocityConstraint* vc = m_velocityConstraints + i;
+
+		u32 indexA = vc->indexA;
+		b3Body* bodyB = vc->bodyB;
+
+		float32 mA = vc->invMassA;
+		float32 mB = vc->invMassB;
+
+		b3Mat33 iA = vc->invIA;
+		b3Mat33 iB = vc->invIB;
+
+		b3Vec3 xA = x[indexA];
+		b3Vec3 xB = bodyB->GetPosition();
+
+		// Ensure the normal points from shape 1 to the shape 2
+		vc->normal = -c->n;
+		vc->tangent1 = c->t1;
+		vc->tangent2 = c->t2;
+		vc->point = c->p;
+
+		b3Vec3 point = c->p;
+
+		b3Vec3 rA = point - xA;
+		b3Vec3 rB = point - xB;
+
+		vc->rA = rA;
+		vc->rB = rB;
+		
+		vc->normalImpulse = c->normalImpulse;
+		vc->tangentImpulse = c->tangentImpulse;
+		vc->motorImpulse = c->motorImpulse;
+
+		{
+			b3Vec3 n = vc->normal;
+			
+			b3Vec3 rnA = b3Cross(rA, n);
+			b3Vec3 rnB = b3Cross(rB, n);
+
+			float32 K = mA + mB + b3Dot(iA * rnA, rnA) + b3Dot(iB * rnB, rnB);
+
+			vc->normalMass = K > 0.0f ? 1.0f / K : 0.0f;
+		}
+
+		{
+			b3Vec3 t1 = vc->tangent1;
+			b3Vec3 t2 = vc->tangent2;
+
+			b3Vec3 rn1A = b3Cross(rA, t1);
+			b3Vec3 rn1B = b3Cross(rB, t1);
+			b3Vec3 rn2A = b3Cross(rA, t2);
+			b3Vec3 rn2B = b3Cross(rB, t2);
+
+			// dot(t1, t2) = 0
+			// J1_l1 * M1 * J2_l1 = J1_l2 * M2 * J2_l2 = 0
+			float32 k11 = mA + mB + b3Dot(iA * rn1A, rn1A) + b3Dot(iB * rn1B, rn1B);
+			float32 k12 = b3Dot(iA * rn1A, rn2A) + b3Dot(iB * rn1B, rn2B);
+			float32 k22 = mA + mB + b3Dot(iA * rn2A, rn2A) + b3Dot(iB * rn2B, rn2B);
+
+			b3Mat22 K;
+			K.x.Set(k11, k12);
+			K.y.Set(k12, k22);
+
+			vc->tangentMass = b3Inverse(K);
+		}
+
+		{
+			float32 mass = b3Dot(vc->normal, (iA + iB) * vc->normal);
+			vc->motorMass = mass > 0.0f ? 1.0f / mass : 0.0f;
+		}
+	}
+}
+
+void b3ClothSolver::WarmStart()
+{
+	b3DenseVec3& v = *m_solverData.v;
+
+	for (u32 i = 0; i < m_contactCount; ++i)
+	{
+		b3ClothContactVelocityConstraint* vc = m_velocityConstraints + i;
+		
+		u32 indexA = vc->indexA;
+		b3Body* bodyB = vc->bodyB;
+
+		b3Vec3 vA = v[indexA];
+		b3Vec3 vB = bodyB->GetLinearVelocity();
+
+		b3Vec3 wA; wA.SetZero();
+		b3Vec3 wB = bodyB->GetAngularVelocity();
+		
+		float32 mA = vc->invMassA;
+		float32 mB = vc->invMassB;
+
+		b3Mat33 iA = vc->invIA;
+		b3Mat33 iB = vc->invIB;
+
+		b3Vec3 P = vc->normalImpulse * vc->normal;
+
+		vA -= mA * P;
+		wA -= iA * b3Cross(vc->rA, P);
+
+		vB += mB * P;
+		wB += iB * b3Cross(vc->rB, P);
+
+		b3Vec3 P1 = vc->tangentImpulse.x * vc->tangent1;
+		b3Vec3 P2 = vc->tangentImpulse.y * vc->tangent2;
+		b3Vec3 P3 = vc->motorImpulse * vc->normal;
+
+		vA -= mA * (P1 + P2);
+		wA -= iA * (b3Cross(vc->rA, P1 + P2) + P3);
+
+		vB += mB * (P1 + P2);
+		wB += iB * (b3Cross(vc->rB, P1 + P2) + P3);
+
+		v[indexA] = vA;
+
+		bodyB->SetLinearVelocity(vB);
+		bodyB->SetAngularVelocity(wB);
+	}
+}
+
+void b3ClothSolver::SolveVelocityConstraints()
+{
+	b3DenseVec3& v = *m_solverData.v;
+
+	for (u32 i = 0; i < m_contactCount; ++i)
+	{
+		b3ClothContactVelocityConstraint* vc = m_velocityConstraints + i;
+
+		u32 indexA = vc->indexA;
+		b3Body* bodyB = vc->bodyB;
+
+		b3Vec3 vA = v[indexA];
+		b3Vec3 vB = bodyB->GetLinearVelocity();
+
+		b3Vec3 wA; wA.SetZero();
+		b3Vec3 wB = bodyB->GetAngularVelocity();
+
+		float32 mA = vc->invMassA;
+		float32 mB = vc->invMassB;
+
+		b3Mat33 iA = vc->invIA;
+		b3Mat33 iB = vc->invIB;
+
+		// Ensure the normal points from shape 1 to the shape 2
+		b3Vec3 normal = vc->normal;
+		b3Vec3 point = vc->point;
+
+		b3Vec3 rA = vc->rA;
+		b3Vec3 rB = vc->rB;
+
+		// Solve normal constraint.
+		{
+			b3Vec3 rnA = b3Cross(rA, normal);
+			b3Vec3 rnB = b3Cross(rB, normal);
+
+			float32 K = mA + mB + b3Dot(iA * rnA, rnA) + b3Dot(iB * rnB, rnB);
+
+			float32 invK = K > 0.0f ? 1.0f / K : 0.0f;
+
+			b3Vec3 dv = vB + b3Cross(wB, rB) - vA - b3Cross(wA, rA);
+			float32 Cdot = b3Dot(normal, dv);
+
+			float32 impulse = -invK * Cdot;
+
+			float32 oldImpulse = vc->normalImpulse;
+			vc->normalImpulse = b3Max(vc->normalImpulse + impulse, 0.0f);
+			impulse = vc->normalImpulse - oldImpulse;
+
+			b3Vec3 P = impulse * normal;
+
+			vA -= mA * P;
+			wA -= iA * b3Cross(rA, P);
+
+			vB += mB * P;
+			wB += iB * b3Cross(rB, P);
+		}
+
+		// Solve tangent constraints.
+		{
+			b3Vec3 dv = vB + b3Cross(wB, rB) - vA - b3Cross(wA, rA);
+
+			b3Vec2 Cdot;
+			Cdot.x = b3Dot(dv, vc->tangent1);
+			Cdot.y = b3Dot(dv, vc->tangent2);
+
+			b3Vec2 impulse = vc->tangentMass * -Cdot;
+			b3Vec2 oldImpulse = vc->tangentImpulse;
+			vc->tangentImpulse += impulse;
+
+			float32 maxImpulse = vc->friction * vc->normalImpulse;
+			if (b3Dot(vc->tangentImpulse, vc->tangentImpulse) > maxImpulse * maxImpulse)
+			{
+				vc->tangentImpulse.Normalize();
+				vc->tangentImpulse *= maxImpulse;
+			}
+
+			impulse = vc->tangentImpulse - oldImpulse;
+
+			b3Vec3 P1 = impulse.x * vc->tangent1;
+			b3Vec3 P2 = impulse.y * vc->tangent2;
+			b3Vec3 P = P1 + P2;
+
+			vA -= mA * P;
+			wA -= iA * b3Cross(rA, P);
+
+			vB += mB * P;
+			wB += iB * b3Cross(rB, P);
+		}
+
+		// Solve motor constraint.
+		{
+			float32 Cdot = b3Dot(vc->normal, wB - wA);
+			float32 impulse = -vc->motorMass * Cdot;
+			float32 oldImpulse = vc->motorImpulse;
+			float32 maxImpulse = vc->friction * vc->normalImpulse;
+			vc->motorImpulse = b3Clamp(vc->motorImpulse + impulse, -maxImpulse, maxImpulse);
+			impulse = vc->motorImpulse - oldImpulse;
+
+			b3Vec3 P = impulse * vc->normal;
+
+			wA -= iA * P;
+			wB += iB * P;
+		}
+
+		v[indexA] = vA;
+
+		bodyB->SetLinearVelocity(vB);
+		bodyB->SetAngularVelocity(wB);
+	}
+}
+
+void b3ClothSolver::StoreImpulses()
+{
+	for (u32 i = 0; i < m_contactCount; ++i)
+	{
+		b3BodyContact* c = m_contacts[i];
+		b3ClothContactVelocityConstraint* vc = m_velocityConstraints + i;
+
+		c->normalImpulse = vc->normalImpulse;
+		c->tangentImpulse = vc->tangentImpulse;
+		c->motorImpulse = vc->motorImpulse;
+	}
 }

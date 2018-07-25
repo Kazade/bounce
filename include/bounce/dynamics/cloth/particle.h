@@ -22,6 +22,7 @@
 #include <bounce/common/math/transform.h>
 #include <bounce/common/template/list.h>
 #include <bounce/dynamics/cloth/force.h>
+#include <bounce/common/math/vec2.h>
 
 class b3Shape;
 class b3Cloth;
@@ -81,19 +82,19 @@ public:
 	b3Shape* s2;
 
 	// Contact constraint
-	bool n_active;
 	b3Vec3 p;
 	b3Vec3 n;
-	float32 Fn;
+	float32 normalImpulse;
 
 	// Friction constraint
-	bool t1_active, t2_active;
 	b3Vec3 t1, t2;
-	float32 Ft1, Ft2;
+	b3Vec2 tangentImpulse;
+	
+	// Motor constraint
+	float32 motorImpulse;
 
-	// Friction force
-	bool f_active;
-	b3FrictionForce f;
+	// 
+	bool active;
 };
 
 // A cloth particle.

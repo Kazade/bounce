@@ -157,7 +157,7 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) : m_particleBlocks(sizeo
 	m_world = world;
 	m_mesh = def.mesh;
 	m_density = def.density;
-	
+
 	const b3ClothMesh* m = m_mesh;
 
 	m_vertexParticles = (b3Particle**)b3Alloc(m->vertexCount * sizeof(b3Particle*));
@@ -172,7 +172,7 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) : m_particleBlocks(sizeo
 		b3Particle* p = CreateParticle(pd);
 
 		p->m_vertex = i;
-		
+
 		m_vertexParticles[i] = p;
 	}
 
@@ -213,7 +213,7 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) : m_particleBlocks(sizeo
 		b3Particle* p2 = m_vertexParticles[e->v2];
 		b3Particle* p3 = m_vertexParticles[e->nsv1];
 		b3Particle* p4 = m_vertexParticles[e->nsv2];
-		
+
 		b3BendForceDef fd;
 		fd.Initialize(p1, p2, p3, p4, def.bending, def.damping);
 
@@ -350,7 +350,7 @@ void b3Cloth::ComputeMass()
 	}
 }
 
-void b3Cloth::RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) 
+void b3Cloth::RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2)
 {
 	b3RayCastInput input;
 	input.p1 = p1;
@@ -407,7 +407,7 @@ bool b3Cloth::RayCastSingle(b3ClothRayCastSingleOutput* output, const b3Vec3& p1
 		output->triangle = triangle0;
 		output->fraction = output0.fraction;
 		output->normal = output0.normal;
-		
+
 		return true;
 	}
 
@@ -511,22 +511,11 @@ void b3Cloth::UpdateContacts()
 	// Create contacts 
 	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
 	{
-		if (p->m_type == e_staticParticle)
-		{
-			// TODO
-			continue;
-		}
-
 		b3BodyContact* c = &p->m_contact;
 
-		// Save the old contact
 		b3BodyContact c0 = *c;
 
-		// Create a new contact
-		c->f_active = false;
-		c->n_active = false;
-		c->t1_active = false;
-		c->t2_active = false;
+		c->active = false;
 
 		b3Sphere s1;
 		s1.vertex = p->m_position;
@@ -561,122 +550,34 @@ void b3Cloth::UpdateContacts()
 			}
 		}
 
-		if (bestShape != nullptr)
-		{
-			b3Shape* shape = bestShape;
-			float32 s = bestSeparation;
-			b3Vec3 n = bestNormal;
-			b3Vec3 cp = p->m_position - s * n;
-
-			// Store the contact manifold
-			// Here the normal points from shape 2 to the particle
-			c->p1 = p;
-			c->s2 = shape;
-			c->n_active = true;
-			c->p = cp;
-			c->n = n;
-			c->t1 = b3Perp(n);
-			c->t2 = b3Cross(c->t1, n);
-		}
-
-		// Update the contact state
-		if (c0.n_active == true && c->n_active == true)
-		{
-			// The contact persists
-
-			// Has the contact constraint been satisfied?
-			if (c0.Fn <= 0.0f)
-			{
-				// Contact force is attractive.
-
-				// Terminate the contact.
-				c->n_active = false;
-			}
-		}
-
-		if (c->n_active == false)
+		if (bestShape == nullptr)
 		{
 			continue;
 		}
 
-		// A friction force requires an associated normal force.
-		if (c0.n_active == false)
+		b3Shape* shape = bestShape;
+		float32 s = bestSeparation;
+		b3Vec3 n = bestNormal;
+		b3Vec3 cp = p->m_position - s * n;
+
+		// Store the contact manifold
+		// Here the normal points from shape 2 to the particle
+		c->active = true;
+		c->p1 = p;
+		c->s2 = shape;
+		c->p = cp;
+		c->n = n;
+		c->t1 = b3Perp(n);
+		c->t2 = b3Cross(c->t1, n);
+		c->normalImpulse = 0.0f;
+		c->tangentImpulse.SetZero();
+		c->motorImpulse = 0.0f;
+
+		if (c0.active == true)
 		{
-			continue;
-		}
-
-		b3Shape* s = c->s2;
-		b3Body* b = s->GetBody();
-		b3Vec3 n = c->n;
-		float32 u = s->GetFriction();
-		float32 normalForce = c0.Fn;
-		float32 maxFrictionForce = u * normalForce;
-
-		// Relative velocity at contact point
-		b3Vec3 v1 = b->GetPointVelocity(c->p);
-		b3Vec3 v2 = p->m_velocity;
-		b3Vec3 dv = v2 - v1;
-
-		b3Vec3 t1 = dv - b3Dot(dv, n) * n;
-		if (b3Dot(t1, t1) > B3_EPSILON * B3_EPSILON)
-		{
-			// Create a dynamic basis
-			t1.Normalize();
-
-			b3Vec3 t2 = b3Cross(t1, n);
-			t2.Normalize();
-
-			c->t1 = t1;
-			c->t2 = t2;
-		}
-
-		b3Vec3 ts[2];
-		ts[0] = c->t1;
-		ts[1] = c->t2;
-
-		bool t_active[2];
-		t_active[0] = c->t1_active;
-		t_active[1] = c->t2_active;
-
-		bool t_active0[2];
-		t_active0[0] = c0.t1_active;
-		t_active0[1] = c0.t2_active;
-
-		float32 Ft0[2];
-		Ft0[0] = c0.Ft1;
-		Ft0[1] = c0.Ft2;
-
-		for (u32 k = 0; k < 2; ++k)
-		{
-			b3Vec3 t = ts[k];
-
-			// Relative tangential velocity
-			float32 dvt = b3Dot(dv, t);
-
-			if (dvt * dvt <= B3_EPSILON * B3_EPSILON)
-			{
-				// Lock particle on surface
-				t_active[k] = true;
-			}
-		}
-
-		c->t1_active = t_active[0];
-		c->t2_active = t_active[1];
-
-		if (c0.t1_active == true)
-		{
-			if (c0.Ft1 > maxFrictionForce)
-			{
-				c->t1_active = false;
-			}
-		}
-
-		if (c0.t2_active == true)
-		{
-			if (c0.Ft2 > maxFrictionForce)
-			{
-				c->t2_active = false;
-			}
+			c->normalImpulse = c->normalImpulse;
+			c->tangentImpulse = c->tangentImpulse;
+			c->motorImpulse = c->motorImpulse;
 		}
 	}
 }
@@ -706,12 +607,7 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 
 	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
 	{
-		if (p->m_contact.f_active)
-		{
-			solver.Add(&p->m_contact.f);
-		}
-
-		if (p->m_contact.n_active)
+		if (p->m_contact.active)
 		{
 			solver.Add(&p->m_contact);
 		}
@@ -762,8 +658,8 @@ void b3Cloth::Draw() const
 		}
 
 		b3BodyContact* c = &p->m_contact;
-		
-		if (c->n_active)
+
+		if (c->active)
 		{
 			b3Draw_draw->DrawSegment(c->p, c->p + c->n, b3Color_yellow);
 		}
