@@ -156,7 +156,7 @@ private:
 	// Vertex particles
 	b3Particle** m_vertexParticles;
 
-	// Mesh density
+	// Cloth density
 	float32 m_density;
 
 	// Pool of particles
