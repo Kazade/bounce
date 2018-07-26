@@ -616,17 +616,10 @@ void b3ClothSolver::SolveVelocityConstraints()
 
 		// Solve normal constraint.
 		{
-			b3Vec3 rnA = b3Cross(rA, normal);
-			b3Vec3 rnB = b3Cross(rB, normal);
-
-			float32 K = mA + mB + b3Dot(iA * rnA, rnA) + b3Dot(iB * rnB, rnB);
-
-			float32 invK = K > 0.0f ? 1.0f / K : 0.0f;
-
 			b3Vec3 dv = vB + b3Cross(wB, rB) - vA - b3Cross(wA, rA);
 			float32 Cdot = b3Dot(normal, dv);
 
-			float32 impulse = invK * (-Cdot + vc->velocityBias);
+			float32 impulse = vc->normalMass * (-Cdot + vc->velocityBias);
 
 			float32 oldImpulse = vc->normalImpulse;
 			vc->normalImpulse = b3Max(vc->normalImpulse + impulse, 0.0f);
