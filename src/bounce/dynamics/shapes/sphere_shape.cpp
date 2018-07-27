@@ -80,6 +80,7 @@ bool b3SphereShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& spher
 	{
 		float32 d_len = b3Sqrt(dd);
 
+		output->point = center;
 		output->separation = d_len - radius;
 		output->normal.Set(0.0f, 1.0, 0.0f);
 		if (d_len > B3_EPSILON)

@@ -149,7 +149,9 @@ static u32 b3FindSharedEdges(b3SharedEdge* sharedEdges, const b3ClothMesh* m)
 	return sharedCount;
 }
 
-b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) : m_particleBlocks(sizeof(b3Particle))
+b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) : 
+	m_particleBlocks(sizeof(b3Particle)),
+	m_particleContactBlocks(sizeof(b3ParticleContact))
 {
 	B3_ASSERT(def.mesh);
 	B3_ASSERT(def.density > 0.0f);
@@ -504,9 +506,9 @@ bool b3Cloth::RayCast(b3RayCastOutput* output, const b3RayCastInput* input, u32 
 	return false;
 }
 
-void b3Cloth::UpdateContacts()
+void b3Cloth::UpdateBodyContacts()
 {
-	B3_PROFILE("Update Contacts");
+	B3_PROFILE("Update Body Contacts");
 
 	// Create contacts 
 	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
@@ -523,6 +525,7 @@ void b3Cloth::UpdateContacts()
 
 		// Find the deepest penetration
 		float32 bestSeparation = 0.0f;
+		b3Vec3 bestPoint(0.0f, 0.0f, 0.0f);
 		b3Vec3 bestNormal(0.0f, 0.0f, 0.0f);
 		b3Shape* bestShape = nullptr;
 
@@ -543,6 +546,7 @@ void b3Cloth::UpdateContacts()
 					if (output.separation < bestSeparation)
 					{
 						bestSeparation = output.separation;
+						bestPoint = output.point;
 						bestNormal = output.normal;
 						bestShape = shape;
 					}
@@ -555,21 +559,19 @@ void b3Cloth::UpdateContacts()
 			continue;
 		}
 
+		// Ensure the the normal points from the particle 1 to shape 2
 		b3Shape* shape = bestShape;
 		b3Body* body = shape->GetBody();
 		float32 s = bestSeparation;
-		b3Vec3 n = bestNormal;
-		b3Vec3 cp2r = p->m_position - s * n;
-		b3Vec3 cp2 = cp2r - shape->m_radius * n;
+		b3Vec3 cb = bestPoint;
+		b3Vec3 n = -bestNormal;
 
-		// Store the local contact manifold
-		// Ensure the the normal points from the particle 1 to shape 2
 		c->active = true;
 		c->p1 = p;
 		c->s2 = shape;
-		c->localNormal1 = -n;
+		c->localNormal1 = n;
 		c->localPoint1.SetZero();
-		c->localPoint2 = body->GetLocalPoint(cp2);
+		c->localPoint2 = body->GetLocalPoint(cb);
 		c->t1 = b3Perp(n);
 		c->t2 = b3Cross(c->t1, n);
 		c->normalImpulse = 0.0f;
@@ -583,6 +585,66 @@ void b3Cloth::UpdateContacts()
 	}
 }
 
+void b3Cloth::UpdateParticleContacts()
+{
+	B3_PROFILE("Update Particle Contacts");
+	
+	// Clear buffer
+	b3ParticleContact* c = m_particleContactList.m_head;
+	while (c)
+	{
+		b3ParticleContact* c0 = c;
+		c = c->m_next;
+		m_particleContactList.Remove(c0);
+		c0->~b3ParticleContact();
+		m_particleContactBlocks.Free(c0);
+	}
+
+	// Create particle contacts
+	for (b3Particle* p1 = m_particleList.m_head; p1; p1 = p1->m_next)
+	{
+		for (b3Particle* p2 = p1->m_next; p2; p2 = p2->m_next)
+		{
+			if (p1->m_type != e_dynamicParticle && p2->m_type != e_dynamicBody)
+			{
+				// At least one particle should be kinematic or dynamic.
+				continue;
+			}
+
+			b3Vec3 c1 = p1->m_position;
+			float32 r1 = p1->m_radius;
+
+			b3Vec3 c2 = p2->m_position;
+			float32 r2 = p2->m_radius;
+
+			b3Vec3 d = c2 - c1;
+			float32 dd = b3Dot(d, d);
+			float32 totalRadius = r1 + r2;
+			if (dd > totalRadius * totalRadius)
+			{
+				continue;
+			}
+			
+			b3Vec3 n(0.0f, 1.0f, 0.0f);
+			if (dd > B3_EPSILON * B3_EPSILON)
+			{
+				float32 distance = b3Sqrt(dd);
+				n = d / distance;
+			}
+
+			b3ParticleContact* c = (b3ParticleContact*)m_particleContactBlocks.Allocate();
+			c->p1 = p1;
+			c->p2 = p2;
+			c->normalImpulse = 0.0f;
+			c->t1 = b3Perp(n);
+			c->t2 = b3Cross(c->t1, n); 
+			c->tangentImpulse.SetZero();
+
+			m_particleContactList.PushFront(c);
+		}
+	}
+}
+
 void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 {
 	B3_PROFILE("Solve");
@@ -592,7 +654,8 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 	solverDef.stack = &m_world->m_stackAllocator;
 	solverDef.particleCapacity = m_particleList.m_count;
 	solverDef.forceCapacity = m_forceList.m_count;
-	solverDef.contactCapacity = m_particleList.m_count;
+	solverDef.bodyContactCapacity = m_particleList.m_count;
+	solverDef.particleContactCapacity = m_particleContactList.m_count;
 
 	b3ClothSolver solver(solverDef);
 
@@ -608,10 +671,17 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 
 	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
 	{
-		if (p->m_contact.active)
+		b3BodyContact* bc = &p->m_contact;
+
+		if (bc->active)
 		{
-			solver.Add(&p->m_contact);
+			solver.Add(bc);
 		}
+	}
+
+	for (b3ParticleContact* pc = m_particleContactList.m_head; pc; pc = pc->m_next)
+	{
+		solver.Add(pc);
 	}
 
 	// Solve	
@@ -629,9 +699,12 @@ void b3Cloth::Step(float32 dt, const b3Vec3& gravity)
 {
 	B3_PROFILE("Step");
 
-	// Update contacts
-	UpdateContacts();
+	// Update body contacts
+	UpdateBodyContacts();
 
+	// Update particle contacts
+	UpdateParticleContacts();
+	
 	// Solve constraints, integrate state, clear forces and translations. 
 	if (dt > 0.0f)
 	{

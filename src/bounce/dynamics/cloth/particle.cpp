@@ -36,6 +36,31 @@ void b3BodyContactWorldPoint::Initialize(const b3BodyContact* c, float32 rA, con
 	separation = b3Dot(cB - cA, nA) - rA - rB;
 }
 
+void b3ParticleContactWorldPoint::Initialize(const b3ParticleContact* c)
+{
+	b3Vec3 cA = c->p1->GetPosition();
+	float32 rA = c->p1->GetRadius();
+
+	b3Vec3 cB = c->p2->GetPosition();
+	float32 rB = c->p2->GetRadius();
+
+	b3Vec3 d = cB - cA;
+	float32 distance = b3Length(d);
+	
+	b3Vec3 nA(0.0f, 1.0f, 0.0f);
+	if (distance > B3_EPSILON)
+	{
+		nA = d / distance;
+	}
+	
+	b3Vec3 pA = cA + rA * nA;
+	b3Vec3 pB = cB - rB * nA;
+
+	point = 0.5f * (pA + pB);
+	normal = nA;
+	separation = distance - rA - rB;
+}
+
 b3Particle::b3Particle(const b3ParticleDef& def, b3Cloth* cloth)
 {
 	m_cloth = cloth;

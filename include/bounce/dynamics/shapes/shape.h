@@ -40,6 +40,7 @@ enum b3ShapeType
 
 struct b3TestSphereOutput
 {
+	b3Vec3 point;
 	float32 separation;
 	b3Vec3 normal;
 };

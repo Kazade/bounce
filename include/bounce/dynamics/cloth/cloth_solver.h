@@ -28,6 +28,7 @@ class b3Particle;
 class b3Body;
 class b3Force;
 class b3BodyContact;
+class b3ParticleContact;
 
 struct b3DenseVec3;
 struct b3DiagMat33;
@@ -38,7 +39,8 @@ struct b3ClothSolverDef
 	b3StackAllocator* stack;
 	u32 particleCapacity;
 	u32 forceCapacity;
-	u32 contactCapacity;
+	u32 bodyContactCapacity;
+	u32 particleContactCapacity;
 };
 
 struct b3ClothSolverData
@@ -113,6 +115,40 @@ struct b3ClothSolverContactPositionConstraint
 	b3Vec3 localPointB;
 };
 
+struct b3ClothSolverParticleContactVelocityConstraint
+{
+	u32 indexA;
+	float32 invMassA;
+
+	u32 indexB;
+	float32 invMassB;
+
+	float32 friction;
+
+	b3Vec3 point;
+
+	b3Vec3 normal;
+	float32 normalMass;
+	float32 normalImpulse;
+	float32 velocityBias;
+
+	b3Vec3 tangent1;
+	b3Vec3 tangent2;
+	b3Mat22 tangentMass;
+	b3Vec2 tangentImpulse;
+};
+
+struct b3ClothSolverParticleContactPositionConstraint
+{
+	u32 indexA;
+	float32 invMassA;
+	float32 radiusA;
+
+	u32 indexB;
+	float32 invMassB;
+	float32 radiusB;
+};
+
 class b3ClothSolver
 {
 public:
@@ -122,6 +158,7 @@ public:
 	void Add(b3Particle* p);
 	void Add(b3Force* f);
 	void Add(b3BodyContact* c);
+	void Add(b3ParticleContact* c);
 
 	void Solve(float32 dt, const b3Vec3& gravity);
 private:
@@ -135,19 +172,28 @@ private:
 	void Solve(b3DenseVec3& x, u32& iterations, const b3SparseSymMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const;
 
 	// 
-	void InitializeConstraints();
+	void InitializeBodyContactConstraints();
+	
+	// 
+	void InitializeParticleContactConstraints();
 	
 	//
 	void WarmStart();
 
 	// 
-	void SolveVelocityConstraints();
+	void SolveBodyContactVelocityConstraints();
 
+	// 
+	void SolveParticleContactVelocityConstraints();
+	
 	// 
 	void StoreImpulses();
 
 	// 
-	bool SolvePositionConstraints();
+	bool SolveBodyContactPositionConstraints();
+	
+	// 
+	bool SolveParticleContactPositionConstraints();
 	
 	b3StackAllocator* m_allocator;
 
@@ -163,12 +209,17 @@ private:
 	u32 m_constraintCount;
 	b3AccelerationConstraint* m_constraints;
 
-	u32 m_contactCapacity;
-	u32 m_contactCount;
-	b3BodyContact** m_contacts;
+	u32 m_bodyContactCapacity;
+	u32 m_bodyContactCount;
+	b3BodyContact** m_bodyContacts;
+	b3ClothSolverContactVelocityConstraint* m_bodyVelocityConstraints;
+	b3ClothSolverContactPositionConstraint* m_bodyPositionConstraints;
 
-	b3ClothSolverContactVelocityConstraint* m_velocityConstraints;
-	b3ClothSolverContactPositionConstraint* m_positionConstraints;
+	u32 m_particleContactCapacity;
+	u32 m_particleContactCount;
+	b3ParticleContact** m_particleContacts;
+	b3ClothSolverParticleContactVelocityConstraint* m_particleVelocityConstraints;
+	b3ClothSolverParticleContactPositionConstraint* m_particlePositionConstraints;
 
 	b3ClothSolverData m_solverData;
 };

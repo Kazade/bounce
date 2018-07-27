@@ -374,8 +374,10 @@ bool b3HullShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere,
 
 	if (maxIndex != ~0)
 	{
+		b3Plane plane = b3Mul(xf, m_hull->GetPlane(maxIndex));
+		output->point = b3ClosestPointOnPlane(sphere.vertex, plane);
 		output->separation = maxSeparation - radius;
-		output->normal = b3Mul(xf.rotation, m_hull->GetPlane(maxIndex).normal);
+		output->normal = plane.normal;
 		return true;
 	}
 	

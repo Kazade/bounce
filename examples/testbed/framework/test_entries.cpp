@@ -65,6 +65,7 @@
 #include <testbed/tests/shirt.h>
 #include <testbed/tests/particle_types.h>
 #include <testbed/tests/tension_mapping.h>
+#include <testbed/tests/self_collision.h>
 #include <testbed/tests/single_pendulum.h>
 #include <testbed/tests/rope_test.h>
 #include <testbed/tests/mass_spring.h>
@@ -117,6 +118,7 @@ TestEntry g_tests[] =
 	{ "Shirt", &Shirt::Create },
 	{ "Particle Types", &ParticleTypes::Create },
 	{ "Tension Mapping", &TensionMapping::Create },
+	{ "Self-Collision", &SelfCollision::Create },
 	{ "Mass-Spring System", &MassSpring::Create },
 	{ "Single Pendulum", &SinglePendulum::Create },
 	{ "Rope", &Rope::Create },

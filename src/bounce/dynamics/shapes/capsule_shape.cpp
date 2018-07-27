@@ -215,6 +215,7 @@ bool b3CapsuleShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphe
 			n = d / len;
 		}
 
+		output->point = A;
 		output->separation = len - radius;
 		output->normal = n;
 
@@ -239,6 +240,7 @@ bool b3CapsuleShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphe
 			n = d / len;
 		}
 
+		output->point = B;
 		output->separation = len - radius;
 		output->normal = n;
 
@@ -274,6 +276,7 @@ bool b3CapsuleShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphe
 	}
 	n.Normalize();
 
+	output->point = P;
 	output->separation = b3Sqrt(dd) - radius;
 	output->normal = -n;
 	return true;

@@ -28,6 +28,8 @@ class b3Shape;
 
 class b3Particle;
 class b3Force;
+class b3BodyContact;
+class b3ParticleContact;
 
 struct b3ParticleDef;
 struct b3ForceDef;
@@ -143,10 +145,12 @@ private:
 	// Compute mass of each particle.
 	void ComputeMass();
 
-	// Update contacts. 
-	// This is where some contacts might be initiated or terminated.
-	void UpdateContacts();
+	// Update body contacts. 
+	void UpdateBodyContacts();
 
+	// Update particle contacts. 
+	void UpdateParticleContacts();
+	
 	// Solve
 	void Solve(float32 dt, const b3Vec3& gravity);
 
@@ -162,12 +166,18 @@ private:
 	// Pool of particles
 	b3BlockPool m_particleBlocks;
 
+	// Pool of particle contacts
+	b3BlockPool m_particleContactBlocks;
+	
 	// List of particles
 	b3List2<b3Particle> m_particleList;
 	
 	// List of forces
 	b3List2<b3Force> m_forceList;
 
+	// List of particle contacts
+	b3List2<b3ParticleContact> m_particleContactList;
+	
 	// The parent world of this cloth.
 	b3World* m_world;
 	

@@ -104,6 +104,36 @@ struct b3BodyContactWorldPoint
 	float32 separation;
 };
 
+// A contact between two particles
+class b3ParticleContact
+{
+public:
+	b3ParticleContact() { }
+	~b3ParticleContact() { }
+
+	b3Particle* p1;
+	b3Particle* p2;
+
+	// Contact constraint
+	float32 normalImpulse;
+
+	// Friction constraint
+	b3Vec3 t1, t2;
+	b3Vec2 tangentImpulse;
+
+	b3ParticleContact* m_prev;
+	b3ParticleContact* m_next;
+};
+
+struct b3ParticleContactWorldPoint
+{
+	void Initialize(const b3ParticleContact* c);
+
+	b3Vec3 point;
+	b3Vec3 normal;
+	float32 separation;
+};
+
 // A cloth particle.
 class b3Particle
 {
@@ -134,7 +164,10 @@ public:
 	// Get the particle mass.
 	float32 GetMass() const;
 
-	// Get the particle radius;
+	// Set the particle radius.
+	void SetRadius(float32 radius);
+	
+	// Get the particle radius.
 	float32 GetRadius() const;
 
 	// Apply a force.
@@ -246,6 +279,11 @@ inline const b3Vec3& b3Particle::GetVelocity() const
 inline float32 b3Particle::GetMass() const
 {
 	return m_mass;
+}
+
+inline void b3Particle::SetRadius(float32 radius)
+{
+	m_radius = radius;
 }
 
 inline float32 b3Particle::GetRadius() const
