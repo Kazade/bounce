@@ -29,6 +29,7 @@ class b3Body;
 class b3Force;
 class b3BodyContact;
 class b3ParticleContact;
+class b3TriangleContact;
 
 struct b3DenseVec3;
 struct b3DiagMat33;
@@ -41,6 +42,7 @@ struct b3ClothSolverDef
 	u32 forceCapacity;
 	u32 bodyContactCapacity;
 	u32 particleContactCapacity;
+	u32 triangleContactCapacity;
 };
 
 struct b3ClothSolverData
@@ -149,6 +151,44 @@ struct b3ClothSolverParticleContactPositionConstraint
 	float32 radiusB;
 };
 
+struct b3ClothSolverTriangleContactVelocityConstraint
+{
+	u32 indexA;
+	float32 invMassA;
+
+	u32 indexB;
+	float32 invMassB;
+	u32 indexC;
+	float32 invMassC;
+	u32 indexD;
+	float32 invMassD;
+
+	b3Vec3 JA;
+	b3Vec3 JB;
+	b3Vec3 JC;
+	b3Vec3 JD;
+	
+	float32 normalMass;
+	float32 normalImpulse;
+};
+
+struct b3ClothSolverTriangleContactPositionConstraint
+{
+	u32 indexA;
+	float32 invMassA;
+	float32 radiusA;
+
+	u32 indexB;
+	float32 invMassB;
+	u32 indexC;
+	float32 invMassC;
+	u32 indexD;
+	float32 invMassD;
+	float32 triangleRadius;
+	
+	bool front;
+};
+
 class b3ClothSolver
 {
 public:
@@ -159,6 +199,7 @@ public:
 	void Add(b3Force* f);
 	void Add(b3BodyContact* c);
 	void Add(b3ParticleContact* c);
+	void Add(b3TriangleContact* c);
 
 	void Solve(float32 dt, const b3Vec3& gravity);
 private:
@@ -177,6 +218,9 @@ private:
 	// 
 	void InitializeParticleContactConstraints();
 	
+	// 
+	void InitializeTriangleContactConstraints();
+	
 	//
 	void WarmStart();
 
@@ -187,6 +231,9 @@ private:
 	void SolveParticleContactVelocityConstraints();
 	
 	// 
+	void SolveTriangleContactVelocityConstraints();
+	
+	// 
 	void StoreImpulses();
 
 	// 
@@ -194,6 +241,9 @@ private:
 	
 	// 
 	bool SolveParticleContactPositionConstraints();
+	
+	// 
+	bool SolveTriangleContactPositionConstraints();
 	
 	b3StackAllocator* m_allocator;
 
@@ -221,6 +271,12 @@ private:
 	b3ClothSolverParticleContactVelocityConstraint* m_particleVelocityConstraints;
 	b3ClothSolverParticleContactPositionConstraint* m_particlePositionConstraints;
 
+	u32 m_triangleContactCapacity;
+	u32 m_triangleContactCount;
+	b3TriangleContact** m_triangleContacts;
+	b3ClothSolverTriangleContactVelocityConstraint* m_triangleVelocityConstraints;
+	b3ClothSolverTriangleContactPositionConstraint* m_trianglePositionConstraints;
+	
 	b3ClothSolverData m_solverData;
 };
 

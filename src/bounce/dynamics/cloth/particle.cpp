@@ -73,6 +73,7 @@ b3Particle::b3Particle(const b3ParticleDef& def, b3Cloth* cloth)
 	m_mass = 0.0f;
 	m_invMass = 0.0f;
 	m_radius = def.radius;
+	m_friction = def.friction;
 	m_userData = nullptr;
 	m_x.SetZero();
 	m_vertex = ~0;

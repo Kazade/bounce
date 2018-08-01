@@ -63,10 +63,20 @@ b3ClothSolver::b3ClothSolver(const b3ClothSolverDef& def)
 	m_particleContacts = (b3ParticleContact**)m_allocator->Allocate(m_particleContactCapacity * sizeof(b3ParticleContact*));
 	m_particleVelocityConstraints = (b3ClothSolverParticleContactVelocityConstraint*)m_allocator->Allocate(m_particleContactCapacity * sizeof(b3ClothSolverParticleContactVelocityConstraint));
 	m_particlePositionConstraints = (b3ClothSolverParticleContactPositionConstraint*)m_allocator->Allocate(m_particleContactCapacity * sizeof(b3ClothSolverParticleContactPositionConstraint));
+
+	m_triangleContactCapacity = def.triangleContactCapacity;
+	m_triangleContactCount = 0;
+	m_triangleContacts = (b3TriangleContact**)m_allocator->Allocate(m_triangleContactCapacity * sizeof(b3TriangleContact*));
+	m_triangleVelocityConstraints = (b3ClothSolverTriangleContactVelocityConstraint*)m_allocator->Allocate(m_triangleContactCapacity * sizeof(b3ClothSolverTriangleContactVelocityConstraint));
+	m_trianglePositionConstraints = (b3ClothSolverTriangleContactPositionConstraint*)m_allocator->Allocate(m_triangleContactCapacity * sizeof(b3ClothSolverTriangleContactPositionConstraint));
 }
 
 b3ClothSolver::~b3ClothSolver()
 {
+	m_allocator->Free(m_trianglePositionConstraints);
+	m_allocator->Free(m_triangleVelocityConstraints);
+	m_allocator->Free(m_triangleContacts);
+
 	m_allocator->Free(m_particlePositionConstraints);
 	m_allocator->Free(m_particleVelocityConstraints);
 	m_allocator->Free(m_particleContacts);
@@ -99,6 +109,11 @@ void b3ClothSolver::Add(b3BodyContact* c)
 void b3ClothSolver::Add(b3ParticleContact* c)
 {
 	m_particleContacts[m_particleContactCount++] = c;
+}
+
+void b3ClothSolver::Add(b3TriangleContact* c)
+{
+	m_triangleContacts[m_triangleContactCount++] = c;
 }
 
 void b3ClothSolver::ApplyForces()
@@ -263,6 +278,9 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// Initialize particle contact constraints
 	InitializeParticleContactConstraints();
 
+	// Initialize triangle contact constraints
+	// InitializeTriangleContactConstraints();
+
 	// Warm start velocity constraints
 	WarmStart();
 
@@ -273,6 +291,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	{
 		SolveBodyContactVelocityConstraints();
 		SolveParticleContactVelocityConstraints();
+		// SolveTriangleContactVelocityConstraints();
 	}
 
 	// Store impulses to improve convergence
@@ -283,11 +302,13 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 
 	// Solve position constraints
 	const u32 kPositionIterations = 2;
-	
+
 	bool positionSolved = false;
 	for (u32 i = 0; i < kPositionIterations; ++i)
 	{
 		bool particleContactsSolved = SolveParticleContactPositionConstraints();
+		// bool triangleContactsSolved = SolveTriangleContactPositionConstraints();
+		//if (particleContactsSolved && triangleContactsSolved)
 		if (particleContactsSolved)
 		{
 			positionSolved = true;
@@ -559,6 +580,12 @@ void b3ClothSolver::InitializeBodyContactConstraints()
 	}
 }
 
+// 
+static B3_FORCE_INLINE float32 b3MixFriction(float32 u1, float32 u2)
+{
+	return b3Sqrt(u1 * u2);
+}
+
 void b3ClothSolver::InitializeParticleContactConstraints()
 {
 	b3DenseVec3& x = *m_solverData.x;
@@ -578,7 +605,7 @@ void b3ClothSolver::InitializeParticleContactConstraints()
 		vc->invMassA = c->p1->m_type == e_staticParticle ? 0.0f : c->p1->m_invMass;
 		vc->invMassB = c->p2->m_type == e_staticParticle ? 0.0f : c->p2->m_invMass;
 
-		vc->friction = 1.0f;
+		vc->friction = b3MixFriction(c->p1->m_friction, c->p2->m_friction);
 
 		pc->indexA = c->p1->m_solverId;
 		pc->indexB = c->p2->m_solverId;
@@ -624,7 +651,7 @@ void b3ClothSolver::InitializeParticleContactConstraints()
 			float32 K = mA + mB;
 
 			vc->normalMass = K > 0.0f ? 1.0f / K : 0.0f;
-			
+
 			vc->velocityBias = 0.0f;
 		}
 
@@ -642,6 +669,93 @@ void b3ClothSolver::InitializeParticleContactConstraints()
 
 			vc->tangentMass = b3Inverse(K);
 		}
+	}
+}
+
+void b3ClothSolver::InitializeTriangleContactConstraints()
+{
+	b3DenseVec3& x = *m_solverData.x;
+
+	for (u32 i = 0; i < m_triangleContactCount; ++i)
+	{
+		b3TriangleContact* c = m_triangleContacts[i];
+		b3ClothSolverTriangleContactVelocityConstraint* vc = m_triangleVelocityConstraints + i;
+		b3ClothSolverTriangleContactPositionConstraint* pc = m_trianglePositionConstraints + i;
+
+		vc->indexA = c->p1->m_solverId;
+		vc->invMassA = c->p1->m_type == e_staticParticle ? 0.0f : c->p1->m_invMass;
+
+		vc->indexB = c->p2->m_solverId;
+		vc->invMassB = c->p2->m_type == e_staticParticle ? 0.0f : c->p2->m_invMass;
+
+		vc->indexC = c->p3->m_solverId;
+		vc->invMassC = c->p3->m_type == e_staticParticle ? 0.0f : c->p3->m_invMass;
+
+		vc->indexD = c->p4->m_solverId;
+		vc->invMassD = c->p4->m_type == e_staticParticle ? 0.0f : c->p4->m_invMass;
+
+		pc->indexA = c->p1->m_solverId;
+		pc->invMassA = c->p1->m_type == e_staticParticle ? 0.0f : c->p1->m_invMass;
+		pc->radiusA = c->p1->m_radius;
+
+		pc->indexB = c->p2->m_solverId;
+		pc->invMassB = c->p2->m_type == e_staticParticle ? 0.0f : c->p2->m_invMass;
+
+		pc->indexC = c->p3->m_solverId;
+		pc->invMassC = c->p3->m_type == e_staticParticle ? 0.0f : c->p3->m_invMass;
+
+		pc->indexD = c->p4->m_solverId;
+		pc->invMassD = c->p4->m_type == e_staticParticle ? 0.0f : c->p4->m_invMass;
+
+		pc->triangleRadius = 0.0f;
+		pc->front = c->front;
+
+		u32 indexA = pc->indexA;
+		float32 mA = pc->invMassA;
+
+		u32 indexB = pc->indexB;
+		float32 mB = pc->invMassB;
+
+		u32 indexC = pc->indexC;
+		float32 mC = pc->invMassC;
+
+		u32 indexD = pc->indexD;
+		float32 mD = pc->invMassD;
+
+		b3Vec3 xA = x[indexA];
+		b3Vec3 xB = x[indexB];
+		b3Vec3 xC = x[indexC];
+		b3Vec3 xD = x[indexD];
+
+		b3Vec3 n = b3Cross(xC - xB, xD - xB);
+
+		if (pc->front == false)
+		{
+			n = -n;
+		}
+
+		float32 n_len = n.Normalize();
+		
+		b3Mat33 I; I.SetIdentity();
+
+		b3Mat33 N = I - b3Outer(n, n);
+		if (n_len > B3_EPSILON)
+		{
+			N = (1.0f / n_len) * N;
+		}
+
+		b3Vec3 N_n = N * n;
+
+		vc->JA = n;
+		vc->JC = b3Cross(xD - xB, N_n);
+		vc->JD = b3Cross(xC - xB, N_n);
+		vc->JB = b3Cross(xC - xD, N_n) - n;
+
+		// Compute effective mass.
+		float32 K = mA + mB + mC + mD;
+
+		vc->normalMass = K > 0.0f ? 1.0f / K : 0.0f;
+		vc->normalImpulse = c->normalImpulse;
 	}
 }
 
@@ -717,6 +831,41 @@ void b3ClothSolver::WarmStart()
 
 		v[indexA] = vA;
 		v[indexB] = vB;
+	}
+
+	for (u32 i = 0; i < m_triangleContactCount; ++i)
+	{
+		b3ClothSolverTriangleContactVelocityConstraint* vc = m_triangleVelocityConstraints + i;
+
+		u32 indexA = vc->indexA;
+		u32 indexB = vc->indexB;
+		u32 indexC = vc->indexC;
+		u32 indexD = vc->indexD;
+
+		b3Vec3 vA = v[indexA];
+		b3Vec3 vB = v[indexB];
+		b3Vec3 vC = v[indexC];
+		b3Vec3 vD = v[indexD];
+
+		float32 mA = vc->invMassA;
+		float32 mB = vc->invMassB;
+		float32 mC = vc->invMassC;
+		float32 mD = vc->invMassD;
+
+		b3Vec3 PA = vc->normalImpulse * vc->JA;
+		b3Vec3 PB = vc->normalImpulse * vc->JB;
+		b3Vec3 PC = vc->normalImpulse * vc->JC;
+		b3Vec3 PD = vc->normalImpulse * vc->JD;
+
+		vA += mA * PA;
+		vB += mB * PB;
+		vC += mC * PC;
+		vD += mD * PD;
+
+		v[indexA] = vA;
+		v[indexB] = vB;
+		v[indexC] = vC;
+		v[indexD] = vD;
 	}
 }
 
@@ -879,6 +1028,59 @@ void b3ClothSolver::SolveParticleContactVelocityConstraints()
 	}
 }
 
+void b3ClothSolver::SolveTriangleContactVelocityConstraints()
+{
+	b3DenseVec3& v = *m_solverData.v;
+
+	for (u32 i = 0; i < m_triangleContactCount; ++i)
+	{
+		b3ClothSolverTriangleContactVelocityConstraint* vc = m_triangleVelocityConstraints + i;
+
+		u32 indexA = vc->indexA;
+		float32 mA = vc->invMassA;
+
+		u32 indexB = vc->indexB;
+		float32 mB = vc->invMassB;
+
+		u32 indexC = vc->indexC;
+		float32 mC = vc->invMassC;
+
+		u32 indexD = vc->indexD;
+		float32 mD = vc->invMassD;
+
+		b3Vec3 vA = v[indexA];
+		b3Vec3 vB = v[indexB];
+		b3Vec3 vC = v[indexC];
+		b3Vec3 vD = v[indexD];
+
+		b3Vec3 n = vc->JA;
+
+		// Allow some slop and prevent large corrections.
+		float32 Cdot = b3Dot(n, vA - vB);
+
+		float32 impulse = -vc->normalMass * Cdot;
+		
+		float32 oldImpulse = vc->normalImpulse;
+		vc->normalImpulse = b3Max(vc->normalImpulse + impulse, 0.0f);
+		impulse = vc->normalImpulse - oldImpulse;
+
+		b3Vec3 PA = impulse * vc->JA;
+		b3Vec3 PB = impulse * vc->JB;
+		b3Vec3 PC = impulse * vc->JC;
+		b3Vec3 PD = impulse * vc->JD;
+
+		vA += mA * PA;
+		vB += mB * PB;
+		vC += mC * PC;
+		vD += mD * PD;
+
+		v[indexA] = vA;
+		v[indexB] = vB;
+		v[indexC] = vC;
+		v[indexD] = vD;
+	}
+}
+
 void b3ClothSolver::StoreImpulses()
 {
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
@@ -897,6 +1099,14 @@ void b3ClothSolver::StoreImpulses()
 
 		c->normalImpulse = vc->normalImpulse;
 		c->tangentImpulse = vc->tangentImpulse;
+	}
+
+	for (u32 i = 0; i < m_triangleContactCount; ++i)
+	{
+		b3TriangleContact* c = m_triangleContacts[i];
+		b3ClothSolverTriangleContactVelocityConstraint* vc = m_triangleVelocityConstraints + i;
+
+		c->normalImpulse = vc->normalImpulse;
 	}
 }
 
@@ -995,14 +1205,8 @@ bool b3ClothSolver::SolveBodyContactPositionConstraints()
 
 struct b3ClothSolverParticleContactSolverPoint
 {
-	void Initialize(const b3Particle* p1, const b3Particle* p2)
+	void Initialize(const b3Vec3& cA, float32 rA, const b3Vec3& cB, float32 rB)
 	{
-		b3Vec3 cA = p1->GetPosition();
-		float32 rA = p1->GetRadius();
-
-		b3Vec3 cB = p2->GetPosition();
-		float32 rB = p2->GetRadius();
-
 		b3Vec3 d = cB - cA;
 		float32 distance = b3Length(d);
 
@@ -1037,15 +1241,17 @@ bool b3ClothSolver::SolveParticleContactPositionConstraints()
 
 		u32 indexA = pc->indexA;
 		float32 mA = pc->invMassA;
+		float32 rA = pc->radiusA;
 
 		u32 indexB = pc->indexB;
 		float32 mB = pc->invMassB;
+		float32 rB = pc->radiusB;
 
 		b3Vec3 xA = x[indexA];
 		b3Vec3 xB = x[indexB];
 
 		b3ClothSolverParticleContactSolverPoint cpcp;
-		cpcp.Initialize(m_particles[indexA], m_particles[indexB]);
+		cpcp.Initialize(xA, rA, xB, rB);
 
 		b3Vec3 normal = cpcp.normal;
 		b3Vec3 point = cpcp.point;
@@ -1069,6 +1275,93 @@ bool b3ClothSolver::SolveParticleContactPositionConstraints()
 
 		x[indexA] = xA;
 		x[indexB] = xB;
+	}
+
+	return minSeparation >= -3.0f * B3_LINEAR_SLOP;
+}
+
+bool b3ClothSolver::SolveTriangleContactPositionConstraints()
+{
+	b3DenseVec3& x = *m_solverData.v;
+
+	float32 minSeparation = 0.0f;
+
+	for (u32 i = 0; i < m_triangleContactCount; ++i)
+	{
+		b3ClothSolverTriangleContactPositionConstraint* pc = m_trianglePositionConstraints + i;
+
+		u32 indexA = pc->indexA;
+		float32 mA = pc->invMassA;
+		float32 radiusA = pc->radiusA;
+
+		u32 indexB = pc->indexB;
+		float32 mB = pc->invMassB;
+
+		u32 indexC = pc->indexC;
+		float32 mC = pc->invMassC;
+
+		u32 indexD = pc->indexD;
+		float32 mD = pc->invMassD;
+
+		float32 triangleRadius = pc->triangleRadius;
+
+		b3Vec3 xA = x[indexA];
+		b3Vec3 xB = x[indexB];
+		b3Vec3 xC = x[indexC];
+		b3Vec3 xD = x[indexD];
+
+		b3Vec3 n = b3Cross(xC - xB, xD - xB);
+		if (pc->front == false)
+		{
+			n = -n;
+		}
+
+		float32 n_len = n.Normalize();
+
+		float32 distance = b3Dot(n, xA - xB);
+		float32 separation = distance - radiusA - triangleRadius;
+
+		// Update max constraint error.
+		minSeparation = b3Min(minSeparation, separation);
+
+		// Allow some slop and prevent large corrections.
+		float32 C = b3Clamp(B3_BAUMGARTE * (separation + B3_LINEAR_SLOP), -B3_MAX_LINEAR_CORRECTION, 0.0f);
+
+		// Compute effective mass.
+		float32 K = mA + mB + mC + mD;
+
+		b3Mat33 I; I.SetIdentity();
+
+		b3Mat33 N = I - b3Outer(n, n);
+		if (n_len > B3_EPSILON)
+		{
+			N = (1.0f / n_len) * N;
+		}
+
+		b3Vec3 N_n = N * n;
+
+		b3Vec3 JA = n;
+		b3Vec3 JC = b3Cross(xD - xB, N_n);
+		b3Vec3 JD = b3Cross(xC - xB, N_n);
+		b3Vec3 JB = b3Cross(xC - xD, N_n) - n;
+
+		// Compute normal impulse.
+		float32 impulse = K > 0.0f ? -C / K : 0.0f;
+
+		b3Vec3 PA = impulse * JA;
+		b3Vec3 PB = impulse * JB;
+		b3Vec3 PC = impulse * JC;
+		b3Vec3 PD = impulse * JD;
+
+		xA += mA * PA;
+		xB += mB * PB;
+		xC += mC * PC;
+		xD += mD * PD;
+
+		x[indexA] = xA;
+		x[indexB] = xB;
+		x[indexC] = xC;
+		x[indexD] = xD;
 	}
 
 	return minSeparation >= -3.0f * B3_LINEAR_SLOP;

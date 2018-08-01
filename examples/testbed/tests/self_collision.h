@@ -30,9 +30,10 @@ public:
 		// Create 3D mesh
 		m_rectangleClothMesh.Set(&m_rectangleGarmentMesh);
 
-		//  
+		b3Mat33 Rx = b3Mat33RotationX(0.5f * B3_PI);
 		for (u32 i = 0; i < m_rectangleClothMesh.vertexCount; ++i)
 		{
+			m_rectangleClothMesh.vertices[i] = Rx * m_rectangleClothMesh.vertices[i];
 			m_rectangleClothMesh.vertices[i].y += 10.0f;
 		}
 
@@ -45,7 +46,8 @@ public:
 
 		for (b3Particle* p = m_cloth->GetParticleList().m_head; p; p = p->GetNext())
 		{
-			p->SetRadius(0.25f);
+			p->SetRadius(0.2f);
+			p->SetFriction(0.2f);
 		}
 
 		{
@@ -54,14 +56,13 @@ public:
 
 			b3Body* b = m_world.CreateBody(bd);
 
-			m_boxHull.Set(50.0f, 1.0f, 50.0f);
-
-			b3HullShape boxShape;
-			boxShape.m_hull = &m_boxHull;
-			boxShape.m_radius = 0.2f;
+			b3CapsuleShape capsuleShape;
+			capsuleShape.m_centers[0].Set(0.0f, 5.0f, -5.0f);
+			capsuleShape.m_centers[1].Set(0.0f, 5.0f, 5.0f);
+			capsuleShape.m_radius = 1.0f;;
 
 			b3ShapeDef sd;
-			sd.shape = &boxShape;
+			sd.shape = &capsuleShape;
 			sd.friction = 1.0f;
 
 			b->CreateShape(sd);

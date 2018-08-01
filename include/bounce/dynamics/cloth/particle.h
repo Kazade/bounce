@@ -48,6 +48,7 @@ struct b3ParticleDef
 		velocity.SetZero();
 		force.SetZero();
 		radius = 0.0f;
+		friction = 0.0f;
 		userData = nullptr;
 	}
 
@@ -56,19 +57,8 @@ struct b3ParticleDef
 	b3Vec3 velocity;
 	b3Vec3 force;
 	float32 radius;
+	float32 friction;
 	void* userData;
-};
-
-//
-class b3FrictionForce : public b3Force
-{
-public:
-	b3FrictionForce() { }
-	~b3FrictionForce() { }
-
-	void Apply(const b3ClothSolverData* data);
-
-	b3Particle* m_p;
 };
 
 // A contact between a particle and a solid
@@ -134,6 +124,27 @@ struct b3ParticleContactWorldPoint
 	float32 separation;
 };
 
+// A contact between a particle and a triangle
+class b3TriangleContact
+{
+public:
+	b3TriangleContact() { }
+	~b3TriangleContact() { }
+
+	b3Particle* p1;	
+	b3Particle* p2;
+	b3Particle* p3;
+	b3Particle* p4;
+
+	bool front;
+	
+	// Contact constraint
+	float32 normalImpulse;
+
+	b3TriangleContact* m_prev;
+	b3TriangleContact* m_next;
+};
+
 // A cloth particle.
 class b3Particle
 {
@@ -170,6 +181,12 @@ public:
 	// Get the particle radius.
 	float32 GetRadius() const;
 
+	// Set the particle coefficient of friction.
+	void SetFriction(float32 friction);
+	
+	// Get the particle coefficient of friction.
+	float32 GetFriction() const;
+	
 	// Apply a force.
 	void ApplyForce(const b3Vec3& force);
 
@@ -214,6 +231,9 @@ private:
 	// Radius
 	float32 m_radius;
 
+	// Coefficient of friction
+	float32 m_friction;
+	
 	// User data. 
 	void* m_userData;
 
@@ -289,6 +309,16 @@ inline void b3Particle::SetRadius(float32 radius)
 inline float32 b3Particle::GetRadius() const
 {
 	return m_radius;
+}
+
+inline void b3Particle::SetFriction(float32 friction)
+{
+	m_friction = friction;
+}
+
+inline float32 b3Particle::GetFriction() const
+{
+	return m_friction;
 }
 
 inline void b3Particle::ApplyForce(const b3Vec3& force)

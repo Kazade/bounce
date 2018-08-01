@@ -30,6 +30,7 @@ class b3Particle;
 class b3Force;
 class b3BodyContact;
 class b3ParticleContact;
+class b3TriangleContact;
 
 struct b3ParticleDef;
 struct b3ForceDef;
@@ -151,6 +152,9 @@ private:
 	// Update particle contacts. 
 	void UpdateParticleContacts();
 	
+	// Update triangle contacts. 
+	void UpdateTriangleContacts();
+	
 	// Solve
 	void Solve(float32 dt, const b3Vec3& gravity);
 
@@ -169,6 +173,9 @@ private:
 	// Pool of particle contacts
 	b3BlockPool m_particleContactBlocks;
 	
+	// Pool of triangle contacts
+	b3BlockPool m_triangleContactBlocks;
+	
 	// List of particles
 	b3List2<b3Particle> m_particleList;
 	
@@ -177,6 +184,9 @@ private:
 
 	// List of particle contacts
 	b3List2<b3ParticleContact> m_particleContactList;
+	
+	// List of triangle contacts
+	b3List2<b3TriangleContact> m_triangleContactList;
 	
 	// The parent world of this cloth.
 	b3World* m_world;
