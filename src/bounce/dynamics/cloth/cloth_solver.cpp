@@ -279,7 +279,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	InitializeParticleContactConstraints();
 
 	// Initialize triangle contact constraints
-	// InitializeTriangleContactConstraints();
+	InitializeTriangleContactConstraints();
 
 	// Warm start velocity constraints
 	WarmStart();
@@ -291,7 +291,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	{
 		SolveBodyContactVelocityConstraints();
 		SolveParticleContactVelocityConstraints();
-		// SolveTriangleContactVelocityConstraints();
+		SolveTriangleContactVelocityConstraints();
 	}
 
 	// Store impulses to improve convergence
@@ -307,9 +307,8 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	for (u32 i = 0; i < kPositionIterations; ++i)
 	{
 		bool particleContactsSolved = SolveParticleContactPositionConstraints();
-		// bool triangleContactsSolved = SolveTriangleContactPositionConstraints();
-		//if (particleContactsSolved && triangleContactsSolved)
-		if (particleContactsSolved)
+		bool triangleContactsSolved = SolveTriangleContactPositionConstraints();
+		if (particleContactsSolved && triangleContactsSolved)
 		{
 			positionSolved = true;
 			break;
