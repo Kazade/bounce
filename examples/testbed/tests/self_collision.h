@@ -34,7 +34,7 @@ public:
 		for (u32 i = 0; i < m_rectangleClothMesh.vertexCount; ++i)
 		{
 			m_rectangleClothMesh.vertices[i] = Rx * m_rectangleClothMesh.vertices[i];
-			m_rectangleClothMesh.vertices[i].y += 10.0f;
+			m_rectangleClothMesh.vertices[i].y += 5.0f;
 		}
 
 		b3ClothDef def;
@@ -57,8 +57,8 @@ public:
 			b3Body* b = m_world.CreateBody(bd);
 
 			b3CapsuleShape capsuleShape;
-			capsuleShape.m_centers[0].Set(0.0f, 5.0f, -5.0f);
-			capsuleShape.m_centers[1].Set(0.0f, 5.0f, 5.0f);
+			capsuleShape.m_centers[0].Set(0.0f, 0.0f, -5.0f);
+			capsuleShape.m_centers[1].Set(0.0f, 0.0f, 5.0f);
 			capsuleShape.m_radius = 1.0f;;
 
 			b3ShapeDef sd;
