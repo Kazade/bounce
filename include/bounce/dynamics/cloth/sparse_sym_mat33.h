@@ -19,10 +19,25 @@
 #ifndef B3_SPARSE_SYM_MAT_33_H
 #define B3_SPARSE_SYM_MAT_33_H
 
+#include <bounce/common/template/list.h>
 #include <bounce/common/math/mat33.h>
 #include <bounce/dynamics/cloth/diag_mat33.h>
 #include <bounce/dynamics/cloth/dense_vec3.h>
 
+// An element in a sparse symmetric matrix.
+struct b3RowValue
+{
+	u32 column;
+	b3Mat33 value;
+
+	b3RowValue* m_prev;
+	b3RowValue* m_next;
+};
+
+// A sparse symmetric matrix.
+// Each row is a list of non-zero elements in the row.
+// The total matrix capacity is bounded by 
+// M * (M + 1) / 2
 struct b3SparseSymMat33
 {
 	//
@@ -57,73 +72,74 @@ struct b3SparseSymMat33
 
 	// 
 	void Diagonal(b3DiagMat33& out) const;
-	
-	u32 M;
-	u32* row_ptrs; 
-	u32 value_capacity;
-	u32 value_count;
-	b3Mat33* values;
-	u32* value_columns;
+
+	u32 rowCount;
+	b3List2<b3RowValue>* rows; 
 };
 
 inline b3SparseSymMat33::b3SparseSymMat33()
 {
-	M = 0;
-	row_ptrs = nullptr;
-	value_count = 0;
-	value_capacity = 0;
-	values = nullptr;
-	value_columns = nullptr;
+	rowCount = 0;
+	rows = nullptr;
 }
 
 inline b3SparseSymMat33::b3SparseSymMat33(u32 m)
 {
-	M = m;
-	row_ptrs = (u32*)b3Alloc((M + 1) * sizeof(u32));
-	memset(row_ptrs, 0, (M + 1) * sizeof(u32));
-	value_count = 0;
-	//value_capacity = M * (M + 1) / 2;
-	value_capacity = 32 * 32;
-	values = (b3Mat33*)b3Alloc(value_capacity * sizeof(b3Mat33));
-	value_columns = (u32*)b3Alloc(value_capacity * sizeof(u32));
+	rowCount = m;
+	rows = (b3List2<b3RowValue>*)b3Alloc(rowCount * sizeof(b3List2<b3RowValue>));
+	for (u32 i = 0; i < rowCount; ++i)
+	{
+		new (rows + i)b3List2<b3RowValue>();
+	}
 }
 
 inline b3SparseSymMat33::b3SparseSymMat33(const b3SparseSymMat33& m)
 {
-	M = m.M;
-	row_ptrs = (u32*)b3Alloc((M + 1) * sizeof(u32));
-	value_count = m.value_count;
-	value_capacity = m.value_capacity;
-	values = (b3Mat33*)b3Alloc(value_capacity * sizeof(b3Mat33));
-	value_columns = (u32*)b3Alloc(value_capacity * sizeof(u32));
+	rowCount = m.rowCount;
+	rows = (b3List2<b3RowValue>*)b3Alloc(rowCount * sizeof(b3List2<b3RowValue>));
+	for (u32 i = 0; i < rowCount; ++i)
+	{
+		new (rows + i)b3List2<b3RowValue>();
+	}
 
 	Copy(m);
 }
 
 inline b3SparseSymMat33::~b3SparseSymMat33()
 {
-	b3Free(value_columns);
-	b3Free(values);
-	b3Free(row_ptrs);
+	for (u32 i = 0; i < rowCount; ++i)
+	{
+		b3List2<b3RowValue>* vs = rows + i;
+
+		b3RowValue* v = vs->m_head;
+		while (v)
+		{
+			b3RowValue* v0 = v->m_next;
+			b3Free(v);
+			v = v0;
+		}
+
+		vs->~b3List2();
+	}
+
+	b3Free(rows);
 }
 
 inline b3SparseSymMat33& b3SparseSymMat33::operator=(const b3SparseSymMat33& _m)
 {
-	if (_m.row_ptrs == row_ptrs)
+	if (_m.rows == rows)
 	{
 		return *this;
 	}
 	
-	b3Free(row_ptrs);
-	b3Free(values);
-	b3Free(value_columns);
+	b3Free(rows);
 
-	M = _m.M;
-	row_ptrs = (u32*)b3Alloc((M + 1) * sizeof(u32));
-	value_count = _m.value_count;
-	value_capacity = _m.value_capacity;
-	values = (b3Mat33*)b3Alloc(value_capacity * sizeof(b3Mat33));
-	value_columns = (u32*)b3Alloc(value_capacity * sizeof(u32));
+	rowCount = _m.rowCount;
+	rows = (b3List2<b3RowValue>*)b3Alloc(rowCount * sizeof(b3List2<b3RowValue>));
+	for (u32 i = 0; i < rowCount; ++i)
+	{
+		new (rows + i)b3List2<b3RowValue>();
+	}
 
 	Copy(_m);
 
@@ -132,19 +148,31 @@ inline b3SparseSymMat33& b3SparseSymMat33::operator=(const b3SparseSymMat33& _m)
 
 inline void b3SparseSymMat33::Copy(const b3SparseSymMat33& _m)
 {
-	B3_ASSERT(M == _m.M);
-	B3_ASSERT(value_capacity == _m.value_capacity);
-	B3_ASSERT(value_count == _m.value_count);
+	B3_ASSERT(rowCount == _m.rowCount);
 
-	memcpy(row_ptrs, _m.row_ptrs, (M + 1) * sizeof(u32));
-	memcpy(values, _m.values, value_count * sizeof(b3Mat33));
-	memcpy(value_columns, _m.value_columns, value_count * sizeof(u32));
+	for (u32 row = 0; row < rowCount; ++row)
+	{
+		b3List2<b3RowValue>* vs1 = _m.rows + row;
+		b3List2<b3RowValue>* vs2 = rows + row;
+
+		B3_ASSERT(vs2->m_count == 0);
+
+		for (b3RowValue* v1 = vs1->m_head; v1; v1 = v1->m_next)
+		{
+			b3RowValue* v2 = (b3RowValue*)b3Alloc(sizeof(b3RowValue));
+
+			v2->column = v1->column;
+			v2->value = v1->value;
+
+			vs2->PushFront(v2);
+		}
+	}
 }
 
 inline const b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j) const
 {
-	B3_ASSERT(i < M);
-	B3_ASSERT(j < M);
+	B3_ASSERT(i < rowCount);
+	B3_ASSERT(j < rowCount);
 
 	// Ensure i, and j is on the upper triangle 
 	if (i > j)
@@ -152,22 +180,20 @@ inline const b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j) const
 		b3Swap(i, j);
 	}
 
-	u32 row_value_begin = row_ptrs[i];
-	u32 row_value_count = row_ptrs[i + 1] - row_value_begin;
+	b3List2<b3RowValue>* vs = rows + i;
 
-	for (u32 row_value = 0; row_value < row_value_count; ++row_value)
+	for (b3RowValue* v = vs->m_head; v; v = v->m_next)
 	{
-		u32 row_value_index = row_value_begin + row_value;
-		u32 row_value_column = value_columns[row_value_index];
-
-		if (row_value_column < j)
+		u32 column = v->column;
+		
+		if (column < j)
 		{
 			break;
 		}
 
-		if (row_value_column == j)
+		if (column == i)
 		{
-			return values[row_value_index];
+			return v->value;
 		}
 	}
 
@@ -176,8 +202,8 @@ inline const b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j) const
 
 inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 {	
-	B3_ASSERT(i < M);
-	B3_ASSERT(j < M);
+	B3_ASSERT(i < rowCount);
+	B3_ASSERT(j < rowCount);
 
 	// Ensure i, and j is on the upper triangle 
 	if (i > j)
@@ -185,123 +211,93 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 		b3Swap(i, j);
 	}
 
-	u32 row_value_begin = row_ptrs[i];
-	u32 row_value_count = row_ptrs[i + 1] - row_value_begin;
+	b3List2<b3RowValue>* vs = rows + i;
 
-	for (u32 row_value = 0; row_value < row_value_count; ++row_value)
+	for (b3RowValue* v = vs->m_head; v; v = v->m_next)
 	{
-		u32 row_value_index = row_value_begin + row_value;
-		u32 row_value_column = value_columns[row_value_index];
+		u32 column = v->column;
 
-		if (row_value_column < j)
+		if (column < j)
 		{
 			break;
 		}
 
-		if (row_value_column == j)
+		if (column == i)
 		{
-			return values[row_value_index];
+			return v->value;
 		}
 	}
 
-	// Select insert position
-	u32 row_value_position = 0;
-	for (u32 row_value = 0; row_value < row_value_count; ++row_value)
+	b3RowValue* v1 = (b3RowValue*)b3Alloc(sizeof(b3RowValue));
+	v1->column = j;
+	v1->value.SetZero();
+
+	b3RowValue* v0 = nullptr;
+
+	for (b3RowValue* v = vs->m_head; v; v = v->m_next)
 	{
-		u32 row_value_index = row_value_begin + row_value;
-		u32 row_value_column = value_columns[row_value_index];
-		
-		if (row_value_column > j)
+		u32 column = v->column;
+
+		if (column > j)
 		{
-			row_value_position = row_value;
+			v0 = v;
 			break;
 		}
 	}
 
-	if (value_count == value_capacity)
+	if (v0 == nullptr)
 	{
-		b3Mat33* old_values = values;
-		u32* old_columns = value_columns;
-
-		value_capacity *= 2;
-		values = (b3Mat33*)b3Alloc(value_capacity * sizeof(b3Mat33));
-		value_columns = (u32*)b3Alloc(value_capacity * sizeof(u32));
-		
-		memcpy(values, old_values, value_count * sizeof(b3Mat33));
-		memcpy(value_columns, old_columns, value_count * sizeof(u32));
-
-		b3Free(old_values);
-		b3Free(old_columns);
+		vs->PushFront(v1);
 	}
-	
-	B3_ASSERT(value_count < value_capacity);
-
-	// Shift the values
-	for (u32 row_value = value_count; row_value > row_value_begin + row_value_position; --row_value)
+	else
 	{
-		values[row_value] = values[row_value - 1];
-		value_columns[row_value] = value_columns[row_value - 1];
+		vs->PushAfter(v0, v1);
 	}
 
-	// Insert the value
-	value_columns[row_value_begin + row_value_position] = j;
-	values[row_value_begin + row_value_position].SetZero();
-	++value_count;
-
-	// Shift the row pointers 
-	for (u32 row_ptr_index = i + 1; row_ptr_index < M + 1; ++row_ptr_index)
-	{
-		++row_ptrs[row_ptr_index];
-	}
-
-	// Return the inserted value
-	return values[row_value_begin + row_value_position];
+	return v1->value;
 }
 
 inline void b3SparseSymMat33::operator+=(const b3SparseSymMat33& m)
 {
-	B3_ASSERT(M == m.M);
+	B3_ASSERT(rowCount == m.rowCount);
 
-	for (u32 row = 0; row < m.M; ++row)
+	for (u32 i = 0; i < m.rowCount; ++i)
 	{
-		u32 row_value_begin = m.row_ptrs[row];
-		u32 row_value_count = m.row_ptrs[row + 1] - row_value_begin;
+		b3List2<b3RowValue>* mvs = m.rows + i;
 
-		for (u32 row_value = 0; row_value < row_value_count; ++row_value)
+		for (b3RowValue* v = mvs->m_head; v; v = v->m_next)
 		{
-			u32 row_value_index = row_value_begin + row_value;
-			u32 row_value_column = m.value_columns[row_value_index];
+			u32 j = v->column;
 
-			(*this)(row, row_value_column) += m.values[row_value_index];
+			(*this)(i, j) += v->value;
 		}
 	}
 }
 
 inline void b3SparseSymMat33::operator-=(const b3SparseSymMat33& m)
 {
-	B3_ASSERT(M == m.M);
+	B3_ASSERT(rowCount == m.rowCount);
 
-	for (u32 row = 0; row < m.M; ++row)
+	for (u32 i = 0; i < m.rowCount; ++i)
 	{
-		u32 row_value_begin = m.row_ptrs[row];
-		u32 row_value_count = m.row_ptrs[row + 1] - row_value_begin;
+		b3List2<b3RowValue>* mvs = m.rows + i;
 
-		for (u32 row_value = 0; row_value < row_value_count; ++row_value)
+		for (b3RowValue* v = mvs->m_head; v; v = v->m_next)
 		{
-			u32 row_value_index = row_value_begin + row_value;
-			u32 row_value_column = m.value_columns[row_value_index];
+			u32 j = v->column;
 
-			(*this)(row, row_value_column) -= m.values[row_value_index];
+			(*this)(i, j) -= v->value;
 		}
 	}
 }
 
 inline void b3SparseSymMat33::Diagonal(b3DiagMat33& out) const
 {
-	B3_ASSERT(M == out.n);
-	for (u32 row = 0; row < M; ++row)
+	B3_ASSERT(rowCount == out.n);
+	
+	for (u32 i = 0; i < rowCount; ++i)
 	{
-		out[row] = (*this)(row, row);
+		out[i] = (*this)(i, i);
 	}
 }
 
@@ -319,72 +315,70 @@ inline void b3Sub(b3SparseSymMat33& out, const b3SparseSymMat33& a, const b3Spar
 
 inline void b3Mul(b3DenseVec3& out, const b3SparseSymMat33& A, const b3DenseVec3& v)
 {
-	B3_ASSERT(A.M == out.n);
+	B3_ASSERT(A.rowCount == out.n);
 
 	out.SetZero();
 
-	for (u32 row = 0; row < A.M; ++row)
+	for (u32 i = 0; i < A.rowCount; ++i)
 	{
-		u32 row_value_begin = A.row_ptrs[row];
-		u32 row_value_count = A.row_ptrs[row + 1] - row_value_begin;
+		b3List2<b3RowValue>* vs = A.rows + i;
 
-		for (u32 row_value = 0; row_value < row_value_count; ++row_value)
+		for (b3RowValue* vA = vs->m_head; vA; vA = vA->m_next)
 		{
-			u32 row_value_index = row_value_begin + row_value;
-			u32 row_value_column = A.value_columns[row_value_index];
+			u32 j = vA->column;
+			b3Mat33 a = vA->value;
 
-			out[row] += A.values[row_value_index] * v[row_value_column];
+			out[i] += a * v[j];
 
-			if (row != row_value_column)
+			if (i != j)
 			{
-				// A(i, j) == A(j, i)
-				out[row_value_column] += A.values[row_value_index] * v[row];
+				// a_ij == a_ji
+				out[j] += a * v[i];
 			}
 		}
 	}
 }
 
-inline void b3Mul(b3SparseSymMat33& out, float32 A, const b3SparseSymMat33& B)
+inline void b3Mul(b3SparseSymMat33& out, float32 s, const b3SparseSymMat33& B)
 {
-	B3_ASSERT(out.M == B.M);
+	B3_ASSERT(out.rowCount == B.rowCount);
 
-	if (A == 0.0f)
+	if (s == 0.0f)
 	{
 		return;
 	}
 
-	for (u32 row = 0; row < B.M; ++row)
+	for (u32 i = 0; i < B.rowCount; ++i)
 	{
-		u32 row_value_begin = B.row_ptrs[row];
-		u32 row_value_count = B.row_ptrs[row + 1] - row_value_begin;
+		b3List2<b3RowValue>* vs = B.rows + i;
 
-		for (u32 row_value = 0; row_value < row_value_count; ++row_value)
+		for (b3RowValue* vB = vs->m_head; vB; vB = vB->m_next)
 		{
-			u32 row_value_index = row_value_begin + row_value;
-			u32 row_value_column = B.value_columns[row_value_index];
+			u32 j = vB->column;
+			b3Mat33 b = vB->value;
 
-			out(row, row_value_column) = A * B.values[row_value_index];
+			out(i, j) = s * b;
 		}
 	}
 }
 
 inline b3SparseSymMat33 operator+(const b3SparseSymMat33& A, const b3SparseSymMat33& B)
 {
-	b3SparseSymMat33 result(A.M);
+	b3SparseSymMat33 result(A.rowCount);
 	b3Add(result, A, B);
 	return result;
 }
 
 inline b3SparseSymMat33 operator-(const b3SparseSymMat33& A, const b3SparseSymMat33& B)
 {
-	b3SparseSymMat33 result(A.M);
+	b3SparseSymMat33 result(A.rowCount);
 	b3Sub(result, A, B);
 	return result;
 }
 
 inline b3SparseSymMat33 operator*(float32 A, const b3SparseSymMat33& B)
 {
-	b3SparseSymMat33 result(B.M);
+	b3SparseSymMat33 result(B.rowCount);
 	b3Mul(result, A, B);
 	return result;
 }
