@@ -204,10 +204,10 @@ inline void b3SparseSymMat33::Copy(const b3SparseSymMat33& _m)
 {
 	B3_ASSERT(rowCount == _m.rowCount);
 
-	for (u32 row = 0; row < rowCount; ++row)
+	for (u32 i = 0; i < rowCount; ++i)
 	{
-		b3RowValueList* vs1 = _m.rows + row;
-		b3RowValueList* vs2 = rows + row;
+		b3RowValueList* vs1 = _m.rows + i;
+		b3RowValueList* vs2 = rows + i;
 
 		B3_ASSERT(vs2->count == 0);
 
