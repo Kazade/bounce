@@ -19,7 +19,6 @@
 #ifndef B3_SPARSE_SYM_MAT_33_H
 #define B3_SPARSE_SYM_MAT_33_H
 
-#include <bounce/common/template/list.h>
 #include <bounce/common/math/mat33.h>
 #include <bounce/dynamics/cloth/diag_mat33.h>
 #include <bounce/dynamics/cloth/dense_vec3.h>
@@ -30,9 +29,56 @@ struct b3RowValue
 	u32 column;
 	b3Mat33 value;
 
-	b3RowValue* m_prev;
-	b3RowValue* m_next;
+	b3RowValue* prev;
+	b3RowValue* next;
 };
+
+// Doubly linked list of row elements.
+struct b3RowValueList
+{
+	b3RowValueList()
+	{
+		head = nullptr;
+		count = 0;
+	}
+
+	~b3RowValueList() { }
+
+	void PushFront(b3RowValue* link)
+	{
+		link->prev = NULL;
+		link->next = head;
+		if (head)
+		{
+			head->prev = link;
+		}
+		head = link;
+		++count;
+	}
+
+	void PushAfter(b3RowValue* prev, b3RowValue* link)
+	{
+		link->prev = prev;
+
+		if (prev->next == NULL)
+		{
+			link->next = NULL;
+		}
+		else
+		{
+			link->next = prev->next;
+			prev->next->prev = link;
+		}
+
+		prev->next = link;
+
+		++count;
+	}
+
+	b3RowValue* head;
+	u32 count;
+};
+
 
 // A sparse symmetric matrix.
 // Each row is a list of non-zero elements in the row.
@@ -58,6 +104,9 @@ struct b3SparseSymMat33
 	// 
 	void Copy(const b3SparseSymMat33& _m);
 
+	//
+	void Destroy();
+
 	// 
 	b3Mat33& operator()(u32 i, u32 j);
 
@@ -74,7 +123,7 @@ struct b3SparseSymMat33
 	void Diagonal(b3DiagMat33& out) const;
 
 	u32 rowCount;
-	b3List2<b3RowValue>* rows; 
+	b3RowValueList* rows; 
 };
 
 inline b3SparseSymMat33::b3SparseSymMat33()
@@ -86,20 +135,20 @@ inline b3SparseSymMat33::b3SparseSymMat33()
 inline b3SparseSymMat33::b3SparseSymMat33(u32 m)
 {
 	rowCount = m;
-	rows = (b3List2<b3RowValue>*)b3Alloc(rowCount * sizeof(b3List2<b3RowValue>));
+	rows = (b3RowValueList*)b3Alloc(rowCount * sizeof(b3RowValueList));
 	for (u32 i = 0; i < rowCount; ++i)
 	{
-		new (rows + i)b3List2<b3RowValue>();
+		new (rows + i)b3RowValueList();
 	}
 }
 
 inline b3SparseSymMat33::b3SparseSymMat33(const b3SparseSymMat33& m)
 {
 	rowCount = m.rowCount;
-	rows = (b3List2<b3RowValue>*)b3Alloc(rowCount * sizeof(b3List2<b3RowValue>));
+	rows = (b3RowValueList*)b3Alloc(rowCount * sizeof(b3RowValueList));
 	for (u32 i = 0; i < rowCount; ++i)
 	{
-		new (rows + i)b3List2<b3RowValue>();
+		new (rows + i)b3RowValueList();
 	}
 
 	Copy(m);
@@ -107,19 +156,24 @@ inline b3SparseSymMat33::b3SparseSymMat33(const b3SparseSymMat33& m)
 
 inline b3SparseSymMat33::~b3SparseSymMat33()
 {
+	Destroy();
+}
+
+inline void b3SparseSymMat33::Destroy()
+{
 	for (u32 i = 0; i < rowCount; ++i)
 	{
-		b3List2<b3RowValue>* vs = rows + i;
+		b3RowValueList* vs = rows + i;
 
-		b3RowValue* v = vs->m_head;
+		b3RowValue* v = vs->head;
 		while (v)
 		{
-			b3RowValue* v0 = v->m_next;
+			b3RowValue* v0 = v->next;
 			b3Free(v);
 			v = v0;
 		}
 
-		vs->~b3List2();
+		vs->~b3RowValueList();
 	}
 
 	b3Free(rows);
@@ -131,14 +185,14 @@ inline b3SparseSymMat33& b3SparseSymMat33::operator=(const b3SparseSymMat33& _m)
 	{
 		return *this;
 	}
-	
-	b3Free(rows);
+
+	Destroy();
 
 	rowCount = _m.rowCount;
-	rows = (b3List2<b3RowValue>*)b3Alloc(rowCount * sizeof(b3List2<b3RowValue>));
+	rows = (b3RowValueList*)b3Alloc(rowCount * sizeof(b3RowValueList));
 	for (u32 i = 0; i < rowCount; ++i)
 	{
-		new (rows + i)b3List2<b3RowValue>();
+		new (rows + i)b3RowValueList();
 	}
 
 	Copy(_m);
@@ -152,12 +206,12 @@ inline void b3SparseSymMat33::Copy(const b3SparseSymMat33& _m)
 
 	for (u32 row = 0; row < rowCount; ++row)
 	{
-		b3List2<b3RowValue>* vs1 = _m.rows + row;
-		b3List2<b3RowValue>* vs2 = rows + row;
+		b3RowValueList* vs1 = _m.rows + row;
+		b3RowValueList* vs2 = rows + row;
 
-		B3_ASSERT(vs2->m_count == 0);
+		B3_ASSERT(vs2->count == 0);
 
-		for (b3RowValue* v1 = vs1->m_head; v1; v1 = v1->m_next)
+		for (b3RowValue* v1 = vs1->head; v1; v1 = v1->next)
 		{
 			b3RowValue* v2 = (b3RowValue*)b3Alloc(sizeof(b3RowValue));
 
@@ -180,9 +234,9 @@ inline const b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j) const
 		b3Swap(i, j);
 	}
 
-	b3List2<b3RowValue>* vs = rows + i;
+	b3RowValueList* vs = rows + i;
 
-	for (b3RowValue* v = vs->m_head; v; v = v->m_next)
+	for (b3RowValue* v = vs->head; v; v = v->next)
 	{
 		u32 column = v->column;
 		
@@ -211,9 +265,9 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 		b3Swap(i, j);
 	}
 
-	b3List2<b3RowValue>* vs = rows + i;
+	b3RowValueList* vs = rows + i;
 
-	for (b3RowValue* v = vs->m_head; v; v = v->m_next)
+	for (b3RowValue* v = vs->head; v; v = v->next)
 	{
 		u32 column = v->column;
 
@@ -234,7 +288,7 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 
 	b3RowValue* v0 = nullptr;
 
-	for (b3RowValue* v = vs->m_head; v; v = v->m_next)
+	for (b3RowValue* v = vs->head; v; v = v->next)
 	{
 		u32 column = v->column;
 
@@ -263,9 +317,9 @@ inline void b3SparseSymMat33::operator+=(const b3SparseSymMat33& m)
 
 	for (u32 i = 0; i < m.rowCount; ++i)
 	{
-		b3List2<b3RowValue>* mvs = m.rows + i;
+		b3RowValueList* mvs = m.rows + i;
 
-		for (b3RowValue* v = mvs->m_head; v; v = v->m_next)
+		for (b3RowValue* v = mvs->head; v; v = v->next)
 		{
 			u32 j = v->column;
 
@@ -280,9 +334,9 @@ inline void b3SparseSymMat33::operator-=(const b3SparseSymMat33& m)
 
 	for (u32 i = 0; i < m.rowCount; ++i)
 	{
-		b3List2<b3RowValue>* mvs = m.rows + i;
+		b3RowValueList* mvs = m.rows + i;
 
-		for (b3RowValue* v = mvs->m_head; v; v = v->m_next)
+		for (b3RowValue* v = mvs->head; v; v = v->next)
 		{
 			u32 j = v->column;
 
@@ -321,9 +375,9 @@ inline void b3Mul(b3DenseVec3& out, const b3SparseSymMat33& A, const b3DenseVec3
 
 	for (u32 i = 0; i < A.rowCount; ++i)
 	{
-		b3List2<b3RowValue>* vs = A.rows + i;
+		b3RowValueList* vs = A.rows + i;
 
-		for (b3RowValue* vA = vs->m_head; vA; vA = vA->m_next)
+		for (b3RowValue* vA = vs->head; vA; vA = vA->next)
 		{
 			u32 j = vA->column;
 			b3Mat33 a = vA->value;
@@ -350,9 +404,9 @@ inline void b3Mul(b3SparseSymMat33& out, float32 s, const b3SparseSymMat33& B)
 
 	for (u32 i = 0; i < B.rowCount; ++i)
 	{
-		b3List2<b3RowValue>* vs = B.rows + i;
+		b3RowValueList* vs = B.rows + i;
 
-		for (b3RowValue* vB = vs->m_head; vB; vB = vB->m_next)
+		for (b3RowValue* vB = vs->head; vB; vB = vB->next)
 		{
 			u32 j = vB->column;
 			b3Mat33 b = vB->value;
