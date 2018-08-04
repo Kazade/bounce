@@ -26,6 +26,7 @@
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/body.h>
 #include <bounce/common/memory/stack_allocator.h>
+#include <bounce/common/math/mat.h>
 
 // Here, we solve Ax = b using the Modified Preconditioned Conjugate Gradient (MPCG) algorithm.
 // described in the paper:
@@ -214,6 +215,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	m_solverData.invdt = 1.0f / dt;
 
 	float32 h = dt;
+	float32 inv_h = m_solverData.invdt;
 
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
@@ -306,9 +308,10 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	bool positionSolved = false;
 	for (u32 i = 0; i < kPositionIterations; ++i)
 	{
+		bool bodyContactsSolved = SolveBodyContactPositionConstraints();
 		bool particleContactsSolved = SolveParticleContactPositionConstraints();
 		bool triangleContactsSolved = SolveTriangleContactPositionConstraints();
-		if (particleContactsSolved && triangleContactsSolved)
+		if (bodyContactsSolved && particleContactsSolved && triangleContactsSolved)
 		{
 			positionSolved = true;
 			break;
@@ -445,12 +448,16 @@ void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
 	iterations = iteration;
 }
 
+// 
+static B3_FORCE_INLINE float32 b3MixFriction(float32 u1, float32 u2)
+{
+	return b3Sqrt(u1 * u2);
+}
+
 void b3ClothSolver::InitializeBodyContactConstraints()
 {
 	b3DenseVec3& x = *m_solverData.x;
 	b3DenseVec3& v = *m_solverData.v;
-
-	float32 inv_dt = m_solverData.invdt;
 
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
@@ -467,16 +474,16 @@ void b3ClothSolver::InitializeBodyContactConstraints()
 		vc->invIA.SetZero();
 		vc->invIB = vc->bodyB->GetWorldInverseInertia();
 
-		vc->friction = c->s2->GetFriction();
+		vc->friction = b3MixFriction(c->p1->m_friction, c->s2->GetFriction());
 
 		pc->indexA = c->p1->m_solverId;
 		pc->bodyB = vc->bodyB;
 
 		pc->invMassA = c->p1->m_type == e_staticParticle ? 0.0f : c->p1->m_invMass;
-		pc->invMassB = vc->bodyB->GetInverseMass();
+		pc->invMassB = vc->bodyB->m_invMass;
 
 		pc->invIA.SetZero();
-		pc->invIB = vc->bodyB->GetWorldInverseInertia();
+		pc->invIB = vc->bodyB->m_worldInvI;
 
 		pc->radiusA = c->p1->m_radius;
 		pc->radiusB = c->s2->m_radius;
@@ -549,10 +556,7 @@ void b3ClothSolver::InitializeBodyContactConstraints()
 			float32 K = mA + mB + b3Dot(iA * rnA, rnA) + b3Dot(iB * rnB, rnB);
 
 			vc->normalMass = K > 0.0f ? 1.0f / K : 0.0f;
-
-			float32 C = b3Min(0.0f, wp.separation + B3_LINEAR_SLOP);
-
-			vc->velocityBias = -inv_dt * B3_BAUMGARTE * C;
+			vc->velocityBias = 0.0f;
 		}
 
 		{
@@ -577,12 +581,6 @@ void b3ClothSolver::InitializeBodyContactConstraints()
 			vc->tangentMass = b3Inverse(K);
 		}
 	}
-}
-
-// 
-static B3_FORCE_INLINE float32 b3MixFriction(float32 u1, float32 u2)
-{
-	return b3Sqrt(u1 * u2);
 }
 
 void b3ClothSolver::InitializeParticleContactConstraints()
@@ -1109,15 +1107,31 @@ void b3ClothSolver::StoreImpulses()
 	}
 }
 
-struct b3ClothSolverContactSolverPoint
+struct b3ClothSolverBodyContactSolverPoint
 {
 	void Initialize(const b3ClothSolverContactPositionConstraint* pc, const b3Transform& xfA, const b3Transform& xfB)
 	{
-		normal = b3Mul(xfA.rotation, pc->localNormalA);
-		b3Vec3 c1 = b3Mul(xfA, pc->localPointA);
-		b3Vec3 c2 = b3Mul(xfB, pc->localPointB);
-		point = c2;
-		separation = b3Dot(c2 - c1, normal) - pc->radiusA - pc->radiusB;
+		b3Vec3 cA = b3Mul(xfA, pc->localPointA);
+		b3Vec3 cB = b3Mul(xfB, pc->localPointB);
+
+		float32 rA = pc->radiusA;
+		float32 rB = pc->radiusB;
+
+		b3Vec3 d = cB - cA;
+		float32 distance = b3Length(d);
+
+		b3Vec3 nA(0.0f, 1.0f, 0.0f);
+		if (distance > B3_EPSILON)
+		{
+			nA = d / distance;
+		}
+
+		b3Vec3 pA = cA + rA * nA;
+		b3Vec3 pB = cB - rB * nA;
+
+		point = 0.5f * (pA + pB);
+		normal = nA;
+		separation = distance - rA - rB;
 	}
 
 	b3Vec3 normal;
@@ -1160,7 +1174,7 @@ bool b3ClothSolver::SolveBodyContactPositionConstraints()
 		xfB.rotation = b3QuatMat33(qB);
 		xfB.position = cB - b3Mul(xfB.rotation, localCenterB);
 
-		b3ClothSolverContactSolverPoint cpcp;
+		b3ClothSolverBodyContactSolverPoint cpcp;
 		cpcp.Initialize(pc, xfA, xfB);
 
 		b3Vec3 normal = cpcp.normal;
@@ -1326,9 +1340,6 @@ bool b3ClothSolver::SolveTriangleContactPositionConstraints()
 		// Allow some slop and prevent large corrections.
 		float32 C = b3Clamp(B3_BAUMGARTE * (separation + B3_LINEAR_SLOP), -B3_MAX_LINEAR_CORRECTION, 0.0f);
 
-		// Compute effective mass.
-		float32 K = mA + mB + mC + mD;
-
 		b3Mat33 I; I.SetIdentity();
 
 		b3Mat33 N = I - b3Outer(n, n);
@@ -1343,6 +1354,9 @@ bool b3ClothSolver::SolveTriangleContactPositionConstraints()
 		b3Vec3 JC = b3Cross(xD - xB, N_n);
 		b3Vec3 JD = b3Cross(xC - xB, N_n);
 		b3Vec3 JB = b3Cross(xC - xD, N_n) - n;
+
+		// Compute effective mass.
+		float32 K = mA + mB + mC + mD;
 
 		// Compute normal impulse.
 		float32 impulse = K > 0.0f ? -C / K : 0.0f;
