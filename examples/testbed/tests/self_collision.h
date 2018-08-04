@@ -77,8 +77,6 @@ public:
 	b3RectangleGarment m_rectangleGarment;
 	b3GarmentMesh m_rectangleGarmentMesh;
 	b3GarmentClothMesh m_rectangleClothMesh;
-
-	b3BoxHull m_boxHull;
 };
 
 #endif

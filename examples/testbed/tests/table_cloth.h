@@ -37,7 +37,7 @@ public:
 			m_rectangleClothMesh.vertices[i] = dq * m_rectangleClothMesh.vertices[i];
 			m_rectangleClothMesh.vertices[i].y += 5.0f;
 		}
-
+		
 		b3ClothDef def;
 		def.mesh = &m_rectangleClothMesh;
 		def.density = 0.2f;
@@ -46,6 +46,12 @@ public:
 		def.damping = 0.0f;
 
 		m_cloth = m_world.CreateCloth(def);
+
+		for (b3Particle* p = m_cloth->GetParticleList().m_head; p; p = p->GetNext())
+		{
+			p->SetRadius(0.2f);
+			p->SetFriction(0.2f);
+		}
 
 		{
 			b3BodyDef bd;
@@ -58,11 +64,6 @@ public:
 			b3HullShape tableShape;
 			tableShape.m_hull = &m_tableHull;
 			tableShape.m_radius = 0.2f;
-
-			//b3CapsuleShape tableShape;
-			//tableShape.m_centers[0].Set(0.0f, 0.0f, -1.0f);
-			//tableShape.m_centers[1].Set(0.0f, 0.0f, 1.0f);
-			//tableShape.m_radius = 2.0f;
 
 			b3ShapeDef sd;
 			sd.shape = &tableShape;

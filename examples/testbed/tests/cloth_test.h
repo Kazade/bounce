@@ -34,6 +34,11 @@ public:
 
 		m_cloth->Draw();
 
+		if (m_clothDragger.IsDragging() == true)
+		{
+			g_draw->DrawSegment(m_clothDragger.GetPointA(), m_clothDragger.GetPointB(), b3Color_white);
+		}
+
 		extern u32 b3_clothSolverIterations;
 		g_draw->DrawString(b3Color_white, "Iterations = %u", b3_clothSolverIterations);
 		
