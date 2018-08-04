@@ -76,6 +76,25 @@ public:
 		++m_count;
 	}
 
+	void PushAfter(T* prev, T* link)
+	{
+		link->m_prev = prev;
+		
+		if (prev->m_next == NULL)
+		{
+			link->m_next = NULL;
+		}
+		else
+		{
+			link->m_next = prev->m_next;
+			prev->m_next->m_prev = link;
+		}
+
+		prev->m_next = link;
+		
+		++m_count;
+	}
+	
 	void Remove(T* link)
 	{
 		if (link->m_prev)
