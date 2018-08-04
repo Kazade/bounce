@@ -72,7 +72,6 @@ public:
 	b3Shape* s2;
 
 	// Contact constraint
-	b3Vec3 localNormal1;
 	b3Vec3 localPoint1;
 	b3Vec3 localPoint2;
 	float32 normalImpulse;
@@ -137,7 +136,7 @@ public:
 	b3Particle* p4;
 
 	bool front;
-	
+
 	// Contact constraint
 	float32 normalImpulse;
 

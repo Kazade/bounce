@@ -56,8 +56,8 @@ b3ClothSolver::b3ClothSolver(const b3ClothSolverDef& def)
 	m_bodyContactCapacity = def.bodyContactCapacity;
 	m_bodyContactCount = 0;
 	m_bodyContacts = (b3BodyContact**)m_allocator->Allocate(m_bodyContactCapacity * sizeof(b3BodyContact*));
-	m_bodyVelocityConstraints = (b3ClothSolverContactVelocityConstraint*)m_allocator->Allocate(m_bodyContactCapacity * sizeof(b3ClothSolverContactVelocityConstraint));
-	m_bodyPositionConstraints = (b3ClothSolverContactPositionConstraint*)m_allocator->Allocate(m_bodyContactCapacity * sizeof(b3ClothSolverContactPositionConstraint));
+	m_bodyVelocityConstraints = (b3ClothSolverBodyContactVelocityConstraint*)m_allocator->Allocate(m_bodyContactCapacity * sizeof(b3ClothSolverBodyContactVelocityConstraint));
+	m_bodyPositionConstraints = (b3ClothSolverBodyContactPositionConstraint*)m_allocator->Allocate(m_bodyContactCapacity * sizeof(b3ClothSolverBodyContactPositionConstraint));
 
 	m_particleContactCapacity = def.particleContactCapacity;
 	m_particleContactCount = 0;
@@ -462,8 +462,8 @@ void b3ClothSolver::InitializeBodyContactConstraints()
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
 		b3BodyContact* c = m_bodyContacts[i];
-		b3ClothSolverContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
-		b3ClothSolverContactPositionConstraint* pc = m_bodyPositionConstraints + i;
+		b3ClothSolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
+		b3ClothSolverBodyContactPositionConstraint* pc = m_bodyPositionConstraints + i;
 
 		vc->indexA = c->p1->m_solverId;
 		vc->bodyB = c->s2->GetBody();
@@ -491,7 +491,6 @@ void b3ClothSolver::InitializeBodyContactConstraints()
 		pc->localCenterA.SetZero();
 		pc->localCenterB = pc->bodyB->m_sweep.localCenter;
 
-		pc->localNormalA = c->localNormal1;
 		pc->localPointA = c->localPoint1;
 		pc->localPointB = c->localPoint2;
 	}
@@ -499,8 +498,8 @@ void b3ClothSolver::InitializeBodyContactConstraints()
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
 		b3BodyContact* c = m_bodyContacts[i];
-		b3ClothSolverContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
-		b3ClothSolverContactPositionConstraint* pc = m_bodyPositionConstraints + i;
+		b3ClothSolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
+		b3ClothSolverBodyContactPositionConstraint* pc = m_bodyPositionConstraints + i;
 
 		u32 indexA = vc->indexA;
 		b3Body* bodyB = vc->bodyB;
@@ -762,7 +761,7 @@ void b3ClothSolver::WarmStart()
 
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
-		b3ClothSolverContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
+		b3ClothSolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
 
 		u32 indexA = vc->indexA;
 		b3Body* bodyB = vc->bodyB;
@@ -872,7 +871,7 @@ void b3ClothSolver::SolveBodyContactVelocityConstraints()
 
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
-		b3ClothSolverContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
+		b3ClothSolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
 
 		u32 indexA = vc->indexA;
 		b3Body* bodyB = vc->bodyB;
@@ -1083,7 +1082,7 @@ void b3ClothSolver::StoreImpulses()
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
 		b3BodyContact* c = m_bodyContacts[i];
-		b3ClothSolverContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
+		b3ClothSolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
 
 		c->normalImpulse = vc->normalImpulse;
 		c->tangentImpulse = vc->tangentImpulse;
@@ -1109,7 +1108,7 @@ void b3ClothSolver::StoreImpulses()
 
 struct b3ClothSolverBodyContactSolverPoint
 {
-	void Initialize(const b3ClothSolverContactPositionConstraint* pc, const b3Transform& xfA, const b3Transform& xfB)
+	void Initialize(const b3ClothSolverBodyContactPositionConstraint* pc, const b3Transform& xfA, const b3Transform& xfB)
 	{
 		b3Vec3 cA = b3Mul(xfA, pc->localPointA);
 		b3Vec3 cB = b3Mul(xfB, pc->localPointB);
@@ -1147,7 +1146,7 @@ bool b3ClothSolver::SolveBodyContactPositionConstraints()
 
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
-		b3ClothSolverContactPositionConstraint* pc = m_bodyPositionConstraints + i;
+		b3ClothSolverBodyContactPositionConstraint* pc = m_bodyPositionConstraints + i;
 
 		u32 indexA = pc->indexA;
 		float32 mA = pc->invMassA;

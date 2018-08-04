@@ -24,16 +24,24 @@
 
 void b3BodyContactWorldPoint::Initialize(const b3BodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB)
 {
-	b3Vec3 nA = xfA.rotation * c->localNormal1;
-	b3Vec3 cA = xfA * c->localPoint1;
-	b3Vec3 cB = xfB * c->localPoint2;
+	b3Vec3 cA = b3Mul(xfA, c->localPoint1);
+	b3Vec3 cB = b3Mul(xfB, c->localPoint2);
+
+	b3Vec3 d = cB - cA;
+	float32 distance = b3Length(d);
+
+	b3Vec3 nA(0.0f, 1.0f, 0.0f);
+	if (distance > B3_EPSILON)
+	{
+		nA = d / distance;
+	}
 
 	b3Vec3 pA = cA + rA * nA;
 	b3Vec3 pB = cB - rB * nA;
 
 	point = 0.5f * (pA + pB);
 	normal = nA;
-	separation = b3Dot(cB - cA, nA) - rA - rB;
+	separation = distance - rA - rB;
 }
 
 void b3ParticleContactWorldPoint::Initialize(const b3ParticleContact* c)

@@ -569,7 +569,6 @@ void b3Cloth::UpdateBodyContacts()
 		c->active = true;
 		c->p1 = p;
 		c->s2 = shape;
-		c->localNormal1 = n;
 		c->localPoint1.SetZero();
 		c->localPoint2 = body->GetLocalPoint(cb);
 		c->t1 = b3Perp(n);

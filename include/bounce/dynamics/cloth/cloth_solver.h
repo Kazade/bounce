@@ -68,7 +68,7 @@ struct b3AccelerationConstraint
 	void Apply(const b3ClothSolverData* data);
 };
 
-struct b3ClothSolverContactVelocityConstraint
+struct b3ClothSolverBodyContactVelocityConstraint
 {
 	u32 indexA;
 	float32 invMassA;
@@ -95,7 +95,7 @@ struct b3ClothSolverContactVelocityConstraint
 	b3Vec2 tangentImpulse;	
 };
 
-struct b3ClothSolverContactPositionConstraint
+struct b3ClothSolverBodyContactPositionConstraint
 {
 	u32 indexA;
 	float32 invMassA;
@@ -104,15 +104,14 @@ struct b3ClothSolverContactPositionConstraint
 	b3Vec3 localCenterA;
 	
 	b3Body* bodyB;
-	b3Vec3 localCenterB;
 	float32 invMassB;
 	b3Mat33 invIB;
 	float32 radiusB;
+	b3Vec3 localCenterB;
 
 	b3Vec3 rA;
 	b3Vec3 rB;
 
-	b3Vec3 localNormalA;
 	b3Vec3 localPointA;
 	b3Vec3 localPointB;
 };
@@ -167,7 +166,7 @@ struct b3ClothSolverTriangleContactVelocityConstraint
 	b3Vec3 JB;
 	b3Vec3 JC;
 	b3Vec3 JD;
-	
+
 	float32 normalMass;
 	float32 normalImpulse;
 };
@@ -262,8 +261,8 @@ private:
 	u32 m_bodyContactCapacity;
 	u32 m_bodyContactCount;
 	b3BodyContact** m_bodyContacts;
-	b3ClothSolverContactVelocityConstraint* m_bodyVelocityConstraints;
-	b3ClothSolverContactPositionConstraint* m_bodyPositionConstraints;
+	b3ClothSolverBodyContactVelocityConstraint* m_bodyVelocityConstraints;
+	b3ClothSolverBodyContactPositionConstraint* m_bodyPositionConstraints;
 
 	u32 m_particleContactCapacity;
 	u32 m_particleContactCount;
