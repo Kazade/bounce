@@ -276,7 +276,7 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 			break;
 		}
 
-		if (column == i)
+		if (column == j)
 		{
 			return v->value;
 		}
