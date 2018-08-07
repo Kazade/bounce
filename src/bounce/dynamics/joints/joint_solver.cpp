@@ -27,6 +27,7 @@ b3JointSolver::b3JointSolver(const b3JointSolverDef* def)
 	m_solverData.invdt = def->dt > 0.0f ? 1.0f / def->dt : 0.0f;
 	m_solverData.positions = def->positions;
 	m_solverData.velocities = def->velocities;
+	m_solverData.invInertias = def->invInertias;
 }
 
 void b3JointSolver::InitializeConstraints() 

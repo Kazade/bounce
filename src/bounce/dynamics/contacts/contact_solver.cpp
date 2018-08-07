@@ -32,6 +32,7 @@ b3ContactSolver::b3ContactSolver(const b3ContactSolverDef* def)
 	m_count = def->count;
 	m_positions = def->positions;
 	m_velocities = def->velocities;
+	m_inertias = def->invInertias;
 	m_contacts = def->contacts;
 	m_positionConstraints = (b3ContactPositionConstraint*)m_allocator->Allocate(m_count * sizeof(b3ContactPositionConstraint));
 	m_velocityConstraints = (b3ContactVelocityConstraint*)m_allocator->Allocate(m_count * sizeof(b3ContactVelocityConstraint));
@@ -86,13 +87,13 @@ void b3ContactSolver::InitializeConstraints()
 
 		pc->indexA = bodyA->m_islandID;
 		pc->invMassA = bodyA->m_invMass;
-		pc->invIA = bodyA->m_worldInvI;
+		pc->localInvIA = bodyA->m_invI;
 		pc->localCenterA = bodyA->m_sweep.localCenter;
 		pc->radiusA = shapeA->m_radius;
 
 		pc->indexB = bodyB->m_islandID;
 		pc->invMassB = bodyB->m_invMass;
-		pc->invIB = bodyB->m_worldInvI;
+		pc->localInvIB = bodyB->m_invI;
 		pc->localCenterB = bodyB->m_sweep.localCenter;
 		pc->radiusB = shapeB->m_radius;
 
@@ -101,11 +102,11 @@ void b3ContactSolver::InitializeConstraints()
 
 		vc->indexA = bodyA->m_islandID;
 		vc->invMassA = bodyA->m_invMass;
-		vc->invIA = bodyA->m_worldInvI;
+		vc->invIA = m_inertias[vc->indexA];
 
 		vc->indexB = bodyB->m_islandID;
 		vc->invMassB = bodyB->m_invMass;
-		vc->invIB = bodyB->m_worldInvI;
+		vc->invIB = m_inertias[vc->indexB];
 
 		vc->friction = b3MixFriction(shapeA->m_friction, shapeB->m_friction);
 		vc->restitution = b3MixRestitution(shapeA->m_restitution, shapeB->m_restitution);
@@ -503,19 +504,19 @@ bool b3ContactSolver::SolvePositionConstraints()
 
 		u32 indexA = pc->indexA;
 		float32 mA = pc->invMassA;
-		b3Mat33 iA = pc->invIA;
 		b3Vec3 localCenterA = pc->localCenterA;
 
 		u32 indexB = pc->indexB;
 		float32 mB = pc->invMassB;
-		b3Mat33 iB = pc->invIB;
 		b3Vec3 localCenterB = pc->localCenterB;
 
 		b3Vec3 cA = m_positions[indexA].x;
 		b3Quat qA = m_positions[indexA].q;
+		b3Mat33 iA = m_inertias[indexA];
 
 		b3Vec3 cB = m_positions[indexB].x;
 		b3Quat qB = m_positions[indexB].q;
+		b3Mat33 iB = m_inertias[indexB];
 
 		u32 manifoldCount = pc->manifoldCount;
 
@@ -565,18 +566,22 @@ bool b3ContactSolver::SolvePositionConstraints()
 				cA -= mA * P;
 				qA -= b3Derivative(qA, iA * b3Cross(rA, P));
 				qA.Normalize();
+				iA = b3RotateToFrame(pc->localInvIA, qA);
 
 				cB += mB * P;
 				qB += b3Derivative(qB, iB * b3Cross(rB, P));
 				qB.Normalize();
+				iB = b3RotateToFrame(pc->localInvIB, qB);
 			}
 		}
 
 		m_positions[indexA].x = cA;
 		m_positions[indexA].q = qA;
+		m_inertias[indexA] = iA;
 
 		m_positions[indexB].x = cB;
 		m_positions[indexB].q = qB;
+		m_inertias[indexB] = iB;
 	}
 
 	return minSeparation >= -3.0f * B3_LINEAR_SLOP;

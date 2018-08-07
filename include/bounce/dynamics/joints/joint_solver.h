@@ -39,6 +39,7 @@ struct b3JointSolverDef
 	b3Joint** joints;
 	b3Position* positions;
 	b3Velocity* velocities;
+	b3Mat33* invInertias;
 };
 
 class b3JointSolver 

@@ -35,6 +35,7 @@ b3Island::b3Island(b3StackAllocator* allocator, u32 bodyCapacity, u32 contactCap
 	m_bodies = (b3Body**)m_allocator->Allocate(m_bodyCapacity * sizeof(b3Body*));
 	m_velocities = (b3Velocity*)m_allocator->Allocate(m_bodyCapacity * sizeof(b3Velocity));
 	m_positions = (b3Position*)m_allocator->Allocate(m_bodyCapacity * sizeof(b3Position));
+	m_invInertias = (b3Mat33*)m_allocator->Allocate(m_bodyCapacity * sizeof(b3Mat33));
 	m_contacts = (b3Contact**)m_allocator->Allocate(m_contactCapacity * sizeof(b3Contact*));
 	m_joints = (b3Joint**)m_allocator->Allocate(m_jointCapacity * sizeof(b3Joint*));
 
@@ -48,6 +49,7 @@ b3Island::~b3Island()
 	// @note Reverse order of construction.
 	m_allocator->Free(m_joints);
 	m_allocator->Free(m_contacts);
+	m_allocator->Free(m_invInertias);
 	m_allocator->Free(m_positions);
 	m_allocator->Free(m_velocities);
 	m_allocator->Free(m_bodies);
@@ -171,6 +173,7 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 		m_velocities[i].w = w;
 		m_positions[i].x = x;
 		m_positions[i].q = q;
+		m_invInertias[i] = b->m_worldInvI;
 	}
 
 	b3JointSolverDef jointSolverDef;
@@ -178,6 +181,7 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 	jointSolverDef.count = m_jointCount;
 	jointSolverDef.positions = m_positions;
 	jointSolverDef.velocities = m_velocities;
+	jointSolverDef.invInertias = m_invInertias;
 	jointSolverDef.dt = h;
 	b3JointSolver jointSolver(&jointSolverDef);
 
@@ -187,6 +191,7 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 	contactSolverDef.count = m_contactCount;
 	contactSolverDef.positions = m_positions;
 	contactSolverDef.velocities = m_velocities;
+	contactSolverDef.invInertias = m_invInertias;
 	contactSolverDef.dt = h;
 	b3ContactSolver contactSolver(&contactSolverDef);
 
@@ -228,10 +233,13 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 	// 4. Integrate positions
 	for (u32 i = 0; i < m_bodyCount; ++i) 
 	{
+		b3Body* b = m_bodies[i];
+		
 		b3Vec3 x = m_positions[i].x;
 		b3Quat q = m_positions[i].q;
 		b3Vec3 v = m_velocities[i].v;
 		b3Vec3 w = m_velocities[i].w;
+		b3Mat33 invI = m_invInertias[i];
 
 		// Prevent numerical instability due to large velocity changes.		
 		b3Vec3 translation = h * v;
@@ -251,11 +259,13 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 		// Integrate
 		x += h * v;
 		q = b3Integrate(q, w, h);
+		invI = b3RotateToFrame(b->m_invI, q);
 
 		m_positions[i].x = x;
 		m_positions[i].q = q;
 		m_velocities[i].v = v;
 		m_velocities[i].w = w;
+		m_invInertias[i] = invI;
 	}
 
 	// 5. Solve position constraints
@@ -285,9 +295,9 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 		b->m_sweep.orientation.Normalize();
 		b->m_linearVelocity = m_velocities[i].v;
 		b->m_angularVelocity = m_velocities[i].w;	
+		b->m_worldInvI = m_invInertias[i];
+		
 		b->SynchronizeTransform();
-		// Transform body inertia to world inertia
-		b->m_worldInvI = b3RotateToFrame(b->m_invI, b->m_xf.rotation);
 	}
 
 	// 7. Put bodies under unconsiderable motion to sleep

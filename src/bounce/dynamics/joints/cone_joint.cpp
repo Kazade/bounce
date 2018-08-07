@@ -72,11 +72,14 @@ void b3ConeJoint::InitializeConstraints(const b3SolverData* data)
 	m_mA = m_bodyA->m_invMass;
 	m_mB = m_bodyB->m_invMass;
 
-	m_iA = m_bodyA->m_worldInvI;
-	m_iB = m_bodyB->m_worldInvI;
-
 	m_localCenterA = m_bodyA->m_sweep.localCenter;
 	m_localCenterB = m_bodyB->m_sweep.localCenter;
+
+	m_localInvIA = m_bodyA->m_invI;
+	m_localInvIB = m_bodyB->m_invI;
+
+	m_iA = data->invInertias[m_indexA];
+	m_iB = data->invInertias[m_indexB];
 
 	b3Vec3 xA = data->positions[m_indexA].x;
 	b3Quat qA = data->positions[m_indexA].q;
@@ -212,12 +215,12 @@ bool b3ConeJoint::SolvePositionConstraints(const b3SolverData* data)
 	b3Quat qA = data->positions[m_indexA].q;
 	b3Vec3 xB = data->positions[m_indexB].x;
 	b3Quat qB = data->positions[m_indexB].q;
+	b3Mat33 iA = data->invInertias[m_indexA];
+	b3Mat33 iB = data->invInertias[m_indexB];
 
 	float32 mA = m_mA;
-	b3Mat33 iA = m_iA;
 	float32 mB = m_mB;
-	b3Mat33 iB = m_iB;
-
+	
 	// Solve point-to-point constraint.
 	float32 linearError = 0.0f;
 	{
@@ -240,10 +243,12 @@ bool b3ConeJoint::SolvePositionConstraints(const b3SolverData* data)
 		xA -= mA * P;
 		qA -= b3Derivative(qA, iA * b3Cross(rA, P));
 		qA.Normalize();
+		iA = b3RotateToFrame(m_localInvIA, qA);
 
 		xB += mB * P;
 		qB += b3Derivative(qB, iB * b3Cross(rB, P));
 		qB.Normalize();
+		iB = b3RotateToFrame(m_localInvIB, qB);
 	}
 
 	// Solve limit constraint.
@@ -280,15 +285,19 @@ bool b3ConeJoint::SolvePositionConstraints(const b3SolverData* data)
 
 		qA -= b3Derivative(qA, iA * P);
 		qA.Normalize();
+		iA = b3RotateToFrame(m_localInvIA, qA);
 
 		qB += b3Derivative(qB, iB * P);
 		qB.Normalize();
+		iB = b3RotateToFrame(m_localInvIB, qB);
 	}
 
 	data->positions[m_indexA].x = xA;
 	data->positions[m_indexA].q = qA;
 	data->positions[m_indexB].x = xB;
 	data->positions[m_indexB].q = qB;
+	data->invInertias[m_indexA] = iA;
+	data->invInertias[m_indexB] = iB;
 
 	return linearError <= B3_LINEAR_SLOP && limitError <= B3_ANGULAR_SLOP;
 }

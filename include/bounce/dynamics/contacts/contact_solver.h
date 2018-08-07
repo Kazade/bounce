@@ -46,13 +46,13 @@ struct b3ContactPositionConstraint
 {
 	u32 indexA;
 	float32 invMassA;
-	b3Mat33 invIA;
+	b3Mat33 localInvIA;
 	float32 radiusA;
 	b3Vec3 localCenterA;
 	u32 indexB;
 	b3Vec3 localCenterB;
 	float32 invMassB;
-	b3Mat33 invIB;
+	b3Mat33 localInvIB;
 	float32 radiusB;
 	b3PositionConstraintManifold* manifolds;
 	u32 manifoldCount;
@@ -118,6 +118,7 @@ struct b3ContactSolverDef
 {
 	b3Position* positions;
 	b3Velocity* velocities;
+	b3Mat33* invInertias;
 	b3Contact** contacts;
 	u32 count;
 	b3StackAllocator* allocator;
@@ -140,6 +141,7 @@ public:
 protected:
 	b3Position* m_positions;
 	b3Velocity* m_velocities;
+	b3Mat33* m_inertias;
 	b3Contact** m_contacts;
 	b3ContactPositionConstraint* m_positionConstraints;
 	b3ContactVelocityConstraint* m_velocityConstraints;

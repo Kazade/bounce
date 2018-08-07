@@ -264,7 +264,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 
 	Solve(x, iterations, A, b, S, z, sx0);
 	b3_clothSolverIterations = iterations;
-
+	
 	sv = sv + x;
 	sx = sx + sy;
 
@@ -287,7 +287,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	WarmStart();
 
 	// Solve velocity constraints
-	const u32 kVelocityIterations = 8;
+	const u32 kVelocityIterations = 5;
 
 	for (u32 i = 0; i < kVelocityIterations; ++i)
 	{

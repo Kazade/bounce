@@ -105,11 +105,14 @@ void b3SpringJoint::InitializeConstraints(const b3SolverData* data)
 	m_mA = m_bodyA->m_invMass;
 	m_mB = m_bodyB->m_invMass;
 
-	m_iA = m_bodyA->m_worldInvI;
-	m_iB = m_bodyB->m_worldInvI;
-
 	m_localCenterA = m_bodyA->m_sweep.localCenter;
 	m_localCenterB = m_bodyB->m_sweep.localCenter;
+
+	m_localInvIA = m_bodyA->m_invI;
+	m_localInvIB = m_bodyB->m_invI;
+
+	m_iA = data->invInertias[m_indexA];
+	m_iB = data->invInertias[m_indexB];
 
 	b3Vec3 xA = data->positions[m_indexA].x;
 	b3Quat qA = data->positions[m_indexA].q;
@@ -218,6 +221,10 @@ bool b3SpringJoint::SolvePositionConstraints(const b3SolverData* data)
 	b3Quat qA = data->positions[m_indexA].q;
 	b3Vec3 xB = data->positions[m_indexB].x;
 	b3Quat qB = data->positions[m_indexB].q;
+	b3Mat33 iA = data->invInertias[m_indexA];
+	b3Mat33 iB = data->invInertias[m_indexB];
+	float32 mA = m_mA;
+	float32 mB = m_mB;
 
 	b3Vec3 rA = b3Mul(qA, m_localAnchorA - m_localCenterA);
 	b3Vec3 rB = b3Mul(qB, m_localAnchorB - m_localCenterB);
@@ -232,23 +239,27 @@ bool b3SpringJoint::SolvePositionConstraints(const b3SolverData* data)
 	
 	b3Vec3 rnA = b3Cross(rA, n);
 	b3Vec3 rnB = b3Cross(rB, n);
-	float32 kMass = m_mA + m_mB + b3Dot(m_iA * rnA, rnA) + b3Dot(m_iB * rnB, rnB);
+	float32 kMass = mA + mB + b3Dot(iA * rnA, rnA) + b3Dot(iB * rnB, rnB);
 	float32 mass = kMass > 0.0f ? 1.0f / kMass : 0.0f;
 	float32 lambda = -mass * C;
 
 	b3Vec3 impulse = lambda * n;
 		
-	xA -= m_mA * impulse;
-	qA -= b3Derivative(qA, b3Mul(m_iA, b3Cross(rA, impulse)));
+	xA -= mA * impulse;
+	qA -= b3Derivative(qA, b3Mul(iA, b3Cross(rA, impulse)));
+	iA = b3RotateToFrame(m_localInvIA, qA);
 
-	xB += m_mB * impulse;
-	qB += b3Derivative(qB, b3Mul(m_iB, b3Cross(rB, impulse)));
+	xB += mB * impulse;
+	qB += b3Derivative(qB, b3Mul(iB, b3Cross(rB, impulse)));
+	iB = b3RotateToFrame(m_localInvIB, qB);
 
 	data->positions[m_indexA].x = xA;
 	data->positions[m_indexA].q = qA;
 	data->positions[m_indexB].x = xB;
 	data->positions[m_indexB].q = qB;
-	
+	data->invInertias[m_indexA] = iA;
+	data->invInertias[m_indexB] = iB;
+
 	return b3Abs(C) < B3_LINEAR_SLOP;
 }
 

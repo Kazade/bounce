@@ -76,7 +76,10 @@ private:
 	float32 m_mB;
 	b3Mat33 m_iA;
 	b3Mat33 m_iB;
-
+	
+	b3Mat33 m_localInvIA;
+	b3Mat33 m_localInvIB;
+	
 	b3Vec3 m_localCenterA;
 	b3Vec3 m_localCenterB;
 	b3Vec3 m_rA;

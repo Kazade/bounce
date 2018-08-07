@@ -171,6 +171,8 @@ private:
 	b3Mat33 m_iB;
 	b3Vec3 m_localCenterA;
 	b3Vec3 m_localCenterB;
+	b3Mat33 m_localInvIA;
+	b3Mat33 m_localInvIB;
 
 	// Hinge motor
 	b3Vec3 m_motor_J1; // 1x3 (row)

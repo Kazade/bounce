@@ -39,6 +39,7 @@ struct b3SolverData
 {
 	b3Position* positions;
 	b3Velocity* velocities;
+	b3Mat33* invInertias;
 	float32 dt;
 	float32 invdt;
 };
@@ -85,6 +86,18 @@ inline b3Mat33 b3Steiner(const b3Vec3& v)
 inline b3Mat33 b3RotateToFrame(const b3Mat33& inertia, const b3Mat33& rotation)
 {
 	return rotation * inertia * b3Transpose(rotation);
+}
+
+// Compute the inertia matrix of a body measured in 
+// inertial frame (variable over time) given the 
+// inertia matrix in body-fixed frame (constant) 
+// and a rotation matrix representing the orientation 
+// of the body frame relative to the inertial frame.
+inline b3Mat33 b3RotateToFrame(const b3Mat33& inertia, const b3Quat& rotation)
+{
+	b3Mat33 R = b3QuatMat33(rotation);
+	
+	return R * inertia * b3Transpose(R);
 }
 
 // Compute the time derivative of an orientation given

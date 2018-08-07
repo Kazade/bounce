@@ -19,7 +19,7 @@
 #ifndef B3_ISLAND_H
 #define B3_ISLAND_H
 
-#include <bounce/common/math/vec3.h>
+#include <bounce/common/math/mat33.h>
 
 class b3StackAllocator;
 class b3Contact;
@@ -67,6 +67,7 @@ private :
 	
 	b3Position* m_positions;
 	b3Velocity* m_velocities;
+	b3Mat33* m_invInertias;
 };
 
 #endif
