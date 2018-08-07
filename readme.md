@@ -28,8 +28,11 @@ Bounce is released under the <b>zlib</b> license.
 
 #### Dynamics
 
+* Rigid bodies
+* Cloth
 * Contact, friction, restitution
 * Mouse, spring, sphere, cone, revolute joint types
+* Quaternion constraints
 * Joint motors, limits
 * Constraint graphs
 * Simulation islands and sleep management
