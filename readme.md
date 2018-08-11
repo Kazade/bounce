@@ -17,10 +17,9 @@ Bounce is released under the <b>zlib</b> license.
 * Built-in math library
 * Tunable settings used across the entire library
 
-#### QHull
+#### Quickhull
 
-* Quickhull 
-* Robust 3D convex hull creation
+* Robust 3D convex hull creation and simplification
 
 #### Collision
 
