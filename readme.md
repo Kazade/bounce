@@ -17,13 +17,17 @@ Bounce is released under the <b>zlib</b> license.
 * Built-in math library
 * Tunable settings used across the entire library
 
+#### Quickhull
+
+* Robust 3D convex hull creation and simplification
+
 #### Collision
 
 * Dynamic tree broadphase
 * Static tree "midphase"
 * SAT
 * GJK
-* Spheres, capsules, hulls, triangle meshes
+* Spheres, capsules, convex hulls, triangle meshes
 * Optimized pair management
 
 #### Dynamics
