@@ -27,13 +27,11 @@ class b3StackAllocator;
 class b3Particle;
 class b3Body;
 
-struct b3DenseVec3;
-struct b3DiagMat33;
-struct b3SparseSymMat33;
-
 class b3BodyContact;
 class b3ParticleContact;
 class b3TriangleContact;
+
+struct b3DenseVec3;
 
 struct b3ClothSolverBodyContactVelocityConstraint
 {
