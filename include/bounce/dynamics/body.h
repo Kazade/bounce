@@ -294,6 +294,7 @@ private:
 	friend class b3ContactManager;
 	friend class b3ContactSolver;
 	friend class b3ClothSolver;
+	friend class b3ClothContactSolver;
 
 	friend class b3Joint;
 	friend class b3JointManager;

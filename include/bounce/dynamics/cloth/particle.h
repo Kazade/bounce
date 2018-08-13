@@ -80,8 +80,8 @@ public:
 	b3Vec3 t1, t2;
 	b3Vec2 tangentImpulse;
 
-	// 
-	bool active;
+	b3BodyContact* m_prev;
+	b3BodyContact* m_next;
 };
 
 struct b3BodyContactWorldPoint
@@ -198,6 +198,7 @@ private:
 	friend class b3List2<b3Particle>;
 	friend class b3Cloth;
 	friend class b3ClothSolver;
+	friend class b3ClothContactSolver;
 	friend class b3Force;
 	friend class b3SpringForce;
 	friend class b3BendForce;
@@ -238,9 +239,6 @@ private:
 
 	// Cloth mesh vertex index.
 	u32 m_vertex;
-
-	// Contact
-	b3BodyContact m_contact;
 
 	// Solver temp
 

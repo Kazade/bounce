@@ -85,8 +85,6 @@ b3Particle::b3Particle(const b3ParticleDef& def, b3Cloth* cloth)
 	m_userData = nullptr;
 	m_x.SetZero();
 	m_vertex = ~0;
-
-	m_contact.active = false;
 }
 
 b3Particle::~b3Particle()
@@ -108,7 +106,5 @@ void b3Particle::SetType(b3ParticleType type)
 	{
 		m_velocity.SetZero();
 		m_translation.SetZero();
-
-		m_contact.active = false;
 	}
 }

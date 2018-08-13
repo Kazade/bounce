@@ -154,7 +154,10 @@ private:
 	
 	// Update triangle contacts. 
 	void UpdateTriangleContacts();
-	
+
+	// Update contacts
+	void UpdateContacts();
+
 	// Solve
 	void Solve(float32 dt, const b3Vec3& gravity);
 
@@ -170,6 +173,9 @@ private:
 	// Pool of particles
 	b3BlockPool m_particleBlocks;
 
+	// Pool of body contacts
+	b3BlockPool m_bodyContactBlocks;
+	
 	// Pool of particle contacts
 	b3BlockPool m_particleContactBlocks;
 	
@@ -182,6 +188,9 @@ private:
 	// List of forces
 	b3List2<b3Force> m_forceList;
 
+	// List of particle contacts
+	b3List2<b3BodyContact> m_bodyContactList;
+	
 	// List of particle contacts
 	b3List2<b3ParticleContact> m_particleContactList;
 	
