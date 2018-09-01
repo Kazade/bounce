@@ -115,6 +115,6 @@ Below are the external dependencies for the Testbed. If you don't care about the
 * Mouse picking
 * premake build system
 
-## Documentation
+### Documentation
 
 * Doxygen API documentation</li>
