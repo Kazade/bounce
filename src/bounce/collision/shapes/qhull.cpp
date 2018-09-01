@@ -42,14 +42,12 @@ struct b3UniqueStackArray
 //
 static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 {
+	// M. Kallay - "Computing the Moment of Inertia of a Solid Defined by a Triangle Mesh"
+	
 	B3_ASSERT(hull->vertexCount >= 4);
 
-	// volume = int(dV)
 	float32 volume = 0.0f;
 
-	// centroid.x = (1 / volume) * int(x * dV)
-	// centroid.y = (1 / volume) * int(y * dV)
-	// centroid.z = (1 / volume) * int(z * dV)
 	b3Vec3 centroid; centroid.SetZero();
 
 	// Put the reference point inside the hull
@@ -59,9 +57,6 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 		s += hull->vertices[i];
 	}
 	s /= float32(hull->vertexCount);
-
-	const float32 inv6 = 1.0f / 6.0f;
-	const float32 inv12 = 1.0f / 12.0f;
 
 	for (u32 i = 0; i < hull->faceCount; ++i)
 	{
@@ -77,30 +72,20 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 			u32 i2 = edge->origin;
 			u32 i3 = next->origin;
 
-			b3Vec3 p1 = hull->GetVertex(i1) - s;
-			b3Vec3 p2 = hull->GetVertex(i2) - s;
-			b3Vec3 p3 = hull->GetVertex(i3) - s;
+			b3Vec3 v1 = hull->GetVertex(i1) - s;
+			b3Vec3 v2 = hull->GetVertex(i2) - s;
+			b3Vec3 v3 = hull->GetVertex(i3) - s;
 
-			float32 px1 = p1.x, py1 = p1.y, pz1 = p1.z;
-			float32 px2 = p2.x, py2 = p2.y, pz2 = p2.z;
-			float32 px3 = p3.x, py3 = p3.y, pz3 = p3.z;
+			// Signed tetrahedron volume
+			float32 D = b3Det(v1, v2, v3);
 
-			// 
-			b3Vec3 D = b3Cross(p2 - p1, p3 - p1);
-			float32 Dx = D.x, Dy = D.y, Dz = D.z;
+			// Contribution to the mass
+			volume += D;
 
-			//
-			float32 intx = px1 + px2 + px3;
-			volume += (inv6 * D.x) * intx;
+			// Contribution to the centroid
+			b3Vec3 v4 = v1 + v2 + v3;
 
-			//
-			float32 intx2 = px1 * px1 + px1 * px2 + px1 * px3 + px2 * px2 + px2 * px3 + px3 * px3;
-			float32 inty2 = py1 * py1 + py1 * py2 + py1 * py3 + py2 * py2 + py2 * py3 + py3 * py3;
-			float32 intz2 = pz1 * pz1 + pz1 * pz2 + pz1 * pz3 + pz2 * pz2 + pz2 * pz3 + pz3 * pz3;
-
-			centroid.x += (0.5f * inv12 * Dx) * intx2;
-			centroid.y += (0.5f * inv12 * Dy) * inty2;
-			centroid.z += (0.5f * inv12 * Dz) * intz2;
+			centroid += D * v4;
 
 			edge = next;
 		} while (hull->GetEdge(edge->next) != begin);
@@ -108,7 +93,7 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 
 	// Centroid
 	B3_ASSERT(volume > B3_EPSILON);
-	centroid /= volume;
+	centroid /= 4.0f * volume;
 	centroid += s;
 	return centroid;
 }
