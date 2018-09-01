@@ -47,6 +47,15 @@ libglu1-mesa-dev
 
 I don't run Mac currently and therefore can't test the build system in this platform.
 
+## Documenting
+
+* Grab [Doxygen](http://www.doxygen.org) from http://www.doxygen.org
+* Say the following on the command line: doxygen doxyfile
+* Open doc/api/html/index.html
+
+User manual is a work in progress. Meanwhile, code comments are the best way to learn how to use 
+Bounce.
+
 ## Dependencies
 
 * [Triangle](http://www.cs.cmu.edu/~quake/triangle.html)
@@ -104,6 +113,6 @@ Below are the external dependencies for the Testbed. If you don't care about the
 * Mouse picking
 * premake build system
 
-### Documentation
+## Documentation
 
 * Doxygen API documentation</li>
