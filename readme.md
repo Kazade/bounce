@@ -26,7 +26,9 @@ Bounce uses [premake](https://premake.github.io/) for generating project files i
 * On a clean Ubuntu 16.04 install these packages first:
 
 mesa-common-dev
+
 libgl1-mesa-dev
+
 libglu1-mesa-dev 
 
 #### x32
@@ -65,7 +67,7 @@ Below are the external dependencies for the Testbed. If you don't care about the
 * [GLFW](https://www.glfw.org/)
 * [GLAD](https://glad.dav1d.de/)
 * [imgui](https://github.com/ocornut/imgui)
-* [rapidJSON](http://rapidjson.org/index.html)
+* [RapidJSON](http://rapidjson.org/index.html)
 
 ## Features
 
