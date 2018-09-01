@@ -1,8 +1,0 @@
-Generating API Documentation 
-
-Grab Doxygen from http://www.doxygen.org
-Say the following on the command line: doxygen doxyfile
-Open doc/api/html/index.html
-
-User manual is a work in progress. Meanwhile, code comments are the best way to learn how to use 
-Bounce.
