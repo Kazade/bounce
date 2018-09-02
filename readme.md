@@ -1,10 +1,12 @@
-## About
+## Bounce
 
-Welcome! Bounce is a 3D physics engine.
+**Welcome! Bounce is a 3D physics engine.**
 
-Inside the examples folder there is the source code for an application called Testbed. The Testbed is a collection of visual tests and examples that can support the development of the library. As you would imagine, this application is not part of the library. However, it's still recommended to read the code to become confortable with using the library. It might take some time to document Bounce properly.
+Feel free to ask questions, give feedback and suggestions using the issue tracker. 
 
-Bounce is released under the <b>zlib</b> license.
+## License
+
+Bounce is released under the [zlib license](https://en.wikipedia.org/wiki/Zlib_License). Please recognize this software in the product documentation if possible.
 
 ## Building
 
@@ -25,44 +27,48 @@ Bounce uses [premake](https://premake.github.io/) for generating project files i
 
 * On a clean Ubuntu 16.04 install these packages first:
 
-mesa-common-dev
+* mesa-common-dev
 
-libgl1-mesa-dev
+* libgl1-mesa-dev
 
-libglu1-mesa-dev 
+* libglu1-mesa-dev 
 
 #### x32
 
 * Say { premake5 gmake } on a terminal.
 * From build/gmake say { make config="debug_x32" }.
-* Set the testbed directory as the working directory
+* Set the testbed directory as the working directory.
 * Open testbed from /bin/x32/testbed/.
 
 #### x64
 
 * Say { premake5 gmake } on a terminal.
 * From build/gmake say { make config="debug_x64" }.
-* Set the testbed directory as the working directory
+* Set the testbed directory as the working directory.
 * Open testbed from /bin/x64/testbed/.
 
-#### Mac
+### Mac
 
 I don't run Mac currently and therefore can't test the build system in this platform.
 
 ## Documenting
 
-* Grab [Doxygen](http://www.doxygen.org) from http://www.doxygen.org
-* Say the following on the command line: doxygen doxyfile
-* Open doc/api/html/index.html
+* Grab [Doxygen](http://www.doxygen.org) from http://www.doxygen.org.
+* Say the following on the command line: doxygen doxyfile.
+* Open doc/api/html/index.html.
 
-User manual is a work in progress. Meanwhile, code comments are the best way to learn how to use 
-Bounce.
+User manual is a work in progress. Meanwhile, code comments and examples are the best way to learn how to use 
+Bounce. For examples, you can use the project testbed. testbed is a collection of visual tests and examples that can support the development of the library. As you would imagine, this application is not part of the library.
+
+## Contributing
+
+Please do not open pull requests with bugfixes or new features that require large changes. Open an issue first for discussion.
 
 ## Dependencies
 
 * [Triangle](http://www.cs.cmu.edu/~quake/triangle.html)
 
-Below are the external dependencies for the Testbed. If you don't care about the Testbed, then you don't need these.
+Below are the external dependencies for testbed. If you don't care about testbed, then you don't need these dependencies. 
 
 * [GLFW](https://www.glfw.org/)
 * [GLAD](https://glad.dav1d.de/)
