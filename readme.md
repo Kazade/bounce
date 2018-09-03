@@ -53,7 +53,7 @@ I don't run Mac currently and therefore can't test the build system in this plat
 
 ## Documentation
 
-* [QuickStart Guide](https://github.com/irlanrobson/bounce/blob/master/doc/quickstart_guide.docx)
+* [Quickstart Guide](https://github.com/irlanrobson/bounce/blob/master/doc/quickstart_guide.docx)
 
 ### Doxygen
 
