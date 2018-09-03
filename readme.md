@@ -51,7 +51,11 @@ Bounce uses [premake](https://premake.github.io/) for generating project files i
 
 I don't run Mac currently and therefore can't test the build system in this platform.
 
-## Documenting
+## Documentation
+
+* [QuickStart Guide](https://github.com/irlanrobson/bounce/blob/master/doc/quickstart_guide.docx)
+
+### Doxygen
 
 * Grab [Doxygen](http://www.doxygen.org) from http://www.doxygen.org.
 * Say the following on the command line: doxygen doxyfile.
