@@ -35,8 +35,14 @@ void b3EndProfileScope()
 // using Bounce. 
 int main(int argc, char** argv)
 {
+	// The world. We allocate it using the heap but you can to it 
+	// on the stack if the stack is sufficiently large.
+	b3World* world = new b3World();
+
 	// The world gravity.
 	const b3Vec3 gravity(0.0f, -9.8f, 0.0f);
+	
+	world->SetGravity(gravity);
 	
 	// The fixed time step size.
 	const float32 timeStep = 1.0f / 60.0f;
@@ -46,11 +52,6 @@ int main(int argc, char** argv)
 
 	// Number of iterations for the position constraint solver.
 	const u32 positionIterations = 2;
-
-	// The world-> We allocate it using the heap but you can to it 
-	// on the stack if the stack is sufficiently large.
-	b3World* world = new b3World();
-	world->SetGravity(gravity);
 
 	// Create a static ground body at the world origin.
 	b3BodyDef groundDef;
