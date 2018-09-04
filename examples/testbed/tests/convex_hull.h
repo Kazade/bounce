@@ -81,7 +81,7 @@ public:
 			m_points[m_count++] = p;
 		}
 		
-		m_hull.Set(m_points, m_count);
+		m_hull.Set(sizeof(b3Vec3), m_points, m_count);
 		assert(m_hull.faceCount > 0);
 		m_selection = m_hull.GetSupportFace(b3Vec3_z);
 	}

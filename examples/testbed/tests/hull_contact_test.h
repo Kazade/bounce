@@ -66,7 +66,7 @@ public:
 				points[j] = p;
 			}
 
-			hull->Set(points, count);
+			hull->Set(sizeof(b3Vec3), points, count);
 		}
 
 		{

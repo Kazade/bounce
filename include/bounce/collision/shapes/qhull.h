@@ -42,11 +42,13 @@ struct b3QHull : public b3Hull
 		centroid.SetZero();
 	}
 
-	// Create a convex hull from an array of points.
+	// Create a convex hull from vertex data.
 	// If the creation has failed then this convex hull is not modified.
-	// If the flag simplify is set to true then the convex hull is simplified after 
-	// initial construction.
-	void Set(const b3Vec3* points, u32 count, bool simplify = true);
+	// vertexStride - size of bytes between vertices
+	// vertexBase - pointer to the first vertex
+	// vertexCount - number of vertices
+	// simplify - if set to true the convex hull is simplified after initial construction
+	void Set(u32 vertexStride, const void* vertexBase, u32 vertexCount, bool simplify = true);
 
 	// Set this hull as a sphere located at the origin
 	// given the radius.

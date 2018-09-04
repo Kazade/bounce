@@ -98,22 +98,27 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 	return centroid;
 }
 
-void b3QHull::Set(const b3Vec3* points, u32 count, bool simplify)
+void b3QHull::Set(u32 vtxStride, const void* vtxBase, u32 vtxCount, bool simplify)
 {
-	B3_ASSERT(count >= 4);
+	B3_ASSERT(vtxStride >= sizeof(b3Vec3));
+	B3_ASSERT(vtxCount >= 4);
 
-	// Copy points into local buffer, perform welding.
-	u32 psCount = 0;
-	b3Vec3* ps = (b3Vec3*)b3Alloc(count * sizeof(b3Vec3));
-	for (u32 i = 0; i < count; ++i)
+	// Copy vertices into local buffer, perform welding.
+	u32 vs0Count = 0;
+	b3Vec3* vs0 = (b3Vec3*)b3Alloc(vtxCount * sizeof(b3Vec3));
+	for (u32 i = 0; i < vtxCount; ++i)
 	{
-		b3Vec3 p = points[i];
+		b3Vec3 v = *(b3Vec3*)((u8*)vtxBase + vtxStride * i);
+
+		B3_ASSERT(b3IsValid(v.x));
+		B3_ASSERT(b3IsValid(v.y));
+		B3_ASSERT(b3IsValid(v.z));
 
 		bool unique = true;
 
-		for (u32 j = 0; j < psCount; ++j)
+		for (u32 j = 0; j < vs0Count; ++j)
 		{
-			if (b3DistanceSquared(p, ps[j]) <= B3_LINEAR_SLOP * B3_LINEAR_SLOP)
+			if (b3DistanceSquared(v, vs0[j]) <= B3_LINEAR_SLOP * B3_LINEAR_SLOP)
 			{
 				unique = false;
 				break;
@@ -122,14 +127,14 @@ void b3QHull::Set(const b3Vec3* points, u32 count, bool simplify)
 
 		if (unique)
 		{
-			ps[psCount++] = p;
+			vs0[vs0Count++] = v;
 		}
 	}
 
-	if (psCount < 4)
+	if (vs0Count < 4)
 	{
 		// Polyhedron is degenerate.
-		b3Free(ps);
+		b3Free(vs0);
 		return;
 	}
 
@@ -139,8 +144,8 @@ void b3QHull::Set(const b3Vec3* points, u32 count, bool simplify)
 	if (simplify == true)
 	{
 		qhHull primary;
-		primary.Construct(ps, psCount);
-		b3Free(ps);
+		primary.Construct(vs0, vs0Count);
+		b3Free(vs0);
 
 		// Simplify the constructed hull.
 
@@ -251,8 +256,8 @@ void b3QHull::Set(const b3Vec3* points, u32 count, bool simplify)
 	}
 	else
 	{
-		hull.Construct(ps, psCount);
-		b3Free(ps);
+		hull.Construct(vs0, vs0Count);
+		b3Free(vs0);
 	}
 
 	// Convert the constructed hull into a run-time hull.
@@ -371,7 +376,7 @@ void b3QHull::SetAsSphere(float32 radius)
 	}
 
 	// Set
-	Set(vs, e_vertexCount, false);
+	Set(sizeof(b3Vec3), vs, e_vertexCount, false);
 }
 
 void b3QHull::SetAsCylinder(float32 radius, float32 ey)
@@ -423,7 +428,7 @@ void b3QHull::SetAsCylinder(float32 radius, float32 ey)
 	}
 
 	// Set
-	Set(vs, count, false);
+	Set(sizeof(b3Vec3), vs, count, false);
 }
 
 void b3QHull::SetAsCone(float32 radius, float32 ey)
@@ -458,5 +463,5 @@ void b3QHull::SetAsCone(float32 radius, float32 ey)
 	vs[count++].Set(0.0f, ey, 0.0f);
 
 	// Set
-	Set(vs, count, false);
+	Set(sizeof(b3Vec3), vs, count, false);
 }

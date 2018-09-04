@@ -85,14 +85,14 @@ public:
 	void Step()
 	{
 		b3QHull hull1;
-		hull1.Set(m_points1, e_count);
+		hull1.Set(sizeof(b3Vec3), m_points1, e_count);
 
 		b3HullShape sA;
 		sA.m_hull = &hull1;
 		m_shapeA = &sA;
 
 		b3QHull hull2;
-		hull2.Set(m_points2, e_count);
+		hull2.Set(sizeof(b3Vec3), m_points2, e_count);
 
 		b3HullShape sB;
 		sB.m_hull = &hull2;
