@@ -200,15 +200,6 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		sx[i] = p->m_position;
 		sv[i] = p->m_velocity;
 		sf[i] = p->m_force;
-	}
-
-	for (u32 i = 0; i < m_particleCount; ++i)
-	{
-		b3Particle* p = m_particles[i];
-
-		sx[i] = p->m_position;
-		sv[i] = p->m_velocity;
-		sf[i] = p->m_force;
 
 		// Apply weight
 		if (p->m_type == e_dynamicParticle)
@@ -226,6 +217,12 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		b3DenseVec3 sy(m_particleCount);
 		b3DenseVec3 sx0(m_particleCount);
 
+		m_solverData.y = &sy;
+		m_solverData.dfdx = &dfdx;
+		m_solverData.dfdv = &dfdv;
+		m_solverData.S = &S;
+		m_solverData.z = &z;
+
 		for (u32 i = 0; i < m_particleCount; ++i)
 		{
 			b3Particle* p = m_particles[i];
@@ -234,12 +231,6 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 			sx0[i] = p->m_x;
 		}
 
-		m_solverData.y = &sy;
-		m_solverData.dfdx = &dfdx;
-		m_solverData.dfdv = &dfdv;
-		m_solverData.S = &S;
-		m_solverData.z = &z;
-		
 		// Apply internal forces
 		ApplyForces();
 
@@ -250,35 +241,38 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		// A = M - h * dfdv - h * h * dfdx
 		// b = h * (f0 + h * dfdx * v0 + dfdx * y) 
 
-		// A
-		b3SparseSymMat33 A(m_particleCount);
+		b3SparseSymMat33 M(m_particleCount);
 		for (u32 i = 0; i < m_particleCount; ++i)
 		{
-			A(i, i) = b3Diagonal(m_particles[i]->m_mass);
+			M(i, i) = b3Diagonal(m_particles[i]->m_mass);
 		}
-		A += -h * dfdv - h * h * dfdx;
+
+		// A
+		b3SparseSymMat33 A = M - h * dfdv - h * h * dfdx;
 
 		// b
 		b3DenseVec3 b = h * (sf + h * (dfdx * sv) + dfdx * sy);
-
+		
 		// x
 		b3DenseVec3 x(m_particleCount);
 		u32 iterations = 0;
-
 		Solve(x, iterations, A, b, S, z, sx0);
 		b3_clothSolverIterations = iterations;
 
 		sv = sv + x;
 		sx = sx + sy;
 
-		// Store delta velocities to improve convergence
 		for (u32 i = 0; i < m_particleCount; ++i)
 		{
-			m_particles[i]->m_x = x[i];
+			b3Particle* p = m_particles[i];
+
+			p->m_x = x[i];
+			p->m_position = sx[i];
+			p->m_velocity = sv[i];
 		}
 	}
 
-	// Solve contact constraints
+	// Solve constraints
 	b3ClothContactSolverDef contactSolverDef;
 	contactSolverDef.allocator = m_allocator;
 	contactSolverDef.positions = m_solverData.x;
@@ -302,6 +296,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		contactSolver.WarmStart();
 	}
 
+	// Solve velocity constraints
 	{
 		const u32 kVelocityIterations = 5;
 
@@ -320,6 +315,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// Integrate positions
 	sx = sx + h * sv;
 
+	// Solve position constraints
 	{
 		const u32 kPositionIterations = 2;
 
