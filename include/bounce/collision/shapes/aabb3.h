@@ -147,78 +147,39 @@ struct b3AABB3
 
 	// Test if a ray intersects this AABB.
 	// Output the minimum and maximum intersection fractions to derive the minimum and maximum intersection points.
-	bool TestRay(const b3Vec3& p1, const b3Vec3& p2, float32 maxFraction, float32& minFraction) const 
+	bool TestRay(const b3Vec3& p1, const b3Vec3& p2, float32& min_t, float32& max_t) const 
 	{
-		// Solve segment to slab plane.
-		// S = p1 + w * d
-		// dot(S, n) = offset[i]
-		// Solution:
-		// dot(p1 + w * d, n) = offset[i]
-		// dot(p1, n) + w * dot(d, n) = offset[i]
-		// w * dot(d, n) = offset[i] - dot(p1, n)
-		// w = (offset[i] - dot(p1, n)) / dot(d, n)
 		b3Vec3 d = p2 - p1;
-		float32 lower = 0.0f;
-		float32 upper = maxFraction;		
-		for (u32 i = 0; i < 3; ++i) 
+		float32 t = d.Normalize();
+		B3_ASSERT(t > B3_EPSILON);
+
+		b3Vec3 inv_d;
+		inv_d.x = 1.0f / d.x;
+		inv_d.y = 1.0f / d.y;
+		inv_d.z = 1.0f / d.z;
+
+		b3Vec3 t1;
+		t1.x = (m_lower.x - p1.x) * inv_d.x;
+		t1.y = (m_lower.y - p1.y) * inv_d.y;
+		t1.z = (m_lower.z - p1.z) * inv_d.z;
+
+		b3Vec3 t2;
+		t2.x = (m_upper.x - p1.x) * inv_d.x;
+		t2.y = (m_upper.y - p1.y) * inv_d.y;
+		t2.z = (m_upper.z - p1.z) * inv_d.z;
+
+		for (u32 i = 0; i < 3; ++i)
 		{
-			float32 numerators[2], denominators[2];
-			
-			numerators[0] = p1[i] - m_lower[i];
-			numerators[1] = m_upper[i] - p1[i];
-			
-			denominators[0] = -d[i];
-			denominators[1] = d[i];
-
-			// For each orthogonal plane...
-			for (u32 j = 0; j < 2; ++j) 
-			{
-				float32 numerator = numerators[j];
-				float32 denominator = denominators[j];
-
-				if (denominator == 0.0f) 
-				{
-					// s is parallel to this half-space.
-					if (numerator < 0.0f) 
-					{
-						// s is outside of this half-space.
-						// dot(n, p1) and dot(n, p2) < 0.
-						return false;
-					}
-				}
-				else 
-				{
-					if (denominator < 0.0f) 
-					{
-						// s enters this half-space.
-						if (numerator < lower * denominator) 
-						{
-							// Increase lower.
-							lower = numerator / denominator;
-						}
-					}
-					else 
-					{
-						// s exits the half-space.	
-						if (numerator < upper * denominator) 
-						{
-							// Decrease upper.
-							upper = numerator / denominator;
-						}
-					}
-
-					// Exit if intersection becomes empty.
-					if (upper < lower) 
-					{
-						return false;
-					}
-				}
-			}
+			min_t = b3Max(min_t, b3Min(t1[i], t2[i]));
+			max_t = b3Min(max_t, b3Max(t1[i], t2[i]));
 		}
 
-		B3_ASSERT(lower >= 0.0f && lower <= maxFraction);
-		minFraction = lower;
-		return true;
+		if (min_t >= 0.0f && min_t >= max_t && max_t <= t)
+		{
+			return true;
+		}
+
+		return false;
 	}
 };
 
