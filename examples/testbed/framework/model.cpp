@@ -97,10 +97,11 @@ void Model::Command_Move_Cursor(const b3Vec2& ps)
 
 void Model::Update()
 {
-	g_drawFlags = 0;
-	g_drawFlags += g_settings->drawPoints * DrawFlags::e_pointsFlag;
-	g_drawFlags += g_settings->drawLines * DrawFlags::e_linesFlag;
-	g_drawFlags += g_settings->drawTriangles * DrawFlags::e_trianglesFlag;
+	m_draw.EnableDrawPoints(g_settings->drawPoints);
+	m_draw.EnableDrawLines(g_settings->drawLines);
+	m_draw.EnableDrawTriangles(g_settings->drawTriangles);
+	m_draw.SetViewMatrix(g_camera->BuildViewMatrix());
+	m_draw.SetProjectionMatrix(g_camera->BuildProjectionMatrix());
 
 	glViewport(0, 0, GLsizei(m_camera.m_width), GLsizei(m_camera.m_height));
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

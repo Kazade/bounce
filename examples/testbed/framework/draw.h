@@ -51,29 +51,22 @@ public:
 	float32 m_zFar;
 };
 
-inline b3Mat44 MakeMat44(const b3Transform& T)
-{
-	return b3Mat44(
-		b3Vec4(T.rotation.x.x, T.rotation.x.y, T.rotation.x.z, 0.0f),
-		b3Vec4(T.rotation.y.x, T.rotation.y.y, T.rotation.y.z, 0.0f),
-		b3Vec4(T.rotation.z.x, T.rotation.z.y, T.rotation.z.z, 0.0f),
-		b3Vec4(T.position.x, T.position.y, T.position.z, 1.0f));
-}
-
-//
-enum DrawFlags
-{
-	e_pointsFlag = 0x0001,
-	e_linesFlag = 0x0002,
-	e_trianglesFlag = 0x0004
-};
-
 class Draw : public b3Draw
 {
 public:
 	Draw();
 	~Draw();
+
+	void SetViewMatrix(const b3Mat44& m);
 	
+	void SetProjectionMatrix(const b3Mat44& m);
+	
+	void EnableDrawPoints(bool flag);
+	
+	void EnableDrawLines(bool flag);
+	
+	void EnableDrawTriangles(bool flag);
+
 	void DrawPoint(const b3Vec3& p, float32 size, const b3Color& color);
 
 	void DrawSegment(const b3Vec3& p1, const b3Vec3& p2, const b3Color& color);
@@ -139,6 +132,5 @@ private:
 
 extern Camera* g_camera;
 extern Draw* g_draw;
-extern u32 g_drawFlags;
 
 #endif

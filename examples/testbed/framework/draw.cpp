@@ -29,7 +29,12 @@
 
 Camera* g_camera = nullptr;
 Draw* g_draw = nullptr;
-u32 g_drawFlags = 0;
+
+bool g_glDrawPoints;
+bool g_glDrawLines;
+bool g_glDrawTriangles;
+b3Mat44 g_glViewMatrix;
+b3Mat44 g_glProjectionMatrix;
 
 Camera::Camera()
 {
@@ -76,7 +81,7 @@ b3Transform Camera::BuildWorldTransform() const
 b3Mat44 Camera::BuildWorldMatrix() const
 {
 	b3Transform xf = BuildWorldTransform();
-	return MakeMat44(xf);
+	return b3TransformMat44(xf);
 }
 
 b3Transform Camera::BuildViewTransform() const
@@ -90,7 +95,7 @@ b3Transform Camera::BuildViewTransform() const
 b3Mat44 Camera::BuildViewMatrix() const
 {
 	b3Transform xf = BuildViewTransform();
-	return MakeMat44(xf);
+	return b3TransformMat44(xf);
 }
 
 b3Vec2 Camera::ConvertWorldToScreen(const b3Vec3& pw3) const
@@ -142,6 +147,12 @@ b3Ray3 Camera::ConvertScreenToWorld(const b3Vec2& ps) const
 
 Draw::Draw()
 {
+	g_glViewMatrix.SetZero();
+	g_glProjectionMatrix.SetZero();
+	g_glDrawPoints = true;
+	g_glDrawLines = true;
+	g_glDrawTriangles = true;
+
 	m_points = new DrawPoints();
 	m_lines = new DrawLines();
 	m_triangles = new DrawTriangles();
@@ -156,6 +167,31 @@ Draw::~Draw()
 	delete m_triangles;
 	delete m_wire;
 	delete m_solid;
+}
+
+void Draw::SetViewMatrix(const b3Mat44& m)
+{
+	g_glViewMatrix = m;
+}
+
+void Draw::SetProjectionMatrix(const b3Mat44& m)
+{
+	g_glProjectionMatrix = m;
+}
+
+void Draw::EnableDrawPoints(bool flag)
+{
+	g_glDrawPoints = flag;
+}
+
+void Draw::EnableDrawLines(bool flag)
+{
+	g_glDrawLines = flag;
+}
+
+void Draw::EnableDrawTriangles(bool flag)
+{
+	g_glDrawTriangles = flag;
 }
 
 void Draw::DrawPoint(const b3Vec3& p, float32 size, const b3Color& color)

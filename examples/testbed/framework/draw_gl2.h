@@ -19,14 +19,23 @@
 #ifndef DRAW_GL2_H
 #define DRAW_GL2_H
 
-#include <testbed/framework/draw.h> 
-
 #include <glad_2/glad.h>
 
 #include <stdio.h>
 #include <stdarg.h>
 
+#include <bounce/common/math/transform.h>
+#include <bounce/common/math/mat44.h>
+#include <bounce/common/draw.h>
+
 #define BUFFER_OFFSET(i) ((char*)NULL + (i))
+
+extern bool g_glDrawPoints;
+extern bool g_glDrawLines;
+extern bool g_glDrawTriangles;
+
+extern b3Mat44 g_glViewMatrix;
+extern b3Mat44 g_glProjectionMatrix;
 
 static void AssertGL()
 {
@@ -189,7 +198,7 @@ struct DrawPoints
 			return;
 		}
 
-		if ((g_drawFlags & DrawFlags::e_pointsFlag) == 0)
+		if (!g_glDrawPoints)
 		{
 			m_count = 0;
 			return;
@@ -197,8 +206,8 @@ struct DrawPoints
 
 		glUseProgram(m_programId);
 
-		b3Mat44 m1 = g_camera->BuildViewMatrix();
-		b3Mat44 m2 = g_camera->BuildProjectionMatrix();
+		b3Mat44 m1 = g_glViewMatrix;
+		b3Mat44 m2 = g_glProjectionMatrix;
 		b3Mat44 m = m2 * m1;
 
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
@@ -324,7 +333,7 @@ struct DrawLines
 			return;
 		}
 
-		if ((g_drawFlags & DrawFlags::e_linesFlag) == 0)
+		if (!g_glDrawLines)
 		{
 			m_count = 0;
 			return;
@@ -332,8 +341,8 @@ struct DrawLines
 
 		glUseProgram(m_programId);
 
-		b3Mat44 m1 = g_camera->BuildViewMatrix();
-		b3Mat44 m2 = g_camera->BuildProjectionMatrix();
+		b3Mat44 m1 = g_glViewMatrix;
+		b3Mat44 m2 = g_glProjectionMatrix;
 		b3Mat44 m = m2 * m1;
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
 
@@ -460,7 +469,7 @@ struct DrawTriangles
 			return;
 		}
 		
-		if ((g_drawFlags & DrawFlags::e_trianglesFlag) == 0)
+		if (!g_glDrawTriangles)
 		{
 			m_count = 0;
 			return;
@@ -468,8 +477,8 @@ struct DrawTriangles
 
 		glUseProgram(m_programId);
 
-		b3Mat44 m1 = g_camera->BuildViewMatrix();
-		b3Mat44 m2 = g_camera->BuildProjectionMatrix();
+		b3Mat44 m1 = g_glViewMatrix;
+		b3Mat44 m2 = g_glProjectionMatrix;
 		b3Mat44 m = m2 * m1;
 
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
@@ -646,19 +655,19 @@ struct DrawWire
 
 	void DrawSphere(float32 radius, const b3Color& c, const b3Transform& xf)
 	{
-		if ((g_drawFlags & DrawFlags::e_linesFlag) == 0)
+		if (!g_glDrawLines)
 		{
 			return;
 		}
 
 		glUseProgram(m_programId);
 
-		b3Mat44 m1 = MakeMat44(xf);
+		b3Mat44 m1 = b3TransformMat44(xf);
 		m1.x = radius * m1.x;
 		m1.y = radius * m1.y;
 		m1.z = radius * m1.z;
-		b3Mat44 m2 = g_camera->BuildViewMatrix();
-		b3Mat44 m3 = g_camera->BuildProjectionMatrix();
+		b3Mat44 m2 = g_glViewMatrix;
+		b3Mat44 m3 = g_glProjectionMatrix;
 		b3Mat44 m = m3 * m2 * m1;
 
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
@@ -940,20 +949,20 @@ struct DrawSolid
 
 	void DrawCylinder(float32 radius, float32 height, const b3Color& c, const b3Transform& xf)
 	{
-		if ((g_drawFlags & DrawFlags::e_trianglesFlag) == 0)
+		if (!g_glDrawTriangles)
 		{
 			return;
 		}
 
 		glUseProgram(m_programId);
 
-		b3Mat44 m1 = MakeMat44(xf);
+		b3Mat44 m1 = b3TransformMat44(xf);
 		m1.x = radius * m1.x;
 		m1.y = height * m1.y;
 		m1.z = radius * m1.z;
 
-		b3Mat44 m2 = g_camera->BuildViewMatrix();
-		b3Mat44 m3 = g_camera->BuildProjectionMatrix();
+		b3Mat44 m2 = g_glViewMatrix;
+		b3Mat44 m3 = g_glProjectionMatrix;
 		b3Mat44 m = m3 * m2 * m1;
 
 		glUniform4fv(m_colorUniform, 1, &c.r);
@@ -983,20 +992,20 @@ struct DrawSolid
 
 	void DrawSphere(float32 radius, const b3Color& c, const b3Transform& xf)
 	{
-		if ((g_drawFlags & DrawFlags::e_trianglesFlag) == 0)
+		if (!g_glDrawTriangles)
 		{
 			return;
 		}
 
 		glUseProgram(m_programId);
 
-		b3Mat44 m1 = MakeMat44(xf);
+		b3Mat44 m1 = b3TransformMat44(xf);
 		m1.x = radius * m1.x;
 		m1.y = radius * m1.y;
 		m1.z = radius * m1.z;
 
-		b3Mat44 m2 = g_camera->BuildViewMatrix();
-		b3Mat44 m3 = g_camera->BuildProjectionMatrix();
+		b3Mat44 m2 = g_glViewMatrix;
+		b3Mat44 m3 = g_glProjectionMatrix;
 		b3Mat44 m = m3 * m2 * m1;
 
 		glUniform4fv(m_colorUniform, 1, &c.r);
