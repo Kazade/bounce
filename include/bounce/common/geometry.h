@@ -74,17 +74,16 @@ struct b3Plane
 };
 
 // Transform a plane by a given frame.
-inline b3Plane operator*(const b3Transform& T, const b3Plane& plane)
+inline b3Plane b3Mul(const b3Transform& T, const b3Plane& plane)
 {
 	b3Vec3 normal = b3Mul(T.rotation, plane.normal);
 	return b3Plane(normal, plane.offset + b3Dot(normal, T.position));
 }
 
 // Transform a plane by a given frame.
-inline b3Plane b3Mul(const b3Transform& T, const b3Plane& plane)
+inline b3Plane operator*(const b3Transform& T, const b3Plane& plane)
 {
-	b3Vec3 normal = b3Mul(T.rotation, plane.normal);
-	return b3Plane(normal, plane.offset + b3Dot(normal, T.position));
+	return b3Mul(T, plane);
 }
 
 // Compute the distance between a point and a plane.
