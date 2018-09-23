@@ -20,6 +20,7 @@
 #define B3_TRANSFORM_H
 
 #include <bounce/common/math/mat33.h>
+#include <bounce/common/math/mat44.h>
 #include <bounce/common/math/quat.h>
 
 // A transform represents a rigid frame. 
@@ -58,6 +59,16 @@ struct b3Transform
 
 // Identity transformation
 extern const b3Transform b3Transform_identity;
+
+// Convert a transform to a 4-by-4 transformation matrix. 
+inline b3Mat44 b3TransformMat44(const b3Transform& T)
+{
+	return b3Mat44(
+		b3Vec4(T.rotation.x.x, T.rotation.x.y, T.rotation.x.z, 0.0f),
+		b3Vec4(T.rotation.y.x, T.rotation.y.y, T.rotation.y.z, 0.0f),
+		b3Vec4(T.rotation.z.x, T.rotation.z.y, T.rotation.z.z, 0.0f),
+		b3Vec4(T.position.x, T.position.y, T.position.z, 1.0f));
+}
 
 // Multiply a transform times a vector.
 inline b3Vec3 b3Mul(const b3Transform& T, const b3Vec3& v)
