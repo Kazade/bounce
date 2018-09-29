@@ -26,7 +26,7 @@
 
 extern "C"
 {
-	#include <triangle/triangle.h>
+        #include "triangle/triangle.h"
 }
 
 b3GarmentMesh::b3GarmentMesh()
