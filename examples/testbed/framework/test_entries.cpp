@@ -20,6 +20,7 @@
 #include <testbed/tests/convex_hull.h>
 #include <testbed/tests/cluster.h>
 #include <testbed/tests/distance_test.h>
+#include <testbed/tests/shape_cast.h>
 #include <testbed/tests/collide_test.h>
 #include <testbed/tests/capsule_collision.h>
 #include <testbed/tests/hull_collision.h>
@@ -75,6 +76,7 @@ TestEntry g_tests[] =
 	{ "Convex Hull", &ConvexHull::Create },
 	{ "Cluster", &Cluster::Create },
 	{ "Distance", &Distance::Create },
+	{ "Shape Cast", &ShapeCast::Create },
 	{ "Capsule Collision", &CapsuleCollision::Create },
 	{ "Hull Collision", &HullCollision::Create },
 	{ "Deep Capsule", &DeepCapsule::Create },
