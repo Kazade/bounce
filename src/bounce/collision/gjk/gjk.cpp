@@ -29,7 +29,7 @@ u32 b3_gjkCalls = 0, b3_gjkIters = 0, b3_gjkMaxIters = 0;
 // Convert a point Q from Cartesian coordinates to Barycentric coordinates (u, v) 
 // with respect to a segment AB.
 // The last output value is the divisor.
-static B3_FORCE_INLINE void b3Barycentric(float32 out[3], 
+static B3_FORCE_INLINE void b3Barycentric(float32 out[3],
 	const b3Vec3& A, const b3Vec3& B,
 	const b3Vec3& Q)
 {
@@ -38,7 +38,7 @@ static B3_FORCE_INLINE void b3Barycentric(float32 out[3],
 	b3Vec3 QB = B - Q;
 
 	//float32 divisor = b3Dot(AB, AB);
-	
+
 	out[0] = b3Dot(QB, AB);
 	out[1] = -b3Dot(QA, AB);
 	out[2] = out[0] + out[1];
@@ -63,7 +63,7 @@ static B3_FORCE_INLINE void b3Barycentric(float32 out[4],
 	b3Vec3 QA_x_QB = b3Cross(QA, QB);
 
 	b3Vec3 AB_x_AC = b3Cross(AB, AC);
-	
+
 	//float32 divisor = b3Dot(AB_x_AC, AB_x_AC);
 
 	out[0] = b3Dot(QB_x_QC, AB_x_AC);
@@ -248,7 +248,7 @@ void b3Simplex::Solve3(const b3Vec3& Q)
 	b3Barycentric(wAB, A.point, B.point, Q);
 	b3Barycentric(wBC, B.point, C.point, Q);
 	b3Barycentric(wCA, C.point, A.point, Q);
-	
+
 	// R A
 	if (wAB[1] <= 0.0f && wCA[0] <= 0.0f)
 	{
@@ -279,7 +279,7 @@ void b3Simplex::Solve3(const b3Vec3& Q)
 	// Test edge regions		
 	float32 wABC[4];
 	b3Barycentric(wABC, A.point, B.point, C.point, Q);
-	
+
 	// This is used to help testing if the face degenerates 
 	// into an edge.
 	float32 area = wABC[3];
@@ -361,7 +361,7 @@ void b3Simplex::Solve4(const b3Vec3& Q)
 	b3Barycentric(wAD, A.point, D.point, Q);
 	b3Barycentric(wCD, C.point, D.point, Q);
 	b3Barycentric(wDB, D.point, B.point, Q);
-	
+
 	// R A
 	if (wAB[1] <= 0.0f && wAC[1] <= 0.0f && wAD[1] <= 0.0f)
 	{
@@ -848,4 +848,99 @@ b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1,
 	b3SimplexCache cache;
 	cache.count = 0;
 	return b3GJK(xf1, proxy1, xf2, proxy2, false, &cache);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Brian Mirtich  
+// "Conservative Advancement" 
+bool b3GJKRayCast(b3GJKRayCastOutput* output,
+	const b3Transform& xf1, const b3GJKProxy& proxy1,
+	const b3Transform& xf2, const b3GJKProxy& proxy2, const b3Vec3& translation2)
+{
+	float32 r1 = proxy1.radius;
+	float32 r2 = proxy2.radius;
+	float32 radius = r1 + r2;
+
+	float32 d_max = b3Length(translation2);
+	B3_ASSERT(d_max > 0.0f);
+
+	float32 t = 0.0f;
+	
+	const float32 tolerance = 0.5f * B3_LINEAR_SLOP;
+
+	b3SimplexCache cache;
+	cache.count = 0;
+
+	b3GJKOutput gjkOut = b3GJK(xf1, proxy1, xf2, proxy2, false, &cache);
+	float32 d = gjkOut.distance;
+
+	if (d == 0.0f)
+	{
+		// Overlap
+		return false;
+	}
+
+	if (d < radius + tolerance)
+	{
+		b3Vec3 n = gjkOut.point2 - gjkOut.point1;
+		n /= d;
+
+		// Touch
+		output->t = t;
+		output->point = gjkOut.point1 + r1 * n;
+		output->normal = n;
+		output->iterations = 0;
+		return true;
+	}
+
+	const u32 kMaxIters = 20;
+
+	u32 iter = 0;
+	for (;;)
+	{
+		B3_ASSERT(d < d_max);
+		B3_ASSERT(d >= radius);
+		
+		float32 dt = (d - radius) / d_max;
+		t += dt;
+
+		if (t >= 1.0f)
+		{
+			// No overlap
+			output->iterations = iter;
+			return false;
+		}
+		
+		b3Transform txf1 = xf1;
+		
+		b3Transform txf2;
+		txf2.rotation = xf2.rotation;
+		txf2.position = (1.0f - t) * xf2.position + t * (xf2.position + r);
+
+		gjkOut = b3GJK(txf1, proxy1, txf2, proxy2, false, &cache);
+		d = gjkOut.distance;
+
+		if (d < radius + tolerance)
+		{
+			break;
+		}
+
+		++iter;
+
+		if (iter == kMaxIters)
+		{
+			output->iterations = iter;
+			return false;
+		}
+	}
+	
+	b3Vec3 n = gjkOut.point2 - gjkOut.point1;
+	n /= d;
+
+	output->t = t;
+	output->point = gjkOut.point1 + r1 * n;
+	output->normal = n;
+	output->iterations = iter;
+	return true;
 }
