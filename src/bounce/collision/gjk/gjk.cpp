@@ -899,7 +899,6 @@ bool b3GJKRayCast(b3GJKRayCastOutput* output,
 	u32 iter = 0;
 	for (;;)
 	{
-		B3_ASSERT(d < d_max);
 		B3_ASSERT(d >= radius);
 		
 		float32 dt = (d - radius) / d_max;
