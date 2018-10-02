@@ -916,7 +916,7 @@ bool b3GJKRayCast(b3GJKRayCastOutput* output,
 		
 		b3Transform txf2;
 		txf2.rotation = xf2.rotation;
-		txf2.position = (1.0f - t) * xf2.position + t * (xf2.position + r);
+		txf2.position = (1.0f - t) * xf2.position + t * (xf2.position + translation2);
 
 		gjkOut = b3GJK(txf1, proxy1, txf2, proxy2, false, &cache);
 		d = gjkOut.distance;
