@@ -114,8 +114,8 @@ b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1,
 	const b3Transform& xf2, const b3GJKProxy& proxy2,
 	bool applyRadius, b3SimplexCache* cache);
 
-// The output of the GJK-based ray cast algorithm.
-struct b3GJKRayCastOutput
+// The output of the GJK-based shape cast algorithm.
+struct b3GJKShapeCastOutput
 {
 	float32 t; // time of impact
 	b3Vec3 point; // contact point at t
@@ -124,7 +124,7 @@ struct b3GJKRayCastOutput
 };
 
 // Find the time of impact between two proxies given the relative target translation vector.
-bool b3GJKRayCast(b3GJKRayCastOutput* output,
+bool b3GJKShapeCast(b3GJKShapeCastOutput* output,
 	const b3Transform& xf1, const b3GJKProxy& proxy1,
 	const b3Transform& xf2, const b3GJKProxy& proxy2, const b3Vec3& translation2);
 

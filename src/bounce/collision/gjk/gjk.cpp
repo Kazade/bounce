@@ -854,7 +854,7 @@ b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1,
 
 // Brian Mirtich  
 // "Conservative Advancement" 
-bool b3GJKRayCast(b3GJKRayCastOutput* output,
+bool b3GJKShapeCast(b3GJKShapeCastOutput* output,
 	const b3Transform& xf1, const b3GJKProxy& proxy1,
 	const b3Transform& xf2, const b3GJKProxy& proxy2, const b3Vec3& translation2)
 {
@@ -960,7 +960,7 @@ bool b3GJKRayCast(b3GJKRayCastOutput* output,
 // Gino van der Bergen
 // "Smooth Mesh Contacts with GJK"
 // Game Physics Pearls 2010, page 99
-bool b3GJKShapeCast(b3GJKRayCastOutput* output,
+bool b3GJKShapeCastCSO(b3GJKShapeCastOutput* output,
 	const b3Transform& xf1, const b3GJKProxy& proxy1,
 	const b3Transform& xf2, const b3GJKProxy& proxy2, const b3Vec3& translation2)
 {
@@ -1032,14 +1032,6 @@ bool b3GJKShapeCast(b3GJKRayCastOutput* output,
 			}
 		}
 
-		// Copy simplex so we can identify duplicates.
-		saveCount = simplex.m_count;
-		for (u32 i = 0; i < saveCount; ++i)
-		{
-			save1[i] = vertices[i].index1;
-			save2[i] = vertices[i].index2;
-		}
-
 		// Unite p - s to simplex
 		b3Vec3 s = t * r;
 
@@ -1075,6 +1067,14 @@ bool b3GJKShapeCast(b3GJKRayCastOutput* output,
 			maxTolerance = b3Max(maxTolerance, b3LengthSquared(vertices[i].point));
 		}
 
+		// Copy simplex so we can identify duplicates.
+		saveCount = simplex.m_count;
+		for (u32 i = 0; i < saveCount; ++i)
+		{
+			save1[i] = vertices[i].index1;
+			save2[i] = vertices[i].index2;
+		}
+
 		// Sub-solve
 		const b3Vec3 origin = b3Vec3_zero;
 
@@ -1098,9 +1098,7 @@ bool b3GJKShapeCast(b3GJKRayCastOutput* output,
 
 		if (simplex.m_count == 4)
 		{
-			// Overlap
-			output->iterations = iter;
-			return false;
+			break;
 		}
 
 		v = simplex.GetClosestPoint();
