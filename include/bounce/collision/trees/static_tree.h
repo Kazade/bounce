@@ -174,8 +174,8 @@ inline void b3StaticTree::RayCast(T* callback, const b3RayCastInput& input) cons
 
 		const b3Node* node = m_nodes + nodeIndex;
 
-		float32 minFraction = 0.0f;
-		if (node->aabb.TestRay(p1, p2, maxFraction, minFraction) == true) 
+		float32 minFraction;
+		if (node->aabb.TestRay(minFraction, p1, p2, maxFraction) == true)
 		{
 			if (node->IsLeaf() == true) 
 			{
