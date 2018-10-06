@@ -83,9 +83,14 @@ private:
 		{
 			Plane plane = planes[i];
 
-			if (b3Dot(b3Vec3_y, plane.n) > 0.0f)
+			float32 cosine = b3Dot(b3Vec3_y, plane.n);
+			
+			// ~80 degrees
+			const float32 kTol = 0.17f;
+			
+			if (cosine > kTol)
 			{
-				m_isGrounded = true;
+ 				m_isGrounded = true;
 				break;
 			}
 		}
@@ -107,11 +112,6 @@ private:
 
 			for (b3Shape* s = b->GetShapeList().m_head; s; s = s->GetNext())
 			{
-				if (s->GetType() == e_meshShape)
-				{
-					continue;
-				}
-
 				shapes.PushBack(s);
 			}
 		}
@@ -128,19 +128,40 @@ private:
 			b3Body* body1 = shape1->GetBody();
 			b3Transform xf1 = body1->GetTransform();
 
-			b3TestSphereOutput output;
-			bool overlap = shape1->TestSphere(&output, sphere2, xf1);
-
-			if (overlap == false)
+			if (shape1->GetType() == e_meshShape)
 			{
-				continue;
+				b3MeshShape* meshShape1 = (b3MeshShape*)shape1;
+				const b3Mesh* mesh1 = meshShape1->m_mesh;
+
+				for (u32 j = 0; j < mesh1->triangleCount; ++j)
+				{
+					b3TestSphereOutput output;
+					bool overlap = meshShape1->TestSphere(&output, sphere2, xf1, j);
+
+					if (overlap)
+					{
+						Plane plane;
+						plane.n = output.normal;
+						plane.p = output.point;
+
+						planes.PushBack(plane);
+					}
+				}
 			}
+			else
+			{
+				b3TestSphereOutput output;
+				bool overlap = shape1->TestSphere(&output, sphere2, xf1);
 
-			Plane plane;
-			plane.n = output.normal;
-			plane.p = output.point;
+				if (overlap)
+				{
+					Plane plane;
+					plane.n = output.normal;
+					plane.p = output.point;
 
-			planes.PushBack(plane);
+					planes.PushBack(plane);
+				}
+			}
 		}
 	}
 
@@ -165,22 +186,46 @@ private:
 
 			b3Transform xf1 = body1->GetTransform();
 
-			b3ShapeGJKProxy proxy1;
-			proxy1.Set(shape1, 0);
-
-			b3GJKShapeCastOutput output;
-			bool hit = b3GJKShapeCast(&output, xf1, proxy1, xf2, proxy2, translation2);
-
-			if (hit == false)
+			if (shape1->GetType() == e_meshShape)
 			{
-				continue;
+				b3MeshShape* meshShape1 = (b3MeshShape*)shape1;
+				const b3Mesh* mesh1 = meshShape1->m_mesh;
+
+				for (u32 j = 0; j < mesh1->triangleCount; ++j)
+				{
+					b3ShapeGJKProxy proxy1;
+					proxy1.Set(shape1, j);
+
+					b3GJKShapeCastOutput output;
+					bool hit = b3GJKShapeCast(&output, xf1, proxy1, xf2, proxy2, translation2);
+
+					if (hit)
+					{
+						Plane plane;
+						plane.n = output.normal;
+						plane.p = output.point;
+
+						planes.PushBack(plane);
+					}
+				}
 			}
+			else
+			{
+				b3ShapeGJKProxy proxy1;
+				proxy1.Set(shape1, 0);
 
-			Plane plane;
-			plane.n = output.normal;
-			plane.p = output.point;
+				b3GJKShapeCastOutput output;
+				bool hit = b3GJKShapeCast(&output, xf1, proxy1, xf2, proxy2, translation2);
 
-			planes.PushBack(plane);
+				if (hit)
+				{
+					Plane plane;
+					plane.n = output.normal;
+					plane.p = output.point;
+
+					planes.PushBack(plane);
+				}
+			}
 		}
 	}
 
@@ -298,7 +343,7 @@ public:
 
 			b3Shape* shape = body->CreateShape(sdef);
 		}
-
+		
 		{
 			b3BodyDef bdef;
 			bdef.position.Set(-10.0f, 3.0f, 0.0f);
@@ -503,7 +548,7 @@ public:
 		b3Vec3 velocity = b3Vec3_zero;
 
 		bool isGounded = m_characterController->IsGrounded();
-
+		
 		if (isGounded)
 		{
 			extern GLFWwindow* g_window;
