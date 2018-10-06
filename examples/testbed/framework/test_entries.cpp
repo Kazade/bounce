@@ -54,7 +54,7 @@
 #include <testbed/tests/pyramids.h>
 #include <testbed/tests/ray_cast.h>
 #include <testbed/tests/sensor_test.h>
-#include <testbed/tests/point_click.h>
+#include <testbed/tests/character_test.h>
 #include <testbed/tests/body_types.h>
 #include <testbed/tests/varying_friction.h>
 #include <testbed/tests/varying_restitution.h>
@@ -108,7 +108,7 @@ TestEntry g_tests[] =
 	{ "Box Pyramid Rows", &Pyramids::Create },
 	{ "Ray Cast", &RayCast::Create },
 	{ "Sensor Test", &SensorTest::Create },
-	{ "Point & Click", &PointClick::Create },
+	{ "Character", &CharacterTest::Create },
 	{ "Body Types", &BodyTypes::Create },
 	{ "Varying Friction", &VaryingFriction::Create },
 	{ "Varying Restitution", &VaryingRestitution::Create },
