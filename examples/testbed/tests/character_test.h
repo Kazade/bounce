@@ -54,52 +54,6 @@ public:
 		m_translation += translation;
 	}
 
-	void Solve()
-	{
-		b3StackArray<b3Shape*, 32> shapes;
-		CollectStaticShapes(shapes);
-
-		b3StackArray<Plane, 32> planes;
-		CollectOverlapPlanes(planes, shapes);
-
-		b3Vec3 startPosition = m_characterBody->GetWorldCenter();
-
-		b3Vec3 targetPosition = startPosition + m_translation;
-
-		m_translation.SetZero();
-
-		b3Vec3 solvePosition = SolvePositionConstraints(planes, targetPosition);
-
-		b3Vec3 oldSolvePosition = solvePosition;
-
-		for (;;)
-		{
-			b3Vec3 translation = solvePosition - startPosition;
-
-			CollectSweepPlanes(planes, shapes, translation);
-
-			solvePosition = SolvePositionConstraints(planes, targetPosition);
-
-			const float32 tolerance = 0.05f;
-
-			if (b3DistanceSquared(oldSolvePosition, solvePosition) < tolerance * tolerance)
-			{
-				break;
-			}
-
-			oldSolvePosition = solvePosition;
-		}
-
-		// Update body
-		b3Quat orientation = m_characterBody->GetOrientation();
-
-		b3Vec3 axis;
-		float32 angle;
-		orientation.GetAxisAngle(&axis, &angle);
-
-		m_characterBody->SetTransform(solvePosition, axis, angle);
-	}
-
 	void Step()
 	{
 		Solve();
@@ -272,6 +226,52 @@ private:
 		}
 
 		return c;
+	}
+
+	void Solve()
+	{
+		b3StackArray<b3Shape*, 32> shapes;
+		CollectStaticShapes(shapes);
+
+		b3StackArray<Plane, 32> planes;
+		CollectOverlapPlanes(planes, shapes);
+
+		b3Vec3 startPosition = m_characterBody->GetWorldCenter();
+
+		b3Vec3 targetPosition = startPosition + m_translation;
+
+		m_translation.SetZero();
+
+		b3Vec3 solvePosition = SolvePositionConstraints(planes, targetPosition);
+
+		b3Vec3 oldSolvePosition = solvePosition;
+
+		for (;;)
+		{
+			b3Vec3 translation = solvePosition - startPosition;
+
+			CollectSweepPlanes(planes, shapes, translation);
+
+			solvePosition = SolvePositionConstraints(planes, targetPosition);
+
+			const float32 tolerance = 0.05f;
+
+			if (b3DistanceSquared(oldSolvePosition, solvePosition) < tolerance * tolerance)
+			{
+				break;
+			}
+
+			oldSolvePosition = solvePosition;
+		}
+
+		// Update body
+		b3Quat orientation = m_characterBody->GetOrientation();
+
+		b3Vec3 axis;
+		float32 angle;
+		orientation.GetAxisAngle(&axis, &angle);
+
+		m_characterBody->SetTransform(solvePosition, axis, angle);
 	}
 
 	b3World* m_world;
