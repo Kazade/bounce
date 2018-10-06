@@ -31,7 +31,7 @@
 #include <testbed/framework/view_model.h>
 
 //
-static GLFWwindow* g_window;
+GLFWwindow* g_window;
 
 //
 static Model* g_model;
