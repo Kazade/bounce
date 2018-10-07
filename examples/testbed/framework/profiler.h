@@ -59,11 +59,9 @@ public:
 	void End(ProfilerListener* listener);
 
 	// Add a profiler event to the queue.
-	// Return true if the even has been added to the event queue 
-	// or false if the queue is full.
 	// You can control the maximum number of profiler events using 
 	// MAX_PROFILER_EVENTS.
-	bool PushEvent(const char* name);
+	void PushEvent(const char* name);
 	
 	// Remove the top profiler event.
 	void PopEvent();

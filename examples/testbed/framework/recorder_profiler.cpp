@@ -22,18 +22,37 @@ RecorderProfiler* g_profilerRecorder = nullptr;
 
 void RecorderProfiler::BeginEvents()
 {
+	m_count = 0;
 	for (u32 i = 0; i < m_records.Count(); ++i)
 	{
 		m_records[i].elapsed = 0.0;
+		m_records[i].call = 0;
 	}
 }
 
 void RecorderProfiler::EndEvents()
 {
+	for (u32 i = 0; i < m_records.Count(); ++i)
+	{
+		ProfilerRecord& r1 = m_records[i];
+
+		for (u32 j = i + 1; j < m_records.Count(); ++j)
+		{
+			ProfilerRecord& r2 = m_records[j];
+
+			if (r2.call < r1.call)
+			{
+				b3Swap(r1, r2);
+				break;
+			}
+		}
+	}
 }
 
 void RecorderProfiler::Add(const char* name, float64 elapsedTime)
 {
+	m_count += 1;
+
 	for (u32 i = 0; i < m_records.Count(); ++i)
 	{
 		ProfilerRecord& r = m_records[i];
@@ -41,14 +60,16 @@ void RecorderProfiler::Add(const char* name, float64 elapsedTime)
 		{
 			r.elapsed += elapsedTime;
 			r.maxElapsed = b3Max(r.maxElapsed, elapsedTime);
+			r.call = m_count;
 			return;
 		}
 	}
 
 	ProfilerRecord r;
 	r.name = name;
-	r.elapsed = 0.0;
-	r.maxElapsed = 0.0;
+	r.elapsed = elapsedTime;
+	r.maxElapsed = elapsedTime;
+	r.call = m_count;
 
 	m_records.PushBack(r);
 }

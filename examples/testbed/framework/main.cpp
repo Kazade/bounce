@@ -124,7 +124,11 @@ static void Run()
 			for (u32 i = 0; i < records.Count(); ++i)
 			{
 				const ProfilerRecord& r = records[i];
-				g_draw->DrawString(b3Color_white, "%s %.4f (%.4f) [ms]", r.name, r.elapsed, r.maxElapsed);
+				
+				if (r.elapsed > 0.0)
+				{
+					g_draw->DrawString(b3Color_white, "%s %.4f (%.4f) [ms]", r.name, r.elapsed, r.maxElapsed);
+				}
 			}
 		}
 

@@ -509,7 +509,7 @@ bool b3Cloth::RayCast(b3RayCastOutput* output, const b3RayCastInput* input, u32 
 
 void b3Cloth::UpdateBodyContacts()
 {
-	B3_PROFILE("Update Body Contacts");
+	B3_PROFILE("Cloth Update Body Contacts");
 	
 	// Clear buffer
 	b3BodyContact* c = m_bodyContactList.m_head;
@@ -588,7 +588,7 @@ void b3Cloth::UpdateBodyContacts()
 
 void b3Cloth::UpdateParticleContacts()
 {
-	B3_PROFILE("Update Particle Contacts");
+	B3_PROFILE("Cloth Update Particle Contacts");
 
 	// Clear buffer
 	b3ParticleContact* c = m_particleContactList.m_head;
@@ -790,7 +790,7 @@ static B3_FORCE_INLINE void b3Solve3(float32 out[3],
 
 void b3Cloth::UpdateTriangleContacts()
 {
-	B3_PROFILE("Update Triangle Contacts");
+	B3_PROFILE("Cloth Update Triangle Contacts");
 
 	// Clear buffer
 	b3TriangleContact* c = m_triangleContactList.m_head;
@@ -883,7 +883,7 @@ void b3Cloth::UpdateTriangleContacts()
 
 void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 {
-	B3_PROFILE("Solve");
+	B3_PROFILE("Cloth Solve");
 
 	// Solve
 	b3ClothSolverDef solverDef;
@@ -946,7 +946,7 @@ void b3Cloth::UpdateContacts()
 
 void b3Cloth::Step(float32 dt, const b3Vec3& gravity)
 {
-	B3_PROFILE("Step");
+	B3_PROFILE("Cloth Step");
 
 	// Update contacts
 	UpdateContacts();

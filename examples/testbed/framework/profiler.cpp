@@ -30,7 +30,7 @@ Profiler::~Profiler()
 {
 }
 
-bool Profiler::PushEvent(const char* name)
+void Profiler::PushEvent(const char* name)
 {
 	m_time.Update();
 
@@ -43,12 +43,8 @@ bool Profiler::PushEvent(const char* name)
 	e.parent = m_top;
 
 	ProfilerEvent* back = m_events.Push(e);
-	if (back)
-	{
-		m_top = back;
-	}
-
-	return back != NULL;
+	B3_ASSERT(back);
+	m_top = back;
 }
 
 void Profiler::PopEvent()
@@ -66,26 +62,37 @@ void Profiler::Begin()
 {
 	// If this assert is hit then it means Profiler::End hasn't been called.
 	B3_ASSERT(m_events.IsEmpty());
+	B3_ASSERT(m_top == NULL);
 }
 
 void Profiler::End(ProfilerListener* listener)
 {
-	listener->BeginEvents();
+	if (listener)
+	{
+		listener->BeginEvents();
+	}
 
 	while (m_events.IsEmpty() == false)
 	{
-		const ProfilerEvent& e = m_events.Front();
+		ProfilerEvent e = m_events.Front();
 
 		m_events.Pop();
 
-		listener->BeginEvent(e.tid, e.pid, e.name, e.t0);
+		if (listener)
+		{
+			listener->BeginEvent(e.tid, e.pid, e.name, e.t0);
 
-		listener->EndEvent(e.tid, e.pid, e.name, e.t1);
-	
-		listener->Duration(e.name, e.t1 - e.t0);
+			listener->EndEvent(e.tid, e.pid, e.name, e.t1);
+
+			listener->Duration(e.name, e.t1 - e.t0);
+		}
 	}
 
 	B3_ASSERT(m_events.IsEmpty());
+	B3_ASSERT(m_top == NULL);
 
-	listener->EndEvents();
+	if (listener)
+	{
+		listener->EndEvents();
+	}
 }

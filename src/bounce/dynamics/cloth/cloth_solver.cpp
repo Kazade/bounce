@@ -359,7 +359,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
 	const b3SparseSymMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const
 {
-	B3_PROFILE("Solve Ax = b");
+	B3_PROFILE("Cloth Solve Ax = b");
 
 	// P = diag(A)
 	b3DiagMat33 inv_P(m_particleCount);

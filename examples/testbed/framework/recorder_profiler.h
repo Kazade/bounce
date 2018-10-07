@@ -28,6 +28,7 @@ struct ProfilerRecord
 	float64 elapsed;
 	float64 maxElapsed;
 	const char* name;
+	u32 call;
 };
 
 // The profiler recorder simply keeps profile events in an event buffer, 
@@ -45,6 +46,7 @@ public:
 	const b3Array<ProfilerRecord>& GetRecords() const { return m_records; }
 private:
 	b3StackArray<ProfilerRecord, 256> m_records;
+	u32 m_count;
 };
 
 extern RecorderProfiler* g_profilerRecorder;
