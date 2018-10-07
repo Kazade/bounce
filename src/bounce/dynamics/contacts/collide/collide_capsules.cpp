@@ -24,7 +24,7 @@
 #include <bounce/common/math/mat22.h>
 
 // Compute the closest point on a segment to a point. 
-static b3Vec3 b3ClosestPoint(const b3Vec3& Q, const b3Capsule& hull)
+static b3Vec3 b3ClosestPointOnSegment(const b3Vec3& Q, const b3Capsule& hull)
 {
 	b3Vec3 A = hull.vertices[0];
 	b3Vec3 B = hull.vertices[1];
@@ -81,13 +81,13 @@ static void b3ClosestPoints(b3Vec3& C1, b3Vec3& C2,
 	if (L1 < B3_LINEAR_SLOP)
 	{
 		C1 = P1;
-		C2 = b3ClosestPoint(P1, hull2);
+		C2 = b3ClosestPointOnSegment(P1, hull2);
 		return;
 	}
 
 	if (L2 < B3_LINEAR_SLOP)
 	{
-		C1 = b3ClosestPoint(P2, hull1);
+		C1 = b3ClosestPointOnSegment(P2, hull1);
 		C2 = P2;
 		return;
 	}
@@ -144,11 +144,11 @@ static void b3ClosestPoints(b3Vec3& C1, b3Vec3& C2,
 		C2 = P2;
 	}
 
-	C1 = b3ClosestPoint(C1, hull1);
+	C1 = b3ClosestPointOnSegment(C1, hull1);
 	
-	C2 = b3ClosestPoint(C1, hull2);
+	C2 = b3ClosestPointOnSegment(C1, hull2);
 	
-	C1 = b3ClosestPoint(C2, hull1);
+	C1 = b3ClosestPointOnSegment(C2, hull1);
 }
 
 static bool b3AreParalell(const b3Capsule& hull1, const b3Capsule& hull2)
@@ -211,8 +211,8 @@ void b3CollideCapsuleAndCapsule(b3Manifold& manifold,
 
 			if (clipCount == 2)
 			{
-				b3Vec3 cp1 = b3ClosestPointOnSegment(clipEdge1[0].position, hull2.vertices[0], hull2.vertices[1]);
-				b3Vec3 cp2 = b3ClosestPointOnSegment(clipEdge1[1].position, hull2.vertices[0], hull2.vertices[1]);
+				b3Vec3 cp1 = b3ClosestPointOnSegment(clipEdge1[0].position, hull2);
+				b3Vec3 cp2 = b3ClosestPointOnSegment(clipEdge1[1].position, hull2);
 
 				float32 d1 = b3Distance(clipEdge1[0].position, cp1);
 				float32 d2 = b3Distance(clipEdge1[1].position, cp2);
