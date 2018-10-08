@@ -16,70 +16,55 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_FORCE_H
-#define B3_FORCE_H
+#ifndef B3_CLOTH_DRAGGER_H
+#define B3_CLOTH_DRAGGER_H
 
-#include <bounce/common/math/transform.h>
-#include <bounce/common/template/list.h>
+#include <bounce/common/geometry.h>
+#include <bounce/cloth/cloth.h>
+#include <bounce/cloth/cloth_mesh.h>
+#include <bounce/cloth/particle.h>
+#include <bounce/cloth/spring_force.h>
 
-struct b3ClothSolverData;
-
-class b3Particle;
-
-// Force types
-enum b3ForceType
-{
-	e_frictionForce,
-	e_springForce,
-	e_bendForce,
-};
-
-struct b3ForceDef
-{
-	b3ForceType type;
-};
-
-// 
-class b3Force
+// A cloth triangle dragger.
+class b3ClothDragger
 {
 public:
-	// 
-	b3ForceType GetType() const;
+	b3ClothDragger(b3Ray3* ray, b3Cloth* cloth);
+	~b3ClothDragger();
 
-	//
-	b3Force* GetNext();
-protected:
-	friend class b3List2<b3Force>;
-	friend class b3Cloth;
-	friend class b3ClothSolver;
-	friend class b3Particle;
+	bool IsDragging() const;
 
-	static b3Force* Create(const b3ForceDef* def);
-	static void Destroy(b3Force* f);
+	bool StartDragging();
 
-	b3Force() { }
-	virtual ~b3Force() { }
+	void Drag();
 
-	virtual void Apply(const b3ClothSolverData* data) = 0;
+	void StopDragging();
 
-	// Force type
-	b3ForceType m_type;
+	b3Vec3 GetPointA() const;
 
-	// 
-	b3Force* m_prev;
+	b3Vec3 GetPointB() const;
+private:
+	b3Ray3* m_ray;
+	float32 m_x;
 
-	// 
-	b3Force* m_next;
+	b3Cloth* m_cloth;
+	const b3ClothMesh* m_mesh;
+	b3ClothMeshTriangle* m_triangle;
+	float32 m_u, m_v;
+
+	bool m_spring;
+
+	b3Particle* m_particle;
+	b3SpringForce* m_s1;
+	b3SpringForce* m_s2;
+	b3SpringForce* m_s3;
+
+	b3ParticleType m_t1, m_t2, m_t3;
 };
 
-inline b3ForceType b3Force::GetType() const
+inline bool b3ClothDragger::IsDragging() const
 {
-	return m_type;
-}
-
-inline b3Force* b3Force::GetNext()
-{
-	return m_next;
+	return m_triangle != nullptr;
 }
 
 #endif

@@ -19,7 +19,7 @@
 #ifndef PINNED_CLOTH_H
 #define PINNED_CLOTH_H
 
-class PinnedCloth : public ClothTest
+class PinnedCloth : public Test
 {
 public:
 	PinnedCloth() : m_rectangleGarment(5.0f, 5.0f)
@@ -30,21 +30,26 @@ public:
 		// Create 3D mesh
 		m_rectangleClothMesh.Set(&m_rectangleGarmentMesh);
 		
-		//  
-		b3Mat33 dq = b3Mat33RotationX(0.5f * B3_PI);
+		// Rotate the mesh
+		b3Mat33 rotation = b3Mat33RotationX(0.5f * B3_PI);
 		for (u32 i = 0; i < m_rectangleClothMesh.vertexCount; ++i)
 		{
-			m_rectangleClothMesh.vertices[i] = dq * m_rectangleClothMesh.vertices[i];
+			m_rectangleClothMesh.vertices[i] = rotation * m_rectangleClothMesh.vertices[i];
 		}
 
+		// Create cloth
 		b3ClothDef def;
 		def.mesh = &m_rectangleClothMesh;
 		def.density = 0.2f;
 		def.structural = 100000.0f;
 		def.damping = 0.0f;
 
-		m_cloth = m_world.CreateCloth(def);
+		m_cloth = new b3Cloth(def);
 
+		m_cloth->SetGravity(b3Vec3(0.0f, -9.8f, 0.0f));
+		m_cloth->SetWorld(&m_world);
+
+		// Freeze some particles
 		b3AABB3 aabb1;
 		aabb1.m_lower.Set(-5.0f, -1.0f, -6.0f);
 		aabb1.m_upper.Set(5.0f, 1.0f, -4.0f);
@@ -65,23 +70,70 @@ public:
 				p->SetType(e_staticParticle);
 			}
 		}
+		
+		m_clothDragger = new b3ClothDragger(&m_ray, m_cloth);
+	}
 
+	~PinnedCloth()
+	{
+		delete m_clothDragger;
+		delete m_cloth;
+	}
+
+	void Step()
+	{
+		Test::Step();
+
+		m_cloth->Step(g_testSettings->inv_hertz);
+
+		m_cloth->Draw();
+
+		if (m_clothDragger->IsDragging())
 		{
-			b3BodyDef bd;
-			bd.type = e_dynamicBody;
-			bd.position.Set(0.0f, 5.0f, 0.0f);
+			b3Vec3 pA = m_clothDragger->GetPointA();
+			b3Vec3 pB = m_clothDragger->GetPointB();
 
-			b3Body* b = m_world.CreateBody(bd);
+			g_draw->DrawPoint(pA, 2.0f, b3Color_green);
 
-			b3SphereShape sphere;
-			sphere.m_center.SetZero();
-			sphere.m_radius = 2.0f;
+			g_draw->DrawPoint(pB, 2.0f, b3Color_green);
 
-			b3ShapeDef sd;
-			sd.shape = &sphere;
-			sd.density = 1.0f;
+			g_draw->DrawSegment(pA, pB, b3Color_white);
+		}
 
-			b3Shape* s = b->CreateShape(sd);
+		extern u32 b3_clothSolverIterations;
+		g_draw->DrawString(b3Color_white, "Iterations = %d", b3_clothSolverIterations);
+
+		float32 E = m_cloth->GetEnergy();
+		g_draw->DrawString(b3Color_white, "E = %f", E);
+	}
+
+	void MouseMove(const b3Ray3& pw)
+	{
+		Test::MouseMove(pw);
+
+		if (m_clothDragger->IsDragging() == true)
+		{
+			m_clothDragger->Drag();
+		}
+	}
+
+	void MouseLeftDown(const b3Ray3& pw)
+	{
+		Test::MouseLeftDown(pw);
+
+		if (m_clothDragger->IsDragging() == false)
+		{
+			m_clothDragger->StartDragging();
+		}
+	}
+
+	void MouseLeftUp(const b3Ray3& pw)
+	{
+		Test::MouseLeftUp(pw);
+
+		if (m_clothDragger->IsDragging() == true)
+		{
+			m_clothDragger->StopDragging();
 		}
 	}
 
@@ -93,6 +145,9 @@ public:
 	b3RectangleGarment m_rectangleGarment;
 	b3GarmentMesh m_rectangleGarmentMesh;
 	b3GarmentClothMesh m_rectangleClothMesh;
+
+	b3Cloth* m_cloth;
+	b3ClothDragger* m_clothDragger;
 };
 
 #endif

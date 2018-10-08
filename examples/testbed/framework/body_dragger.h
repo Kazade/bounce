@@ -16,37 +16,57 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef CLOTH_TESH_H
-#define CLOTH_TESH_H
+#ifndef B3_BODY_DRAGGER_H
+#define B3_BODY_DRAGGER_H
 
-class ClothTest : public Test
+#include <bounce/common/geometry.h>
+#include <bounce/common/geometry.h>
+#include <bounce/dynamics/shapes/shape.h>
+#include <bounce/dynamics/body.h>
+#include <bounce/dynamics/world.h>
+#include <bounce/dynamics/joints/mouse_joint.h>
+
+// A body shape dragger.
+class b3BodyDragger
 {
 public:
-	ClothTest()
-	{
-		m_world.SetGravity(b3Vec3(0.0f, -10.0f, 0.0f));
-		m_cloth = nullptr;
-	}
+	b3BodyDragger(b3Ray3* ray, b3World* world);
+	~b3BodyDragger();
 
-	void Step()
-	{
-		Test::Step();
+	bool StartDragging();
 
-		m_cloth->Draw();
+	void Drag();
 
-		if (m_clothDragger.IsDragging() == true)
-		{
-			g_draw->DrawSegment(m_clothDragger.GetPointA(), m_clothDragger.GetPointB(), b3Color_white);
-		}
+	void StopDragging();
 
-		extern u32 b3_clothSolverIterations;
-		g_draw->DrawString(b3Color_white, "Iterations = %u", b3_clothSolverIterations);
-		
-		float32 E = m_cloth->GetEnergy();
-		g_draw->DrawString(b3Color_white, "E = %f", E);
-	}
+	bool IsDragging() const;
+
+	b3Ray3* GetRay() const;
+
+	b3Body* GetBody() const;
+
+	b3Vec3 GetPointA() const;
+
+	b3Vec3 GetPointB() const;
+private:
+	b3Ray3 * m_ray;
+	float32 m_x;
+
+	b3World* m_world;
 	
-	b3Cloth* m_cloth;
+	b3Shape* m_shape;
+	b3Vec3 m_p;
+	b3MouseJoint* m_mouseJoint;
 };
+
+inline bool b3BodyDragger::IsDragging() const
+{
+	return m_shape != nullptr;
+}
+
+inline b3Ray3* b3BodyDragger::GetRay() const
+{
+	return m_ray;
+}
 
 #endif

@@ -26,28 +26,17 @@
 #include <bounce/dynamics/joint_manager.h>
 #include <bounce/dynamics/contact_manager.h>
 
-struct b3ClothDef;
 struct b3BodyDef;
 
-class b3Cloth;
 class b3Body;
 class b3QueryListener;
 class b3RayCastListener;
 class b3ContactListener;
 class b3ContactFilter;
 
-struct b3RayCastSingleShapeOutput
+struct b3RayCastSingleOutput
 {
 	b3Shape* shape; // shape
-	b3Vec3 point; // intersection point on surface
-	b3Vec3 normal; // surface normal of intersection
-	float32 fraction; // time of intersection on segment
-};
-
-struct b3RayCastSingleClothOutput
-{
-	b3Cloth* cloth; // cloth
-	u32 triangle; // triangle
 	b3Vec3 point; // intersection point on surface
 	b3Vec3 normal; // surface normal of intersection
 	float32 fraction; // time of intersection on segment
@@ -79,12 +68,6 @@ public:
 	// The acceleration has units of m/s^2.
 	void SetGravity(const b3Vec3& gravity);
 
-	// Create a new deformable cloth.
-	b3Cloth* CreateCloth(const b3ClothDef& def);
-
-	// Destroy an existing deformable cloth.
-	void DestroyCloth(b3Cloth* cloth);
-	
 	// Create a new rigid body.
 	b3Body* CreateBody(const b3BodyDef& def);
 	
@@ -108,29 +91,14 @@ public:
 	// The ray cast output is the intercepted shape, the intersection 
 	// point in world space, the face normal on the shape associated with the point, 
 	// and the intersection fraction.
-	void RayCastShape(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const;
+	void RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const;
 
 	// Perform a ray cast with the world.
 	// If the ray doesn't intersect with a shape in the world then return false.
 	// The ray cast output is the intercepted shape, the intersection 
 	// point in world space, the face normal on the shape associated with the point, 
 	// and the intersection fraction.
-	bool RayCastSingleShape(b3RayCastSingleShapeOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
-
-	// Perform a ray cast with the world.
-	// The given ray cast listener will be notified when a ray intersects a shape 
-	// in the world. 
-	// The ray cast output is the intercepted cloth, the intersection 
-	// point in world space, the face normal on the cloth associated with the point, 
-	// and the intersection fraction.
-	void RayCastCloth(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const;
-
-	// Perform a ray cast with the world.
-	// If the ray doesn't intersect with a cloth in the world then return false.
-	// The ray cast output is the intercepted cloth, the intersection 
-	// point in world space, the face normal on the cloth associated with the point, 
-	// and the intersection fraction.
-	bool RayCastSingleCloth(b3RayCastSingleClothOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
+	bool RayCastSingle(b3RayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
 
 	// Perform a AABB query with the world.
 	// The query listener will be notified when two shape AABBs are overlapping.
@@ -161,8 +129,7 @@ private :
 		e_shapeAddedFlag = 0x0001,
 		e_clearForcesFlag = 0x0002,
 	};
-
-	friend class b3Cloth;
+	
 	friend class b3Body;
 	friend class b3Shape;
 	friend class b3Contact;
@@ -172,20 +139,16 @@ private :
 
 	void Solve(float32 dt, u32 velocityIterations, u32 positionIterations);
 
-	void StepCloth(float32 dt);
-	
 	bool m_sleeping;
 	bool m_warmStarting;
 	u32 m_flags;
 	b3Vec3 m_gravity;
 
 	b3StackAllocator m_stackAllocator;
-	b3BlockPool m_clothBlocks;
+	
+	// Pool of bodies
 	b3BlockPool m_bodyBlocks;
 
-	// List of clothes
-	b3List2<b3Cloth> m_clothList;
-	
 	// List of bodies
 	b3List2<b3Body> m_bodyList;
 	

@@ -16,18 +16,18 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/dynamics/cloth/cloth_solver.h>
-#include <bounce/dynamics/cloth/cloth_contact_solver.h>
-#include <bounce/dynamics/cloth/cloth.h>
-#include <bounce/dynamics/cloth/particle.h>
-#include <bounce/dynamics/cloth/force.h>
-#include <bounce/dynamics/cloth/dense_vec3.h>
-#include <bounce/dynamics/cloth/diag_mat33.h>
-#include <bounce/dynamics/cloth/sparse_sym_mat33.h>
-#include <bounce/dynamics/shapes/shape.h>
-#include <bounce/dynamics/body.h>
+#include <bounce/cloth/cloth_solver.h>
+#include <bounce/cloth/cloth_contact_solver.h>
+#include <bounce/cloth/cloth.h>
+#include <bounce/cloth/particle.h>
+#include <bounce/cloth/force.h>
+#include <bounce/cloth/dense_vec3.h>
+#include <bounce/cloth/diag_mat33.h>
+#include <bounce/cloth/sparse_sym_mat33.h>
 #include <bounce/common/memory/stack_allocator.h>
 #include <bounce/common/math/mat.h>
+#include <bounce/dynamics/shapes/shape.h>
+#include <bounce/dynamics/body.h>
 
 // Here, we solve Ax = b using the Modified Preconditioned Conjugate Gradient (MPCG) algorithm.
 // described in the paper:
@@ -298,7 +298,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 
 	// Solve velocity constraints
 	{
-		const u32 kVelocityIterations = 5;
+		const u32 kVelocityIterations = 10;
 
 		for (u32 i = 0; i < kVelocityIterations; ++i)
 		{

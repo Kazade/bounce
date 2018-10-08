@@ -16,10 +16,10 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/dynamics/cloth/cloth_mesh.h>
-#include <bounce/garment/garment.h>
-#include <bounce/garment/garment_mesh.h>
-#include <bounce/garment/sewing_pattern.h>
+#include <bounce/cloth/cloth_mesh.h>
+#include <bounce/cloth/garment/garment.h>
+#include <bounce/cloth/garment/garment_mesh.h>
+#include <bounce/cloth/garment/sewing_pattern.h>
 
 b3GarmentClothMesh::b3GarmentClothMesh()
 {

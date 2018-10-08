@@ -19,7 +19,7 @@
 #ifndef SHIRT_H
 #define SHIRT_H
 
-class Shirt : public ClothTest
+class Shirt : public Test
 {
 public:
 	Shirt()
@@ -57,7 +57,63 @@ public:
 		def.density = 0.2f;
 		def.structural = 10000.0f;
 
-		m_cloth = m_world.CreateCloth(def);
+		m_cloth = new b3Cloth(def);
+
+		m_cloth->SetGravity(b3Vec3(0.0f, -9.8f, 0.0f));
+		m_cloth->SetWorld(&m_world);
+
+		m_clothDragger = new b3ClothDragger(&m_ray, m_cloth);
+	}
+	
+	~Shirt()
+	{
+		delete m_clothDragger;
+		delete m_cloth;
+	}
+
+	void Step()
+	{
+		Test::Step();
+
+		m_cloth->Step(g_testSettings->inv_hertz);
+
+		m_cloth->Draw();
+
+		extern u32 b3_clothSolverIterations;
+		g_draw->DrawString(b3Color_white, "Iterations = %d", b3_clothSolverIterations);
+
+		float32 E = m_cloth->GetEnergy();
+		g_draw->DrawString(b3Color_white, "E = %f", E);
+	}
+
+	void MouseMove(const b3Ray3& pw)
+	{
+		Test::MouseMove(pw);
+
+		if (m_clothDragger->IsDragging() == true)
+		{
+			m_clothDragger->Drag();
+		}
+	}
+
+	void MouseLeftDown(const b3Ray3& pw)
+	{
+		Test::MouseLeftDown(pw);
+
+		if (m_clothDragger->IsDragging() == false)
+		{
+			m_clothDragger->StartDragging();
+		}
+	}
+
+	void MouseLeftUp(const b3Ray3& pw)
+	{
+		Test::MouseLeftUp(pw);
+
+		if (m_clothDragger->IsDragging() == true)
+		{
+			m_clothDragger->StopDragging();
+		}
 	}
 
 	static Test* Create()
@@ -68,6 +124,9 @@ public:
 	b3ShirtGarment m_shirtGarment;
 	b3GarmentMesh m_shirtGarmentMesh;
 	b3GarmentClothMesh m_shirtClothMesh;
+
+	b3Cloth* m_cloth;
+	b3ClothDragger* m_clothDragger;
 };
 
 #endif

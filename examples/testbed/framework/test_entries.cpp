@@ -60,7 +60,6 @@
 #include <testbed/tests/varying_restitution.h>
 #include <testbed/tests/tumbler.h>
 #include <testbed/tests/multiple_pendulum.h>
-#include <testbed/tests/cloth_test.h>
 #include <testbed/tests/table_cloth.h>
 #include <testbed/tests/pinned_cloth.h>
 #include <testbed/tests/shirt.h>

@@ -16,12 +16,12 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/dynamics/cloth/cloth_contact_solver.h>
-#include <bounce/dynamics/cloth/particle.h>
-#include <bounce/dynamics/cloth/dense_vec3.h>
+#include <bounce/cloth/cloth_contact_solver.h>
+#include <bounce/cloth/particle.h>
+#include <bounce/cloth/dense_vec3.h>
+#include <bounce/common/memory/stack_allocator.h>
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/body.h>
-#include <bounce/common/memory/stack_allocator.h>
 
 b3ClothContactSolver::b3ClothContactSolver(const b3ClothContactSolverDef& def)
 {

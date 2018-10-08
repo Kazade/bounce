@@ -16,11 +16,11 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/dynamics/cloth/particle.h>
-#include <bounce/dynamics/cloth/cloth.h>
-#include <bounce/dynamics/cloth/cloth_solver.h>
-#include <bounce/dynamics/cloth/dense_vec3.h>
-#include <bounce/dynamics/cloth/sparse_sym_mat33.h>
+#include <bounce/cloth/particle.h>
+#include <bounce/cloth/cloth.h>
+#include <bounce/cloth/cloth_solver.h>
+#include <bounce/cloth/dense_vec3.h>
+#include <bounce/cloth/sparse_sym_mat33.h>
 
 void b3BodyContactWorldPoint::Initialize(const b3BodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB)
 {

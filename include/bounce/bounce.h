@@ -56,23 +56,20 @@
 #include <bounce/dynamics/contacts/convex_contact.h>
 #include <bounce/dynamics/contacts/mesh_contact.h>
 
-#include <bounce/dynamics/rope/rope.h>
-
-#include <bounce/garment/sewing_pattern.h>
-#include <bounce/garment/garment.h>
-#include <bounce/garment/garment_mesh.h>
-
-#include <bounce/dynamics/cloth/cloth_mesh.h>
-#include <bounce/dynamics/cloth/cloth.h>
-#include <bounce/dynamics/cloth/particle.h>
-#include <bounce/dynamics/cloth/spring_force.h>
-
 #include <bounce/dynamics/body.h>
 
 #include <bounce/dynamics/world.h>
 #include <bounce/dynamics/world_listeners.h>
 
-#include <bounce/controllers/cloth_dragger.h>
-#include <bounce/controllers/body_dragger.h>
+#include <bounce/rope/rope.h>
+
+#include <bounce/cloth/cloth_mesh.h>
+#include <bounce/cloth/cloth.h>
+#include <bounce/cloth/particle.h>
+#include <bounce/cloth/spring_force.h>
+
+#include <bounce/cloth/garment/sewing_pattern.h>
+#include <bounce/cloth/garment/garment.h>
+#include <bounce/cloth/garment/garment_mesh.h>
 
 #endif

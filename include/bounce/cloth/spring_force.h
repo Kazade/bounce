@@ -16,29 +16,25 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_BEND_FORCE_H
-#define B3_BEND_FORCE_H
+#ifndef B3_SPRING_FORCE_H
+#define B3_SPRING_FORCE_H
 
-#include <bounce/dynamics/cloth/force.h>
+#include <bounce/cloth/force.h>
 
-struct b3BendForceDef : public b3ForceDef
+struct b3SpringForceDef : public b3ForceDef
 {
-	b3BendForceDef()
+	b3SpringForceDef()
 	{
-		type = e_bendForce;
+		type = e_springForce;
 		p1 = nullptr;
 		p2 = nullptr;
-		p3 = nullptr;
-		p4 = nullptr;
-		restDistance = 0.0f;
-		restAngle = 0.0f;
+		restLength = 0.0f;
 		structural = 0.0f;
 		damping = 0.0f;
 	}
 
 	// 
-	void Initialize(b3Particle* particle1, b3Particle* particle2, b3Particle* particle3, b3Particle* particle4, 
-		float32 structuralStiffness, float32 dampingStiffness);
+	void Initialize(b3Particle* particle1, b3Particle* particle2, float32 structuralStiffness, float32 dampingStiffness);
 
 	// Particle 1
 	b3Particle* p1;
@@ -46,17 +42,8 @@ struct b3BendForceDef : public b3ForceDef
 	// Particle 2
 	b3Particle* p2;
 
-	// Particle 3
-	b3Particle* p3;
-	
-	// Particle 4
-	b3Particle* p4;
-	
-	// Rest distance
-	float32 restDistance;
-	
-	// Rest angle
-	float32 restAngle;
+	// Rest length
+	float32 restLength;
 
 	// Structural stiffness
 	float32 structural;
@@ -66,30 +53,26 @@ struct b3BendForceDef : public b3ForceDef
 };
 
 // 
-class b3BendForce : public b3Force
+class b3SpringForce : public b3Force
 {
 public:
 	b3Particle* GetParticle1();
 
 	b3Particle* GetParticle2();
 
-	b3Particle* GetParticle3();
-
-	b3Particle* GetParticle4();
-	
-	float32 GetRestDistance() const;
-	
-	float32 GetRestAngle() const;
+	float32 GetRestLenght() const;
 
 	float32 GetStructuralStiffness() const;
 
 	float32 GetDampingStiffness() const;
+
+	b3Vec3 GetActionForce() const;
 private:
 	friend class b3Force;
 	friend class b3Cloth;
 
-	b3BendForce(const b3BendForceDef* def);
-	~b3BendForce();
+	b3SpringForce(const b3SpringForceDef* def);
+	~b3SpringForce();
 
 	void Apply(const b3ClothSolverData* data);
 
@@ -101,58 +84,47 @@ private:
 	// Particle 2
 	b3Particle* m_p2;
 
-	// Particle 3
-	b3Particle* m_p3;
-	
-	// Particle 4
-	b3Particle* m_p4;
-
-	// Rest distance
+	// Rest length
 	float32 m_L0;
 
-	// Rest angle
-	float32 m_angle0;
-	
 	// Structural stiffness
 	float32 m_ks;
 
-	// Structural stiffness
+	// Damping stiffness
 	float32 m_kd;
+
+	// Applied internal force (on particle 1)
+	b3Vec3 m_f;
 };
 
-inline b3Particle* b3BendForce::GetParticle1()
+inline b3Particle * b3SpringForce::GetParticle1()
 {
 	return m_p1;
 }
 
-inline b3Particle* b3BendForce::GetParticle2()
+inline b3Particle* b3SpringForce::GetParticle2()
 {
 	return m_p2;
 }
 
-inline b3Particle* b3BendForce::GetParticle3()
+inline float32 b3SpringForce::GetRestLenght() const
 {
-	return m_p3;
+	return m_L0;
 }
 
-inline b3Particle* b3BendForce::GetParticle4()
-{
-	return m_p4;
-}
-
-inline float32 b3BendForce::GetRestAngle() const
-{
-	return m_angle0;
-}
-
-inline float32 b3BendForce::GetStructuralStiffness() const
+inline float32 b3SpringForce::GetStructuralStiffness() const
 {
 	return m_ks;
 }
 
-inline float32 b3BendForce::GetDampingStiffness() const
+inline float32 b3SpringForce::GetDampingStiffness() const
 {
 	return m_kd;
+}
+
+inline b3Vec3 b3SpringForce::GetActionForce() const
+{
+	return m_f;
 }
 
 #endif

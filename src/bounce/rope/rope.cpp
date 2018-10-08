@@ -16,8 +16,8 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/dynamics/rope/rope.h>
-#include <bounce/dynamics/spatial.h>
+#include <bounce/rope/rope.h>
+#include <bounce/rope/spatial.h>
 #include <bounce/common/draw.h>
 
 struct b3RopeBody

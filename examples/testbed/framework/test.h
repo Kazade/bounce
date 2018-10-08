@@ -22,6 +22,9 @@
 #include <glfw/glfw3.h>
 #include <bounce/bounce.h>
 
+#include <testbed/framework/body_dragger.h>
+#include <testbed/framework/cloth_dragger.h>
+
 #include <testbed/framework/draw.h>
 #include <testbed/framework/view_model.h>
 
@@ -32,27 +35,6 @@ inline float32 RandomFloat(float32 a, float32 b)
 	float32 r = x * diff;
 	return a + r;
 }
-
-class RayCastListener : public b3RayCastListener
-{
-public:
-	float32 ReportShape(b3Shape* shape, const b3Vec3& point, const b3Vec3& normal, float32 fraction)
-	{
-		hit.shape = shape;
-		hit.point = point;
-		hit.normal = normal;
-		hit.fraction = fraction;
-		return 1.0f;
-	}
-
-	float32 ReportCloth(b3Shape* shape, const b3Vec3& point, const b3Vec3& normal, float32 fraction)
-	{
-		B3_ASSERT(false);
-		return 1.0f;
-	}
-	
-	b3RayCastSingleShapeOutput hit;
-};
 
 class Test : public b3ContactListener
 {
@@ -77,10 +59,9 @@ public:
 	void EndContact(b3Contact* c) override { }
 	void PreSolve(b3Contact* c) override { }
 
-	b3World m_world;
-
 	b3Ray3 m_ray;
-	b3ClothDragger m_clothDragger;
+	
+	b3World m_world;
 	b3BodyDragger m_bodyDragger;
 
 	b3BoxHull m_groundHull;

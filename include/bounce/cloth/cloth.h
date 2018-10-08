@@ -21,6 +21,7 @@
 
 #include <bounce/common/math/transform.h>
 #include <bounce/common/template/list.h>
+#include <bounce/common/memory/stack_allocator.h>
 #include <bounce/common/memory/block_pool.h>
 
 class b3World;
@@ -83,7 +84,20 @@ struct b3ClothDef
 class b3Cloth
 {
 public:
-	// Get the world the cloth belongs to.
+	b3Cloth(const b3ClothDef& def);
+	~b3Cloth();
+
+	// Set the acceleration of gravity.
+	void SetGravity(const b3Vec3& gravity);
+
+	// Get the acceleration of gravity.
+	b3Vec3 GetGravity() const;
+
+	// Attach a world to this cloth. 
+	// The cloth will be able to respond to collisions with the static shapes in the attached world.
+	void SetWorld(b3World* world);
+
+	// Get the world attached to this cloth.
 	const b3World* GetWorld() const;
 	b3World* GetWorld();
 
@@ -98,9 +112,6 @@ public:
 
 	// Destroy a given force.
 	void DestroyForce(b3Force* force);
-
-	// Perform a ray cast with the cloth.
-	void RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2);
 
 	// Perform a ray cast with the cloth.
 	bool RayCastSingle(b3ClothRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
@@ -129,19 +140,13 @@ public:
 	// Get the next cloth in the world cloth list.
 	b3Cloth* GetNext();
 
+	// Perform a time step. 
+	void Step(float32 dt);
+
 	// Debug draw the cloth using the associated cloth mesh.
 	void Draw() const;
 private:
-	friend class b3World;
-
 	friend class b3List2<b3Cloth>;
-
-	b3Cloth(const b3ClothDef& def, b3World* world);
-	~b3Cloth();
-
-	// Perform a time step. 
-	// Called only inside b3World.
-	void Step(float32 dt, const b3Vec3& gravity);
 
 	// Compute mass of each particle.
 	void ComputeMass();
@@ -160,6 +165,15 @@ private:
 
 	// Solve
 	void Solve(float32 dt, const b3Vec3& gravity);
+
+	// Stack allocator
+	b3StackAllocator m_stackAllocator;
+
+	// The world attached to this cloth
+	b3World* m_world;
+
+	// Gravity acceleration
+	b3Vec3 m_gravity;
 
 	// Proxy mesh
 	const b3ClothMesh* m_mesh;
@@ -196,14 +210,22 @@ private:
 	
 	// List of triangle contacts
 	b3List2<b3TriangleContact> m_triangleContactList;
-	
-	// The parent world of this cloth.
-	b3World* m_world;
-	
-	// Links to the world cloth list.
-	b3Cloth* m_prev;
-	b3Cloth* m_next;
 };
+
+inline void b3Cloth::SetGravity(const b3Vec3& gravity)
+{
+	m_gravity = gravity;
+}
+
+inline b3Vec3 b3Cloth::GetGravity() const
+{
+	return m_gravity;
+}
+
+inline void b3Cloth::SetWorld(b3World* world)
+{
+	m_world = world;
+}
 
 inline const b3World* b3Cloth::GetWorld() const
 {
@@ -228,16 +250,6 @@ inline const b3List2<b3Particle>& b3Cloth::GetParticleList() const
 inline const b3List2<b3Force>& b3Cloth::GetForceList() const
 {
 	return m_forceList;
-}
-
-inline const b3Cloth* b3Cloth::GetNext() const
-{
-	return m_next;
-}
-
-inline b3Cloth* b3Cloth::GetNext()
-{
-	return m_next;
 }
 
 #endif

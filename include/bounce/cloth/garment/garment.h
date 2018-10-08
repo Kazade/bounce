@@ -19,7 +19,7 @@
 #ifndef B3_GARMENT_H
 #define B3_GARMENT_H
 
-#include <bounce/garment/sewing_pattern.h>
+#include <bounce/cloth/garment/sewing_pattern.h>
 
 struct b3SewingLine
 {

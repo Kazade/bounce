@@ -20,9 +20,9 @@
 #define B3_PARTICLE_H
 
 #include <bounce/common/math/transform.h>
-#include <bounce/common/template/list.h>
-#include <bounce/dynamics/cloth/force.h>
 #include <bounce/common/math/vec2.h>
+#include <bounce/common/template/list.h>
+#include <bounce/cloth/force.h>
 
 class b3Shape;
 class b3Cloth;

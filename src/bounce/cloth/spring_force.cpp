@@ -16,11 +16,11 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/dynamics/cloth/spring_force.h>
-#include <bounce/dynamics/cloth/particle.h>
-#include <bounce/dynamics/cloth/cloth_solver.h>
-#include <bounce/dynamics/cloth/dense_vec3.h>
-#include <bounce/dynamics/cloth/sparse_sym_mat33.h>
+#include <bounce/cloth/spring_force.h>
+#include <bounce/cloth/particle.h>
+#include <bounce/cloth/cloth_solver.h>
+#include <bounce/cloth/dense_vec3.h>
+#include <bounce/cloth/sparse_sym_mat33.h>
 
 void b3SpringForceDef::Initialize(b3Particle* particle1, b3Particle* particle2, float32 structuralStiffness, float32 dampingStiffness)
 {

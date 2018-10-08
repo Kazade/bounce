@@ -16,19 +16,16 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/dynamics/cloth/cloth.h>
-#include <bounce/dynamics/cloth/cloth_mesh.h>
-#include <bounce/dynamics/cloth/particle.h>
-#include <bounce/dynamics/cloth/force.h>
-#include <bounce/dynamics/cloth/spring_force.h>
-#include <bounce/dynamics/cloth/bend_force.h>
-#include <bounce/dynamics/cloth/cloth_solver.h>
+#include <bounce/cloth/cloth.h>
+#include <bounce/cloth/cloth_mesh.h>
+#include <bounce/cloth/particle.h>
+#include <bounce/cloth/force.h>
+#include <bounce/cloth/spring_force.h>
+#include <bounce/cloth/cloth_solver.h>
 #include <bounce/dynamics/world.h>
-#include <bounce/dynamics/world_listeners.h>
 #include <bounce/dynamics/body.h>
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/collision/collision.h>
-#include <bounce/common/memory/stack_allocator.h>
 #include <bounce/common/draw.h>
 
 static B3_FORCE_INLINE u32 b3NextIndex(u32 i)
@@ -149,7 +146,7 @@ static u32 b3FindSharedEdges(b3SharedEdge* sharedEdges, const b3ClothMesh* m)
 	return sharedCount;
 }
 
-b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) :
+b3Cloth::b3Cloth(const b3ClothDef& def) :
 	m_particleBlocks(sizeof(b3Particle)),
 	m_bodyContactBlocks(sizeof(b3BodyContact)),
 	m_particleContactBlocks(sizeof(b3ParticleContact)),
@@ -158,7 +155,6 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) :
 	B3_ASSERT(def.mesh);
 	B3_ASSERT(def.density > 0.0f);
 
-	m_world = world;
 	m_mesh = def.mesh;
 	m_density = def.density;
 
@@ -184,7 +180,7 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) :
 	ComputeMass();
 
 	// Create forces
-	b3StackAllocator* allocator = &m_world->m_stackAllocator;
+	b3StackAllocator* allocator = &m_stackAllocator;
 
 	// Worst-case edge memory
 	u32 edgeCount = 3 * m->triangleCount;
@@ -218,8 +214,8 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) :
 		b3Particle* p3 = m_vertexParticles[e->nsv1];
 		b3Particle* p4 = m_vertexParticles[e->nsv2];
 
-		b3BendForceDef fd;
-		fd.Initialize(p1, p2, p3, p4, def.bending, def.damping);
+		b3SpringForceDef fd;
+		fd.Initialize(p3, p4, def.bending, def.damping);
 
 		CreateForce(fd);
 	}
@@ -240,6 +236,9 @@ b3Cloth::b3Cloth(const b3ClothDef& def, b3World* world) :
 
 		CreateForce(fd);
 	}
+
+	m_gravity.SetZero();
+	m_world = nullptr;
 }
 
 b3Cloth::~b3Cloth()
@@ -354,33 +353,6 @@ void b3Cloth::ComputeMass()
 	}
 }
 
-void b3Cloth::RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2)
-{
-	b3RayCastInput input;
-	input.p1 = p1;
-	input.p2 = p2;
-	input.maxFraction = 1.0f;
-
-	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
-	{
-		b3RayCastOutput subOutput;
-		if (RayCast(&subOutput, &input, i))
-		{
-			float32 fraction = subOutput.fraction;
-			b3Vec3 point = (1.0f - fraction) * input.p1 + fraction * input.p2;
-			b3Vec3 normal = subOutput.normal;
-
-			float32 newFraction = listener->ReportCloth(this, point, normal, fraction, i);
-
-			if (newFraction == 0.0f)
-			{
-				// The client has stopped the query.
-				return;
-			}
-		}
-	}
-}
-
 bool b3Cloth::RayCastSingle(b3ClothRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
 {
 	b3RayCastInput input;
@@ -440,7 +412,6 @@ bool b3Cloth::RayCast(b3RayCastOutput* output, const b3RayCastInput* input, u32 
 		return false;
 	}
 
-	B3_ASSERT(len > B3_EPSILON);
 	n /= len;
 
 	float32 numerator = b3Dot(n, v1 - p1);
@@ -483,11 +454,8 @@ bool b3Cloth::RayCast(b3RayCastOutput* output, const b3RayCastInput* input, u32 
 	float32 v = b3Dot(QC_x_QA, AB_x_AC);
 	float32 w = b3Dot(QA_x_QB, AB_x_AC);
 
-	// Characteristic length of triangle
-	const float32 kTol = -B3_EPSILON;
-
 	// Is the intersection on the triangle?
-	if (u > kTol && v > kTol && w > kTol)
+	if (u >= 0.0f && v >= 0.0f && w >= 0.0f)
 	{
 		output->fraction = fraction;
 
@@ -509,6 +477,12 @@ bool b3Cloth::RayCast(b3RayCastOutput* output, const b3RayCastInput* input, u32 
 
 void b3Cloth::UpdateBodyContacts()
 {
+	// Is there a world attached to this cloth?
+	if (m_world == nullptr)
+	{
+		return;
+	}
+
 	B3_PROFILE("Cloth Update Body Contacts");
 	
 	// Clear buffer
@@ -537,9 +511,13 @@ void b3Cloth::UpdateBodyContacts()
 
 		for (b3Body* body = m_world->GetBodyList().m_head; body; body = body->GetNext())
 		{
-			if (p->m_type != e_dynamicParticle && body->GetType() != e_dynamicBody)
+			if (p->m_type != e_dynamicParticle)
 			{
-				// At least one body should be kinematic or dynamic.
+				continue;
+			}
+
+			if (body->GetType() != e_staticBody)
+			{
 				continue;
 			}
 
@@ -887,7 +865,7 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 
 	// Solve
 	b3ClothSolverDef solverDef;
-	solverDef.stack = &m_world->m_stackAllocator;
+	solverDef.stack = &m_stackAllocator;
 	solverDef.particleCapacity = m_particleList.m_count;
 	solverDef.forceCapacity = m_forceList.m_count;
 	solverDef.bodyContactCapacity = m_bodyContactList.m_count;
@@ -937,14 +915,16 @@ void b3Cloth::UpdateContacts()
 	// Update body contacts
 	UpdateBodyContacts();
 
+#if 0
 	// Update particle contacts
 	UpdateParticleContacts();
 
 	// Update triangle contacts
 	UpdateTriangleContacts();
+#endif
 }
 
-void b3Cloth::Step(float32 dt, const b3Vec3& gravity)
+void b3Cloth::Step(float32 dt)
 {
 	B3_PROFILE("Cloth Step");
 
@@ -954,7 +934,7 @@ void b3Cloth::Step(float32 dt, const b3Vec3& gravity)
 	// Solve constraints, integrate state, clear forces and translations. 
 	if (dt > 0.0f)
 	{
-		Solve(dt, gravity);
+		Solve(dt, m_gravity);
 	}
 }
 

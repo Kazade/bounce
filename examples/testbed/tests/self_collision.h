@@ -19,7 +19,7 @@
 #ifndef SELF_COLLISION_H
 #define SELF_COLLISION_H
 
-class SelfCollision : public ClothTest
+class SelfCollision : public Test
 {
 public:
 	SelfCollision() : m_rectangleGarment(5.0f, 5.0f)
@@ -30,19 +30,24 @@ public:
 		// Create 3D mesh
 		m_rectangleClothMesh.Set(&m_rectangleGarmentMesh);
 
-		b3Mat33 Rx = b3Mat33RotationX(0.5f * B3_PI);
+		// Rotate and translate the mesh
+		b3Mat33 rotation = b3Mat33RotationX(0.5f * B3_PI);
 		for (u32 i = 0; i < m_rectangleClothMesh.vertexCount; ++i)
 		{
-			m_rectangleClothMesh.vertices[i] = Rx * m_rectangleClothMesh.vertices[i];
+			m_rectangleClothMesh.vertices[i] = rotation * m_rectangleClothMesh.vertices[i];
 			m_rectangleClothMesh.vertices[i].y += 5.0f;
 		}
 
+		// Create cloth
 		b3ClothDef def;
 		def.mesh = &m_rectangleClothMesh;
 		def.density = 1.0f;
 		def.structural = 100000.0f;
 		
-		m_cloth = m_world.CreateCloth(def);
+		m_cloth = new b3Cloth(def);
+
+		m_cloth->SetGravity(b3Vec3(0.0f, -9.8f, 0.0f));
+		m_cloth->SetWorld(&m_world);
 
 		for (b3Particle* p = m_cloth->GetParticleList().m_head; p; p = p->GetNext())
 		{
@@ -67,6 +72,71 @@ public:
 
 			b->CreateShape(sd);
 		}
+
+		m_clothDragger = new b3ClothDragger(&m_ray, m_cloth);
+	}
+
+	~SelfCollision()
+	{
+		delete m_cloth;
+		delete m_clothDragger;
+	}
+
+	void Step()
+	{
+		Test::Step();
+
+		m_cloth->Step(g_testSettings->inv_hertz);
+
+		m_cloth->Draw();
+
+		if (m_clothDragger->IsDragging())
+		{
+			b3Vec3 pA = m_clothDragger->GetPointA();
+			b3Vec3 pB = m_clothDragger->GetPointB();
+
+			g_draw->DrawPoint(pA, 2.0f, b3Color_green);
+
+			g_draw->DrawPoint(pB, 2.0f, b3Color_green);
+
+			g_draw->DrawSegment(pA, pB, b3Color_white);
+		}
+
+		extern u32 b3_clothSolverIterations;
+		g_draw->DrawString(b3Color_white, "Iterations = %d", b3_clothSolverIterations);
+
+		float32 E = m_cloth->GetEnergy();
+		g_draw->DrawString(b3Color_white, "E = %f", E);
+	}
+
+	void MouseMove(const b3Ray3& pw)
+	{
+		Test::MouseMove(pw);
+
+		if (m_clothDragger->IsDragging() == true)
+		{
+			m_clothDragger->Drag();
+		}
+	}
+
+	void MouseLeftDown(const b3Ray3& pw)
+	{
+		Test::MouseLeftDown(pw);
+
+		if (m_clothDragger->IsDragging() == false)
+		{
+			m_clothDragger->StartDragging();
+		}
+	}
+
+	void MouseLeftUp(const b3Ray3& pw)
+	{
+		Test::MouseLeftUp(pw);
+
+		if (m_clothDragger->IsDragging() == true)
+		{
+			m_clothDragger->StopDragging();
+		}
 	}
 
 	static Test* Create()
@@ -77,6 +147,9 @@ public:
 	b3RectangleGarment m_rectangleGarment;
 	b3GarmentMesh m_rectangleGarmentMesh;
 	b3GarmentClothMesh m_rectangleClothMesh;
-};
+
+	b3Cloth* m_cloth;
+	b3ClothDragger* m_clothDragger; 
+	};
 
 #endif
