@@ -1,6 +1,6 @@
 ## Bounce
 
-**Welcome! Bounce is a 3D physics engine.**
+**Welcome! Bounce is a 3D physics engine for games.**
 
 Feel free to ask questions, give feedback and suggestions using the issue tracker. 
 
