@@ -25,8 +25,8 @@
 #include <bounce/common/template/array.h>
 
 // This defines the maximum number of profiler events that can be 
-// queued per frame until the function Profiler::Flush is called.
-#define MAX_PROFILER_EVENTS 256
+// queued per frame until the function Profiler::End is called.
+#define MAX_PROFILER_EVENTS 2048
 
 class ProfilerListener;
 
