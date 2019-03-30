@@ -61,27 +61,35 @@ ProfilerRecord* RecorderProfiler::FindRecord(const char* name)
 	return nullptr;
 }
 
-void RecorderProfiler::Add(const char* name, float64 elapsedTime)
+void RecorderProfiler::BeginEvent(const char* name, float64 time)
 {
-	B3_ASSERT(elapsedTime >= 0.0);
-
 	++m_call;
-
+	
 	ProfilerRecord* fr = FindRecord(name);
 	if (fr)
 	{
-		fr->elapsed += elapsedTime;
-		fr->maxElapsed = b3Max(fr->maxElapsed, elapsedTime);
+		fr->time = time;
 		fr->call = m_call;
-
 		return;
 	}
 
 	ProfilerRecord r;
 	r.name = name;
-	r.elapsed = elapsedTime;
-	r.maxElapsed = elapsedTime;
+	r.time = time;
+	r.elapsed = 0.0;
+	r.maxElapsed = 0.0;
 	r.call = m_call;
 
 	m_records.PushBack(r);
+}
+
+void RecorderProfiler::EndEvent(const char* name, float64 time)
+{
+	ProfilerRecord* fr = FindRecord(name);
+	B3_ASSERT(fr != nullptr);
+
+	float64 elapsedTime = time - fr->time;
+
+	fr->elapsed += elapsedTime;
+	fr->maxElapsed = b3Max(fr->maxElapsed, elapsedTime);
 }

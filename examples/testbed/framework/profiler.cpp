@@ -81,8 +81,6 @@ void Profiler::End()
 			listener->BeginEvent(e.name, e.t0);
 
 			listener->EndEvent(e.name, e.t1);
-
-			listener->Duration(e.name, e.t1 - e.t0);
 		}
 	}
 

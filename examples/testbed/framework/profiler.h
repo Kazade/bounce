@@ -92,14 +92,6 @@ public:
 		B3_NOT_USED(name);
 		B3_NOT_USED(time);
 	}
-
-	// This function is called when a profiler event ends.
-	// However it supplies the duration of the last begin and end events.
-	virtual void Duration(const char* name, float64 duration)
-	{
-		B3_NOT_USED(name);
-		B3_NOT_USED(duration);
-	}
 };
 
 extern ProfilerListener* g_profilerListener;

@@ -36,7 +36,7 @@ class TestbedListener : public ProfilerListener
 public:
 	void BeginEvents() override
 	{
-		m_recorderProfiler.BeginEvents();
+		m_recorderListener.BeginEvents();
 
 #if (PROFILE_JSON == 1)
 		m_jsonListener.BeginEvents();
@@ -46,7 +46,7 @@ public:
 
 	void EndEvents() override
 	{
-		m_recorderProfiler.EndEvents();
+		m_recorderListener.EndEvents();
 
 #if (PROFILE_JSON == 1)
 		m_jsonListener.EndEvents();
@@ -56,6 +56,8 @@ public:
 
 	void BeginEvent(const char* name, float64 time) override
 	{
+		m_recorderListener.BeginEvent(name, time);
+
 #if (PROFILE_JSON == 1)
 		m_jsonListener.BeginEvent(name, time);
 #endif
@@ -63,18 +65,14 @@ public:
 
 	void EndEvent(const char* name, float64 time) override
 	{
+		m_recorderListener.EndEvent(name, time);
+
 #if (PROFILE_JSON == 1)
 		m_jsonListener.EndEvent(name, time);
 #endif
-
 	}
 
-	void Duration(const char* name, float64 duration) override
-	{
-		m_recorderProfiler.Add(name, duration);
-	}
-
-	RecorderProfiler m_recorderProfiler;
+	RecorderProfiler m_recorderListener;
 
 #if (PROFILE_JSON == 1)
 	JsonProfiler m_jsonListener;

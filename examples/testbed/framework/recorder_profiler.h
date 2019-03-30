@@ -26,6 +26,7 @@
 struct ProfilerRecord
 {
 	const char* name;
+	float64 time;
 	float64 elapsed;
 	float64 maxElapsed;
 	u32 call;
@@ -41,7 +42,9 @@ public:
 
 	void EndEvents();
 
-	void Add(const char* name, float64 elapsedTime);
+	void BeginEvent(const char* name, float64 time);
+	
+	void EndEvent(const char* name, float64 time);
 
 	ProfilerRecord* FindRecord(const char* name);
 
