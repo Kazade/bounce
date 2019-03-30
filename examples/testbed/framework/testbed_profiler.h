@@ -22,7 +22,7 @@
 #include <testbed/framework/profiler.h>
 #include <testbed/framework/recorder_profiler.h>
 
-// Set to 1 then the testbed listener will write profile events into a .json file.
+// Set to 1 then the testbed profiler will write profile events into a .json file.
 // Set to 0 otherwise.
 #define PROFILE_JSON 0
 
@@ -30,8 +30,7 @@
 	#include <testbed\framework\json_profiler.h>
 #endif
 
-
-class TestbedListener : public ProfilerListener
+class TestbedProfiler : public ProfilerListener
 {
 public:
 	void BeginEvents() override

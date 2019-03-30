@@ -120,7 +120,7 @@ static void Run()
 
 		if (g_settings->drawProfile)
 		{
-			const b3Array<ProfilerRecord>& records = g_profilerRecorder->GetRecords();
+			const b3Array<ProfilerRecord>& records = g_recorderProfiler->GetRecords();
 			for (u32 i = 0; i < records.Count(); ++i)
 			{
 				const ProfilerRecord& r = records[i];

@@ -18,7 +18,7 @@
 
 #include <testbed/framework/recorder_profiler.h>
 
-RecorderProfiler* g_profilerRecorder = nullptr;
+RecorderProfiler* g_recorderProfiler = nullptr;
 
 void RecorderProfiler::BeginEvents()
 {

@@ -20,7 +20,7 @@
 #define MODEL_H
 
 #include <testbed/framework/draw.h>
-#include <testbed/framework/testbed_listener.h>
+#include <testbed/framework/testbed_profiler.h>
 
 class Test;
 
@@ -63,7 +63,7 @@ private:
 	Draw m_draw;
 	Camera m_camera;
 	Profiler m_profiler;
-	TestbedListener m_profilerListener;
+	TestbedProfiler m_profilerListener;
 	Test* m_test;
 	bool m_setTest;
 	bool m_pause;

@@ -46,14 +46,14 @@ public:
 	
 	void EndEvent(const char* name, float64 time);
 
-	ProfilerRecord* FindRecord(const char* name);
-
 	const b3Array<ProfilerRecord>& GetRecords() const { return m_records; }
 private:
+	ProfilerRecord* FindRecord(const char* name);
+	
 	b3StackArray<ProfilerRecord, 256> m_records; // persistent records sorted by call order
 	u32 m_call;
 };
 
-extern RecorderProfiler* g_profilerRecorder;
+extern RecorderProfiler* g_recorderProfiler;
 
 #endif

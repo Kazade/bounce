@@ -26,7 +26,7 @@ Model::Model()
 	g_draw = &m_draw;
 	g_camera = &m_camera;
 	g_profiler = &m_profiler;
-	g_profilerRecorder = &m_profilerListener.m_recorderListener;
+	g_recorderProfiler = &m_profilerListener.m_recorderListener;
 	g_profilerListener = &m_profilerListener;
 
 	m_test = nullptr;
@@ -53,7 +53,7 @@ Model::~Model()
 	g_draw = nullptr;
 	g_camera = nullptr;
 	g_profiler = nullptr;
-	g_profilerRecorder = nullptr;
+	g_recorderProfiler = nullptr;
 	g_profilerListener = nullptr;
 
 	delete m_test;
