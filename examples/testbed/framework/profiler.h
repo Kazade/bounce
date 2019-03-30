@@ -21,7 +21,6 @@
 
 #include <bounce/common/math/math.h>
 #include <bounce/common/time.h>
-#include <bounce/common/template/queue.h>
 #include <bounce/common/template/array.h>
 
 class ProfilerListener;
