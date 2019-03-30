@@ -43,9 +43,9 @@ public:
 
 	void EndEvents();
 
-	void BeginEvent(i32 tid, i32 pid, const char* name, float64 time);
+	void BeginEvent(const char* name, float64 time);
 
-	void EndEvent(i32 tid, i32 pid, const char* name, float64 time);
+	void EndEvent(const char* name, float64 time);
 private:
 	FILE * m_file;
 	FileWriteStream* m_stream;

@@ -24,17 +24,11 @@
 #include <bounce/common/template/queue.h>
 #include <bounce/common/template/array.h>
 
-// This defines the maximum number of profiler events that can be 
-// queued per frame until the function Profiler::End is called.
-#define MAX_PROFILER_EVENTS 2048
-
 class ProfilerListener;
 
 // A time-stamped profiler event.
 struct ProfilerEvent
 {
-	i32 tid;
-	i32 pid;
 	const char* name;
 	float64 t0;
 	float64 t1;
@@ -56,7 +50,7 @@ public:
 	// The function will report all events in this profiler 
 	// to the given event listener in the correct calling order.
 	// This function also flushes the profiler.
-	void End(ProfilerListener* listener);
+	void End();
 
 	// Add a profiler event to the queue.
 	// You can control the maximum number of profiler events using 
@@ -67,7 +61,7 @@ public:
 	void PopEvent();
 private:
 	b3Time m_time;
-	b3BoundedQueue<ProfilerEvent, MAX_PROFILER_EVENTS> m_events;
+	b3StackArray<ProfilerEvent, 256> m_events;
 	ProfilerEvent* m_top;
 };
 
@@ -86,19 +80,15 @@ public:
 	virtual void EndEvents() { }
 	
 	// This function is called when a profiler event begins.
-	virtual void BeginEvent(i32 tid, i32 pid, const char* name, float64 time) 
+	virtual void BeginEvent(const char* name, float64 time) 
 	{
-		B3_NOT_USED(tid);
-		B3_NOT_USED(pid);
 		B3_NOT_USED(name);
 		B3_NOT_USED(time);
 	}
 
 	// This function is called when a profiler event ends.
-	virtual void EndEvent(i32 tid, i32 pid, const char* name, float64 time)
+	virtual void EndEvent(const char* name, float64 time)
 	{
-		B3_NOT_USED(tid);
-		B3_NOT_USED(pid);
 		B3_NOT_USED(name);
 		B3_NOT_USED(time);
 	}

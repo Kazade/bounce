@@ -22,7 +22,7 @@ RecorderProfiler* g_profilerRecorder = nullptr;
 
 void RecorderProfiler::BeginEvents()
 {
-	m_count = 0;
+	m_call = 0;
 	for (u32 i = 0; i < m_records.Count(); ++i)
 	{
 		m_records[i].elapsed = 0.0;
@@ -43,33 +43,45 @@ void RecorderProfiler::EndEvents()
 			if (r2.call < r1.call)
 			{
 				b3Swap(r1, r2);
-				break;
 			}
 		}
 	}
 }
 
-void RecorderProfiler::Add(const char* name, float64 elapsedTime)
+ProfilerRecord* RecorderProfiler::FindRecord(const char* name)
 {
-	m_count += 1;
-
 	for (u32 i = 0; i < m_records.Count(); ++i)
 	{
 		ProfilerRecord& r = m_records[i];
 		if (r.name == name)
 		{
-			r.elapsed += elapsedTime;
-			r.maxElapsed = b3Max(r.maxElapsed, elapsedTime);
-			r.call = m_count;
-			return;
+			return &r;
 		}
+	}
+	return nullptr;
+}
+
+void RecorderProfiler::Add(const char* name, float64 elapsedTime)
+{
+	B3_ASSERT(elapsedTime >= 0.0);
+
+	++m_call;
+
+	ProfilerRecord* fr = FindRecord(name);
+	if (fr)
+	{
+		fr->elapsed += elapsedTime;
+		fr->maxElapsed = b3Max(fr->maxElapsed, elapsedTime);
+		fr->call = m_call;
+
+		return;
 	}
 
 	ProfilerRecord r;
 	r.name = name;
 	r.elapsed = elapsedTime;
 	r.maxElapsed = elapsedTime;
-	r.call = m_count;
+	r.call = m_call;
 
 	m_records.PushBack(r);
 }

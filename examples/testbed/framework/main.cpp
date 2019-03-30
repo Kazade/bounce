@@ -124,8 +124,7 @@ static void Run()
 			for (u32 i = 0; i < records.Count(); ++i)
 			{
 				const ProfilerRecord& r = records[i];
-				
-				if (r.elapsed > 0.0)
+				if (r.call != 0)
 				{
 					g_draw->DrawString(b3Color_white, "%s %.4f (%.4f) [ms]", r.name, r.elapsed, r.maxElapsed);
 				}
@@ -140,7 +139,7 @@ static void Run()
 
 		g_profiler->PopEvent();
 		
-		g_profiler->End(g_profilerListener);
+		g_profiler->End();
 
 		glfwSwapBuffers(g_window);
 		glfwPollEvents();

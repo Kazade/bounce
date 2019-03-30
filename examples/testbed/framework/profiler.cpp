@@ -35,26 +35,24 @@ void Profiler::PushEvent(const char* name)
 	m_time.Update();
 
 	ProfilerEvent e;
-	e.tid = -1;
-	e.pid = -1;
 	e.t0 = m_time.GetCurrentMilis();
-	e.t1 = 0.0;
+	e.t1 = -1.0;
 	e.name = name;
 	e.parent = m_top;
 
-	ProfilerEvent* back = m_events.Push(e);
-	B3_ASSERT(back);
-	m_top = back;
+	m_events.PushBack(e);
+
+	m_top = &m_events.Back();
 }
 
 void Profiler::PopEvent()
 {
-	B3_ASSERT(m_top);
-	B3_ASSERT(m_top->t1 == 0.0);
-
 	m_time.Update();
+	
 	m_top->t1 = m_time.GetCurrentMilis();
-	B3_ASSERT(m_top->t1 != 0.0);
+
+	B3_ASSERT(m_top->t1 > m_top->t0);
+
 	m_top = m_top->parent;
 }
 
@@ -65,28 +63,30 @@ void Profiler::Begin()
 	B3_ASSERT(m_top == NULL);
 }
 
-void Profiler::End(ProfilerListener* listener)
+void Profiler::End()
 {
+	ProfilerListener* listener = g_profilerListener;
+
 	if (listener)
 	{
 		listener->BeginEvents();
 	}
 
-	while (m_events.IsEmpty() == false)
+	for (u32 i = 0; i < m_events.Count(); ++i)
 	{
-		ProfilerEvent e = m_events.Front();
-
-		m_events.Pop();
+		ProfilerEvent e = m_events[i];
 
 		if (listener)
 		{
-			listener->BeginEvent(e.tid, e.pid, e.name, e.t0);
+			listener->BeginEvent(e.name, e.t0);
 
-			listener->EndEvent(e.tid, e.pid, e.name, e.t1);
+			listener->EndEvent(e.name, e.t1);
 
 			listener->Duration(e.name, e.t1 - e.t0);
 		}
 	}
+
+	m_events.Resize(0);
 
 	B3_ASSERT(m_events.IsEmpty());
 	B3_ASSERT(m_top == NULL);

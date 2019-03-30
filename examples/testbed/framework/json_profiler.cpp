@@ -75,7 +75,7 @@ void JsonProfiler::EndEvents()
 	m_file = nullptr;
 }
 
-void JsonProfiler::BeginEvent(i32 tid, i32 pid, const char* name, float64 t)
+void JsonProfiler::BeginEvent(const char* name, float64 t)
 {
 	if (!m_writer)
 	{
@@ -87,8 +87,8 @@ void JsonProfiler::BeginEvent(i32 tid, i32 pid, const char* name, float64 t)
 	float64 scale = 1000.0;
 
 	m_writer->StartObject();
-	m_writer->STRING("pid");  m_writer->Int(pid);
-	m_writer->STRING("tid");  m_writer->Int(tid);
+	m_writer->STRING("pid");  m_writer->Int(0);
+	m_writer->STRING("tid");  m_writer->Int(0);
 	m_writer->STRING("ts");   m_writer->Int64((u64)(t * scale));
 	m_writer->STRING("ph");   m_writer->String(phase, 1);
 	m_writer->STRING("cat");  m_writer->STRING("physics");
@@ -97,7 +97,7 @@ void JsonProfiler::BeginEvent(i32 tid, i32 pid, const char* name, float64 t)
 	m_writer->EndObject();
 }
 
-void JsonProfiler::EndEvent(i32 tid, i32 pid, const char* name, float64 t)
+void JsonProfiler::EndEvent(const char* name, float64 t)
 {
 	if (!m_writer)
 	{
@@ -109,8 +109,8 @@ void JsonProfiler::EndEvent(i32 tid, i32 pid, const char* name, float64 t)
 	float64 scale = 1000.0;
 
 	m_writer->StartObject();
-	m_writer->STRING("pid");  m_writer->Int(pid);
-	m_writer->STRING("tid");  m_writer->Int(tid);
+	m_writer->STRING("pid");  m_writer->Int(0);
+	m_writer->STRING("tid");  m_writer->Int(0);
 	m_writer->STRING("ts");   m_writer->Int64((u64)(t * scale));
 	m_writer->STRING("ph");   m_writer->String(phase, 1);
 	m_writer->STRING("cat");  m_writer->STRING("physics");

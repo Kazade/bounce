@@ -54,25 +54,24 @@ public:
 
 	}
 
-	void BeginEvent(i32 tid, i32 pid, const char* name, float64 time) override
+	void BeginEvent(const char* name, float64 time) override
 	{
 #if (PROFILE_JSON == 1)
-		m_jsonListener.BeginEvent(tid, pid, name, time);
+		m_jsonListener.BeginEvent(name, time);
+#endif
+	}
+
+	void EndEvent(const char* name, float64 time) override
+	{
+#if (PROFILE_JSON == 1)
+		m_jsonListener.EndEvent(name, time);
 #endif
 
 	}
 
-	void EndEvent(i32 tid, i32 pid, const char* name, float64 time) override
+	void Duration(const char* name, float64 duration) override
 	{
-#if (PROFILE_JSON == 1)
-		m_jsonListener.EndEvent(tid, pid, name, time);
-#endif
-
-	}
-
-	void Duration(const char* name, float64 time) override
-	{
-		m_recorderProfiler.Add(name, time);
+		m_recorderProfiler.Add(name, duration);
 	}
 
 	RecorderProfiler m_recorderProfiler;
