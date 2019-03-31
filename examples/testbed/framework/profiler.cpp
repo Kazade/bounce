@@ -29,8 +29,8 @@ Profiler::Profiler() : m_pool(sizeof(ProfilerNode))
 
 Profiler::~Profiler()
 {
-	B3_ASSERT(m_root == nullptr);
-	B3_ASSERT(m_top == nullptr);
+	assert(m_root == nullptr);
+	assert(m_top == nullptr);
 }
 
 ProfilerNode* Profiler::CreateNode()
@@ -75,9 +75,9 @@ void Profiler::EndScope()
 {
 	m_time.Update();
 	
-	B3_ASSERT(m_top != nullptr);
+	assert(m_top != nullptr);
 	m_top->t1 = m_time.GetCurrentMilis();
-	B3_ASSERT(m_top->t1 > m_top->t0);
+	assert(m_top->t1 > m_top->t0);
 
 	m_top = m_top->parent;
 }
@@ -85,8 +85,8 @@ void Profiler::EndScope()
 void Profiler::Begin()
 {
 	// If this assert is hit then it means Profiler::End hasn't been called.
-	B3_ASSERT(m_root == nullptr);
-	B3_ASSERT(m_top == nullptr);
+	assert(m_root == nullptr);
+	assert(m_top == nullptr);
 }
 
 static inline void RecurseEvents(ProfilerNode* node)
@@ -118,7 +118,7 @@ void Profiler::RecurseDestroy(ProfilerNode* node)
 
 void Profiler::End()
 {
-	B3_ASSERT(m_top == nullptr);
+	assert(m_top == nullptr);
 	
 	ProfilerListener* listener = g_profilerListener;
 
@@ -132,7 +132,7 @@ void Profiler::End()
 	RecurseDestroy(m_root);
 	m_root = nullptr;
 
-	B3_ASSERT(m_root == nullptr);
+	assert(m_root == nullptr);
 
 	if (listener)
 	{
