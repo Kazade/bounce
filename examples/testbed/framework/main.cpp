@@ -105,7 +105,7 @@ static void Run()
 	{
 		g_profiler->Begin();
 
-		g_profiler->PushEvent("Frame");
+		g_profiler->BeginScope("Frame");
 		
 		g_view->BeginInterface();
 
@@ -137,7 +137,7 @@ static void Run()
 
 		g_view->EndInterface();
 
-		g_profiler->PopEvent();
+		g_profiler->EndScope();
 		
 		g_profiler->End();
 
