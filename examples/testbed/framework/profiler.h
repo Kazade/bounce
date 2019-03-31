@@ -20,21 +20,23 @@
 #define PROFILER_H
 
 #include <bounce/common/math/math.h>
-#include <bounce/common/time.h>
+#include <bounce/common/memory/block_pool.h>
 #include <bounce/common/template/array.h>
+#include <bounce/common/time.h>
 
 class ProfilerListener;
 
-// A time-stamped profiler event.
-struct ProfilerEvent
+// Profiler node
+struct ProfilerNode
 {
 	const char* name;
 	float64 t0;
 	float64 t1;
-	ProfilerEvent* parent;
+	ProfilerNode* parent;
+	b3StackArray<ProfilerNode*, 256> children;
 };
 
-// A single-threaded event-based profiler.
+// A single-threaded profiler.
 class Profiler
 {
 public:
@@ -51,17 +53,21 @@ public:
 	// This function also flushes the profiler.
 	void End();
 
-	// Add a profiler event to the queue.
-	// You can control the maximum number of profiler events using 
-	// MAX_PROFILER_EVENTS.
+	// Push an event.
 	void PushEvent(const char* name);
 	
 	// Remove the top profiler event.
 	void PopEvent();
 private:
-	b3Time m_time;
-	b3StackArray<ProfilerEvent, 256> m_events;
-	ProfilerEvent* m_top;
+	ProfilerNode* CreateNode();
+	void DestroyNode(ProfilerNode* node);
+	
+	void RecurseDestroy(ProfilerNode* node);
+
+	b3BlockPool m_pool; // pool of nodes
+	b3Time m_time; // timer
+	ProfilerNode* m_root; // tree root node
+	ProfilerNode* m_top; // top node
 };
 
 extern Profiler* g_profiler;

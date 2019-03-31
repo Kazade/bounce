@@ -21,36 +21,62 @@
 Profiler* g_profiler = nullptr;
 ProfilerListener* g_profilerListener = nullptr;
 
-Profiler::Profiler()
+Profiler::Profiler() : m_pool(sizeof(ProfilerNode))
 {
+	m_root = nullptr;
 	m_top = nullptr;
 }
 
 Profiler::~Profiler()
 {
+	B3_ASSERT(m_root == nullptr);
+	B3_ASSERT(m_top == nullptr);
+}
+
+ProfilerNode* Profiler::CreateNode()
+{
+	void* block = m_pool.Allocate();
+	ProfilerNode* n = new (block) ProfilerNode();
+	return n;
+}
+
+void Profiler::DestroyNode(ProfilerNode* node)
+{
+	node->~ProfilerNode();
+	m_pool.Free(node);
 }
 
 void Profiler::PushEvent(const char* name)
 {
 	m_time.Update();
 
-	ProfilerEvent e;
-	e.t0 = m_time.GetCurrentMilis();
-	e.t1 = -1.0;
-	e.name = name;
-	e.parent = m_top;
+	ProfilerNode* n = CreateNode();
+	n->name = name;
+	n->t0 = m_time.GetCurrentMilis();
+	n->t1 = 0.0;
+	n->parent = m_top;
 
-	m_events.PushBack(e);
+	if (m_root == nullptr)
+	{
+		m_root = n;
+		m_top = n;
+		return;
+	}
 
-	m_top = &m_events.Back();
+	if (m_top)
+	{
+		m_top->children.PushBack(n);
+	}
+
+	m_top = n;
 }
 
 void Profiler::PopEvent()
 {
 	m_time.Update();
 	
+	B3_ASSERT(m_top != nullptr);
 	m_top->t1 = m_time.GetCurrentMilis();
-
 	B3_ASSERT(m_top->t1 > m_top->t0);
 
 	m_top = m_top->parent;
@@ -59,12 +85,41 @@ void Profiler::PopEvent()
 void Profiler::Begin()
 {
 	// If this assert is hit then it means Profiler::End hasn't been called.
-	B3_ASSERT(m_events.IsEmpty());
-	B3_ASSERT(m_top == NULL);
+	B3_ASSERT(m_root == nullptr);
+	B3_ASSERT(m_top == nullptr);
+}
+
+static inline void RecurseEvents(ProfilerNode* node)
+{
+	ProfilerListener* listener = g_profilerListener;
+
+	if (listener)
+	{
+		listener->BeginEvent(node->name, node->t0);
+
+		listener->EndEvent(node->name, node->t1);
+	}
+
+	for (u32 i = 0; i < node->children.Count(); ++i)
+	{
+		RecurseEvents(node->children[i]);
+	}
+}
+
+void Profiler::RecurseDestroy(ProfilerNode* node)
+{
+	for (u32 i = 0; i < node->children.Count(); ++i)
+	{
+		RecurseDestroy(node->children[i]);
+	}
+
+	DestroyNode(node);
 }
 
 void Profiler::End()
 {
+	B3_ASSERT(m_top == nullptr);
+	
 	ProfilerListener* listener = g_profilerListener;
 
 	if (listener)
@@ -72,22 +127,12 @@ void Profiler::End()
 		listener->BeginEvents();
 	}
 
-	for (u32 i = 0; i < m_events.Count(); ++i)
-	{
-		ProfilerEvent e = m_events[i];
+	RecurseEvents(m_root);
+	
+	RecurseDestroy(m_root);
+	m_root = nullptr;
 
-		if (listener)
-		{
-			listener->BeginEvent(e.name, e.t0);
-
-			listener->EndEvent(e.name, e.t1);
-		}
-	}
-
-	m_events.Resize(0);
-
-	B3_ASSERT(m_events.IsEmpty());
-	B3_ASSERT(m_top == NULL);
+	B3_ASSERT(m_root == nullptr);
 
 	if (listener)
 	{
