@@ -33,7 +33,7 @@ struct ProfilerNode
 	float64 t0;
 	float64 t1;
 	ProfilerNode* parent;
-	b3StackArray<ProfilerNode*, 256> children;
+	b3StackArray<ProfilerNode*, 32> children;
 };
 
 // A single-threaded profiler.
