@@ -46,7 +46,7 @@ void Profiler::DestroyNode(ProfilerNode* node)
 	m_pool.Free(node);
 }
 
-void Profiler::PushEvent(const char* name)
+void Profiler::BeginScope(const char* name)
 {
 	m_time.Update();
 
@@ -71,7 +71,7 @@ void Profiler::PushEvent(const char* name)
 	m_top = n;
 }
 
-void Profiler::PopEvent()
+void Profiler::EndScope()
 {
 	m_time.Update();
 	

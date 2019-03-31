@@ -26,12 +26,12 @@ extern bool b3_convexCache;
 
 void b3BeginProfileScope(const char* name)
 {
-	g_profiler->PushEvent(name);
+	g_profiler->BeginScope(name);
 }
 
 void b3EndProfileScope()
 {
-	g_profiler->PopEvent();
+	g_profiler->EndScope();
 }
 
 Test::Test() : 

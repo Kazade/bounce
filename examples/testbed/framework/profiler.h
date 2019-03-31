@@ -53,11 +53,11 @@ public:
 	// This function also flushes the profiler.
 	void End();
 
-	// Push an event.
-	void PushEvent(const char* name);
+	// Begin a new scope.
+	void BeginScope(const char* name);
 	
-	// Remove the top profiler event.
-	void PopEvent();
+	// End the top scope.
+	void EndScope();
 private:
 	ProfilerNode* CreateNode();
 	void DestroyNode(ProfilerNode* node);
