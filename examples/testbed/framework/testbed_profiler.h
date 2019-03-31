@@ -16,8 +16,8 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef TESTBED_LISTENER_H
-#define TESTBED_LISTENER_H
+#ifndef TESTBED_PROFILER_H
+#define TESTBED_PROFILER_H
 
 #include <testbed/framework/profiler.h>
 #include <testbed/framework/recorder_profiler.h>
