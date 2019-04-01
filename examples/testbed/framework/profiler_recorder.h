@@ -16,8 +16,8 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef RECORDER_PROFILER_H
-#define RECORDER_PROFILER_H
+#ifndef PROFILER_RECORDER_H
+#define PROFILER_RECORDER_H
 
 #include <bounce/common/math/math.h>
 #include <bounce/common/template/array.h>
@@ -35,7 +35,7 @@ struct ProfilerRecord
 };
 
 // This class maintains persistent profiler records
-class RecorderProfiler
+class ProfilerRecorder
 {
 public:
 	void BuildRecords();
@@ -53,6 +53,6 @@ private:
 	b3StackArray<ProfilerRecord, 256> m_records; // persistent profiler records
 };
 
-extern RecorderProfiler* g_recorderProfiler;
+extern ProfilerRecorder* g_profilerRecorder;
 
 #endif

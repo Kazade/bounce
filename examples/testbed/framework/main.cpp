@@ -137,12 +137,12 @@ static void Run()
 
 		g_profiler->EndScope();
 
-		g_recorderProfiler->BuildRecords();
+		g_profilerRecorder->BuildRecords();
 
 		if (g_settings->drawProfile)
 		{
 			records.Resize(0);
-			g_recorderProfiler->BuildSortedRecords(records);
+			g_profilerRecorder->BuildSortedRecords(records);
 		}
 		
 		g_profiler->End();

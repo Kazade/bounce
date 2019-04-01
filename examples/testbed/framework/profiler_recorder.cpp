@@ -16,12 +16,12 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <testbed/framework/recorder_profiler.h>
+#include <testbed/framework/profiler_recorder.h>
 #include <testbed/framework/profiler.h>
 
-RecorderProfiler* g_recorderProfiler = nullptr;
+ProfilerRecorder* g_profilerRecorder = nullptr;
 
-ProfilerRecord* RecorderProfiler::FindRecord(const char* name)
+ProfilerRecord* ProfilerRecorder::FindRecord(const char* name)
 {
 	for (u32 i = 0; i < m_records.Count(); ++i)
 	{
@@ -34,7 +34,7 @@ ProfilerRecord* RecorderProfiler::FindRecord(const char* name)
 	return nullptr;
 }
 
-void RecorderProfiler::RecurseBuildRecords(ProfilerNode* node)
+void ProfilerRecorder::RecurseBuildRecords(ProfilerNode* node)
 {
 	ProfilerRecord* fr = FindRecord(node->name);
 	if (fr)
@@ -66,7 +66,7 @@ void RecorderProfiler::RecurseBuildRecords(ProfilerNode* node)
 	}
 }
 
-void RecorderProfiler::BuildRecords()
+void ProfilerRecorder::BuildRecords()
 {
 	for (u32 i = 0; i < m_records.Count(); ++i)
 	{
@@ -90,7 +90,7 @@ static ProfilerRecord* FindSortedRecord(b3Array<ProfilerRecord*>& records, const
 	return nullptr;
 }
 
-void RecorderProfiler::RecurseBuildSortedRecords(ProfilerNode* node, b3Array<ProfilerRecord*>& output)
+void ProfilerRecorder::RecurseBuildSortedRecords(ProfilerNode* node, b3Array<ProfilerRecord*>& output)
 {
 	ProfilerRecord* fsr = FindSortedRecord(output, node->name);
 	
@@ -110,7 +110,7 @@ void RecorderProfiler::RecurseBuildSortedRecords(ProfilerNode* node, b3Array<Pro
 	}	
 }
 
-void RecorderProfiler::BuildSortedRecords(b3Array<ProfilerRecord*>& output) 
+void ProfilerRecorder::BuildSortedRecords(b3Array<ProfilerRecord*>& output)
 {
 	assert(output.Count() == 0);
 	
