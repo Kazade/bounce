@@ -59,6 +59,8 @@ public:
 	// End the top scope.
 	void EndScope();
 private:
+	friend class RecorderProfiler;
+	
 	ProfilerNode* CreateNode();
 	void DestroyNode(ProfilerNode* node);
 	

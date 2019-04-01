@@ -19,39 +19,38 @@
 #ifndef RECORDER_PROFILER_H
 #define RECORDER_PROFILER_H
 
-#include <bounce/common/template/array.h>
 #include <bounce/common/math/math.h>
+#include <bounce/common/template/array.h>
 
-// An event in the profiler event recorder.
+struct ProfilerNode;
+
+// A persistent profiler record
 struct ProfilerRecord
 {
 	const char* name;
-	float64 time;
 	float64 elapsed;
+	float64 minElapsed;
 	float64 maxElapsed;
-	u32 call;
+	u32 callCount;
 };
 
-// The profiler recorder simply keeps profile events in an event buffer, 
-// so that they can be rendered, saved to a file, etc. later in a 
-// particular position in code.
+// This class maintains persistent profiler records
 class RecorderProfiler
 {
 public:
-	void BeginEvents();
-
-	void EndEvents();
-
-	void BeginEvent(const char* name, float64 time);
+	void BuildRecords();
 	
-	void EndEvent(const char* name, float64 time);
-
+	void BuildSortedRecords(b3Array<ProfilerRecord*>& output);
+	
 	const b3Array<ProfilerRecord>& GetRecords() const { return m_records; }
 private:
-	ProfilerRecord* FindRecord(const char* name);
+	void RecurseBuildRecords(ProfilerNode* node);
 	
-	b3StackArray<ProfilerRecord, 256> m_records; // persistent records sorted by call order
-	u32 m_call;
+	void RecurseBuildSortedRecords(ProfilerNode* node, b3Array<ProfilerRecord*>& output);
+
+	ProfilerRecord* FindRecord(const char* name);
+
+	b3StackArray<ProfilerRecord, 256> m_records; // persistent profiler records
 };
 
 extern RecorderProfiler* g_recorderProfiler;

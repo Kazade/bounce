@@ -26,8 +26,11 @@ Model::Model()
 	g_draw = &m_draw;
 	g_camera = &m_camera;
 	g_profiler = &m_profiler;
-	g_recorderProfiler = &m_profilerListener.m_recorderListener;
-	g_profilerListener = &m_profilerListener;
+	g_recorderProfiler = &m_recorderProfiler;
+	
+#if (PROFILE_JSON == 1)
+	g_profilerListener = &m_jsonListener;
+#endif
 
 	m_test = nullptr;
 
@@ -54,7 +57,10 @@ Model::~Model()
 	g_camera = nullptr;
 	g_profiler = nullptr;
 	g_recorderProfiler = nullptr;
+
+#if (PROFILE_JSON == 1)
 	g_profilerListener = nullptr;
+#endif
 
 	delete m_test;
 }

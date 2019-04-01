@@ -101,6 +101,8 @@ static void Run()
 	glfwGetWindowSize(g_window, &w, &h);
 	g_view->Event_SetWindowSize(u32(w), u32(h));
 	
+	b3StackArray<ProfilerRecord*, 256> records;
+
 	while (glfwWindowShouldClose(g_window) == 0)
 	{
 		g_profiler->Begin();
@@ -120,14 +122,10 @@ static void Run()
 
 		if (g_settings->drawProfile)
 		{
-			const b3Array<ProfilerRecord>& records = g_recorderProfiler->GetRecords();
 			for (u32 i = 0; i < records.Count(); ++i)
 			{
-				const ProfilerRecord& r = records[i];
-				if (r.call != 0)
-				{
-					g_draw->DrawString(b3Color_white, "%s %.4f (%.4f) [ms]", r.name, r.elapsed, r.maxElapsed);
-				}
+				ProfilerRecord* r = records[i];
+				g_draw->DrawString(b3Color_white, "%s %.4f (min = %.4f) (max = %.4f) (calls = %d) [ms]", r->name, r->elapsed, r->minElapsed, r->maxElapsed, r->callCount);
 			}
 		}
 
@@ -138,6 +136,14 @@ static void Run()
 		g_view->EndInterface();
 
 		g_profiler->EndScope();
+
+		g_recorderProfiler->BuildRecords();
+
+		if (g_settings->drawProfile)
+		{
+			records.Resize(0);
+			g_recorderProfiler->BuildSortedRecords(records);
+		}
 		
 		g_profiler->End();
 

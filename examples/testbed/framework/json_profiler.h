@@ -19,6 +19,8 @@
 #ifndef JSON_PROFILER_H
 #define JSON_PROFILER_H
 
+#include <testbed/framework/profiler.h>
+
 #include <bounce/common/settings.h>
 
 #include <rapidjson/filewritestream.h>
@@ -33,19 +35,19 @@ using namespace rapidjson;
 // Say chrome://tracing to the web browser and load the file
 // This file is by default called "profile.json". Any name can be given. 
 // For implementation details, see json_profile.cpp.
-class JsonProfiler
+class JsonProfiler : public ProfilerListener
 {
 public:
 	JsonProfiler();
 	~JsonProfiler();
 
-	void BeginEvents();
+	void BeginEvents() override;
 
-	void EndEvents();
+	void EndEvents() override;
 
-	void BeginEvent(const char* name, float64 time);
+	void BeginEvent(const char* name, float64 time) override;
 
-	void EndEvent(const char* name, float64 time);
+	void EndEvent(const char* name, float64 time) override;
 private:
 	FILE * m_file;
 	FileWriteStream* m_stream;

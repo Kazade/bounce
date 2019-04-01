@@ -17,36 +17,9 @@
 */
 
 #include <testbed/framework/recorder_profiler.h>
+#include <testbed/framework/profiler.h>
 
 RecorderProfiler* g_recorderProfiler = nullptr;
-
-void RecorderProfiler::BeginEvents()
-{
-	m_call = 0;
-	for (u32 i = 0; i < m_records.Count(); ++i)
-	{
-		m_records[i].elapsed = 0.0;
-		m_records[i].call = 0;
-	}
-}
-
-void RecorderProfiler::EndEvents()
-{
-	for (u32 i = 0; i < m_records.Count(); ++i)
-	{
-		ProfilerRecord& r1 = m_records[i];
-
-		for (u32 j = i + 1; j < m_records.Count(); ++j)
-		{
-			ProfilerRecord& r2 = m_records[j];
-
-			if (r2.call < r1.call)
-			{
-				b3Swap(r1, r2);
-			}
-		}
-	}
-}
 
 ProfilerRecord* RecorderProfiler::FindRecord(const char* name)
 {
@@ -61,35 +34,87 @@ ProfilerRecord* RecorderProfiler::FindRecord(const char* name)
 	return nullptr;
 }
 
-void RecorderProfiler::BeginEvent(const char* name, float64 time)
+void RecorderProfiler::RecurseBuildRecords(ProfilerNode* node)
 {
-	++m_call;
-	
-	ProfilerRecord* fr = FindRecord(name);
+	ProfilerRecord* fr = FindRecord(node->name);
 	if (fr)
 	{
-		fr->time = time;
-		fr->call = m_call;
-		return;
+		float64 elapsedTime = node->t1 - node->t0;
+
+		fr->elapsed += elapsedTime;
+		fr->minElapsed = b3Min(fr->minElapsed, elapsedTime);
+		fr->maxElapsed = b3Max(fr->maxElapsed, elapsedTime);
+		++fr->callCount;
 	}
+	else
+	{
+		float64 elapsedTime = node->t1 - node->t0;
 
-	ProfilerRecord r;
-	r.name = name;
-	r.time = time;
-	r.elapsed = 0.0;
-	r.maxElapsed = 0.0;
-	r.call = m_call;
+		ProfilerRecord r;
+		r.name = node->name;
+		r.elapsed = elapsedTime;
+		r.minElapsed = elapsedTime;
+		r.maxElapsed = elapsedTime;
+		r.callCount = 1;
 
-	m_records.PushBack(r);
+		m_records.PushBack(r);
+	}
+	
+	for (u32 i = 0; i < node->children.Count(); ++i)
+	{
+		RecurseBuildRecords(node->children[i]);
+	}
 }
 
-void RecorderProfiler::EndEvent(const char* name, float64 time)
+void RecorderProfiler::BuildRecords()
 {
-	ProfilerRecord* fr = FindRecord(name);
-	B3_ASSERT(fr != nullptr);
+	for (u32 i = 0; i < m_records.Count(); ++i)
+	{
+		m_records[i].elapsed = 0.0;
+		m_records[i].callCount = 0;
+	}
 
-	float64 elapsedTime = time - fr->time;
+	RecurseBuildRecords(g_profiler->m_root);
+}
 
-	fr->elapsed += elapsedTime;
-	fr->maxElapsed = b3Max(fr->maxElapsed, elapsedTime);
+static ProfilerRecord* FindSortedRecord(b3Array<ProfilerRecord*>& records, const char* name)
+{
+	for (u32 i = 0; i < records.Count(); ++i)
+	{
+		ProfilerRecord* r = records[i];
+		if (r->name == name)
+		{
+			return r;
+		}
+	}
+	return nullptr;
+}
+
+void RecorderProfiler::RecurseBuildSortedRecords(ProfilerNode* node, b3Array<ProfilerRecord*>& output)
+{
+	ProfilerRecord* fsr = FindSortedRecord(output, node->name);
+	
+	if (fsr == nullptr)
+	{
+		ProfilerRecord* fr = FindRecord(node->name);
+	
+		assert(fr != nullptr);
+
+		// Push back the first ocurrence of call in calling order
+		output.PushBack(fr);
+	}
+	
+	for (u32 i = 0; i < node->children.Count(); ++i)
+	{
+		RecurseBuildSortedRecords(node->children[i], output);
+	}	
+}
+
+void RecorderProfiler::BuildSortedRecords(b3Array<ProfilerRecord*>& output) 
+{
+	assert(output.Count() == 0);
+	
+	output.Reserve(m_records.Count());
+	
+	RecurseBuildSortedRecords(g_profiler->m_root, output);
 }
