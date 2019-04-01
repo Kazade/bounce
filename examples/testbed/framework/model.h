@@ -27,7 +27,7 @@
 #define PROFILE_JSON 0
 
 #if (PROFILE_JSON == 1)
-#include <testbed\framework\json_profiler.h>
+#include <testbed/framework/json_profiler.h>
 #endif
 
 class Test;
