@@ -114,27 +114,6 @@ struct b3ClothSolverParticleContactPositionConstraint
 	float32 radiusB;
 };
 
-struct b3ClothSolverTriangleContactVelocityConstraint
-{
-	u32 indexA;
-	float32 invMassA;
-
-	u32 indexB;
-	float32 invMassB;
-	u32 indexC;
-	float32 invMassC;
-	u32 indexD;
-	float32 invMassD;
-
-	b3Vec3 JA;
-	b3Vec3 JB;
-	b3Vec3 JC;
-	b3Vec3 JD;
-
-	float32 normalMass;
-	float32 normalImpulse;
-};
-
 struct b3ClothContactSolverDef
 {
 	b3StackAllocator* allocator;
