@@ -64,7 +64,7 @@ private:
 	ProfilerNode* CreateNode();
 	void DestroyNode(ProfilerNode* node);
 	
-	void RecurseDestroy(ProfilerNode* node);
+	void RecurseDestroyNode(ProfilerNode* node);
 
 	b3BlockPool m_pool; // pool of nodes
 	b3Time m_time; // timer

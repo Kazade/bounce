@@ -106,11 +106,11 @@ static inline void RecurseEvents(ProfilerNode* node)
 	}
 }
 
-void Profiler::RecurseDestroy(ProfilerNode* node)
+void Profiler::RecurseDestroyNode(ProfilerNode* node)
 {
 	for (u32 i = 0; i < node->children.Count(); ++i)
 	{
-		RecurseDestroy(node->children[i]);
+		RecurseDestroyNode(node->children[i]);
 	}
 
 	DestroyNode(node);
@@ -129,7 +129,7 @@ void Profiler::End()
 
 	RecurseEvents(m_root);
 	
-	RecurseDestroy(m_root);
+	RecurseDestroyNode(m_root);
 	m_root = nullptr;
 
 	assert(m_root == nullptr);
