@@ -61,15 +61,10 @@ b3ClothSolver::b3ClothSolver(const b3ClothSolverDef& def)
 	m_particleContactCapacity = def.particleContactCapacity;
 	m_particleContactCount = 0;
 	m_particleContacts = (b3ParticleContact**)m_allocator->Allocate(m_particleContactCapacity * sizeof(b3ParticleContact*));;
-
-	m_triangleContactCapacity = def.triangleContactCapacity;
-	m_triangleContactCount = 0;
-	m_triangleContacts = (b3TriangleContact**)m_allocator->Allocate(m_triangleContactCapacity * sizeof(b3TriangleContact*));;
 }
 
 b3ClothSolver::~b3ClothSolver()
 {
-	m_allocator->Free(m_triangleContacts);
 	m_allocator->Free(m_particleContacts);
 	m_allocator->Free(m_bodyContacts);
 
@@ -97,11 +92,6 @@ void b3ClothSolver::Add(b3BodyContact* c)
 void b3ClothSolver::Add(b3ParticleContact* c)
 {
 	m_particleContacts[m_particleContactCount++] = c;
-}
-
-void b3ClothSolver::Add(b3TriangleContact* c)
-{
-	m_triangleContacts[m_triangleContactCount++] = c;
 }
 
 void b3ClothSolver::ApplyForces()
@@ -173,7 +163,6 @@ void b3ClothSolver::ApplyConstraints()
 		}
 	}
 
-#if 0
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
 		b3BodyContact* bc = m_bodyContacts[i];
@@ -200,7 +189,6 @@ void b3ClothSolver::ApplyConstraints()
 		ac->p = bcwp.normal;
 		ac->z.SetZero();
 	}
-#endif
 
 	for (u32 i = 0; i < m_constraintCount; ++i)
 	{
@@ -262,7 +250,6 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 			sx0[i] = p->m_x;
 		}
 		
-#if 0
 		for (u32 i = 0; i < m_bodyContactCount; ++i)
 		{
 			b3BodyContact* bc = m_bodyContacts[i];
@@ -281,7 +268,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 
 			sy[p1->m_solverId] += bcwp.separation * bcwp.normal;
 		}
-#endif
+
 		// Apply internal forces
 		ApplyForces();
 
@@ -332,15 +319,12 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	contactSolverDef.bodyContacts = m_bodyContacts;
 	contactSolverDef.particleContactCount = m_particleContactCount;
 	contactSolverDef.particleContacts = m_particleContacts;
-	contactSolverDef.triangleContactCount = m_triangleContactCount;
-	contactSolverDef.triangleContacts = m_triangleContacts;
 
 	b3ClothContactSolver contactSolver(contactSolverDef);
 
 	{
 		contactSolver.InitializeBodyContactConstraints();
 		contactSolver.InitializeParticleContactConstraints();
-		contactSolver.InitializeTriangleContactConstraints();
 	}
 
 	{
@@ -355,7 +339,6 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		{
 			contactSolver.SolveBodyContactVelocityConstraints();
 			contactSolver.SolveParticleContactVelocityConstraints();
-			contactSolver.SolveTriangleContactVelocityConstraints();
 		}
 	}
 	
@@ -375,9 +358,8 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		{
 			bool bodyContactsSolved = contactSolver.SolveBodyContactPositionConstraints();
 			bool particleContactsSolved = contactSolver.SolveParticleContactPositionConstraints();
-			bool triangleContactsSolved = contactSolver.SolveTriangleContactPositionConstraints();
 			
-			if (bodyContactsSolved && particleContactsSolved && triangleContactsSolved)
+			if (bodyContactsSolved && particleContactsSolved)
 			{
 				positionSolved = true;
 				break;

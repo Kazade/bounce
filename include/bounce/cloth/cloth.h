@@ -31,7 +31,6 @@ class b3Particle;
 class b3Force;
 class b3BodyContact;
 class b3ParticleContact;
-class b3TriangleContact;
 
 struct b3ParticleDef;
 struct b3ForceDef;
@@ -186,7 +185,7 @@ private:
 
 	// Pool of body contacts
 	b3BlockPool m_bodyContactBlocks;
-	
+
 	// Pool of particle contacts
 	b3BlockPool m_particleContactBlocks;
 
@@ -201,9 +200,6 @@ private:
 	
 	// List of particle contacts
 	b3List2<b3ParticleContact> m_particleContactList;
-	
-	// List of triangle contacts
-	b3List2<b3TriangleContact> m_triangleContactList;
 };
 
 inline void b3Cloth::SetGravity(const b3Vec3& gravity)

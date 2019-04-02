@@ -634,7 +634,6 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 	solverDef.forceCapacity = m_forceList.m_count;
 	solverDef.bodyContactCapacity = m_bodyContactList.m_count;
 	solverDef.particleContactCapacity = m_particleContactList.m_count;
-	solverDef.triangleContactCapacity = m_triangleContactList.m_count;
 
 	b3ClothSolver solver(solverDef);
 
@@ -654,11 +653,6 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 	}
 	
 	for (b3ParticleContact* c = m_particleContactList.m_head; c; c = c->m_next)
-	{
-		solver.Add(c);
-	}
-	
-	for (b3TriangleContact* c = m_triangleContactList.m_head; c; c = c->m_next)
 	{
 		solver.Add(c);
 	}

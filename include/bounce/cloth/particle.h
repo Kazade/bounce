@@ -123,27 +123,6 @@ struct b3ParticleContactWorldPoint
 	float32 separation;
 };
 
-// A contact between a particle and a triangle
-class b3TriangleContact
-{
-public:
-	b3TriangleContact() { }
-	~b3TriangleContact() { }
-
-	b3Particle* p1;	
-	b3Particle* p2;
-	b3Particle* p3;
-	b3Particle* p4;
-
-	bool front;
-
-	// Contact constraint
-	float32 normalImpulse;
-
-	b3TriangleContact* m_prev;
-	b3TriangleContact* m_next;
-};
-
 // A cloth particle.
 class b3Particle
 {

@@ -34,7 +34,6 @@ struct b3SparseSymMat33;
 
 class b3BodyContact;
 class b3ParticleContact;
-class b3TriangleContact;
 
 struct b3ClothSolverDef
 {
@@ -43,7 +42,6 @@ struct b3ClothSolverDef
 	u32 forceCapacity;
 	u32 bodyContactCapacity;
 	u32 particleContactCapacity;
-	u32 triangleContactCapacity;
 };
 
 struct b3ClothSolverData
@@ -79,7 +77,6 @@ public:
 	void Add(b3Force* f);
 	void Add(b3BodyContact* c);
 	void Add(b3ParticleContact* c);
-	void Add(b3TriangleContact* c);
 
 	void Solve(float32 dt, const b3Vec3& gravity);
 private:
@@ -113,11 +110,7 @@ private:
 	u32 m_particleContactCapacity;
 	u32 m_particleContactCount;
 	b3ParticleContact** m_particleContacts;
-	
-	u32 m_triangleContactCapacity;
-	u32 m_triangleContactCount;
-	b3TriangleContact** m_triangleContacts;
-	
+
 	b3ClothSolverData m_solverData;
 };
 
