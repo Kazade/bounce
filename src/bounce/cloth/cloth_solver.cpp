@@ -155,6 +155,7 @@ void b3ClothSolver::ApplyConstraints()
 {
 	b3DiagMat33& S = *m_solverData.S;
 	b3DenseVec3& z = *m_solverData.z;
+	b3DenseVec3& x = *m_solverData.x;
 
 	S.SetIdentity();
 	z.SetZero();
@@ -171,6 +172,35 @@ void b3ClothSolver::ApplyConstraints()
 			ac->z.SetZero();
 		}
 	}
+
+#if 0
+	for (u32 i = 0; i < m_bodyContactCount; ++i)
+	{
+		b3BodyContact* bc = m_bodyContacts[i];
+		
+		b3Particle* p1 = bc->p1;
+		
+		B3_ASSERT(p1->m_type == e_dynamicParticle);
+
+		b3Transform xf1; 
+		xf1.position = x[p1->m_solverId];
+		xf1.rotation.SetIdentity();
+
+		b3Shape* s2 = bc->s2;
+		b3Body* b2 = s2->GetBody();
+		b3Transform xf2 = b2->GetTransform();
+
+		b3BodyContactWorldPoint bcwp;
+		bcwp.Initialize(bc, p1->m_radius, xf1, s2->m_radius, xf2);
+		
+		b3AccelerationConstraint* ac = m_constraints + m_constraintCount;
+		++m_constraintCount;
+		ac->i1 = p1->m_solverId;
+		ac->ndof = 2;
+		ac->p = bcwp.normal;
+		ac->z.SetZero();
+	}
+#endif
 
 	for (u32 i = 0; i < m_constraintCount; ++i)
 	{
@@ -223,6 +253,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		m_solverData.S = &S;
 		m_solverData.z = &z;
 
+		// Apply position correction
 		for (u32 i = 0; i < m_particleCount; ++i)
 		{
 			b3Particle* p = m_particles[i];
@@ -230,7 +261,27 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 			sy[i] = p->m_translation;
 			sx0[i] = p->m_x;
 		}
+		
+#if 0
+		for (u32 i = 0; i < m_bodyContactCount; ++i)
+		{
+			b3BodyContact* bc = m_bodyContacts[i];
 
+			b3Particle* p1 = bc->p1;
+			b3Transform xf1;
+			xf1.position = sx[p1->m_solverId];
+			xf1.rotation.SetIdentity();
+
+			b3Shape* s2 = bc->s2;
+			b3Body* b2 = s2->GetBody();
+			b3Transform xf2 = b2->GetTransform();
+
+			b3BodyContactWorldPoint bcwp;
+			bcwp.Initialize(bc, p1->m_radius, xf1, s2->m_radius, xf2);
+
+			sy[p1->m_solverId] += bcwp.separation * bcwp.normal;
+		}
+#endif
 		// Apply internal forces
 		ApplyForces();
 

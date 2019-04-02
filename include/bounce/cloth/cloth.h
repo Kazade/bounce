@@ -156,9 +156,6 @@ private:
 
 	// Update particle contacts. 
 	void UpdateParticleContacts();
-	
-	// Update triangle contacts. 
-	void UpdateTriangleContacts();
 
 	// Update contacts
 	void UpdateContacts();
@@ -192,10 +189,7 @@ private:
 	
 	// Pool of particle contacts
 	b3BlockPool m_particleContactBlocks;
-	
-	// Pool of triangle contacts
-	b3BlockPool m_triangleContactBlocks;
-	
+
 	// List of particles
 	b3List2<b3Particle> m_particleList;
 	
