@@ -100,8 +100,6 @@ static void Run()
 	int w, h;
 	glfwGetWindowSize(g_window, &w, &h);
 	g_view->Event_SetWindowSize(u32(w), u32(h));
-	
-	b3StackArray<ProfilerRecord*, 256> records;
 
 	while (glfwWindowShouldClose(g_window) == 0)
 	{
@@ -120,8 +118,19 @@ static void Run()
 			g_draw->DrawString(b3Color_white, "*PLAYING*");
 		}
 
+		g_view->Interface();
+
+		g_model->Update();
+
+		g_profiler->EndScope();
+		
+		g_profilerRecorder->BuildRecords();
+
 		if (g_settings->drawProfile)
 		{
+			b3StackArray<ProfilerRecord*, 256> records;
+			g_profilerRecorder->BuildSortedRecords(records);
+
 			for (u32 i = 0; i < records.Count(); ++i)
 			{
 				ProfilerRecord* r = records[i];
@@ -129,23 +138,9 @@ static void Run()
 			}
 		}
 
-		g_view->Interface();
-
-		g_model->Update();
-
-		g_view->EndInterface();
-
-		g_profiler->EndScope();
-
-		g_profilerRecorder->BuildRecords();
-
-		if (g_settings->drawProfile)
-		{
-			records.Resize(0);
-			g_profilerRecorder->BuildSortedRecords(records);
-		}
-		
 		g_profiler->End();
+		
+		g_view->EndInterface();
 
 		glfwSwapBuffers(g_window);
 		glfwPollEvents();
