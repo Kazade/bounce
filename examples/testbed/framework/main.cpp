@@ -124,6 +124,11 @@ static void Run()
 
 		g_profiler->EndScope();
 		
+		if (g_settings->drawProfileTree)
+		{
+			g_view->InterfaceProfileTree();
+		}
+
 		g_profilerRecorder->BuildRecords();
 
 		if (g_settings->drawProfile)

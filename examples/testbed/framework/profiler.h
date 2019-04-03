@@ -58,6 +58,9 @@ public:
 	
 	// End the top scope.
 	void EndScope();
+
+	// Get the root profiler node.
+	ProfilerNode* GetRoot() { return m_root; }
 private:
 	friend class ProfilerRecorder;
 	

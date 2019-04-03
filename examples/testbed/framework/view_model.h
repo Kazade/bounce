@@ -33,6 +33,7 @@ struct Settings
 		drawTriangles = true;
 		drawGrid = true;
 		drawProfile = false;
+		drawProfileTree = false;
 		drawStats = false;
 	}
 
@@ -43,6 +44,7 @@ struct Settings
 	bool drawTriangles;
 	bool drawGrid;
 	bool drawProfile;
+	bool drawProfileTree;
 	bool drawStats;
 };
 

@@ -19,6 +19,7 @@
 #include <testbed/framework/view.h>
 #include <testbed/framework/view_model.h>
 #include <testbed/framework/test.h>
+#include <testbed/framework/profiler.h>
 
 #include <imgui/imgui.h>
 #if defined (U_OPENGL_2)
@@ -218,6 +219,7 @@ void View::Interface()
 		if (ImGui::BeginMenu("View"))
 		{
 			ImGui::MenuItem("Profile", "", &settings.drawProfile);
+			ImGui::MenuItem("Profile Tree", "", &settings.drawProfileTree);
 			ImGui::MenuItem("Statistics", "", &settings.drawStats);
 
 			ImGui::Separator();
@@ -398,6 +400,53 @@ void View::Interface()
 	ImGui::PopItemWidth();
 
 	ImGui::End();
+}
+
+static void TreeNode(ProfilerNode* node, u32& index)
+{
+	ImGui::PushID(index);
+	++index;
+
+	if (ImGui::TreeNode(node->name))
+	{
+		float64 elapsedTime = node->t1 - node->t0;
+		ImGui::Text("%.4f [ms]", elapsedTime);
+
+		for (u32 i = 0; i < node->children.Count(); ++i)
+		{
+			TreeNode(node->children[i], index);
+		}
+		ImGui::TreePop();
+	}	
+	
+	ImGui::PopID();
+}
+
+void View::InterfaceProfileTree()
+{
+	ImGui::Begin("Overlay", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
+	ImVec2 ws = ImGui::GetWindowSize();
+	ImVec2 wp = ImGui::GetWindowPos();
+	ImGui::End();
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+	
+	ImGui::SetNextWindowBgAlpha(0.0f);
+	ImGui::SetNextWindowPos(ImVec2(0.0f, wp.y + ws.y));
+	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width - 250.0f, 0.0f));
+
+	ImGui::Begin("##ProfileTree", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize);
+
+	ProfilerNode* root = g_profiler->GetRoot();
+	if (root)
+	{
+		u32 index = 0;
+		TreeNode(root, index);
+	}
+	
+	ImGui::End();
+	
+	ImGui::PopStyleVar();
 }
 
 void View::EndInterface()
