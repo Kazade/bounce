@@ -65,7 +65,12 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 		in.pointlist[i] = (REAL)fp[i];
 	}
 	in.pointattributelist = NULL;
-	in.pointmarkerlist = NULL;
+	in.pointmarkerlist = (int*)malloc(pattern->vertexCount * sizeof(int));
+	for (u32 i = 0; i < pattern->vertexCount; ++i)
+	{
+		in.pointmarkerlist[i] = 10 + int(i);
+	}
+
 	in.numberofpoints = pattern->vertexCount;
 	in.numberofpointattributes = 0;
 
@@ -132,6 +137,18 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 	// r - read triangles
 	triangulate("zpcra", &mid, &out, NULL);
 
+	// The first vertices of the output structure must be the vertices of the input structure.
+	for (int i = 0; i < in.numberofpoints; ++i)
+	{
+		B3_ASSERT(in.pointmarkerlist[i] == out.pointmarkerlist[i]);
+	}
+	
+	// Note: comparing doubles
+	for (int i = 0; i < in.numberofpoints * 2; ++i)
+	{
+		B3_ASSERT(in.pointlist[i] == out.pointlist[i]);
+	}
+
 	// Convert the output structure 
 
 	// The mesh must be empty
@@ -159,6 +176,7 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 
 	// Free the input structure
 	free(in.pointlist);
+	free(in.pointmarkerlist);
 
 	// Free the middle structure
 	free(mid.pointlist);
