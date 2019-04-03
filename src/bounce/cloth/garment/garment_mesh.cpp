@@ -186,4 +186,21 @@ void b3GarmentMesh::Set(b3Garment* g, float32 desiredArea)
 	{
 		b3Set(meshes + i, desiredArea, garment->patterns[i]);
 	}
+
+	// It's okay to do run the following code because
+	// the first vertices of a sewing pattern mesh are the vertices of its
+	// corresponding sewing pattern. 
+	sewingCount = garment->sewingCount;
+	sewingLines = (b3GarmentMeshSewingLine*)b3Alloc(garment->sewingCount * sizeof(b3GarmentMeshSewingLine));
+	for (u32 i = 0; i < garment->sewingCount; ++i)
+	{
+		b3SewingLine* sewingLine = garment->sewingLines + i;
+		b3GarmentMeshSewingLine* line = sewingLines + i;
+
+		line->s1 = sewingLine->p1;
+		line->v1 = sewingLine->v1;
+		
+		line->s2 = sewingLine->p2;
+		line->v2 = sewingLine->v2;
+	}
 }
