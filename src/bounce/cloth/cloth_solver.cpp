@@ -149,7 +149,7 @@ void b3ClothSolver::ApplyConstraints()
 
 	S.SetIdentity();
 	z.SetZero();
-
+	
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
 		b3Particle* p = m_particles[i];
@@ -162,33 +162,42 @@ void b3ClothSolver::ApplyConstraints()
 			ac->z.SetZero();
 		}
 	}
-
+#if 0
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
 		b3BodyContact* bc = m_bodyContacts[i];
-		
+
 		b3Particle* p1 = bc->p1;
-		
+
 		B3_ASSERT(p1->m_type == e_dynamicParticle);
 
-		b3Transform xf1; 
-		xf1.position = x[p1->m_solverId];
-		xf1.rotation.SetIdentity();
-
-		b3Shape* s2 = bc->s2;
-		b3Body* b2 = s2->GetBody();
-		b3Transform xf2 = b2->GetTransform();
-
-		b3BodyContactWorldPoint bcwp;
-		bcwp.Initialize(bc, p1->m_radius, xf1, s2->m_radius, xf2);
-		
 		b3AccelerationConstraint* ac = m_constraints + m_constraintCount;
 		++m_constraintCount;
 		ac->i1 = p1->m_solverId;
 		ac->ndof = 2;
-		ac->p = bcwp.normal;
+		ac->p = bc->n;
 		ac->z.SetZero();
+
+		if (bc->t1Active && bc->t2Active)
+		{
+			ac->ndof = 0;
+		}
+		else
+		{
+			if (bc->t1Active)
+			{
+				ac->ndof = 1;
+				ac->q = bc->t1;
+			}
+
+			if (bc->t2Active)
+			{
+				ac->ndof = 1;
+				ac->q = bc->t2;
+			}
+		}
 	}
+#endif
 
 	for (u32 i = 0; i < m_constraintCount; ++i)
 	{
@@ -210,7 +219,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	m_solverData.x = &sx;
 	m_solverData.v = &sv;
 	m_solverData.f = &sf;
-	
+
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
 		b3Particle* p = m_particles[i];
@@ -249,25 +258,6 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 			sy[i] = p->m_translation;
 			sx0[i] = p->m_x;
 		}
-		
-		for (u32 i = 0; i < m_bodyContactCount; ++i)
-		{
-			b3BodyContact* bc = m_bodyContacts[i];
-
-			b3Particle* p1 = bc->p1;
-			b3Transform xf1;
-			xf1.position = sx[p1->m_solverId];
-			xf1.rotation.SetIdentity();
-
-			b3Shape* s2 = bc->s2;
-			b3Body* b2 = s2->GetBody();
-			b3Transform xf2 = b2->GetTransform();
-
-			b3BodyContactWorldPoint bcwp;
-			bcwp.Initialize(bc, p1->m_radius, xf1, s2->m_radius, xf2);
-
-			sy[p1->m_solverId] += bcwp.separation * bcwp.normal;
-		}
 
 		// Apply internal forces
 		ApplyForces();
@@ -290,16 +280,33 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 
 		// b
 		b3DenseVec3 b = h * (sf + h * (dfdx * sv) + dfdx * sy);
-		
+
 		// x
 		b3DenseVec3 x(m_particleCount);
 		u32 iterations = 0;
 		Solve(x, iterations, A, b, S, z, sx0);
 		b3_clothSolverIterations = iterations;
+#if 0
+		// Copy constraint forces to the contacts
+		b3DenseVec3 f = A * x - b;
 
+		for (u32 i = 0; i < m_bodyContactCount; ++i)
+		{
+			b3BodyContact* c = m_bodyContacts[i];
+
+			b3Vec3 cf = f[i];
+
+			c->fn0 = c->fn;
+			c->fn = b3Dot(cf, c->n);
+			c->ft1 = b3Dot(cf, c->t1);
+			c->ft2 = b3Dot(cf, c->t2);
+		}
+#endif
+		// 
 		sv = sv + x;
 		sx = sx + sy;
 
+		// Copy state buffers back to the particle
 		for (u32 i = 0; i < m_particleCount; ++i)
 		{
 			b3Particle* p = m_particles[i];
@@ -309,7 +316,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 			p->m_velocity = sv[i];
 		}
 	}
-
+#if 1
 	// Solve constraints
 	b3ClothContactSolverDef contactSolverDef;
 	contactSolverDef.allocator = m_allocator;
@@ -341,10 +348,11 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 			contactSolver.SolveParticleContactVelocityConstraints();
 		}
 	}
-	
+
 	{
 		contactSolver.StoreImpulses();
 	}
+#endif
 
 	// Integrate positions
 	sx = sx + h * sv;
@@ -358,7 +366,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		{
 			bool bodyContactsSolved = contactSolver.SolveBodyContactPositionConstraints();
 			bool particleContactsSolved = contactSolver.SolveParticleContactPositionConstraints();
-			
+
 			if (bodyContactsSolved && particleContactsSolved)
 			{
 				positionSolved = true;
@@ -366,7 +374,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 			}
 		}
 	}
-
+#if 0
 	// Synchronize bodies
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
@@ -378,7 +386,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 
 		body->SynchronizeShapes();
 	}
-
+#endif
 	// Copy state buffers back to the particles
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{

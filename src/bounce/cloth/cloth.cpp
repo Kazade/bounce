@@ -148,7 +148,6 @@ static u32 b3FindSharedEdges(b3SharedEdge* sharedEdges, const b3ClothMesh* m)
 
 b3Cloth::b3Cloth(const b3ClothDef& def) :
 	m_particleBlocks(sizeof(b3Particle)),
-	m_bodyContactBlocks(sizeof(b3BodyContact)),
 	m_particleContactBlocks(sizeof(b3ParticleContact))
 {
 	B3_ASSERT(def.mesh);
@@ -484,17 +483,6 @@ void b3Cloth::UpdateBodyContacts()
 
 	B3_PROFILE("Cloth Update Body Contacts");
 	
-	// Clear buffer
-	b3BodyContact* c = m_bodyContactList.m_head;
-	while (c)
-	{
-		b3BodyContact* c0 = c;
-		c = c->m_next;
-		m_bodyContactList.Remove(c0);
-		c0->~b3BodyContact();
-		m_bodyContactBlocks.Free(c0);
-	}
-
 	// Create contacts 
 	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
 	{
@@ -539,6 +527,7 @@ void b3Cloth::UpdateBodyContacts()
 
 		if (bestShape == nullptr)
 		{
+			p->m_bodyContact.active = false;
 			continue;
 		}
 
@@ -549,17 +538,108 @@ void b3Cloth::UpdateBodyContacts()
 		b3Vec3 point = bestPoint;
 		b3Vec3 normal = -bestNormal;
 
-		b3BodyContact* c = (b3BodyContact*)m_bodyContactBlocks.Allocate();
+		b3BodyContact* c = &p->m_bodyContact;
+		
+		b3BodyContact c0 = *c;
+
+		c->active = true;
 		c->p1 = p;
 		c->s2 = shape;
+		c->s = separation;
+		c->p = point;
+		c->n = normal;
+		c->fn0 = 0.0f;
+		c->fn = 0.0f;
+		c->ft1 = 0.0f;
+		c->ft2 = 0.0f;
+		c->t1Active = false;
+		c->t2Active = false;
 		c->localPoint1.SetZero();
 		c->localPoint2 = body->GetLocalPoint(point);
 		c->t1 = b3Perp(normal);
 		c->t2 = b3Cross(c->t1, normal);
 		c->normalImpulse = 0.0f;
 		c->tangentImpulse.SetZero();
+		
+#if 0
+		// Apply position correction
+		b3Vec3 dx = separation * normal;
+		p->m_translation += dx;
+#endif
 
-		m_bodyContactList.PushFront(c);
+		// Update contact state
+		if (c0.active == true)
+		{
+			c->fn0 = c0.fn0;
+			c->fn = c0.fn;
+			c->ft1 = c0.ft1;
+			c->ft2 = c0.ft2;
+
+			c->normalImpulse = c0.normalImpulse;
+			c->tangentImpulse = c0.tangentImpulse;
+#if 0 
+			const float32 kForceTol = 0.0f;
+
+			// Allow the contact to release when the constraint force 
+			// switches from a repulsive force to an attractive one.
+			// if (c0.fn0 < kForceTol && c0.fn > kForceTol)
+			if (c0.fn > kForceTol)
+			{
+				// Contact force is attractive.
+				c->active = false;
+				continue;
+			}
+#endif
+		}
+#if 0
+		// A friction force requires an associated normal force.
+		if (c0.active == false)
+		{
+			continue;
+		}
+		b3Vec3 v1; v1.SetZero();
+		b3Vec3 v2 = p->m_velocity;
+		b3Vec3 dv = v2 - v1;
+
+		const float32 kVelTol = B3_EPSILON * B3_EPSILON;
+
+		// Lock particle on surface
+		float32 dvt1 = b3Dot(dv, c->t1);
+		if (dvt1 * dvt1 < kVelTol * kVelTol)
+		{
+			c->t1Active = true;
+		}
+
+		float32 dvt2 = b3Dot(dv, c->t2);
+		if (dvt2 * dvt2 < kVelTol * kVelTol)
+		{
+			c->t2Active = true;
+		}
+
+		// Unlock particle off surface
+		float32 normalForce = c->fn;
+		
+		float32 friction = shape->GetFriction();
+		float32 maxFrictionForce = friction * normalForce;
+
+		if (c0.t1Active == true)
+		{
+			float32 tangentForce1 = c0.ft1;
+			if (tangentForce1 * tangentForce1 > maxFrictionForce * maxFrictionForce)
+			{
+				c->t1Active = false;
+			}
+		}
+
+		if (c0.t2Active == true)
+		{
+			float32 tangentForce2 = c0.ft2;
+			if (tangentForce2 * tangentForce2 > maxFrictionForce* maxFrictionForce)
+			{
+				c->t2Active = false;
+			}
+		}
+#endif
 	}
 }
 
@@ -632,7 +712,7 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 	solverDef.stack = &m_stackAllocator;
 	solverDef.particleCapacity = m_particleList.m_count;
 	solverDef.forceCapacity = m_forceList.m_count;
-	solverDef.bodyContactCapacity = m_bodyContactList.m_count;
+	solverDef.bodyContactCapacity = m_particleList.m_count;
 	solverDef.particleContactCapacity = m_particleContactList.m_count;
 
 	b3ClothSolver solver(solverDef);
@@ -646,26 +726,22 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 	{
 		solver.Add(f);
 	}
-	
-	for (b3BodyContact* c = m_bodyContactList.m_head; c; c = c->m_next)
+
+	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
 	{
-		solver.Add(c);
+		if (p->m_bodyContact.active)
+		{
+			solver.Add(&p->m_bodyContact);
+		}
 	}
-	
+
 	for (b3ParticleContact* c = m_particleContactList.m_head; c; c = c->m_next)
 	{
 		solver.Add(c);
 	}
-	
+
 	// Solve	
 	solver.Solve(dt, gravity);
-
-	// Clear external applied forces and translations
-	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
-	{
-		p->m_force.SetZero();
-		p->m_translation.SetZero();
-	}
 }
 
 void b3Cloth::UpdateContacts()
@@ -690,6 +766,13 @@ void b3Cloth::Step(float32 dt)
 	if (dt > 0.0f)
 	{
 		Solve(dt, m_gravity);
+	}
+
+	// Clear external applied forces and translations
+	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
+	{
+		p->m_force.SetZero();
+		p->m_translation.SetZero();
 	}
 }
 

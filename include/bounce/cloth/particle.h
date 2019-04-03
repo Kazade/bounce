@@ -72,6 +72,16 @@ public:
 	b3Shape* s2;
 
 	// Contact constraint
+	float32 s;
+	b3Vec3 p;
+	b3Vec3 n;
+	float32 fn0;
+	float32 fn;
+	float32 ft1, ft2;
+	bool t1Active;
+	bool t2Active;
+
+	// Contact constraint
 	b3Vec3 localPoint1;
 	b3Vec3 localPoint2;
 	float32 normalImpulse;
@@ -80,8 +90,7 @@ public:
 	b3Vec3 t1, t2;
 	b3Vec2 tangentImpulse;
 
-	b3BodyContact* m_prev;
-	b3BodyContact* m_next;
+	bool active;
 };
 
 struct b3BodyContactWorldPoint
@@ -198,7 +207,7 @@ private:
 	// Applied external force
 	b3Vec3 m_force;
 
-	// Applied external translation
+	// Applied translation
 	b3Vec3 m_translation;
 
 	// Mass
@@ -229,6 +238,9 @@ private:
 
 	// 
 	b3Cloth* m_cloth;
+
+	// 
+	b3BodyContact m_bodyContact;
 
 	// 
 	b3Particle* m_prev;
