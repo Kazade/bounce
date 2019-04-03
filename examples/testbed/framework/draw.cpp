@@ -480,13 +480,17 @@ void Draw::DrawString(const b3Color& color, const b3Vec3& pw, const char* text, 
 
 	va_list args;
 	va_start(args, text);
+	
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 	ImGui::SetNextWindowBgAlpha(0.0f);
 	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width, g_camera->m_height));
+	ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f));
 	ImGui::Begin("Superlay", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
 	ImGui::SetCursorPos(ImVec2(ps.x, ps.y));
 	ImGui::TextColoredV(ImVec4(color.r, color.g, color.b, color.a), text, args);
 	ImGui::End();
+	ImGui::PopStyleVar();
+	
 	va_end(args);
 }
 
@@ -495,13 +499,15 @@ void Draw::DrawString(const b3Color& color, const char* text, ...)
 	va_list args;
 	va_start(args, text);
 
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f); 
 	ImGui::SetNextWindowBgAlpha(0.0f);
 	ImGui::SetNextWindowPos(ImVec2(0.0f, 40.0f));
-	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width, g_camera->m_height));
+	ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f));
 	ImGui::Begin("Overlay", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
 	ImGui::TextColoredV(ImVec4(color.r, color.g, color.b, color.a), text, args);
 	ImGui::End();
-
+	ImGui::PopStyleVar();
+	
 	va_end(args);
 }
 
