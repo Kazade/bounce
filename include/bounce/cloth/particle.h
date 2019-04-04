@@ -78,6 +78,7 @@ public:
 	float32 fn0;
 	float32 fn;
 	float32 ft1, ft2;
+	bool nActive;
 	bool t1Active;
 	bool t2Active;
 

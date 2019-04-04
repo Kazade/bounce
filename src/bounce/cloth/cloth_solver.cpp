@@ -166,6 +166,11 @@ void b3ClothSolver::ApplyConstraints()
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
 		b3BodyContact* bc = m_bodyContacts[i];
+		
+		if (bc->nActive == false)
+		{
+			continue;
+		}
 
 		b3Particle* p1 = bc->p1;
 
@@ -357,6 +362,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// Integrate positions
 	sx = sx + h * sv;
 
+#if 1
 	// Solve position constraints
 	{
 		const u32 kPositionIterations = 2;
@@ -374,7 +380,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 			}
 		}
 	}
-#if 0
+
 	// Synchronize bodies
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{

@@ -552,6 +552,7 @@ void b3Cloth::UpdateBodyContacts()
 		c->fn = 0.0f;
 		c->ft1 = 0.0f;
 		c->ft2 = 0.0f;
+		c->nActive = true;
 		c->t1Active = false;
 		c->t2Active = false;
 		c->localPoint1.SetZero();
@@ -560,48 +561,56 @@ void b3Cloth::UpdateBodyContacts()
 		c->t2 = b3Cross(c->t1, normal);
 		c->normalImpulse = 0.0f;
 		c->tangentImpulse.SetZero();
-		
+
 #if 0
 		// Apply position correction
-		b3Vec3 dx = separation * normal;
-		p->m_translation += dx;
+		p->m_translation += separation * normal;
 #endif
 
 		// Update contact state
 		if (c0.active == true)
 		{
-			c->fn0 = c0.fn0;
-			c->fn = c0.fn;
-			c->ft1 = c0.ft1;
-			c->ft2 = c0.ft2;
-
-			c->normalImpulse = c0.normalImpulse;
-			c->tangentImpulse = c0.tangentImpulse;
-#if 0 
-			const float32 kForceTol = 0.0f;
-
-			// Allow the contact to release when the constraint force 
-			// switches from a repulsive force to an attractive one.
-			// if (c0.fn0 < kForceTol && c0.fn > kForceTol)
-			if (c0.fn > kForceTol)
+			if (c0.nActive == true)
 			{
-				// Contact force is attractive.
-				c->active = false;
-				continue;
-			}
+				c->fn0 = c0.fn0;
+				c->fn = c0.fn;
+				c->ft1 = c0.ft1;
+				c->ft2 = c0.ft2;
+
+				c->normalImpulse = c0.normalImpulse;
+				c->tangentImpulse = c0.tangentImpulse;
+#if 1 
+				const float32 kForceTol = 0.0f;
+
+				// Allow the contact to release when the constraint force 
+				// switches from a repulsive force to an attractive one.
+				// if (c0.fn0 < kForceTol && c0.fn > kForceTol)
+				if (c0.fn > kForceTol)
+				{
+					// Contact force is attractive.
+					c->nActive = false;
+					continue;
+				}
 #endif
+			}
 		}
 #if 0
-		// A friction force requires an associated normal force.
 		if (c0.active == false)
 		{
 			continue;
 		}
+		
+		// A friction force requires an associated normal force.
+		if (c0.nActive == false)
+		{
+			continue;
+		}
+		
 		b3Vec3 v1; v1.SetZero();
 		b3Vec3 v2 = p->m_velocity;
 		b3Vec3 dv = v2 - v1;
 
-		const float32 kVelTol = B3_EPSILON * B3_EPSILON;
+		const float32 kVelTol = 2.0f * B3_EPSILON;
 
 		// Lock particle on surface
 		float32 dvt1 = b3Dot(dv, c->t1);
