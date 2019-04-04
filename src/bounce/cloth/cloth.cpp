@@ -579,7 +579,7 @@ void b3Cloth::UpdateBodyContacts()
 
 				c->normalImpulse = c0.normalImpulse;
 				c->tangentImpulse = c0.tangentImpulse;
-#if 1 
+#if 0
 				const float32 kForceTol = 0.0f;
 
 				// Allow the contact to release when the constraint force 
