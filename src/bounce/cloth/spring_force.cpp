@@ -77,7 +77,7 @@ void b3SpringForce::Apply(const b3ClothSolverData* data)
 
 		float32 L = b3Length(dx);
 
-		if (L >= m_L0)
+		if (L > m_L0)
 		{
 			// Apply tension
 			b3Vec3 n = dx / L;
