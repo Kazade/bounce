@@ -30,6 +30,14 @@ public:
 		// Create 3D mesh
 		m_shirtClothMesh.Set(&m_shirtGarmentMesh);
 
+		// Create cloth
+		b3ClothDef def;
+		def.mesh = &m_shirtClothMesh;
+		def.density = 0.2f;
+		def.structural = 1000.0f;
+
+		m_cloth = new b3Cloth(def);
+
 		// Perform fitting
 		for (u32 i = 0; i < 3; ++i)
 		{
@@ -37,7 +45,12 @@ public:
 			for (u32 j = 0; j < front->vertexCount; ++j)
 			{
 				u32 v = front->startVertex + j;
-				m_shirtClothMesh.vertices[v].z = -1.0f;
+				b3Particle* p = m_cloth->GetVertexParticle(v);
+
+				b3Vec3 x = p->GetPosition();
+				x.z = -1.0f;
+
+				p->SetPosition(x);
 			}
 		}
 
@@ -47,17 +60,14 @@ public:
 			for (u32 j = 0; j < back->vertexCount; ++j)
 			{
 				u32 v = back->startVertex + j;
-				m_shirtClothMesh.vertices[v].z = 1.0f;
+				b3Particle* p = m_cloth->GetVertexParticle(v);
+
+				b3Vec3 x = p->GetPosition();
+				x.z = 1.0f;
+
+				p->SetPosition(x);
 			}
 		}
-
-		// Create cloth
-		b3ClothDef def;
-		def.mesh = &m_shirtClothMesh;
-		def.density = 0.2f;
-		def.structural = 10000.0f;
-
-		m_cloth = new b3Cloth(def);
 
 		m_cloth->SetGravity(b3Vec3(0.0f, -9.8f, 0.0f));
 		m_cloth->SetWorld(&m_world);
