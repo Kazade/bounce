@@ -127,12 +127,13 @@ void Profiler::End()
 		listener->BeginEvents();
 	}
 
-	RecurseEvents(m_root);
-	
-	RecurseDestroyNode(m_root);
-	m_root = nullptr;
+	if (m_root)
+	{
+		RecurseEvents(m_root);
 
-	assert(m_root == nullptr);
+		RecurseDestroyNode(m_root);
+		m_root = nullptr;
+	}
 
 	if (listener)
 	{

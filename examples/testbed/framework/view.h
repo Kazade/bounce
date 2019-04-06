@@ -42,6 +42,7 @@ public:
 	void BeginInterface();
 	void Interface();
 	void InterfaceProfileTree();
+	void InterfaceProfileTreeStats();
 	void EndInterface();
 private:
 	friend class ViewModel;

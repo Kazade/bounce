@@ -21,7 +21,7 @@
 
 #include <testbed/framework/draw.h>
 #include <testbed/framework/profiler.h>
-#include <testbed/framework/profiler_recorder.h>
+#include <testbed/framework/profiler_st.h>
 
 // Set to 1 to write profile events into a .json file. Set to 0 otherwise.
 #define PROFILE_JSON 0
@@ -71,7 +71,7 @@ private:
 	Draw m_draw;
 	Camera m_camera;
 	Profiler m_profiler;
-	ProfilerRecorder m_profilerRecorder;
+	ProfilerSt m_profilerSt;
 
 #if (PROFILE_JSON == 1)
 	JsonProfiler m_jsonListener;

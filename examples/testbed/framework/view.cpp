@@ -20,6 +20,7 @@
 #include <testbed/framework/view_model.h>
 #include <testbed/framework/test.h>
 #include <testbed/framework/profiler.h>
+#include <testbed/framework/profiler_st.h>
 
 #include <imgui/imgui.h>
 #if defined (U_OPENGL_2)
@@ -218,8 +219,8 @@ void View::Interface()
 
 		if (ImGui::BeginMenu("View"))
 		{
-			ImGui::MenuItem("Profile", "", &settings.drawProfile);
 			ImGui::MenuItem("Profile Tree", "", &settings.drawProfileTree);
+			ImGui::MenuItem("Profile Tree Statistics", "", &settings.drawProfileTreeStats);
 			ImGui::MenuItem("Statistics", "", &settings.drawStats);
 
 			ImGui::Separator();
@@ -435,7 +436,7 @@ void View::InterfaceProfileTree()
 	ImGui::SetNextWindowPos(ImVec2(0.0f, wp.y + ws.y));
 	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width - 250.0f, 0.0f));
 
-	ImGui::Begin("##ProfileTree", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize);
+	ImGui::Begin("Profile Tree", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 
 	ProfilerNode* root = g_profiler->GetRoot();
 	if (root)
@@ -446,6 +447,64 @@ void View::InterfaceProfileTree()
 	
 	ImGui::End();
 	
+	ImGui::PopStyleVar();
+}
+
+static void TreeNode(ProfilerStNode* node, u32& index)
+{
+	ImGui::PushID(index);
+	++index;
+
+	if (ImGui::TreeNode(node->name))
+	{
+		ImGui::Text("%.4f (min = %.4f) (max = %.4f) (calls = %d) [ms]", node->elapsed, node->stat->minElapsed, node->stat->maxElapsed, node->callCount);
+
+		for (u32 i = 0; i < node->children.Count(); ++i)
+		{
+			TreeNode(node->children[i], index);
+		}
+		ImGui::TreePop();
+	}
+
+	ImGui::PopID();
+}
+
+void View::InterfaceProfileTreeStats()
+{
+	ImGui::Begin("Overlay", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
+	ImVec2 wp = ImGui::GetWindowPos();
+	ImVec2 ws = ImGui::GetWindowSize();
+	ImGui::End();
+
+	wp.y = wp.y + ws.y;
+
+	if (g_settings->drawProfileTree)
+	{
+		ImGui::Begin("Profile Tree", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+		ImVec2 ptwp = ImGui::GetWindowPos();
+		ImVec2 ptws = ImGui::GetWindowSize();
+		ImGui::End();
+
+		wp.y = ptwp.y + ptws.y;
+	}
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+	ImGui::SetNextWindowBgAlpha(0.0f);
+	ImGui::SetNextWindowPos(ImVec2(0.0f, wp.y));
+	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width - 250.0f, 0.0f));
+
+	ImGui::Begin("Profile Tree Statistics", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+
+	ProfilerStNode* root = g_profilerSt->GetRoot();
+	if (root)
+	{
+		u32 index = 0;
+		TreeNode(root, index);
+	}
+
+	ImGui::End();
+
 	ImGui::PopStyleVar();
 }
 

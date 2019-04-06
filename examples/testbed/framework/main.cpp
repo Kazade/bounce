@@ -104,9 +104,13 @@ static void Run()
 	while (glfwWindowShouldClose(g_window) == 0)
 	{
 		g_profiler->Begin();
+		
+		g_profilerSt->Begin();
 
 		g_profiler->BeginScope("Frame");
-		
+
+		g_profilerSt->BeginScope("Frame");
+
 		g_view->BeginInterface();
 
 		if (g_model->IsPaused())
@@ -122,6 +126,8 @@ static void Run()
 
 		g_model->Update();
 
+		g_profilerSt->EndScope();
+		
 		g_profiler->EndScope();
 		
 		if (g_settings->drawProfileTree)
@@ -129,19 +135,12 @@ static void Run()
 			g_view->InterfaceProfileTree();
 		}
 
-		g_profilerRecorder->BuildRecords();
-
-		if (g_settings->drawProfile)
+		if (g_settings->drawProfileTreeStats)
 		{
-			b3StackArray<ProfilerRecord*, 256> records;
-			g_profilerRecorder->BuildSortedRecords(records);
-
-			for (u32 i = 0; i < records.Count(); ++i)
-			{
-				ProfilerRecord* r = records[i];
-				g_draw->DrawString(b3Color_white, "%s %.4f (min = %.4f) (max = %.4f) (calls = %d) [ms]", r->name, r->elapsed, r->minElapsed, r->maxElapsed, r->callCount);
-			}
+			g_view->InterfaceProfileTreeStats();
 		}
+
+		g_profilerSt->End();
 
 		g_profiler->End();
 		

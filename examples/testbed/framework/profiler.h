@@ -62,8 +62,6 @@ public:
 	// Get the root profiler node.
 	ProfilerNode* GetRoot() { return m_root; }
 private:
-	friend class ProfilerRecorder;
-	
 	ProfilerNode* CreateNode();
 	void DestroyNode(ProfilerNode* node);
 	

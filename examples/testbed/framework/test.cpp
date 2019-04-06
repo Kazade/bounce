@@ -18,6 +18,7 @@
 
 #include <testbed/framework/test.h>
 #include <testbed/framework/profiler.h>
+#include <testbed/framework/profiler_st.h>
 
 extern u32 b3_allocCalls, b3_maxAllocCalls;
 extern u32 b3_convexCalls, b3_convexCacheHits;
@@ -27,11 +28,13 @@ extern bool b3_convexCache;
 void b3BeginProfileScope(const char* name)
 {
 	g_profiler->BeginScope(name);
+	g_profilerSt->BeginScope(name);
 }
 
 void b3EndProfileScope()
 {
 	g_profiler->EndScope();
+	g_profilerSt->EndScope();
 }
 
 Test::Test() : 
