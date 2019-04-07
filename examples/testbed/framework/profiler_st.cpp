@@ -28,10 +28,8 @@ ProfilerSt::ProfilerSt() : m_pool(sizeof(ProfilerStNode))
 
 ProfilerSt::~ProfilerSt()
 {
-	if (m_root)
-	{
-		RecurseDestroyNode(m_root);
-	}
+	assert(m_root == nullptr);
+	assert(m_top == nullptr);
 }
 
 ProfilerStNodeStat* ProfilerSt::FindStat(const char* name)
