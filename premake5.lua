@@ -264,9 +264,8 @@ workspace(solution_name)
 		{ 
 			examples_inc_dir .. "/testbed/framework/draw.h", 
 			examples_inc_dir .. "/testbed/framework/profiler.h", 
-			examples_inc_dir .. "/testbed/framework/recorder_profiler.h", 
+			examples_inc_dir .. "/testbed/framework/profiler_st.h", 
 			examples_inc_dir .. "/testbed/framework/json_profiler.h", 
-			examples_inc_dir .. "/testbed/framework/testbed_listener.h", 
 			
 			examples_inc_dir .. "/testbed/framework/model.h", 
 			examples_inc_dir .. "/testbed/framework/view.h", 
@@ -284,7 +283,7 @@ workspace(solution_name)
 			
 			examples_src_dir .. "/testbed/framework/draw.cpp", 
 			examples_src_dir .. "/testbed/framework/profiler.cpp", 
-			examples_src_dir .. "/testbed/framework/recorder_profiler.cpp", 
+			examples_src_dir .. "/testbed/framework/profiler_st.cpp", 
 			examples_src_dir .. "/testbed/framework/json_profiler.cpp", 
 			
 			examples_inc_dir .. "/testbed/framework/model.cpp", 
