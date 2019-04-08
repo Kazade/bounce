@@ -29,7 +29,7 @@ Model::Model()
 	g_profilerSt = &m_profilerSt;
 	
 #if (PROFILE_JSON == 1)
-	g_profilerListener = &m_jsonListener;
+	g_jsonProfiler = &m_jsonProfiler;
 #endif
 
 	m_test = nullptr;
@@ -59,7 +59,7 @@ Model::~Model()
 	g_profilerSt = nullptr;
 
 #if (PROFILE_JSON == 1)
-	g_profilerListener = nullptr;
+	g_jsonProfiler = nullptr;
 #endif
 
 	delete m_test;
@@ -230,3 +230,33 @@ void Model::Update()
 
 	m_draw.Flush();
 }
+
+#if (PROFILE_JSON == 1)
+
+static inline void RecurseEvents(ProfilerNode* node)
+{
+	g_jsonProfiler->BeginEvent(node->name, node->t0);
+	
+	g_jsonProfiler->EndEvent(node->name, node->t1);
+
+	for (u32 i = 0; i < node->children.Count(); ++i)
+	{
+		RecurseEvents(node->children[i]);
+	}
+}
+
+void Model::UpdateJson()
+{
+	m_jsonProfiler.BeginEvents();
+
+	ProfilerNode* root = m_profiler.GetRoot();
+
+	if (root)
+	{
+		RecurseEvents(root);
+	}
+
+	m_jsonProfiler.EndEvents();
+}
+
+#endif

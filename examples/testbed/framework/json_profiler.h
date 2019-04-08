@@ -19,8 +19,6 @@
 #ifndef JSON_PROFILER_H
 #define JSON_PROFILER_H
 
-#include <testbed/framework/profiler.h>
-
 #include <bounce/common/settings.h>
 
 #include <rapidjson/filewritestream.h>
@@ -28,30 +26,32 @@
 
 using namespace rapidjson;
 
-// The following profiler listener is notified by a profiler when events are initiated 
+// The following profiler is notified when events are initiated 
 // or terminated.
 // When it receives the notification it immediately saves its data into a .json file format.
 // The .json file can be read and interpreted by the Google Chrome Tracing.
 // Say chrome://tracing to the web browser and load the file
 // This file is by default called "profile.json". Any name can be given. 
 // For implementation details, see json_profile.cpp.
-class JsonProfiler : public ProfilerListener
+class JsonProfiler
 {
 public:
 	JsonProfiler();
 	~JsonProfiler();
 
-	void BeginEvents() override;
+	void BeginEvents();
 
-	void EndEvents() override;
+	void EndEvents();
 
-	void BeginEvent(const char* name, float64 time) override;
+	void BeginEvent(const char* name, float64 time);
 
-	void EndEvent(const char* name, float64 time) override;
+	void EndEvent(const char* name, float64 time);
 private:
-	FILE * m_file;
+	FILE* m_file;
 	FileWriteStream* m_stream;
 	Writer<FileWriteStream>* m_writer;
 };
+
+extern JsonProfiler* g_jsonProfiler;
 
 #endif

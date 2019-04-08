@@ -24,8 +24,6 @@
 #include <bounce/common/template/array.h>
 #include <bounce/common/time.h>
 
-class ProfilerListener;
-
 // Profiler node
 struct ProfilerNode
 {
@@ -74,34 +72,5 @@ private:
 };
 
 extern Profiler* g_profiler;
-
-// Any implementation of this interface passed to Profiler::End will listen to profile events.
-class ProfilerListener
-{
-public:
-	virtual ~ProfilerListener() { }
-
-	// This function is called when profiling has began.
-	virtual void BeginEvents() { }
-
-	// This function is called when profiling has ended.
-	virtual void EndEvents() { }
-	
-	// This function is called when a profiler event begins.
-	virtual void BeginEvent(const char* name, float64 time) 
-	{
-		B3_NOT_USED(name);
-		B3_NOT_USED(time);
-	}
-
-	// This function is called when a profiler event ends.
-	virtual void EndEvent(const char* name, float64 time)
-	{
-		B3_NOT_USED(name);
-		B3_NOT_USED(time);
-	}
-};
-
-extern ProfilerListener* g_profilerListener;
 
 #endif

@@ -19,7 +19,6 @@
 #include <testbed/framework/profiler.h>
 
 Profiler* g_profiler = nullptr;
-ProfilerListener* g_profilerListener = nullptr;
 
 Profiler::Profiler() : m_pool(sizeof(ProfilerNode))
 {
@@ -89,23 +88,6 @@ void Profiler::Begin()
 	assert(m_top == nullptr);
 }
 
-static inline void RecurseEvents(ProfilerNode* node)
-{
-	ProfilerListener* listener = g_profilerListener;
-
-	if (listener)
-	{
-		listener->BeginEvent(node->name, node->t0);
-
-		listener->EndEvent(node->name, node->t1);
-	}
-
-	for (u32 i = 0; i < node->children.Count(); ++i)
-	{
-		RecurseEvents(node->children[i]);
-	}
-}
-
 void Profiler::RecurseDestroyNode(ProfilerNode* node)
 {
 	for (u32 i = 0; i < node->children.Count(); ++i)
@@ -119,24 +101,10 @@ void Profiler::RecurseDestroyNode(ProfilerNode* node)
 void Profiler::End()
 {
 	assert(m_top == nullptr);
-	
-	ProfilerListener* listener = g_profilerListener;
-
-	if (listener)
-	{
-		listener->BeginEvents();
-	}
 
 	if (m_root)
 	{
-		RecurseEvents(m_root);
-
 		RecurseDestroyNode(m_root);
 		m_root = nullptr;
-	}
-
-	if (listener)
-	{
-		listener->EndEvents();
 	}
 }

@@ -18,6 +18,8 @@
 
 #include <testbed/framework/json_profiler.h>
 
+JsonProfiler* g_jsonProfiler = nullptr;
+
 #define STRING(x) String(x, sizeof(x) - 1)
 
 JsonProfiler::JsonProfiler()

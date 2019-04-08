@@ -61,7 +61,11 @@ public:
 	void Command_ZoomCamera(float32 d);
 
 	void Update();
-	
+
+#if (PROFILE_JSON == 1)
+	void UpdateJson();
+#endif
+
 	bool IsPaused() const { return m_pause; }
 private:
 	friend class ViewModel;
@@ -74,7 +78,7 @@ private:
 	ProfilerSt m_profilerSt;
 
 #if (PROFILE_JSON == 1)
-	JsonProfiler m_jsonListener;
+	JsonProfiler m_jsonProfiler;
 #endif
 
 	Test* m_test;

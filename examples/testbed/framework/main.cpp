@@ -142,6 +142,10 @@ static void Run()
 
 		g_profilerSt->End();
 
+#if PROFILE_JSON == 1
+		g_model->UpdateJson();
+#endif
+
 		g_profiler->End();
 		
 		g_view->EndInterface();
