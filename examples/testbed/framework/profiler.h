@@ -46,9 +46,6 @@ public:
 	void Begin();
 
 	// Must be called after profiling.
-	// The function will report all events in this profiler 
-	// to the given event listener in the correct calling order.
-	// This function also flushes the profiler.
 	void End();
 
 	// Begin a new scope.
