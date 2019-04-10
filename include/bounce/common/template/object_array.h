@@ -93,6 +93,9 @@ public:
 	{
 		B3_ASSERT(m_count > 0);
 		--m_count;
+		
+		T* e = m_elements + m_count;
+		e->~T();
 	}
 
 	const T& Back() const
