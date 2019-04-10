@@ -52,7 +52,7 @@ static void b3BuildEdgeContact(b3Manifold& manifold,
 	// Compute the closest points on the two lines.
 	float32 b = b3Dot(N1, N2);
 	float32 den = 1.0f - b * b;
-	if (den <= 0.0f)
+	if (den == 0.0f)
 	{
 		return;
 	}
