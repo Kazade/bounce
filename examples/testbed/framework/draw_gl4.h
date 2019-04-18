@@ -28,6 +28,8 @@
 #include <bounce/common/math/mat44.h>
 #include <bounce/common/draw.h>
 
+#include <testbed/framework/sphere_mesh.h>
+
 #define BUFFER_OFFSET(i) ((char*)NULL + (i))
 
 extern bool g_glDrawPoints;
@@ -551,72 +553,22 @@ struct DrawTriangles
 
 struct DrawWireSphere
 {
-	enum
-	{
-		e_rings = 12,
-		e_sectors = 12,
-		e_vertexCount = e_rings * e_sectors,
-		e_indexCount = (e_rings - 1) * (e_sectors - 1) * 8
-	};
-
 	DrawWireSphere()
 	{
-		float32 R = 1.0f / float32(e_rings - 1);
-		float32 S = 1.0f / float32(e_sectors - 1);
+		smMesh mesh;
+		smCreateMesh(mesh, 1);
 
-		b3Vec3 vs[e_vertexCount];
-		b3Vec3 ns[e_vertexCount];
-		b3Color cs[e_vertexCount];
-
-		u32 vc = 0;
-		for (u32 r = 0; r < e_rings; r++)
-		{
-			for (u32 s = 0; s < e_sectors; s++)
-			{
-				float32 y = sin(-0.5f * B3_PI + B3_PI * r * R);
-				float32 x = cos(2.0f * B3_PI * s * S) * sin(B3_PI * r * R);
-				float32 z = sin(2.0f * B3_PI * s * S) * sin(B3_PI * r * R);
-
-				vs[vc].Set(x, y, z);
-				cs[vc] = b3Color(1.0f, 1.0f, 1.0f, 1.0f);
-				++vc;
-			}
-		}
-
-		u32 is[e_indexCount];
-
-		u32 ic = 0;
-		for (u32 r = 0; r < e_rings - 1; r++)
-		{
-			for (u32 s = 0; s < e_sectors - 1; s++)
-			{
-				u32 i1 = r * e_sectors + s;
-				u32 i2 = (r + 1) * e_sectors + s;
-				u32 i3 = (r + 1) * e_sectors + (s + 1);
-				u32 i4 = r * e_sectors + (s + 1);
-
-				is[ic++] = i1;
-				is[ic++] = i2;
-
-				is[ic++] = i2;
-				is[ic++] = i3;
-
-				is[ic++] = i3;
-				is[ic++] = i4;
-
-				is[ic++] = i4;
-				is[ic++] = i1;
-			}
-		}
+		m_vertexCount = mesh.vertices.Count();
+		m_indexCount = mesh.triangleIndices.Count();
 
 		glGenBuffers(1, &m_vboId);
 		glGenBuffers(1, &m_iboId);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboId);
-		glBufferData(GL_ARRAY_BUFFER, vc * sizeof(b3Vec3), vs, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, m_vertexCount * sizeof(b3Vec3), mesh.vertices.Begin(), GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_iboId);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, ic * sizeof(u32), is, GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indexCount * sizeof(u32), mesh.triangleIndices.Begin(), GL_STATIC_DRAW);
 
 		AssertGL();
 
@@ -632,6 +584,8 @@ struct DrawWireSphere
 
 	GLuint m_vboId;
 	GLuint m_iboId;
+	u32 m_vertexCount;
+	u32 m_indexCount;
 };
 
 struct DrawWire
@@ -694,7 +648,7 @@ struct DrawWire
 		glEnableVertexAttribArray(m_vertexAttribute);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_sphere.m_iboId);
-		glDrawElements(GL_LINES, m_sphere.e_indexCount, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+		glDrawElements(GL_LINES, m_sphere.m_indexCount, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -712,84 +666,25 @@ struct DrawWire
 
 struct DrawSolidSphere
 {
-	enum
-	{
-		e_rings = 18,
-		e_sectors = 18,
-		e_vertexCount = e_rings * e_sectors,
-		e_indexCount = (e_rings - 1) * (e_sectors - 1) * 6,
-		e_faceCount = e_indexCount / 3
-	};
-
 	DrawSolidSphere()
 	{
-		float32 R = 1.0f / float32(e_rings - 1);
-		float32 S = 1.0f / float32(e_sectors - 1);
+		smMesh mesh;
+		smCreateMesh(mesh, 1);
 
-		b3Vec3 vs[e_vertexCount];
-		b3Vec3 ns[e_vertexCount];
-
-		u32 vc = 0;
-		for (u32 r = 0; r < e_rings; r++)
-		{
-			for (u32 s = 0; s < e_sectors; s++)
-			{
-				float32 a1 = 2.0f * B3_PI * float32(s) * S;
-				float32 c1 = cos(a1);
-				float32 s1 = sin(a1);
-
-				float32 a2 = -0.5f * B3_PI + B3_PI * float32(r) * R;
-				float32 s2 = sin(a2);
-
-				float32 a3 = B3_PI * float32(r) * R;
-				float32 s3 = sin(a3);
-
-				float32 x = c1 * s3;
-				float32 y = s2;
-				float32 z = s1 * s3;
-				
-				b3Vec3 v(x, y, z);
-				v.Normalize();
-
-				vs[vc] = v;
-				ns[vc] = v;
-				++vc;
-			}
-		}
-
-		u32 is[e_indexCount];
-
-		u32 ic = 0;
-		for (u32 r = 0; r < e_rings - 1; r++)
-		{
-			for (u32 s = 0; s < e_sectors - 1; s++)
-			{
-				u32 i1 = r * e_sectors + s;
-				u32 i2 = (r + 1) * e_sectors + s;
-				u32 i3 = (r + 1) * e_sectors + (s + 1);
-				u32 i4 = r * e_sectors + (s + 1);
-
-				is[ic++] = i1;
-				is[ic++] = i2;
-				is[ic++] = i3;
-
-				is[ic++] = i1;
-				is[ic++] = i3;
-				is[ic++] = i4;
-			}
-		}
+		m_vertexCount = mesh.vertices.Count();
+		m_indexCount = mesh.triangleIndices.Count();
 
 		glGenBuffers(3, m_vboIds);
 		glGenBuffers(1, &m_iboId);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
-		glBufferData(GL_ARRAY_BUFFER, vc * sizeof(b3Vec3), vs, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, m_vertexCount * sizeof(b3Vec3), mesh.vertices.Begin(), GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
-		glBufferData(GL_ARRAY_BUFFER, vc * sizeof(b3Vec3), ns, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, m_vertexCount * sizeof(b3Vec3), mesh.vertices.Begin(), GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_iboId);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, ic * sizeof(u32), is, GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indexCount * sizeof(u32), mesh.triangleIndices.Begin(), GL_STATIC_DRAW);
 
 		AssertGL();
 
@@ -805,6 +700,8 @@ struct DrawSolidSphere
 
 	GLuint m_vboIds[2];
 	GLuint m_iboId;
+	u32 m_vertexCount;
+	u32 m_indexCount;
 };
 
 struct DrawSolidCylinder
@@ -1033,7 +930,7 @@ struct DrawSolid
 		glEnableVertexAttribArray(m_normalAttribute);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_sphere.m_iboId);
-		glDrawElements(GL_TRIANGLES, m_sphere.e_indexCount, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+		glDrawElements(GL_TRIANGLES, m_sphere.m_indexCount, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
