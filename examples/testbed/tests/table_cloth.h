@@ -53,7 +53,7 @@ public:
 
 		for (b3Particle* p = m_cloth->GetParticleList().m_head; p; p = p->GetNext())
 		{
-			p->SetRadius(0.2f);
+			p->SetRadius(0.05f);
 			p->SetFriction(0.2f);
 		}
 
@@ -67,7 +67,6 @@ public:
 
 			b3HullShape tableShape;
 			tableShape.m_hull = &m_tableHull;
-			tableShape.m_radius = 0.2f;
 
 			b3ShapeDef sd;
 			sd.shape = &tableShape;
