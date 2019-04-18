@@ -68,7 +68,7 @@ private:
 		sphere.radius = m_characterShape->m_radius;
 		return sphere;
 	}
-
+	
 	void UpdateGrounded()
 	{
 		b3StackArray<b3Shape*, 32> shapes;
@@ -278,6 +278,7 @@ private:
 		b3StackArray<b3Shape*, 32> shapes;
 		CollectStaticShapes(shapes);
 
+		// Collect collision planes
 		b3StackArray<Plane, 32> planes;
 		CollectOverlapPlanes(planes, shapes);
 
@@ -293,8 +294,9 @@ private:
 
 		for (;;)
 		{
+			// Collect collision planes
 			b3Vec3 translation = solvePosition - startPosition;
-
+			
 			CollectSweepPlanes(planes, shapes, translation);
 
 			solvePosition = SolvePositionConstraints(planes, targetPosition);
@@ -309,7 +311,7 @@ private:
 			oldSolvePosition = solvePosition;
 		}
 
-		// Update body
+		// Synchronize body
 		b3Quat orientation = m_characterBody->GetOrientation();
 
 		b3Vec3 axis;
@@ -543,42 +545,48 @@ public:
 		float32 dt = g_testSettings->inv_hertz;
 
 		const float32 walkSpeed = 10.0f;
-		const float32 jumpSpeed = 300.0f;
-		const float32 gravity = 50.0f * 9.8f;
-		b3Vec3 velocity = b3Vec3_zero;
-
-		bool isGounded = m_characterController->IsGrounded();
+		const float32 jumpSpeed = 10.0f;
+		const float32 gravityAcc = 9.8f;
 		
-		if (isGounded)
+		static b3Vec3 velocity = b3Vec3_zero;
+
+		velocity.x = 0.0f;
+		velocity.z = 0.0f;
+
+		extern GLFWwindow* g_window;
+
+		bool leftDown = glfwGetKey(g_window, GLFW_KEY_LEFT);
+		bool rightDown = glfwGetKey(g_window, GLFW_KEY_RIGHT);
+		bool downDown = glfwGetKey(g_window, GLFW_KEY_DOWN);
+		bool upDown = glfwGetKey(g_window, GLFW_KEY_UP);
+		bool spaceDown = glfwGetKey(g_window, GLFW_KEY_SPACE);
+
+		bool isGrounded = m_characterController->IsGrounded();
+
+		// Walk
+		if (leftDown)
 		{
-			extern GLFWwindow* g_window;
+			velocity.x -= walkSpeed;
+		}
 
-			bool leftDown = glfwGetKey(g_window, GLFW_KEY_LEFT);
-			bool rightDown = glfwGetKey(g_window, GLFW_KEY_RIGHT);
-			bool downDown = glfwGetKey(g_window, GLFW_KEY_DOWN);
-			bool upDown = glfwGetKey(g_window, GLFW_KEY_UP);
-			bool spaceDown = glfwGetKey(g_window, GLFW_KEY_SPACE);
+		if (rightDown)
+		{
+			velocity.x += walkSpeed;
+		}
 
-			// Walk
-			if (leftDown)
-			{
-				velocity.x -= walkSpeed;
-			}
+		if (upDown)
+		{
+			velocity.z -= walkSpeed;
+		}
 
-			if (rightDown)
-			{
-				velocity.x += walkSpeed;
-			}
+		if (downDown)
+		{
+			velocity.z += walkSpeed;
+		}
 
-			if (upDown)
-			{
-				velocity.z -= walkSpeed;
-			}
-
-			if (downDown)
-			{
-				velocity.z += walkSpeed;
-			}
+		if (isGrounded)
+		{	
+			velocity.y = 0.0f;
 
 			// Jump
 			if (spaceDown)
@@ -586,10 +594,12 @@ public:
 				velocity.y += jumpSpeed;
 			}
 		}
-
-		// Integrate gravity
-		velocity.y -= dt * gravity;
-
+		else
+		{
+			// Integrate gravity
+			velocity.y -= dt * gravityAcc;
+		}
+		
 		// Compute translation
 		b3Vec3 translation = dt * velocity;
 		
