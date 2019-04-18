@@ -32,6 +32,10 @@ public:
 	b3ClothDragger(b3Ray3* ray, b3Cloth* cloth);
 	~b3ClothDragger();
 
+	void SetSpring(bool bit);
+
+	bool GetSpring() const;
+
 	bool IsDragging() const;
 
 	bool StartDragging();
@@ -61,6 +65,11 @@ private:
 
 	b3ParticleType m_t1, m_t2, m_t3;
 };
+
+inline bool b3ClothDragger::GetSpring() const
+{
+	return m_spring;
+}
 
 inline bool b3ClothDragger::IsDragging() const
 {

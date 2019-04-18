@@ -145,6 +145,21 @@ void b3ClothDragger::Drag()
 	}
 }
 
+void b3ClothDragger::SetSpring(bool bit)
+{
+	if (bit == m_spring)
+	{
+		return;
+	}
+
+	if (IsDragging())
+	{
+		StopDragging();
+	}
+
+	m_spring = bit;
+}
+
 void b3ClothDragger::StopDragging()
 {
 	B3_ASSERT(IsDragging() == true);
