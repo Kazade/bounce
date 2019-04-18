@@ -57,15 +57,10 @@ b3ClothSolver::b3ClothSolver(const b3ClothSolverDef& def)
 	m_bodyContactCapacity = def.bodyContactCapacity;
 	m_bodyContactCount = 0;
 	m_bodyContacts = (b3BodyContact**)m_allocator->Allocate(m_bodyContactCapacity * sizeof(b3BodyContact*));;
-
-	m_particleContactCapacity = def.particleContactCapacity;
-	m_particleContactCount = 0;
-	m_particleContacts = (b3ParticleContact**)m_allocator->Allocate(m_particleContactCapacity * sizeof(b3ParticleContact*));;
 }
 
 b3ClothSolver::~b3ClothSolver()
 {
-	m_allocator->Free(m_particleContacts);
 	m_allocator->Free(m_bodyContacts);
 
 	m_allocator->Free(m_constraints);
@@ -329,14 +324,11 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	contactSolverDef.velocities = m_solverData.v;
 	contactSolverDef.bodyContactCount = m_bodyContactCount;
 	contactSolverDef.bodyContacts = m_bodyContacts;
-	contactSolverDef.particleContactCount = m_particleContactCount;
-	contactSolverDef.particleContacts = m_particleContacts;
 
 	b3ClothContactSolver contactSolver(contactSolverDef);
 
 	{
 		contactSolver.InitializeBodyContactConstraints();
-		contactSolver.InitializeParticleContactConstraints();
 	}
 
 	{
@@ -350,7 +342,6 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		for (u32 i = 0; i < kVelocityIterations; ++i)
 		{
 			contactSolver.SolveBodyContactVelocityConstraints();
-			contactSolver.SolveParticleContactVelocityConstraints();
 		}
 	}
 
@@ -371,9 +362,8 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		for (u32 i = 0; i < kPositionIterations; ++i)
 		{
 			bool bodyContactsSolved = contactSolver.SolveBodyContactPositionConstraints();
-			bool particleContactsSolved = contactSolver.SolveParticleContactPositionConstraints();
 
-			if (bodyContactsSolved && particleContactsSolved)
+			if (bodyContactsSolved)
 			{
 				positionSolved = true;
 				break;

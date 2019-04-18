@@ -153,9 +153,6 @@ private:
 	// Update body contacts. 
 	void UpdateBodyContacts();
 
-	// Update particle contacts. 
-	void UpdateParticleContacts();
-
 	// Update contacts
 	void UpdateContacts();
 
@@ -183,17 +180,11 @@ private:
 	// Pool of particles
 	b3BlockPool m_particleBlocks;
 
-	// Pool of particle contacts
-	b3BlockPool m_particleContactBlocks;
-
 	// List of particles
 	b3List2<b3Particle> m_particleList;
 	
 	// List of forces
 	b3List2<b3Force> m_forceList;
-
-	// List of particle contacts
-	b3List2<b3ParticleContact> m_particleContactList;
 };
 
 inline void b3Cloth::SetGravity(const b3Vec3& gravity)

@@ -147,8 +147,7 @@ static u32 b3FindSharedEdges(b3SharedEdge* sharedEdges, const b3ClothMesh* m)
 }
 
 b3Cloth::b3Cloth(const b3ClothDef& def) :
-	m_particleBlocks(sizeof(b3Particle)),
-	m_particleContactBlocks(sizeof(b3ParticleContact))
+	m_particleBlocks(sizeof(b3Particle))
 {
 	B3_ASSERT(def.mesh);
 	B3_ASSERT(def.density > 0.0f);
@@ -652,66 +651,6 @@ void b3Cloth::UpdateBodyContacts()
 	}
 }
 
-void b3Cloth::UpdateParticleContacts()
-{
-	B3_PROFILE("Cloth Update Particle Contacts");
-
-	// Clear buffer
-	b3ParticleContact* c = m_particleContactList.m_head;
-	while (c)
-	{
-		b3ParticleContact* c0 = c;
-		c = c->m_next;
-		m_particleContactList.Remove(c0);
-		c0->~b3ParticleContact();
-		m_particleContactBlocks.Free(c0);
-	}
-
-	// Create particle contacts
-	for (b3Particle* p1 = m_particleList.m_head; p1; p1 = p1->m_next)
-	{
-		for (b3Particle* p2 = p1->m_next; p2; p2 = p2->m_next)
-		{
-			if (p1->m_type != e_dynamicParticle && p2->m_type != e_dynamicBody)
-			{
-				// At least one particle should be kinematic or dynamic.
-				continue;
-			}
-
-			b3Vec3 c1 = p1->m_position;
-			float32 r1 = p1->m_radius;
-
-			b3Vec3 c2 = p2->m_position;
-			float32 r2 = p2->m_radius;
-
-			b3Vec3 d = c2 - c1;
-			float32 dd = b3Dot(d, d);
-			float32 totalRadius = r1 + r2;
-			if (dd > totalRadius * totalRadius)
-			{
-				continue;
-			}
-
-			b3Vec3 n(0.0f, 1.0f, 0.0f);
-			if (dd > B3_EPSILON * B3_EPSILON)
-			{
-				float32 distance = b3Sqrt(dd);
-				n = d / distance;
-			}
-
-			b3ParticleContact* c = (b3ParticleContact*)m_particleContactBlocks.Allocate();
-			c->p1 = p1;
-			c->p2 = p2;
-			c->normalImpulse = 0.0f;
-			c->t1 = b3Perp(n);
-			c->t2 = b3Cross(c->t1, n);
-			c->tangentImpulse.SetZero();
-
-			m_particleContactList.PushFront(c);
-		}
-	}
-}
-
 void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 {
 	B3_PROFILE("Cloth Solve");
@@ -722,7 +661,6 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 	solverDef.particleCapacity = m_particleList.m_count;
 	solverDef.forceCapacity = m_forceList.m_count;
 	solverDef.bodyContactCapacity = m_particleList.m_count;
-	solverDef.particleContactCapacity = m_particleContactList.m_count;
 
 	b3ClothSolver solver(solverDef);
 
@@ -742,11 +680,6 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 		{
 			solver.Add(&p->m_bodyContact);
 		}
-	}
-
-	for (b3ParticleContact* c = m_particleContactList.m_head; c; c = c->m_next)
-	{
-		solver.Add(c);
 	}
 
 	// Solve	

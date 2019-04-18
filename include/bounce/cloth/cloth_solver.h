@@ -41,7 +41,6 @@ struct b3ClothSolverDef
 	u32 particleCapacity;
 	u32 forceCapacity;
 	u32 bodyContactCapacity;
-	u32 particleContactCapacity;
 };
 
 struct b3ClothSolverData

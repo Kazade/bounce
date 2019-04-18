@@ -28,7 +28,6 @@ class b3Particle;
 class b3Body;
 
 class b3BodyContact;
-class b3ParticleContact;
 
 struct b3DenseVec3;
 
@@ -76,42 +75,9 @@ struct b3ClothSolverBodyContactPositionConstraint
 	b3Vec3 rA;
 	b3Vec3 rB;
 
+	b3Vec3 normalA;
 	b3Vec3 localPointA;
 	b3Vec3 localPointB;
-};
-
-struct b3ClothSolverParticleContactVelocityConstraint
-{
-	u32 indexA;
-	float32 invMassA;
-
-	u32 indexB;
-	float32 invMassB;
-
-	float32 friction;
-
-	b3Vec3 point;
-
-	b3Vec3 normal;
-	float32 normalMass;
-	float32 normalImpulse;
-	float32 velocityBias;
-
-	b3Vec3 tangent1;
-	b3Vec3 tangent2;
-	b3Mat22 tangentMass;
-	b3Vec2 tangentImpulse;
-};
-
-struct b3ClothSolverParticleContactPositionConstraint
-{
-	u32 indexA;
-	float32 invMassA;
-	float32 radiusA;
-
-	u32 indexB;
-	float32 invMassB;
-	float32 radiusB;
 };
 
 struct b3ClothContactSolverDef
@@ -123,9 +89,6 @@ struct b3ClothContactSolverDef
 	
 	u32 bodyContactCount;
 	b3BodyContact** bodyContacts;
-	
-	u32 particleContactCount;
-	b3ParticleContact** particleContacts;
 };
 
 inline float32 b3MixFriction(float32 u1, float32 u2)
@@ -141,19 +104,13 @@ public:
 
 	void InitializeBodyContactConstraints();
 
-	void InitializeParticleContactConstraints();
-
 	void WarmStart();
 
 	void SolveBodyContactVelocityConstraints();
 
-	void SolveParticleContactVelocityConstraints();
-
 	void StoreImpulses();
 
 	bool SolveBodyContactPositionConstraints();
-
-	bool SolveParticleContactPositionConstraints();
 protected:
 	b3StackAllocator* m_allocator;
 
@@ -164,11 +121,6 @@ protected:
 	b3BodyContact** m_bodyContacts;
 	b3ClothSolverBodyContactVelocityConstraint* m_bodyVelocityConstraints;
 	b3ClothSolverBodyContactPositionConstraint* m_bodyPositionConstraints;
-
-	u32 m_particleContactCount;
-	b3ParticleContact** m_particleContacts;
-	b3ClothSolverParticleContactVelocityConstraint* m_particleVelocityConstraints;
-	b3ClothSolverParticleContactPositionConstraint* m_particlePositionConstraints;
 };
 
 #endif
