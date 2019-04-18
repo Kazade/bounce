@@ -330,7 +330,7 @@ void b3Cloth::ComputeMass()
 		b3Vec3 v3 = m_mesh->vertices[triangle->v3];
 
 		float32 area = b3Area(v1, v2, v3);
-		B3_ASSERT(area > B3_EPSILON);
+		B3_ASSERT(area > 0.0f);
 
 		float32 mass = rho * area;
 
