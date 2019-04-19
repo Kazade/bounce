@@ -110,4 +110,4 @@ struct smMesh
 // Generate an icosphere given the number of subdivisions.
 void smCreateMesh(smMesh& output, u32 subdivisions);
 
-#endif SPHERE_MESH_H
+#endif 
