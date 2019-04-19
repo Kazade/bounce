@@ -132,8 +132,8 @@ static inline void smSubdivideMesh(smMesh& output, const smMesh& input)
 //
 void smCreateMesh(smMesh& output, u32 subdivisions)
 {
-	B3_ASSERT(output.vertices.Count() == 0);
-	B3_ASSERT(output.triangleIndices.Count() == 0);
+	assert(output.vertices.Count() == 0);
+	assert(output.triangleIndices.Count() == 0);
 
 	smMesh input;
 	input.SetAsIcosahedron();
