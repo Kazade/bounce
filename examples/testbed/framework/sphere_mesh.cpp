@@ -59,8 +59,7 @@ struct smEdgeVertexMap
 		{
 			smEdgeVertexPair* pair = pairs.Get(i);
 
-			if ((pair->edge.v1 == edge.v1 && pair->edge.v2 == edge.v2) || 
-				(pair->edge.v1 == edge.v2 && pair->edge.v2 == edge.v1) )
+			if (pair->edge.v1 == edge.v2 && pair->edge.v2 == edge.v1)
 			{
 				return pair;
 			}
