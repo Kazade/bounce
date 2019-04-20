@@ -540,7 +540,7 @@ struct DrawWireSphere
 	DrawWireSphere()
 	{
 		smMesh mesh;
-		smCreateMesh(mesh, 1);
+		smCreateMesh(mesh, 2);
 
 		m_vertexCount = mesh.vertexCount;
 		m_indexCount = mesh.indexCount;
@@ -654,7 +654,7 @@ struct DrawSolidSphere
 	DrawSolidSphere()
 	{
 		smMesh mesh;
-		smCreateMesh(mesh, 1);
+		smCreateMesh(mesh, 2);
 
 		m_vertexCount = mesh.vertexCount;
 		m_indexCount = mesh.indexCount;

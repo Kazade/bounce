@@ -30,57 +30,28 @@ static inline void smAddTriangle(smMesh& mesh, u32 v1, u32 v2, u32 v3)
 	mesh.indices[mesh.indexCount++] = v3;
 }
 
-static inline void smSetAsIcosahedron(smMesh& mesh)
+static inline void smSetAsOctahedron(smMesh& mesh)
 {
 	assert(mesh.vertexCount == 0);
 
-	float32 t = 0.5f * (1.0f + b3Sqrt(5.0f));
-
-	smAddVertex(mesh, -1.0f, t, 0.0f);
-	smAddVertex(mesh, 1.0f, t, 0.0f);
-	smAddVertex(mesh, -1.0f, -t, 0.0f);
-	smAddVertex(mesh, 1.0f, -t, 0.0f);
-
-	smAddVertex(mesh, 0.0f, -1.0f, t);
-	smAddVertex(mesh, 0.0f, 1.0f, t);
-	smAddVertex(mesh, 0.0f, -1.0f, -t);
-	smAddVertex(mesh, 0.0f, 1.0f, -t);
-
-	smAddVertex(mesh, t, 0.0f, -1.0f);
-	smAddVertex(mesh, t, 0.0f, 1.0f);
-	smAddVertex(mesh, -t, 0.0f, -1.0f);
-	smAddVertex(mesh, -t, 0.0f, 1.0f);
-
-	for (u32 i = 0; i < mesh.vertexCount; ++i)
-	{
-		mesh.vertices[i].Normalize();
-	}
+	smAddVertex(mesh, 0.0f, -1.0f, 0.0f);
+	smAddVertex(mesh, 0.0f, 0.0f, 1.0f);
+	smAddVertex(mesh, -1.0f, 0.0f, 0.0f);
+	smAddVertex(mesh, 0.0f, 0.0f, -1.0f);
+	smAddVertex(mesh, 1.0f, 0.0f, 0.0f);
+	smAddVertex(mesh, 0.0f, 1.0f, 0.0f);
 
 	assert(mesh.indexCount == 0);
 
-	smAddTriangle(mesh, 0, 11, 5);
-	smAddTriangle(mesh, 0, 5, 1);
-	smAddTriangle(mesh, 0, 1, 7);
-	smAddTriangle(mesh, 0, 7, 10);
-	smAddTriangle(mesh, 0, 10, 11);
-
-	smAddTriangle(mesh, 1, 5, 9);
-	smAddTriangle(mesh, 5, 11, 4);
-	smAddTriangle(mesh, 11, 10, 2);
-	smAddTriangle(mesh, 10, 7, 6);
-	smAddTriangle(mesh, 7, 1, 8);
-
-	smAddTriangle(mesh, 3, 9, 4);
-	smAddTriangle(mesh, 3, 4, 2);
-	smAddTriangle(mesh, 3, 2, 6);
-	smAddTriangle(mesh, 3, 6, 8);
-	smAddTriangle(mesh, 3, 8, 9);
-
-	smAddTriangle(mesh, 4, 9, 5);
-	smAddTriangle(mesh, 2, 4, 11);
-	smAddTriangle(mesh, 6, 2, 10);
-	smAddTriangle(mesh, 8, 6, 7);
-	smAddTriangle(mesh, 9, 8, 1);
+	smAddTriangle(mesh, 0, 1, 2);
+	smAddTriangle(mesh, 0, 2, 3);
+	smAddTriangle(mesh, 0, 3, 4);
+	smAddTriangle(mesh, 0, 4, 1);
+	
+	smAddTriangle(mesh, 5, 2, 1);
+	smAddTriangle(mesh, 5, 3, 2);
+	smAddTriangle(mesh, 5, 4, 3);
+	smAddTriangle(mesh, 5, 1, 4);
 }
 
 struct smEdge
@@ -179,8 +150,8 @@ static void smSubdivideMesh(smMesh& in_out, smEdgeVertexMap& map)
 // Also compute the maximum number of edge-vertex pairs per subdivision step 
 static inline void smCount(u32& vertexCount, u32& indexCount, u32& edgeVertexPairCount, u32 subdivisions)
 {
-	vertexCount = 12;
-	indexCount = 3 * 20;
+	vertexCount = 6;
+	indexCount = 3 * 8;
 	for (u32 i = 0; i < subdivisions; ++i)
 	{
 		vertexCount += 3 * (indexCount / 3);
@@ -214,7 +185,7 @@ void smCreateMesh(smMesh& output, u32 subdivisions)
 	map.pairCount = 0;
 	map.pairs = (smEdgeVertexPair*) ((u8*)(out.indices) + (indexCount * sizeof(u32)));
 
-	smSetAsIcosahedron(out);
+	smSetAsOctahedron(out);
 
 	for (u32 i = 0; i < subdivisions; ++i)
 	{

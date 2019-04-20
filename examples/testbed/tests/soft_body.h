@@ -30,7 +30,7 @@ struct b3SphereClothMesh : public b3ClothMesh
 	b3SphereClothMesh()
 	{
 		smMesh mesh;
-		smCreateMesh(mesh, 1);
+		smCreateMesh(mesh, 2);
 
 		sphereVertices.Resize(mesh.vertexCount);
 		for (u32 i = 0; i < mesh.vertexCount; ++i)
