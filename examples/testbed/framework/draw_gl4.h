@@ -558,17 +558,17 @@ struct DrawWireSphere
 		smMesh mesh;
 		smCreateMesh(mesh, 1);
 
-		m_vertexCount = mesh.vertices.Count();
-		m_indexCount = mesh.triangleIndices.Count();
+		m_vertexCount = mesh.vertexCount;
+		m_indexCount = mesh.indexCount;
 
 		glGenBuffers(1, &m_vboId);
 		glGenBuffers(1, &m_iboId);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboId);
-		glBufferData(GL_ARRAY_BUFFER, m_vertexCount * sizeof(b3Vec3), mesh.vertices.Begin(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, m_vertexCount * sizeof(b3Vec3), mesh.vertices, GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_iboId);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indexCount * sizeof(u32), mesh.triangleIndices.Begin(), GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indexCount * sizeof(u32), mesh.indices, GL_STATIC_DRAW);
 
 		AssertGL();
 
@@ -671,20 +671,20 @@ struct DrawSolidSphere
 		smMesh mesh;
 		smCreateMesh(mesh, 1);
 
-		m_vertexCount = mesh.vertices.Count();
-		m_indexCount = mesh.triangleIndices.Count();
+		m_vertexCount = mesh.vertexCount;
+		m_indexCount = mesh.indexCount;
 
 		glGenBuffers(3, m_vboIds);
 		glGenBuffers(1, &m_iboId);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
-		glBufferData(GL_ARRAY_BUFFER, m_vertexCount * sizeof(b3Vec3), mesh.vertices.Begin(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, m_vertexCount * sizeof(b3Vec3), mesh.vertices, GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
-		glBufferData(GL_ARRAY_BUFFER, m_vertexCount * sizeof(b3Vec3), mesh.vertices.Begin(), GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, m_vertexCount * sizeof(b3Vec3), mesh.vertices, GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_iboId);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indexCount * sizeof(u32), mesh.triangleIndices.Begin(), GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indexCount * sizeof(u32), mesh.indices, GL_STATIC_DRAW);
 
 		AssertGL();
 

@@ -18,131 +18,229 @@
 
 #include <testbed/framework/sphere_mesh.h>
 
-// References:
-// https://github.com/caosdoar/spheres
-// https://schneide.blog/2016/07/15/generating-an-icosphere-in-c/
+static inline void smAddVertex(smMesh& mesh, float32 x, float32 y, float32 z)
+{
+	mesh.vertices[mesh.vertexCount++].Set(x, y, z);
+}
+
+static inline void smAddTriangle(smMesh& mesh, u32 v1, u32 v2, u32 v3)
+{
+	mesh.indices[mesh.indexCount++] = v1;
+	mesh.indices[mesh.indexCount++] = v2;
+	mesh.indices[mesh.indexCount++] = v3;
+}
+
+static inline void smSetAsIcosahedron(smMesh& mesh)
+{
+	assert(mesh.vertexCount == 0);
+
+	float32 t = 0.5f * (1.0f + b3Sqrt(5.0f));
+
+	smAddVertex(mesh, -1.0f, t, 0.0f);
+	smAddVertex(mesh, 1.0f, t, 0.0f);
+	smAddVertex(mesh, -1.0f, -t, 0.0f);
+	smAddVertex(mesh, 1.0f, -t, 0.0f);
+
+	smAddVertex(mesh, 0.0f, -1.0f, t);
+	smAddVertex(mesh, 0.0f, 1.0f, t);
+	smAddVertex(mesh, 0.0f, -1.0f, -t);
+	smAddVertex(mesh, 0.0f, 1.0f, -t);
+
+	smAddVertex(mesh, t, 0.0f, -1.0f);
+	smAddVertex(mesh, t, 0.0f, 1.0f);
+	smAddVertex(mesh, -t, 0.0f, -1.0f);
+	smAddVertex(mesh, -t, 0.0f, 1.0f);
+
+	for (u32 i = 0; i < mesh.vertexCount; ++i)
+	{
+		mesh.vertices[i].Normalize();
+	}
+
+	assert(mesh.indexCount == 0);
+
+	smAddTriangle(mesh, 0, 11, 5);
+	smAddTriangle(mesh, 0, 5, 1);
+	smAddTriangle(mesh, 0, 1, 7);
+	smAddTriangle(mesh, 0, 7, 10);
+	smAddTriangle(mesh, 0, 10, 11);
+
+	smAddTriangle(mesh, 1, 5, 9);
+	smAddTriangle(mesh, 5, 11, 4);
+	smAddTriangle(mesh, 11, 10, 2);
+	smAddTriangle(mesh, 10, 7, 6);
+	smAddTriangle(mesh, 7, 1, 8);
+
+	smAddTriangle(mesh, 3, 9, 4);
+	smAddTriangle(mesh, 3, 4, 2);
+	smAddTriangle(mesh, 3, 2, 6);
+	smAddTriangle(mesh, 3, 6, 8);
+	smAddTriangle(mesh, 3, 8, 9);
+
+	smAddTriangle(mesh, 4, 9, 5);
+	smAddTriangle(mesh, 2, 4, 11);
+	smAddTriangle(mesh, 6, 2, 10);
+	smAddTriangle(mesh, 8, 6, 7);
+	smAddTriangle(mesh, 9, 8, 1);
+}
 
 struct smEdge
 {
-	smEdge() { }
-
-	smEdge(u32 _v1, u32 _v2)
-	{
-		v1 = _v1;
-		v2 = _v2;
-	}
-
 	u32 v1, v2;
 };
 
 struct smEdgeVertexPair
 {
-	smEdgeVertexPair() { }
-
-	smEdgeVertexPair(const smEdge& _edge, u32 _vertex)
-	{
-		edge = _edge;
-		vertex = _vertex;
-	}
-
 	smEdge edge;
 	u32 vertex;
 };
 
 struct smEdgeVertexMap
 {
-	smEdgeVertexMap() { }
-
-	smEdgeVertexPair* Find(const smEdge& edge)
-	{
-		for (u32 i = 0; i < pairs.Count(); ++i)
-		{
-			smEdgeVertexPair* pair = pairs.Get(i);
-
-			if (pair->edge.v1 == edge.v2 && pair->edge.v2 == edge.v1)
-			{
-				return pair;
-			}
-		}
-		return nullptr;
-	}
-
-	b3StackArray<smEdgeVertexPair, 32> pairs;
+	u32 pairCount;
+	smEdgeVertexPair* pairs;
 };
 
-// 
-static inline u32 smSubdivideEdge(u32 i1, u32 i2,
-	const b3Vec3& v1, const b3Vec3& v2,
-	smEdgeVertexMap& edgeVertexMap,
-	smMesh& output)
+static inline void smAddPair(smEdgeVertexMap& map, const smEdgeVertexPair& pair)
 {
-	smEdge edge(i1, i2);
+	map.pairs[map.pairCount++] = pair;
+}
 
-	smEdgeVertexPair* pair = edgeVertexMap.Find(edge);
+static inline smEdgeVertexPair* smFindOpposite(smEdgeVertexMap& map, const smEdge& edge)
+{
+	for (u32 i = 0; i < map.pairCount; ++i)
+	{
+		smEdgeVertexPair* pair = map.pairs + i;
+
+		if (pair->edge.v1 == edge.v2 && pair->edge.v2 == edge.v1)
+		{
+			return pair;
+		}
+	}
+	return nullptr;
+}
+
+static inline u32 smSubdivideEdge(smMesh& in_out, smEdgeVertexMap& map, 
+	u32 i1, u32 i2)
+{
+	smEdge edge;
+	edge.v1 = i1;
+	edge.v2 = i2;
+
+	smEdgeVertexPair* pair = smFindOpposite(map, edge);
 
 	if (pair)
 	{
 		return pair->vertex;
 	}
 
-	smEdge newEdge(i1, i2);
-	u32 newVertex = output.vertices.Count();
+	smEdge newEdge;
+	newEdge.v1 = i1;
+	newEdge.v2 = i2;
+	
+	u32 newVertex = in_out.vertexCount;
+
+	b3Vec3 v1 = in_out.vertices[i1];
+	b3Vec3 v2 = in_out.vertices[i1];
 
 	b3Vec3 v = 0.5f * (v1 + v2);
 	float32 len = v.Normalize();
 
-	output.AddVertex(v.x, v.y, v.z);
+	smAddVertex(in_out, v.x, v.y, v.z);
 
-	smEdgeVertexPair newPair(newEdge, newVertex);
+	smEdgeVertexPair newPair;
+	newPair.edge = newEdge;
+	newPair.vertex = newVertex;
 
-	edgeVertexMap.pairs.PushBack(newPair);
+	smAddPair(map, newPair);
 
 	return newVertex;
 }
 
-// 
-static inline void smSubdivideMesh(smMesh& output, const smMesh& input)
+static void smSubdivideMesh(smMesh& in_out, smEdgeVertexMap& map)
 {
-	output.vertices = input.vertices;
+	map.pairCount = 0;
 
-	smEdgeVertexMap edgeVertexMap;
+	u32 inputIndexCount = in_out.indexCount;
 
-	for (u32 i = 0; i < input.triangleIndices.Count() / 3; ++i)
+	for (u32 i = 0; i < inputIndexCount / 3; ++i)
 	{
-		u32 vi1 = input.triangleIndices[3 * i + 0];
-		u32 vi2 = input.triangleIndices[3 * i + 1];
-		u32 vi3 = input.triangleIndices[3 * i + 2];
+		u32 vi1 = in_out.indices[3 * i + 0];
+		u32 vi2 = in_out.indices[3 * i + 1];
+		u32 vi3 = in_out.indices[3 * i + 2];
+		
+		u32 vi4 = smSubdivideEdge(in_out, map, vi1, vi2);
+		u32 vi5 = smSubdivideEdge(in_out, map, vi2, vi3);
+		u32 vi6 = smSubdivideEdge(in_out, map, vi3, vi1);
 
-		b3Vec3 v1 = input.vertices[vi1];
-		b3Vec3 v2 = input.vertices[vi2];
-		b3Vec3 v3 = input.vertices[vi3];
-
-		u32 vi4 = smSubdivideEdge(vi1, vi2, v1, v2, edgeVertexMap, output);
-		u32 vi5 = smSubdivideEdge(vi2, vi3, v2, v3, edgeVertexMap, output);
-		u32 vi6 = smSubdivideEdge(vi3, vi1, v3, v1, edgeVertexMap, output);
-
-		output.AddTriangle(vi1, vi4, vi6);
-		output.AddTriangle(vi4, vi2, vi5);
-		output.AddTriangle(vi5, vi3, vi6);
-		output.AddTriangle(vi4, vi5, vi6);
+		smAddTriangle(in_out, vi1, vi4, vi6);
+		smAddTriangle(in_out, vi4, vi2, vi5);
+		smAddTriangle(in_out, vi5, vi3, vi6);
+		smAddTriangle(in_out, vi4, vi5, vi6);
 	}
 }
 
-//
+// Compute the maximum number of vertices and 
+// the number of triangle vertex indices in the intermediate mesh.
+// Also compute the maximum number of edge-vertex pairs per subdivision step 
+static inline void smCount(u32& vertexCount, u32& indexCount, u32& edgeVertexPairCount, u32 subdivisions)
+{
+	vertexCount = 12;
+	indexCount = 3 * 20;
+	for (u32 i = 0; i < subdivisions; ++i)
+	{
+		vertexCount += 3 * (indexCount / 3);
+		indexCount += 4 * 3 * (indexCount / 3);
+	}
+	edgeVertexPairCount = 3 * (indexCount / 3);
+}
+
 void smCreateMesh(smMesh& output, u32 subdivisions)
 {
-	assert(output.vertices.Count() == 0);
-	assert(output.triangleIndices.Count() == 0);
+	assert(output.vertexCount == 0);
+	assert(output.indexCount == 0);
 
-	smMesh input;
-	input.SetAsIcosahedron();
+	u32 vertexCount, indexCount, edgeVertexPairCount;
+	smCount(vertexCount, indexCount, edgeVertexPairCount, subdivisions);
+
+	u32 byteCount = 0;
+	byteCount += vertexCount * sizeof(b3Vec3);
+	byteCount += indexCount * sizeof(u32);
+	byteCount += edgeVertexPairCount * sizeof(smEdgeVertexPair);
+
+	u8* bytes = (u8*)malloc(byteCount);
+
+	smMesh out;
+	out.vertexCount = 0;
+	out.vertices = (b3Vec3*)bytes; 
+	out.indexCount = 0;
+	out.indices = (u32*) ((u8*)(out.vertices) + (vertexCount * sizeof(b3Vec3)));
+
+	smEdgeVertexMap map;
+	map.pairCount = 0;
+	map.pairs = (smEdgeVertexPair*) ((u8*)(out.indices) + (indexCount * sizeof(u32)));
+
+	smSetAsIcosahedron(out);
 
 	for (u32 i = 0; i < subdivisions; ++i)
 	{
-		smMesh subOutput;
-		smSubdivideMesh(subOutput, input);
-		input = subOutput;
+		smSubdivideMesh(out, map);
 	}
 
-	output = input;
+	assert(map.pairCount < edgeVertexPairCount);
+	
+	assert(out.vertexCount < vertexCount);
+	assert(out.indexCount == indexCount);
+
+	output.vertexCount = out.vertexCount;
+	output.vertices = (b3Vec3*)malloc(out.vertexCount * sizeof(b3Vec3));
+	memcpy(output.vertices, out.vertices, out.vertexCount * sizeof(b3Vec3));
+
+	output.indexCount = out.indexCount;
+	output.indices = (u32*)malloc(out.indexCount * sizeof(u32));
+	memcpy(output.indices, out.indices, out.indexCount * sizeof(u32));
+
+	free(bytes);
+
+	out.vertices = nullptr;
+	out.indices = nullptr;
 }

@@ -32,18 +32,18 @@ struct b3SphereClothMesh : public b3ClothMesh
 		smMesh mesh;
 		smCreateMesh(mesh, 1);
 
-		sphereVertices.Resize(mesh.vertices.Count());
-		for (u32 i = 0; i < mesh.vertices.Count(); ++i)
+		sphereVertices.Resize(mesh.vertexCount);
+		for (u32 i = 0; i < mesh.vertexCount; ++i)
 		{
 			sphereVertices[i] = mesh.vertices[i];
 		}
 		
-		sphereTriangles.Resize(mesh.triangleIndices.Count() / 3);
-		for (u32 i = 0; i < mesh.triangleIndices.Count() / 3; ++i)
+		sphereTriangles.Resize(mesh.indexCount / 3);
+		for (u32 i = 0; i < mesh.indexCount / 3; ++i)
 		{
-			sphereTriangles[i].v1 = mesh.triangleIndices[3 * i + 0];
-			sphereTriangles[i].v2 = mesh.triangleIndices[3 * i + 1];
-			sphereTriangles[i].v3 = mesh.triangleIndices[3 * i + 2];
+			sphereTriangles[i].v1 = mesh.indices[3 * i + 0];
+			sphereTriangles[i].v2 = mesh.indices[3 * i + 1];
+			sphereTriangles[i].v3 = mesh.indices[3 * i + 2];
 		}
 
 		sphereMesh.startTriangle = 0;
