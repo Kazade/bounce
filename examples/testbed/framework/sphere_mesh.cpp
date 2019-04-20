@@ -194,7 +194,7 @@ void smCreateMesh(smMesh& output, u32 subdivisions)
 
 	assert(map.pairCount < edgeVertexPairCount);
 	
-	assert(out.vertexCount < vertexCount);
+	assert(out.vertexCount <= vertexCount);
 	assert(out.indexCount == indexCount);
 
 	output.vertexCount = out.vertexCount;
