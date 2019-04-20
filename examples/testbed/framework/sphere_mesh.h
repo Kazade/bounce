@@ -45,6 +45,7 @@ struct smMesh
 };
 
 // Create a unit icosphere given the number of subdivisions.
+// If the number of subdivisions to perform is zero then the output mesh is an octahedron.
 void smCreateMesh(smMesh& output, u32 subdivisions);
 
 #endif 
