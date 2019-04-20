@@ -140,7 +140,7 @@ static inline u32 smSubdivideEdge(smMesh& in_out, smEdgeVertexMap& map,
 	u32 newVertex = in_out.vertexCount;
 
 	b3Vec3 v1 = in_out.vertices[i1];
-	b3Vec3 v2 = in_out.vertices[i1];
+	b3Vec3 v2 = in_out.vertices[i2];
 
 	b3Vec3 v = 0.5f * (v1 + v2);
 	float32 len = v.Normalize();
