@@ -105,13 +105,13 @@ static inline void smAddPair(smEdgeVertexMap& map, const smEdgeVertexPair& pair)
 	map.pairs[map.pairCount++] = pair;
 }
 
-static inline smEdgeVertexPair* smFindOpposite(smEdgeVertexMap& map, const smEdge& edge)
+static inline smEdgeVertexPair* smFind(smEdgeVertexMap& map, u32 v1, u32 v2)
 {
 	for (u32 i = 0; i < map.pairCount; ++i)
 	{
 		smEdgeVertexPair* pair = map.pairs + i;
 
-		if (pair->edge.v1 == edge.v2 && pair->edge.v2 == edge.v1)
+		if (pair->edge.v1 == v1 && pair->edge.v2 == v2)
 		{
 			return pair;
 		}
@@ -122,11 +122,7 @@ static inline smEdgeVertexPair* smFindOpposite(smEdgeVertexMap& map, const smEdg
 static inline u32 smSubdivideEdge(smMesh& in_out, smEdgeVertexMap& map, 
 	u32 i1, u32 i2)
 {
-	smEdge edge;
-	edge.v1 = i1;
-	edge.v2 = i2;
-
-	smEdgeVertexPair* pair = smFindOpposite(map, edge);
+	smEdgeVertexPair* pair = smFind(map, i2, i1);
 
 	if (pair)
 	{
@@ -136,14 +132,13 @@ static inline u32 smSubdivideEdge(smMesh& in_out, smEdgeVertexMap& map,
 	smEdge newEdge;
 	newEdge.v1 = i1;
 	newEdge.v2 = i2;
-	
+
 	u32 newVertex = in_out.vertexCount;
 
 	b3Vec3 v1 = in_out.vertices[i1];
 	b3Vec3 v2 = in_out.vertices[i2];
-
 	b3Vec3 v = 0.5f * (v1 + v2);
-	float32 len = v.Normalize();
+	v.Normalize();
 
 	smAddVertex(in_out, v.x, v.y, v.z);
 
