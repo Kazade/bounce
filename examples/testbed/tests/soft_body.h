@@ -19,44 +19,46 @@
 #ifndef SOFT_BODY_H
 #define SOFT_BODY_H
 
-#include <testbed/framework/sphere_mesh.h>
+#include <bounce/meshgen/sphere_mesh.h>
 
-struct b3SphereClothMesh : public b3ClothMesh
+struct b3QClothMesh : public b3ClothMesh
 {
-	b3StackArray<b3Vec3, 256> sphereVertices;
-	b3StackArray<b3ClothMeshTriangle, 256> sphereTriangles;
-	b3ClothMeshMesh sphereMesh;
+	b3ClothMeshMesh qMesh;
 
-	b3SphereClothMesh()
+	~b3QClothMesh()
+	{
+		free(vertices);
+		free(triangles);
+	}
+
+	b3QClothMesh()
 	{
 		smMesh mesh;
 		smCreateMesh(mesh, 2);
 
-		sphereVertices.Resize(mesh.vertexCount);
+		vertexCount = mesh.vertexCount;
+		vertices = (b3Vec3*) malloc(vertexCount * sizeof(b3Vec3));
 		for (u32 i = 0; i < mesh.vertexCount; ++i)
 		{
-			sphereVertices[i] = mesh.vertices[i];
+			vertices[i] = mesh.vertices[i];
 		}
 		
-		sphereTriangles.Resize(mesh.indexCount / 3);
-		for (u32 i = 0; i < mesh.indexCount / 3; ++i)
+		triangleCount = mesh.indexCount / 3;
+		triangles = (b3ClothMeshTriangle*) malloc(triangleCount * sizeof(b3ClothMeshTriangle));
+		for (u32 i = 0; i < triangleCount; ++i)
 		{
-			sphereTriangles[i].v1 = mesh.indices[3 * i + 0];
-			sphereTriangles[i].v2 = mesh.indices[3 * i + 1];
-			sphereTriangles[i].v3 = mesh.indices[3 * i + 2];
+			triangles[i].v1 = mesh.indices[3 * i + 0];
+			triangles[i].v2 = mesh.indices[3 * i + 1];
+			triangles[i].v3 = mesh.indices[3 * i + 2];
 		}
 
-		sphereMesh.startTriangle = 0;
-		sphereMesh.triangleCount = sphereTriangles.Count();
-		sphereMesh.startVertex = 0;
-		sphereMesh.vertexCount = sphereVertices.Count();
+		qMesh.startTriangle = 0;
+		qMesh.triangleCount = triangleCount;
+		qMesh.startVertex = 0;
+		qMesh.vertexCount = vertexCount;
 
-		vertexCount = sphereVertices.Count();
-		vertices = sphereVertices.Begin();
-		triangleCount = sphereTriangles.Count();
-		triangles = sphereTriangles.Begin();
 		meshCount = 1;
-		meshes = &sphereMesh;
+		meshes = &qMesh;
 		sewingLineCount = 0;
 		sewingLines = nullptr;
 	}
@@ -270,7 +272,7 @@ public:
 		return new SoftBody();
 	}
 
-	b3SphereClothMesh m_mesh;
+	b3QClothMesh m_mesh;
 	b3Cloth* m_cloth;
 	b3ClothDragger* m_clothDragger;
 };

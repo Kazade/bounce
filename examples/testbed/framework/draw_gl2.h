@@ -28,7 +28,8 @@
 #include <bounce/common/math/mat44.h>
 #include <bounce/common/draw.h>
 
-#include <testbed/framework/sphere_mesh.h>
+#include <bounce/meshgen/sphere_mesh.h>
+#include <bounce/meshgen/cylinder_mesh.h>
 
 #define BUFFER_OFFSET(i) ((char*)NULL + (i))
 
@@ -666,7 +667,7 @@ struct DrawSolidSphere
 		glBufferData(GL_ARRAY_BUFFER, m_vertexCount * sizeof(b3Vec3), mesh.vertices, GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
-		glBufferData(GL_ARRAY_BUFFER, m_vertexCount * sizeof(b3Vec3), mesh.vertices, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, m_vertexCount * sizeof(b3Vec3), mesh.normals, GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_iboId);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indexCount * sizeof(u32), mesh.indices, GL_STATIC_DRAW);
@@ -691,96 +692,25 @@ struct DrawSolidSphere
 
 struct DrawSolidCylinder
 {
-	enum
-	{
-		e_segments = 64,
-		e_vertexCount = e_segments * 6,
-	};
-
 	DrawSolidCylinder()
 	{
-		b3Vec3 vs[e_vertexCount];
-		b3Vec3 ns[e_vertexCount];
+		cymMesh mesh;
+		cymCreateMesh(mesh, 20);
 
-		u32 vc = 0;
-		for (u32 i = 0; i < e_segments; ++i)
-		{
-			float32 t0 = 2.0f * B3_PI * float32(i) / float32(e_segments);
-			float32 t1 = 2.0f * B3_PI * float32(i + 1) / float32(e_segments);
-
-			float32 c0 = cos(t0);
-			float32 s0 = sin(t0);
-
-			float32 c1 = cos(t1);
-			float32 s1 = sin(t1);
-
-			b3Vec3 v1;
-			v1.x = s0;
-			v1.y = -0.5f;
-			v1.z = c0;
-			
-			b3Vec3 v2;
-			v2.x = s1;
-			v2.y = -0.5f;
-			v2.z = c1;
-			
-			b3Vec3 v3;
-			v3.x = s1;
-			v3.y = 0.5f;
-			v3.z = c1;
-			
-			b3Vec3 v4;
-			v4.x = s0;
-			v4.y = 0.5f;
-			v4.z = c0;
-			
-			b3Vec3 n = b3Cross(v2 - v1, v3 - v1);
-			n.Normalize();
-
-			vs[vc] = v1;
-			ns[vc] = n;
-			++vc;
-
-			vs[vc] = v2;
-			ns[vc] = n;
-			++vc;
-
-			vs[vc] = v3;
-			ns[vc] = n;
-			++vc;
-
-			vs[vc] = v1;
-			ns[vc] = n;
-			++vc;
-
-			vs[vc] = v3;
-			ns[vc] = n;
-			++vc;
-
-			vs[vc] = v4;
-			ns[vc] = n;
-			++vc;
-		}
-
-		u32 is[e_vertexCount];
-
-		u32 ic = vc;
-		for (u32 i = 0; i < vc; ++i)
-		{
-			is[i] = i;
-		}
+		m_vertexCount = mesh.vertexCount;
+		m_indexCount = mesh.indexCount;
 
 		glGenBuffers(2, m_vboIds);
 		glGenBuffers(1, &m_iboId);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[0]);
-		glBufferData(GL_ARRAY_BUFFER, vc * sizeof(b3Vec3), vs, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, m_vertexCount * sizeof(b3Vec3), mesh.vertices, GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[1]);
-		glBufferData(GL_ARRAY_BUFFER, vc * sizeof(b3Vec3), ns, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, m_vertexCount * sizeof(b3Vec3), mesh.normals, GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_iboId);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, ic * sizeof(u32), is, GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indexCount * sizeof(u32), mesh.indices, GL_STATIC_DRAW);
 
 		AssertGL();
 
@@ -796,6 +726,8 @@ struct DrawSolidCylinder
 
 	GLuint m_vboIds[2];
 	GLuint m_iboId;
+	u32 m_vertexCount;
+	u32 m_indexCount;
 };
 
 struct DrawSolid
@@ -875,7 +807,7 @@ struct DrawSolid
 		glEnableVertexAttribArray(m_normalAttribute);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_cylinder.m_iboId);
-		glDrawElements(GL_TRIANGLES, m_cylinder.e_vertexCount, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+		glDrawElements(GL_TRIANGLES, m_cylinder.m_indexCount, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
 
 		glDisableVertexAttribArray(m_normalAttribute);
 

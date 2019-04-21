@@ -16,36 +16,39 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef SPHERE_MESH_H
-#define SPHERE_MESH_H
+#ifndef CYM_MESH_H
+#define CYM_MESH_H
 
 #include <bounce/common/math/vec3.h>
 
 // This structure represents a triangle mesh.
-struct smMesh
+struct cymMesh
 {
-	smMesh()
+	cymMesh()
 	{
 		vertexCount = 0;
 		vertices = nullptr;
+		normals = nullptr;
 		indexCount = 0;
 		indices = nullptr;
 	}
 
-	~smMesh()
+	~cymMesh()
 	{
-		free(vertices);
-		free(indices);
+		b3Free(vertices);
+		b3Free(normals);
+		b3Free(indices);
 	}
 
 	u32 vertexCount; // number of unique vertices
 	b3Vec3* vertices; // list of unique vertices
+	b3Vec3* normals; // list of vertex normals
 	u32 indexCount; // number of triangle vertex indices
 	u32* indices; // list of triangle vertex index
 };
 
-// Create a unit icosphere given the number of subdivisions.
-// If the number of subdivisions to perform is zero then the output mesh is an octahedron.
-void smCreateMesh(smMesh& output, u32 subdivisions);
+// Create a unit cylinder along the y-axis given the number of segments.
+// The number of segments must be greater than 2.
+void cymCreateMesh(cymMesh& output, u32 segments);
 
-#endif 
+#endif

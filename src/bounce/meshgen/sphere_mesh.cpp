@@ -16,7 +16,7 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <testbed/framework/sphere_mesh.h>
+#include <bounce/meshgen/sphere_mesh.h>
 
 static inline void smAddVertex(smMesh& mesh, float32 x, float32 y, float32 z)
 {
@@ -32,7 +32,7 @@ static inline void smAddTriangle(smMesh& mesh, u32 v1, u32 v2, u32 v3)
 
 static inline void smSetAsOctahedron(smMesh& mesh)
 {
-	assert(mesh.vertexCount == 0);
+	B3_ASSERT(mesh.vertexCount == 0);
 
 	smAddVertex(mesh, 0.0f, -1.0f, 0.0f);
 	smAddVertex(mesh, 0.0f, 0.0f, 1.0f);
@@ -41,7 +41,7 @@ static inline void smSetAsOctahedron(smMesh& mesh)
 	smAddVertex(mesh, 1.0f, 0.0f, 0.0f);
 	smAddVertex(mesh, 0.0f, 1.0f, 0.0f);
 
-	assert(mesh.indexCount == 0);
+	B3_ASSERT(mesh.indexCount == 0);
 
 	smAddTriangle(mesh, 0, 1, 2);
 	smAddTriangle(mesh, 0, 2, 3);
@@ -162,8 +162,8 @@ static inline void smCount(u32& vertexCount, u32& indexCount, u32& edgeVertexPai
 
 void smCreateMesh(smMesh& output, u32 subdivisions)
 {
-	assert(output.vertexCount == 0);
-	assert(output.indexCount == 0);
+	B3_ASSERT(output.vertexCount == 0);
+	B3_ASSERT(output.indexCount == 0);
 
 	u32 vertexCount, indexCount, edgeVertexPairCount;
 	smCount(vertexCount, indexCount, edgeVertexPairCount, subdivisions);
@@ -173,11 +173,12 @@ void smCreateMesh(smMesh& output, u32 subdivisions)
 	byteCount += indexCount * sizeof(u32);
 	byteCount += edgeVertexPairCount * sizeof(smEdgeVertexPair);
 
-	u8* bytes = (u8*)malloc(byteCount);
+	u8* bytes = (u8*)b3Alloc(byteCount);
 
 	smMesh out;
 	out.vertexCount = 0;
 	out.vertices = (b3Vec3*)bytes; 
+	out.normals = nullptr;
 	out.indexCount = 0;
 	out.indices = (u32*) ((u8*)(out.vertices) + (vertexCount * sizeof(b3Vec3)));
 
@@ -192,21 +193,24 @@ void smCreateMesh(smMesh& output, u32 subdivisions)
 		smSubdivideMesh(out, map);
 	}
 
-	assert(map.pairCount < edgeVertexPairCount);
-	
-	assert(out.vertexCount <= vertexCount);
-	assert(out.indexCount == indexCount);
+	B3_ASSERT(out.vertexCount <= vertexCount);
+	B3_ASSERT(out.indexCount == indexCount);
+	B3_ASSERT(map.pairCount < edgeVertexPairCount);
 
 	output.vertexCount = out.vertexCount;
-	output.vertices = (b3Vec3*)malloc(out.vertexCount * sizeof(b3Vec3));
+	output.vertices = (b3Vec3*)b3Alloc(out.vertexCount * sizeof(b3Vec3));
 	memcpy(output.vertices, out.vertices, out.vertexCount * sizeof(b3Vec3));
+	
+	output.normals = (b3Vec3*)b3Alloc(out.vertexCount * sizeof(b3Vec3));
+	memcpy(output.normals, output.vertices, output.vertexCount * sizeof(b3Vec3));
 
 	output.indexCount = out.indexCount;
-	output.indices = (u32*)malloc(out.indexCount * sizeof(u32));
+	output.indices = (u32*)b3Alloc(out.indexCount * sizeof(u32));
 	memcpy(output.indices, out.indices, out.indexCount * sizeof(u32));
 
-	free(bytes);
+	b3Free(bytes);
 
 	out.vertices = nullptr;
+	out.normals = nullptr;
 	out.indices = nullptr;
 }

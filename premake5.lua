@@ -273,10 +273,6 @@ workspace(solution_name)
 			
 			examples_src_dir .. "/testbed/framework/test.h", 
 			
-			examples_src_dir .. "/testbed/framework/sphere_mesh.h", 
-			
-			examples_src_dir .. "/testbed/framework/sphere_mesh.cpp", 
-			
 			examples_src_dir .. "/testbed/framework/body_dragger.h", 
 			examples_src_dir .. "/testbed/framework/cloth_dragger.h", 
 			
