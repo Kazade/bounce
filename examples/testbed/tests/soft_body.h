@@ -23,44 +23,48 @@
 
 struct b3QClothMesh : public b3ClothMesh
 {
-	b3ClothMeshMesh qMesh;
-
-	~b3QClothMesh()
-	{
-		free(vertices);
-		free(triangles);
-	}
+	b3StackArray<b3Vec3, 256> clothVertices;
+	b3StackArray<b3ClothMeshTriangle, 256> clothTriangles;
+	b3ClothMeshMesh clothMesh;
 
 	b3QClothMesh()
+	{
+		vertices = clothVertices.Begin();
+		vertexCount = 0;
+		triangles = clothTriangles.Begin();
+		triangleCount = 0;
+		meshCount = 1;
+		meshes = &clothMesh;
+		sewingLineCount = 0;
+		sewingLines = nullptr;
+	}
+
+	void SetAsSphere(float32 radius = 1.0f)
 	{
 		smMesh mesh;
 		smCreateMesh(mesh, 2);
 
-		vertexCount = mesh.vertexCount;
-		vertices = (b3Vec3*) malloc(vertexCount * sizeof(b3Vec3));
+		clothVertices.Resize(mesh.vertexCount);
 		for (u32 i = 0; i < mesh.vertexCount; ++i)
 		{
-			vertices[i] = mesh.vertices[i];
+			clothVertices[i] = radius * mesh.vertices[i];
 		}
-		
-		triangleCount = mesh.indexCount / 3;
-		triangles = (b3ClothMeshTriangle*) malloc(triangleCount * sizeof(b3ClothMeshTriangle));
-		for (u32 i = 0; i < triangleCount; ++i)
+
+		clothTriangles.Resize(mesh.indexCount / 3);
+		for (u32 i = 0; i < mesh.indexCount / 3; ++i)
 		{
 			triangles[i].v1 = mesh.indices[3 * i + 0];
 			triangles[i].v2 = mesh.indices[3 * i + 1];
 			triangles[i].v3 = mesh.indices[3 * i + 2];
 		}
 
-		qMesh.startTriangle = 0;
-		qMesh.triangleCount = triangleCount;
-		qMesh.startVertex = 0;
-		qMesh.vertexCount = vertexCount;
+		clothMesh.startTriangle = 0;
+		clothMesh.triangleCount = clothTriangles.Count();
+		clothMesh.startVertex = 0;
+		clothMesh.vertexCount = clothVertices.Count();
 
-		meshCount = 1;
-		meshes = &qMesh;
-		sewingLineCount = 0;
-		sewingLines = nullptr;
+		vertexCount = clothVertices.Count();
+		triangleCount = clothTriangles.Count();
 	}
 };
 
@@ -69,10 +73,11 @@ class SoftBody : public Test
 public:
 	SoftBody()
 	{
-		// Scale and translate the cloth mesh upwards
+		m_mesh.SetAsSphere(2.0f);
+
+		// Translate the cloth mesh upwards
 		for (u32 i = 0; i < m_mesh.vertexCount; ++i)
 		{
-			m_mesh.vertices[i] *= 2.0f;
 			m_mesh.vertices[i].y += 10.0f;
 		}
 
