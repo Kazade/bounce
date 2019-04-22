@@ -149,60 +149,81 @@ static void smSubdivideMesh(smMesh& out, const smMesh& in, smEdgeVertexMap& map)
 	}
 }
 
+static inline void smCount(u32& vertexCapacity, u32& indexCount, u32& edgeVertexPairCapacity, u32 subdivisions)
+{
+	u32 inVertexCapacity = 6;
+	u32 inTriangleCount = 8;
+	for (u32 i = 0; i < subdivisions; ++i)
+	{
+		u32 outVertexCapacity = inVertexCapacity + 3 * inTriangleCount;
+		u32 outTriangleCount = 4 * inTriangleCount;
+
+		inVertexCapacity = outVertexCapacity;
+		inTriangleCount = outTriangleCount;
+	}
+	vertexCapacity = inVertexCapacity;
+	indexCount = 3 * inTriangleCount;
+	edgeVertexPairCapacity = 3 * inTriangleCount;
+}
+
 void smCreateMesh(smMesh& output, u32 subdivisions)
 {
 	B3_ASSERT(output.vertexCount == 0);
 	B3_ASSERT(output.indexCount == 0);
 
+	u32 vertexCapacity, indexCount, edgeVertexPairCapacity;
+	smCount(vertexCapacity, indexCount, edgeVertexPairCapacity, subdivisions);
+
+	// We use two vertex and index buffers. 
+	// One is used for input mesh and the other for suboutput mesh.
+	// Each buffer has size equal the maximum vertex or index count.
+	u32 byteCount = 0;
+	byteCount += 2 * vertexCapacity * sizeof(b3Vec3);
+	byteCount += 2 * indexCount * sizeof(u32);
+	byteCount += edgeVertexPairCapacity * sizeof(smEdgeVertexPair);
+	
+	u8* bytes = (u8*)b3Alloc(byteCount);
+
+	b3Vec3* inVertex = (b3Vec3*)bytes;
+	b3Vec3* outVertex = (b3Vec3*) ((u8*)(inVertex) + vertexCapacity * sizeof(b3Vec3));
+	u32* inIndex = (u32*)((u8*)(outVertex) + vertexCapacity * sizeof(b3Vec3));
+	u32* outIndex = (u32*)((u8*)(inIndex) + indexCount * sizeof(u32));
+	smEdgeVertexPair* pairs = (smEdgeVertexPair*)((u8*)(outIndex) + indexCount * sizeof(u32));
+
 	smMesh in;
 	in.vertexCount = 0;
-	in.vertices = (b3Vec3*)b3Alloc(6 * sizeof(b3Vec3));
+	in.vertices = inVertex;
 	in.normals = nullptr;
 	in.indexCount = 0;
-	in.indices = (u32*)b3Alloc(3 * 8 * sizeof(u32));
+	in.indices = inIndex;
 
 	smSetAsOctahedron(in);
 
 	for (u32 i = 0; i < subdivisions; ++i)
 	{
-		u32 inTriangleCount = in.indexCount / 3;
-		u32 outVertexCapacity = in.vertexCount + 3 * inTriangleCount;
-		
-		u32 outTriangleCapacity = 4 * inTriangleCount;
-		u32 outIndexCapacity = 3 * outTriangleCapacity;
-
-		u32 edgeVertexPairCapacity = 3 * inTriangleCount;
-
 		smMesh out;
 		out.vertexCount = 0;
-		out.vertices = (b3Vec3*)b3Alloc(outVertexCapacity * sizeof(b3Vec3));
-
+		out.vertices = outVertex;
 		out.indexCount = 0;
-		out.indices = (u32*)b3Alloc(outIndexCapacity * sizeof(u32));
+		out.indices = outIndex;
 
 		smEdgeVertexMap map;
 		map.pairCount = 0;
-		map.pairs = (smEdgeVertexPair*)b3Alloc(edgeVertexPairCapacity * sizeof(smEdgeVertexPair));
+		map.pairs = pairs;
 
 		smSubdivideMesh(out, in, map);
 
-		b3Free(map.pairs);
-		b3Free(in.vertices);
-		b3Free(in.indices);
-		
 		// in = out
 		in.vertexCount = out.vertexCount;
-		in.vertices = (b3Vec3*)b3Alloc(out.vertexCount * sizeof(b3Vec3));
+		in.vertices = inVertex;
 		memcpy(in.vertices, out.vertices, out.vertexCount * sizeof(b3Vec3));
 
 		in.indexCount = out.indexCount;
-		in.indices = (u32*)b3Alloc(out.indexCount * sizeof(u32));
+		in.indices = inIndex;
 		memcpy(in.indices, out.indices, out.indexCount * sizeof(u32));
 
-		b3Free(out.vertices);
 		out.vertices = nullptr;
 		out.normals = nullptr;
-		b3Free(out.indices);
 		out.indices = nullptr;
 	}
 
@@ -217,8 +238,8 @@ void smCreateMesh(smMesh& output, u32 subdivisions)
 	output.indices = (u32*)b3Alloc(in.indexCount * sizeof(u32));
 	memcpy(output.indices, in.indices, in.indexCount * sizeof(u32));
 
-	b3Free(in.vertices);
-	b3Free(in.indices);
+	b3Free(bytes);
+
 	in.vertices = nullptr;
 	in.normals = nullptr;
 	in.indices = nullptr;
