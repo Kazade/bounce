@@ -32,13 +32,13 @@ struct b3QHull : public b3Hull
 
 	b3QHull()
 	{
-		vertices = hullVertices.Begin();
+		vertices = nullptr;
 		vertexCount = 0;
-		edges = hullEdges.Begin();
+		edges = nullptr;
 		edgeCount = 0;
-		faces = hullFaces.Begin();
+		faces = nullptr;
 		faceCount = 0;
-		planes = hullPlanes.Begin();
+		planes = nullptr;
 		centroid.SetZero();
 	}
 

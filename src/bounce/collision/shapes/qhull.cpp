@@ -338,8 +338,12 @@ void b3QHull::Set(u32 vtxStride, const void* vtxBase, u32 vtxCount, bool simplif
 		++iface;
 	}
 
+	vertices = hullVertices.Begin();
 	vertexCount = hullVertices.Count();
+	edges = hullEdges.Begin();
 	edgeCount = hullEdges.Count();
+	faces = hullFaces.Begin();
+	planes = hullPlanes.Begin();
 	faceCount = hullFaces.Count();
 
 	// Validate
