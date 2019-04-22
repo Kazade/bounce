@@ -29,12 +29,12 @@ struct b3QClothMesh : public b3ClothMesh
 
 	b3QClothMesh()
 	{
-		vertices = clothVertices.Begin();
+		vertices = nullptr;
 		vertexCount = 0;
-		triangles = clothTriangles.Begin();
+		triangles = nullptr;
 		triangleCount = 0;
-		meshCount = 1;
-		meshes = &clothMesh;
+		meshCount = 0;
+		meshes = nullptr;
 		sewingLineCount = 0;
 		sewingLines = nullptr;
 	}
@@ -53,9 +53,9 @@ struct b3QClothMesh : public b3ClothMesh
 		clothTriangles.Resize(mesh.indexCount / 3);
 		for (u32 i = 0; i < mesh.indexCount / 3; ++i)
 		{
-			triangles[i].v1 = mesh.indices[3 * i + 0];
-			triangles[i].v2 = mesh.indices[3 * i + 1];
-			triangles[i].v3 = mesh.indices[3 * i + 2];
+			clothTriangles[i].v1 = mesh.indices[3 * i + 0];
+			clothTriangles[i].v2 = mesh.indices[3 * i + 1];
+			clothTriangles[i].v3 = mesh.indices[3 * i + 2];
 		}
 
 		clothMesh.startTriangle = 0;
@@ -63,8 +63,12 @@ struct b3QClothMesh : public b3ClothMesh
 		clothMesh.startVertex = 0;
 		clothMesh.vertexCount = clothVertices.Count();
 
+		vertices = clothVertices.Begin();
 		vertexCount = clothVertices.Count();
+		triangles = clothTriangles.Begin();
 		triangleCount = clothTriangles.Count();
+		meshCount = 1;
+		meshes = &clothMesh;
 	}
 };
 
