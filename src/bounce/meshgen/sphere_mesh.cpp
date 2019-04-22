@@ -90,7 +90,8 @@ static inline smEdgeVertexPair* smFind(smEdgeVertexMap& map, u32 v1, u32 v2)
 	return nullptr;
 }
 
-static inline u32 smSubdivideEdge(smMesh& in_out, smEdgeVertexMap& map, 
+static inline u32 smSubdivideEdge(smMesh& out, smEdgeVertexMap& map, 
+	const smMesh& in, 
 	u32 i1, u32 i2)
 {
 	smEdgeVertexPair* pair = smFind(map, i2, i1);
@@ -104,14 +105,14 @@ static inline u32 smSubdivideEdge(smMesh& in_out, smEdgeVertexMap& map,
 	newEdge.v1 = i1;
 	newEdge.v2 = i2;
 
-	u32 newVertex = in_out.vertexCount;
+	u32 newVertex = out.vertexCount;
 
-	b3Vec3 v1 = in_out.vertices[i1];
-	b3Vec3 v2 = in_out.vertices[i2];
+	b3Vec3 v1 = in.vertices[i1];
+	b3Vec3 v2 = in.vertices[i2];
 	b3Vec3 v = 0.5f * (v1 + v2);
 	v.Normalize();
 
-	smAddVertex(in_out, v.x, v.y, v.z);
+	smAddVertex(out, v.x, v.y, v.z);
 
 	smEdgeVertexPair newPair;
 	newPair.edge = newEdge;
@@ -122,42 +123,30 @@ static inline u32 smSubdivideEdge(smMesh& in_out, smEdgeVertexMap& map,
 	return newVertex;
 }
 
-static void smSubdivideMesh(smMesh& in_out, smEdgeVertexMap& map)
+static void smSubdivideMesh(smMesh& out, const smMesh& in, smEdgeVertexMap& map)
 {
-	map.pairCount = 0;
+	B3_ASSERT(out.vertexCount == 0);
+	B3_ASSERT(out.indexCount == 0);
+	B3_ASSERT(map.pairCount == 0);
 
-	u32 inputIndexCount = in_out.indexCount;
+	out.vertexCount = in.vertexCount;
+	memcpy(out.vertices, in.vertices, in.vertexCount * sizeof(b3Vec3));
 
-	for (u32 i = 0; i < inputIndexCount / 3; ++i)
+	for (u32 i = 0; i < in.indexCount / 3; ++i)
 	{
-		u32 vi1 = in_out.indices[3 * i + 0];
-		u32 vi2 = in_out.indices[3 * i + 1];
-		u32 vi3 = in_out.indices[3 * i + 2];
+		u32 vi1 = in.indices[3 * i + 0];
+		u32 vi2 = in.indices[3 * i + 1];
+		u32 vi3 = in.indices[3 * i + 2];
 		
-		u32 vi4 = smSubdivideEdge(in_out, map, vi1, vi2);
-		u32 vi5 = smSubdivideEdge(in_out, map, vi2, vi3);
-		u32 vi6 = smSubdivideEdge(in_out, map, vi3, vi1);
+		u32 vi4 = smSubdivideEdge(out, map, in, vi1, vi2);
+		u32 vi5 = smSubdivideEdge(out, map, in, vi2, vi3);
+		u32 vi6 = smSubdivideEdge(out, map, in, vi3, vi1);
 
-		smAddTriangle(in_out, vi1, vi4, vi6);
-		smAddTriangle(in_out, vi4, vi2, vi5);
-		smAddTriangle(in_out, vi5, vi3, vi6);
-		smAddTriangle(in_out, vi4, vi5, vi6);
+		smAddTriangle(out, vi1, vi4, vi6);
+		smAddTriangle(out, vi4, vi2, vi5);
+		smAddTriangle(out, vi5, vi3, vi6);
+		smAddTriangle(out, vi4, vi5, vi6);
 	}
-}
-
-// Compute the maximum number of vertices and 
-// the number of triangle vertex indices in the intermediate mesh.
-// Also compute the maximum number of edge-vertex pairs per subdivision step 
-static inline void smCount(u32& vertexCount, u32& indexCount, u32& edgeVertexPairCount, u32 subdivisions)
-{
-	vertexCount = 6;
-	indexCount = 3 * 8;
-	for (u32 i = 0; i < subdivisions; ++i)
-	{
-		vertexCount += 3 * (indexCount / 3);
-		indexCount += 4 * 3 * (indexCount / 3);
-	}
-	edgeVertexPairCount = 3 * (indexCount / 3);
 }
 
 void smCreateMesh(smMesh& output, u32 subdivisions)
@@ -165,52 +154,72 @@ void smCreateMesh(smMesh& output, u32 subdivisions)
 	B3_ASSERT(output.vertexCount == 0);
 	B3_ASSERT(output.indexCount == 0);
 
-	u32 vertexCount, indexCount, edgeVertexPairCount;
-	smCount(vertexCount, indexCount, edgeVertexPairCount, subdivisions);
+	smMesh in;
+	in.vertexCount = 0;
+	in.vertices = (b3Vec3*)b3Alloc(6 * sizeof(b3Vec3));
+	in.normals = nullptr;
+	in.indexCount = 0;
+	in.indices = (u32*)b3Alloc(3 * 8 * sizeof(u32));
 
-	u32 byteCount = 0;
-	byteCount += vertexCount * sizeof(b3Vec3);
-	byteCount += indexCount * sizeof(u32);
-	byteCount += edgeVertexPairCount * sizeof(smEdgeVertexPair);
-
-	u8* bytes = (u8*)b3Alloc(byteCount);
-
-	smMesh out;
-	out.vertexCount = 0;
-	out.vertices = (b3Vec3*)bytes; 
-	out.normals = nullptr;
-	out.indexCount = 0;
-	out.indices = (u32*) ((u8*)(out.vertices) + (vertexCount * sizeof(b3Vec3)));
-
-	smEdgeVertexMap map;
-	map.pairCount = 0;
-	map.pairs = (smEdgeVertexPair*) ((u8*)(out.indices) + (indexCount * sizeof(u32)));
-
-	smSetAsOctahedron(out);
+	smSetAsOctahedron(in);
 
 	for (u32 i = 0; i < subdivisions; ++i)
 	{
-		smSubdivideMesh(out, map);
+		u32 inTriangleCount = in.indexCount / 3;
+		u32 outVertexCapacity = in.vertexCount + 3 * inTriangleCount;
+		
+		u32 outTriangleCapacity = 4 * inTriangleCount;
+		u32 outIndexCapacity = 3 * outTriangleCapacity;
+
+		u32 edgeVertexPairCapacity = 3 * inTriangleCount;
+
+		smMesh out;
+		out.vertexCount = 0;
+		out.vertices = (b3Vec3*)b3Alloc(outVertexCapacity * sizeof(b3Vec3));
+
+		out.indexCount = 0;
+		out.indices = (u32*)b3Alloc(outIndexCapacity * sizeof(u32));
+
+		smEdgeVertexMap map;
+		map.pairCount = 0;
+		map.pairs = (smEdgeVertexPair*)b3Alloc(edgeVertexPairCapacity * sizeof(smEdgeVertexPair));
+
+		smSubdivideMesh(out, in, map);
+
+		b3Free(map.pairs);
+		b3Free(in.vertices);
+		b3Free(in.indices);
+		
+		// in = out
+		in.vertexCount = out.vertexCount;
+		in.vertices = (b3Vec3*)b3Alloc(out.vertexCount * sizeof(b3Vec3));
+		memcpy(in.vertices, out.vertices, out.vertexCount * sizeof(b3Vec3));
+
+		in.indexCount = out.indexCount;
+		in.indices = (u32*)b3Alloc(out.indexCount * sizeof(u32));
+		memcpy(in.indices, out.indices, out.indexCount * sizeof(u32));
+
+		b3Free(out.vertices);
+		out.vertices = nullptr;
+		out.normals = nullptr;
+		b3Free(out.indices);
+		out.indices = nullptr;
 	}
 
-	B3_ASSERT(out.vertexCount <= vertexCount);
-	B3_ASSERT(out.indexCount == indexCount);
-	B3_ASSERT(map.pairCount < edgeVertexPairCount);
-
-	output.vertexCount = out.vertexCount;
-	output.vertices = (b3Vec3*)b3Alloc(out.vertexCount * sizeof(b3Vec3));
-	memcpy(output.vertices, out.vertices, out.vertexCount * sizeof(b3Vec3));
+	output.vertexCount = in.vertexCount;
+	output.vertices = (b3Vec3*)b3Alloc(in.vertexCount * sizeof(b3Vec3));
+	memcpy(output.vertices, in.vertices, in.vertexCount * sizeof(b3Vec3));
 	
-	output.normals = (b3Vec3*)b3Alloc(out.vertexCount * sizeof(b3Vec3));
+	output.normals = (b3Vec3*)b3Alloc(in.vertexCount * sizeof(b3Vec3));
 	memcpy(output.normals, output.vertices, output.vertexCount * sizeof(b3Vec3));
 
-	output.indexCount = out.indexCount;
-	output.indices = (u32*)b3Alloc(out.indexCount * sizeof(u32));
-	memcpy(output.indices, out.indices, out.indexCount * sizeof(u32));
+	output.indexCount = in.indexCount;
+	output.indices = (u32*)b3Alloc(in.indexCount * sizeof(u32));
+	memcpy(output.indices, in.indices, in.indexCount * sizeof(u32));
 
-	b3Free(bytes);
-
-	out.vertices = nullptr;
-	out.normals = nullptr;
-	out.indices = nullptr;
+	b3Free(in.vertices);
+	b3Free(in.indices);
+	in.vertices = nullptr;
+	in.normals = nullptr;
+	in.indices = nullptr;
 }
