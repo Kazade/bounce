@@ -866,20 +866,19 @@ bool b3GJKShapeCast(b3GJKShapeCastOutput* output,
 	B3_ASSERT(bound > 0.0f);
 
 	float32 t = 0.0f;
-	
-	const float32 tolerance = 0.5f * B3_LINEAR_SLOP;
-
 	b3SimplexCache cache;
 	cache.count = 0;
-
 	b3GJKOutput gjkOut = b3GJK(xf1, proxy1, xf2, proxy2, false, &cache);
 	float32 d = gjkOut.distance;
 
 	if (d == 0.0f)
 	{
 		// Overlap
+		output->iterations = 0;
 		return false;
 	}
+
+	const float32 tolerance = 0.25f * B3_LINEAR_SLOP;
 
 	b3Vec3 n = gjkOut.point2 - gjkOut.point1;
 	n /= d;
@@ -900,7 +899,6 @@ bool b3GJKShapeCast(b3GJKShapeCastOutput* output,
 		++iter;
 
 		B3_ASSERT(d >= radius);
-		
 		float32 dt = (d - radius) / bound;
 		t += dt;
 
