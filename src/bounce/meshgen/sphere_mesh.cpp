@@ -160,19 +160,21 @@ static inline void smCount(u32& inVertexCapacity, u32& inIndexCount,
 	outVertexCapacity = 0;
 	u32 outTriangleCount = 0;
 
+	edgeVertexPairCapacity = 0;
+
 	for (u32 i = 0; i < subdivisions; ++i)
 	{
 		outVertexCapacity = inVertexCapacity + 3 * inTriangleCount;
 		outTriangleCount = 4 * inTriangleCount;
 
+		edgeVertexPairCapacity = 3 * inTriangleCount;
+		
 		inVertexCapacity = outVertexCapacity;
 		inTriangleCount = outTriangleCount;
 	}
 	
 	inIndexCount = 3 * inTriangleCount;
 	outIndexCount = 3 * outTriangleCount;
-	
-	edgeVertexPairCapacity = 3 * inTriangleCount;
 }
 
 void smCreateMesh(smMesh& output, u32 subdivisions)
