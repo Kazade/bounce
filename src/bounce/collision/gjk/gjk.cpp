@@ -862,8 +862,8 @@ bool b3GJKShapeCast(b3GJKShapeCastOutput* output,
 	float32 r2 = proxy2.radius;
 	float32 radius = r1 + r2;
 
-	float32 d_max = b3Length(translation2);
-	B3_ASSERT(d_max > 0.0f);
+	float32 bound = b3Length(translation2);
+	B3_ASSERT(bound > 0.0f);
 
 	float32 t = 0.0f;
 	
@@ -894,14 +894,14 @@ bool b3GJKShapeCast(b3GJKShapeCastOutput* output,
 		return true;
 	}
 
-	const u32 kMaxIters = 20;
-
 	u32 iter = 0;
 	for (;;)
 	{
+		++iter;
+
 		B3_ASSERT(d >= radius);
 		
-		float32 dt = (d - radius) / d_max;
+		float32 dt = (d - radius) / bound;
 		t += dt;
 
 		if (t >= 1.0f)
@@ -931,14 +931,6 @@ bool b3GJKShapeCast(b3GJKShapeCastOutput* output,
 		if (d < radius + tolerance)
 		{
 			break;
-		}
-
-		++iter;
-
-		if (iter == kMaxIters)
-		{
-			output->iterations = iter;
-			return false;
 		}
 	}
 	
