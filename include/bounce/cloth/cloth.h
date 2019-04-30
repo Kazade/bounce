@@ -133,20 +133,12 @@ public:
 	// Return the kinetic (or dynamic) energy in this system.
 	float32 GetEnergy() const;
 
-	// Get the next cloth in the world cloth list.
-	const b3Cloth* GetNext() const;
-
-	// Get the next cloth in the world cloth list.
-	b3Cloth* GetNext();
-
 	// Perform a time step. 
 	void Step(float32 dt);
 
 	// Debug draw the cloth using the associated cloth mesh.
 	void Draw() const;
 private:
-	friend class b3List2<b3Cloth>;
-
 	// Compute mass of each particle.
 	void ComputeMass();
 
