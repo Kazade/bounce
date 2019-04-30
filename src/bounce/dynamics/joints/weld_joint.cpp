@@ -41,7 +41,7 @@ J1 = P * J1 * P^T
 J2 = P * J2 * P^T
 */
 
-static b3Mat44 iQ_mat(const b3Quat& q)
+static B3_FORCE_INLINE b3Mat44 b3Mat44_Quat(const b3Quat& q)
 {
 	b3Mat44 Q;
 	Q.x = b3Vec4(q.w, q.x, q.y, q.z);
@@ -51,7 +51,7 @@ static b3Mat44 iQ_mat(const b3Quat& q)
 	return Q;
 }
 
-static b3Mat44 iP_mat(const b3Quat& q)
+static B3_FORCE_INLINE b3Mat44 b3Mat44_Projection(const b3Quat& q)
 {
 	b3Mat44 P;
 	P.x = b3Vec4(q.w, q.x, q.y, q.z);
@@ -61,7 +61,7 @@ static b3Mat44 iP_mat(const b3Quat& q)
 	return P;
 }
 
-static b3Mat34 P_mat()
+static B3_FORCE_INLINE b3Mat34 b3Mat34_Projection()
 {
 	b3Mat34 P;
 	P.x = b3Vec3(0.0f, 0.0f, 0.0f);
@@ -71,7 +71,7 @@ static b3Mat34 P_mat()
 	return P;
 }
 
-static b3Mat34 P_lock_mat()
+static B3_FORCE_INLINE b3Mat34 b3Mat34_Weld_Projection()
 {
 	b3Mat34 P;
 	P.x = b3Vec3(0.0f, 0.0f, 0.0f);
@@ -81,14 +81,14 @@ static b3Mat34 P_lock_mat()
 	return P;
 }
 
-static b3Vec4 q_to_v(const b3Quat& q)
+static B3_FORCE_INLINE b3Vec4 b3Vec4_Quat(const b3Quat& q)
 {
 	return b3Vec4(q.w, q.x, q.y, q.z);
 }
 
-static const b3Mat34 P = P_mat();
-static const b3Mat43 PT = b3Transpose(P);
-static const b3Mat34 P_lock = P_lock_mat();
+static const b3Mat34 b3Mat34_P = b3Mat34_Projection();
+static const b3Mat43 b3Mat43_PT = b3Transpose(b3Mat34_P);
+static const b3Mat34 b3Mat34_Weld_P = b3Mat34_Weld_Projection();
 
 void b3WeldJointDef::Initialize(b3Body* bA, b3Body* bB, const b3Vec3& anchor)
 {
@@ -147,8 +147,8 @@ void b3WeldJoint::InitializeConstraints(const b3SolverData* data)
 	{
 		b3Quat dq = b3Conjugate(m_referenceRotation) * b3Conjugate(qA) * qB;
 
-		m_J1 = -0.5f * P_lock * iQ_mat(b3Conjugate(qA)) * iP_mat(qB) * PT;
-		m_J2 =  0.5f * P_lock * iQ_mat(b3Conjugate(qA)) * iP_mat(qB) * PT;
+		m_J1 = -0.5f * b3Mat34_Weld_P * b3Mat44_Quat(b3Conjugate(qA)) * b3Mat44_Projection(qB) * b3Mat43_PT;
+		m_J2 =  0.5f * b3Mat34_Weld_P * b3Mat44_Quat(b3Conjugate(qA)) * b3Mat44_Projection(qB) * b3Mat43_PT;
 
 		m_J1T = b3Transpose(m_J1);
 		m_J2T = b3Transpose(m_J2);
@@ -266,16 +266,16 @@ bool b3WeldJoint::SolvePositionConstraints(const b3SolverData* data)
 
 	float32 angularError = 0.0f;
 
-	{		
+	{	
 		b3Quat dq = b3Conjugate(m_referenceRotation) * b3Conjugate(qA) * qB;
-		b3Vec4 dq_v = q_to_v(dq);
+		b3Vec4 dq_v = b3Vec4_Quat(dq);
 
-		b3Vec3 C = P * dq_v;
+		b3Vec3 C = b3Mat34_P * dq_v;
 
 		angularError += b3Length(C);
 
-		b3Mat33 J1 = -0.5f * P_lock * iQ_mat(b3Conjugate(qA)) * iP_mat(qB) * PT;
-		b3Mat33 J2 = 0.5f * P_lock * iQ_mat(b3Conjugate(qA)) * iP_mat(qB) * PT;
+		b3Mat33 J1 = -0.5f * b3Mat34_Weld_P * b3Mat44_Quat(b3Conjugate(qA)) * b3Mat44_Projection(qB) * b3Mat43_PT;
+		b3Mat33 J2 =  0.5f * b3Mat34_Weld_P * b3Mat44_Quat(b3Conjugate(qA)) * b3Mat44_Projection(qB) * b3Mat43_PT;
 
 		b3Mat33 J1T = b3Transpose(J1);
 		b3Mat33 J2T = b3Transpose(J2);
