@@ -293,8 +293,9 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		for (u32 i = 0; i < m_bodyContactCount; ++i)
 		{
 			b3BodyContact* c = m_bodyContacts[i];
+			b3Particle* p1 = c->p1;
 
-			b3Vec3 cf = f[i];
+			b3Vec3 cf = f[p1->m_solverId];
 
 			c->fn0 = c->fn;
 			c->fn = b3Dot(cf, c->n);
