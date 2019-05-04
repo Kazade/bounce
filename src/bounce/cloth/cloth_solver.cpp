@@ -24,6 +24,7 @@
 #include <bounce/cloth/dense_vec3.h>
 #include <bounce/cloth/diag_mat33.h>
 #include <bounce/cloth/sparse_sym_mat33.h>
+#include <bounce/cloth/sparse_sym_mat33_view.h>
 #include <bounce/common/memory/stack_allocator.h>
 #include <bounce/common/math/mat.h>
 #include <bounce/dynamics/shapes/shape.h>
@@ -277,6 +278,9 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 
 		// A
 		b3SparseSymMat33 A = M - h * dfdv - h * h * dfdx;
+		
+		// View for A
+		b3SparseSymMat33View viewA(A);
 
 		// b
 		b3DenseVec3 b = h * (sf + h * (dfdx * sv) + dfdx * sy);
@@ -284,7 +288,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		// x
 		b3DenseVec3 x(m_particleCount);
 		u32 iterations = 0;
-		Solve(x, iterations, A, b, S, z, sx0);
+		Solve(x, iterations, viewA, b, S, z, sx0);
 		b3_clothSolverIterations = iterations;
 #if 0
 		// Copy constraint forces to the contacts
@@ -395,7 +399,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 }
 
 void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
-	const b3SparseSymMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const
+	const b3SparseSymMat33View& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const
 {
 	B3_PROFILE("Cloth Solve Ax = b");
 
@@ -446,11 +450,11 @@ void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
 	float32 delta_new = b3Dot(r, p);
 
 	// Set the tolerance.
-	const float32 tolerance = 10.0f * B3_EPSILON;
+	const float32 tolerance = 2.0f * B3_EPSILON;
 
 	// Maximum number of iterations.
 	// Stop at this iteration if diverged.
-	const u32 max_iterations = 20;
+	const u32 max_iterations = 50;
 
 	u32 iteration = 0;
 

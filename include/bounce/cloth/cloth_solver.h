@@ -31,6 +31,7 @@ class b3Force;
 struct b3DenseVec3;
 struct b3DiagMat33;
 struct b3SparseSymMat33;
+struct b3SparseSymMat33View;
 
 class b3BodyContact;
 class b3ParticleContact;
@@ -86,7 +87,7 @@ private:
 	void ApplyConstraints();
 
 	// Solve Ax = b.
-	void Solve(b3DenseVec3& x, u32& iterations, const b3SparseSymMat33& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const;
+	void Solve(b3DenseVec3& x, u32& iterations, const b3SparseSymMat33View& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const;
 
 	b3StackAllocator* m_allocator;
 

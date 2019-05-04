@@ -119,9 +119,6 @@ struct b3SparseSymMat33
 	// 
 	void operator-=(const b3SparseSymMat33& m);
 
-	// 
-	void Diagonal(b3DiagMat33& out) const;
-
 	u32 rowCount;
 	b3RowValueList* rows; 
 };
@@ -342,16 +339,6 @@ inline void b3SparseSymMat33::operator-=(const b3SparseSymMat33& m)
 
 			(*this)(i, j) -= v->value;
 		}
-	}
-}
-
-inline void b3SparseSymMat33::Diagonal(b3DiagMat33& out) const
-{
-	B3_ASSERT(rowCount == out.n);
-	
-	for (u32 i = 0; i < rowCount; ++i)
-	{
-		out[i] = (*this)(i, i);
 	}
 }
 
