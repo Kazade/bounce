@@ -21,10 +21,16 @@
 
 #include <bounce/cloth/sparse_sym_mat33.h>
 
+struct b3ArrayRowValue
+{
+	u32 column;
+	b3Mat33 value;
+};
+
 struct b3RowValueArray
 {
 	u32 count;
-	b3RowValue* values;
+	b3ArrayRowValue* values;
 };
 
 // A read-only sparse symmetric matrix.
@@ -56,7 +62,7 @@ inline b3SparseSymMat33View::b3SparseSymMat33View(const b3SparseSymMat33& _m)
 		b3RowValueArray* rowArray = rows + i;
 
 		rowArray->count = rowList->count;
-		rowArray->values = (b3RowValue*)b3Alloc(rowArray->count * sizeof(b3RowValue));
+		rowArray->values = (b3ArrayRowValue*)b3Alloc(rowArray->count * sizeof(b3ArrayRowValue));
 
 		u32 valueIndex = 0;
 		for (b3RowValue* v = rowList->head; v; v = v->next)
@@ -92,7 +98,7 @@ inline const b3Mat33& b3SparseSymMat33View::operator()(u32 i, u32 j) const
 
 	for (u32 c = 0; c < vs->count; ++c)
 	{
-		b3RowValue* rv = vs->values + c;
+		b3ArrayRowValue* rv = vs->values + c;
 
 		u32 column = rv->column;
 
@@ -132,7 +138,7 @@ inline void b3Mul(b3DenseVec3& out, const b3SparseSymMat33View& A, const b3Dense
 
 		for (u32 c = 0; c < rowArray->count; ++c)
 		{
-			b3RowValue* rv = rowArray->values + c;
+			b3ArrayRowValue* rv = rowArray->values + c;
 
 			u32 j = rv->column;
 			b3Mat33 a = rv->value;
