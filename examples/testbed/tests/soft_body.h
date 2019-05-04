@@ -210,10 +210,14 @@ public:
 			// Pressure force
 			b3Vec3 FP = Pn * A;
 
+			const float32 inv3 = 1.0f / 3.0f;
+
+			b3Vec3 f = inv3 * FP;
+
 			// Distribute
-			p1->ApplyForce(FP);
-			p2->ApplyForce(FP);
-			p3->ApplyForce(FP);
+			p1->ApplyForce(f);
+			p2->ApplyForce(f);
+			p3->ApplyForce(f);
 		}
 	}
 
