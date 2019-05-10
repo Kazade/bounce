@@ -48,6 +48,12 @@ struct b3Mat33
 		return (&x.x)[i + 3 * j];
 	}
 
+	// Write an indexed element from this matrix.
+	float32& operator()(u32 i, u32 j) 
+	{
+		return (&x.x)[i + 3 * j];
+	}
+	
 	// Add a matrix to this matrix.
 	void operator+=(const b3Mat33& B)
 	{
