@@ -171,4 +171,11 @@ inline b3DenseVec3 operator*(float32 a, const b3DenseVec3& b)
 	return result;
 }
 
+inline b3DenseVec3 operator-(const b3DenseVec3& v)
+{
+	b3DenseVec3 result(v.n);
+	b3Negate(result, v);
+	return result;
+}
+
 #endif
