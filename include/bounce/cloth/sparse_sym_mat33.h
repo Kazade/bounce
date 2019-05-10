@@ -28,8 +28,6 @@ struct b3RowValue
 {
 	u32 column;
 	b3Mat33 value;
-
-	b3RowValue* prev;
 	b3RowValue* next;
 };
 
@@ -46,39 +44,14 @@ struct b3RowValueList
 
 	void PushFront(b3RowValue* link)
 	{
-		link->prev = NULL;
 		link->next = head;
-		if (head)
-		{
-			head->prev = link;
-		}
 		head = link;
-		++count;
-	}
-
-	void PushAfter(b3RowValue* prev, b3RowValue* link)
-	{
-		link->prev = prev;
-
-		if (prev->next == NULL)
-		{
-			link->next = NULL;
-		}
-		else
-		{
-			link->next = prev->next;
-			prev->next->prev = link;
-		}
-
-		prev->next = link;
-
 		++count;
 	}
 
 	b3RowValue* head;
 	u32 count;
 };
-
 
 // A sparse symmetric matrix.
 // Each row is a list of non-zero elements in the row.
@@ -225,24 +198,15 @@ inline const b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j) const
 	B3_ASSERT(i < rowCount);
 	B3_ASSERT(j < rowCount);
 
-	// Ensure i, and j is on the upper triangle 
 	if (i > j)
 	{
 		b3Swap(i, j);
 	}
 
 	b3RowValueList* vs = rows + i;
-
 	for (b3RowValue* v = vs->head; v; v = v->next)
 	{
-		u32 column = v->column;
-		
-		if (column < j)
-		{
-			break;
-		}
-
-		if (column == j)
+		if (v->column == j)
 		{
 			return v->value;
 		}
@@ -256,56 +220,27 @@ inline b3Mat33& b3SparseSymMat33::operator()(u32 i, u32 j)
 	B3_ASSERT(i < rowCount);
 	B3_ASSERT(j < rowCount);
 
-	// Ensure i, and j is on the upper triangle 
 	if (i > j)
 	{
 		b3Swap(i, j);
 	}
 
 	b3RowValueList* vs = rows + i;
-
 	for (b3RowValue* v = vs->head; v; v = v->next)
 	{
-		u32 column = v->column;
-
-		if (column < j)
-		{
-			break;
-		}
-
-		if (column == j)
+		if (v->column == j)
 		{
 			return v->value;
 		}
 	}
 
-	b3RowValue* v1 = (b3RowValue*)b3Alloc(sizeof(b3RowValue));
-	v1->column = j;
-	v1->value.SetZero();
+	b3RowValue* v = (b3RowValue*)b3Alloc(sizeof(b3RowValue));
+	v->column = j;
+	v->value.SetZero();
 
-	b3RowValue* v0 = nullptr;
+	vs->PushFront(v);
 
-	for (b3RowValue* v = vs->head; v; v = v->next)
-	{
-		u32 column = v->column;
-
-		if (column > j)
-		{
-			v0 = v;
-			break;
-		}
-	}
-
-	if (v0 == nullptr)
-	{
-		vs->PushFront(v1);
-	}
-	else
-	{
-		vs->PushAfter(v0, v1);
-	}
-
-	return v1->value;
+	return v->value;
 }
 
 inline void b3SparseSymMat33::operator+=(const b3SparseSymMat33& m)
@@ -389,16 +324,14 @@ inline void b3Mul(b3SparseSymMat33& out, float32 s, const b3SparseSymMat33& B)
 		return;
 	}
 
-	for (u32 i = 0; i < B.rowCount; ++i)
+	out = B;
+
+	for (u32 i = 0; i < out.rowCount; ++i)
 	{
-		b3RowValueList* vs = B.rows + i;
-
-		for (b3RowValue* vB = vs->head; vB; vB = vB->next)
+		b3RowValueList* vs = out.rows + i;
+		for (b3RowValue* v = vs->head; v; v = v->next)
 		{
-			u32 j = vB->column;
-			b3Mat33 b = vB->value;
-
-			out(i, j) = s * b;
+			v->value = s * v->value;
 		}
 	}
 }

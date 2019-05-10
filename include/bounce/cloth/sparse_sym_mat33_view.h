@@ -99,15 +99,7 @@ inline const b3Mat33& b3SparseSymMat33View::operator()(u32 i, u32 j) const
 	for (u32 c = 0; c < vs->count; ++c)
 	{
 		b3ArrayRowValue* rv = vs->values + c;
-
-		u32 column = rv->column;
-
-		if (column < j)
-		{
-			break;
-		}
-
-		if (column == j)
+		if (rv->column == j)
 		{
 			return rv->value;
 		}
