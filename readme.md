@@ -105,6 +105,7 @@ Below are the external dependencies for testbed. If you don't care about testbed
 
 * Rigid bodies
 * Cloth
+* Soft body
 * Contact, friction, restitution
 * Mouse, spring, sphere, cone, revolute joint types
 * Quaternion constraints
