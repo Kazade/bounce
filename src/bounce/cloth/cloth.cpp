@@ -396,92 +396,19 @@ bool b3Cloth::RayCast(b3RayCastOutput* output, const b3RayCastInput* input, u32 
 	b3Vec3 v2 = m_vertexParticles[triangle->v2]->m_position;
 	b3Vec3 v3 = m_vertexParticles[triangle->v3]->m_position;
 
-	b3Vec3 p1 = input->p1;
-	b3Vec3 p2 = input->p2;
-	float32 maxFraction = input->maxFraction;
-	b3Vec3 d = p2 - p1;
-	B3_ASSERT(b3LengthSquared(d) > B3_EPSILON * B3_EPSILON);
-
-	b3Vec3 n = b3Cross(v2 - v1, v3 - v1);
-	float32 len = b3Length(n);
-	if (len <= B3_EPSILON)
-	{
-		return false;
-	}
-
-	n /= len;
-
-	float32 numerator = b3Dot(n, v1 - p1);
-	float32 denominator = b3Dot(n, d);
-
-	if (denominator == 0.0f)
-	{
-		return false;
-	}
-
-	float32 fraction = numerator / denominator;
-
-	// Is the intersection not on the segment?
-	if (fraction < 0.0f || maxFraction < fraction)
-	{
-		return false;
-	}
-
-	b3Vec3 Q = p1 + fraction * d;
-
-	b3Vec3 A = v1;
-	b3Vec3 B = v2;
-	b3Vec3 C = v3;
-
-	b3Vec3 AB = B - A;
-	b3Vec3 AC = C - A;
-
-	b3Vec3 QA = A - Q;
-	b3Vec3 QB = B - Q;
-	b3Vec3 QC = C - Q;
-
-	b3Vec3 QB_x_QC = b3Cross(QB, QC);
-	b3Vec3 QC_x_QA = b3Cross(QC, QA);
-	b3Vec3 QA_x_QB = b3Cross(QA, QB);
-
-	b3Vec3 AB_x_AC = b3Cross(AB, AC);
-
-	// Barycentric coordinates for Q
-	float32 u = b3Dot(QB_x_QC, AB_x_AC);
-	float32 v = b3Dot(QC_x_QA, AB_x_AC);
-	float32 w = b3Dot(QA_x_QB, AB_x_AC);
-
-	// Is the intersection on the triangle?
-	if (u >= 0.0f && v >= 0.0f && w >= 0.0f)
-	{
-		output->fraction = fraction;
-
-		// Does the ray start from below or above the triangle?
-		if (numerator > 0.0f)
-		{
-			output->normal = -n;
-		}
-		else
-		{
-			output->normal = n;
-		}
-
-		return true;
-	}
-
-	return false;
+	return b3RayCast(output, input, v1, v2, v3);
 }
 
 void b3Cloth::UpdateBodyContacts()
 {
+	B3_PROFILE("Cloth Update Body Contacts");
+
 	// Is there a world attached to this cloth?
 	if (m_world == nullptr)
 	{
 		return;
 	}
 
-	B3_PROFILE("Cloth Update Body Contacts");
-	
 	// Create contacts 
 	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
 	{
@@ -690,11 +617,6 @@ void b3Cloth::UpdateContacts()
 {
 	// Update body contacts
 	UpdateBodyContacts();
-
-#if 0
-	// Update particle contacts
-	UpdateParticleContacts();
-#endif
 }
 
 void b3Cloth::Step(float32 dt)

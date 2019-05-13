@@ -112,6 +112,7 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 {
 	B3_ASSERT(index < m_mesh->triangleCount);
 	b3Triangle* triangle = m_mesh->triangles + index;
+	
 	b3Vec3 v1 = m_mesh->vertices[triangle->v1];
 	b3Vec3 v2 = m_mesh->vertices[triangle->v2];
 	b3Vec3 v3 = m_mesh->vertices[triangle->v3];
@@ -119,71 +120,17 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 	// Put the ray into the mesh's frame of reference.
 	b3Vec3 p1 = b3MulT(xf, input.p1);
 	b3Vec3 p2 = b3MulT(xf, input.p2);
-	b3Vec3 d = p2 - p1;
-
-	b3Vec3 n = b3Cross(v2 - v1, v3 - v1);
-	n.Normalize();
 	
-	float32 numerator = b3Dot(n, v1 - p1);
-	float32 denominator = b3Dot(n, d);
+	b3RayCastInput subInput;
+	subInput.p1 = p1;
+	subInput.p2 = p2;
+	subInput.maxFraction = input.maxFraction;
 
-	if (denominator == 0.0f)
+	b3RayCastOutput subOutput;
+	if (b3RayCast(&subOutput, &subInput, v1, v2, v3))
 	{
-		return false;
-	}
-
-	float32 t = numerator / denominator;
-		
-	// Is the intersection not on the segment?
-	if (t < 0.0f || input.maxFraction < t)
-	{
-		return false;
-	}
-
-	b3Vec3 q = p1 + t * d;
-
-	// Barycentric coordinates for q
-	b3Vec3 Q = q;
-	b3Vec3 A = v1;
-	b3Vec3 B = v2;
-	b3Vec3 C = v3;
-
-	b3Vec3 AB = B - A;
-	b3Vec3 AC = C - A;
-	
-	b3Vec3 QA = A - Q;
-	b3Vec3 QB = B - Q;
-	b3Vec3 QC = C - Q;
-
-	b3Vec3 QB_x_QC = b3Cross(QB, QC);
-	b3Vec3 QC_x_QA = b3Cross(QC, QA);
-	b3Vec3 QA_x_QB = b3Cross(QA, QB);
-
-	b3Vec3 AB_x_AC = b3Cross(AB, AC);
-
-	float32 u = b3Dot(QB_x_QC, AB_x_AC);
-	float32 v = b3Dot(QC_x_QA, AB_x_AC);
-	float32 w = b3Dot(QA_x_QB, AB_x_AC);
-
-	// This tolerance helps intersections lying on  
-	// shared edges to not be missed.
-	const float32 kTol = -0.005f;
-
-	// Is the intersection on the triangle?
-	if (u > kTol && v > kTol && w > kTol)
-	{
-		output->fraction = t;
-		
-		// Does the ray start from below or above the triangle?
-		if (numerator > 0.0f)
-		{
-			output->normal = -b3Mul(xf.rotation, n);
-		}
-		else
-		{
-			output->normal = b3Mul(xf.rotation, n);
-		}
-		
+		output->fraction = subOutput.fraction;
+		output->normal = xf.rotation * subOutput.normal;
 		return true;
 	}
 
