@@ -275,9 +275,11 @@ workspace(solution_name)
 			
 			examples_src_dir .. "/testbed/framework/body_dragger.h", 
 			examples_src_dir .. "/testbed/framework/cloth_dragger.h", 
+			examples_src_dir .. "/testbed/framework/softbody_dragger.h", 
 			
 			examples_src_dir .. "/testbed/framework/body_dragger.cpp", 
 			examples_src_dir .. "/testbed/framework/cloth_dragger.cpp", 
+			examples_src_dir .. "/testbed/framework/softbody_dragger.cpp", 
 			
 			examples_inc_dir .. "/testbed/tests/**.h", 
 			
@@ -370,7 +372,7 @@ end
 -- clean
 newaction
 {
-    trigger = "clean",
+	trigger = "clean",
     description = "Clean solution",
     execute = function ()
           os.rmdir( "doc" )

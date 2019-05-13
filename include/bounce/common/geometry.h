@@ -144,6 +144,32 @@ inline void b3BarycentricCoordinates(float32 out[4],
 	out[3] = out[0] + out[1] + out[2];
 }
 
+// Convert a point Q from Cartesian coordinates to Barycentric coordinates (u, v, w, x) 
+// with respect to a tetrahedron ABCD.
+// The last output value is the (positive) divisor.
+inline void b3BarycentricCoordinates(float32 out[5],
+	const b3Vec3& A, const b3Vec3& B, const b3Vec3& C, const b3Vec3& D,
+	const b3Vec3& Q)
+{
+	b3Vec3 AB = B - A;
+	b3Vec3 AC = C - A;
+	b3Vec3 AD = D - A;
+
+	b3Vec3 QA = A - Q;
+	b3Vec3 QB = B - Q;
+	b3Vec3 QC = C - Q;
+	b3Vec3 QD = D - Q;
+
+	float32 divisor = b3Det(AB, AC, AD);
+	float32 sign = b3Sign(divisor);
+
+	out[0] = sign * b3Det(QB, QC, QD);
+	out[1] = sign * b3Det(QA, QD, QC);
+	out[2] = sign * b3Det(QA, QB, QD);
+	out[3] = sign * b3Det(QA, QC, QB);
+	out[4] = sign * divisor;
+}
+
 // Project a point onto a segment AB.
 inline b3Vec3 b3ClosestPointOnSegment(const b3Vec3& P, const b3Vec3& A, const b3Vec3& B)
 {

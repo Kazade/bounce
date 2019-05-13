@@ -72,4 +72,8 @@
 #include <bounce/cloth/garment/garment.h>
 #include <bounce/cloth/garment/garment_mesh.h>
 
+#include <bounce/softbody/softbody_mesh.h>
+#include <bounce/softbody/softbody.h>
+#include <bounce/softbody/softbody_node.h>
+
 #endif

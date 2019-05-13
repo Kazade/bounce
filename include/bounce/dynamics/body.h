@@ -293,9 +293,7 @@ private:
 	friend class b3MeshContact;
 	friend class b3ContactManager;
 	friend class b3ContactSolver;
-	friend class b3ClothSolver;
-	friend class b3ClothContactSolver;
-
+	
 	friend class b3Joint;
 	friend class b3JointManager;
 	friend class b3JointSolver;
@@ -307,6 +305,13 @@ private:
 	friend class b3ConeJoint;
 
 	friend class b3List2<b3Body>;
+
+	friend class b3ClothSolver;
+	friend class b3ClothContactSolver;
+
+	friend class b3SoftBody;
+	friend class b3SoftBodySolver;
+	friend class b3SoftBodyContactSolver;
 
 	enum b3BodyFlags 
 	{

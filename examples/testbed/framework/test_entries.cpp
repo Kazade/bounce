@@ -65,8 +65,10 @@
 #include <testbed/tests/particle_types.h>
 #include <testbed/tests/tension_mapping.h>
 #include <testbed/tests/self_collision.h>
-#include <testbed/tests/soft_body.h>
 #include <testbed/tests/rope_test.h>
+#include <testbed/tests/softbody.h>
+#include <testbed/tests/pinned_softbody.h>
+#include <testbed/tests/smash_softbody.h>
 
 TestEntry g_tests[] =
 {
@@ -118,6 +120,8 @@ TestEntry g_tests[] =
 	{ "Tension Mapping", &TensionMapping::Create },
 	{ "Self-Collision", &SelfCollision::Create },
 	{ "Soft Body", &SoftBody::Create },
+	{ "Pinned Soft Body", &PinnedSoftBody::Create },
+	{ "Smash Soft Body", &SmashSoftBody::Create },
 	{ "Rope", &Rope::Create },
 	{ NULL, NULL }
 };
