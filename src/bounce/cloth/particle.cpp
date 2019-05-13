@@ -75,4 +75,6 @@ void b3Particle::SetType(b3ParticleType type)
 		m_velocity.SetZero();
 		m_translation.SetZero();
 	}
+
+	m_bodyContact.active = false;
 }
