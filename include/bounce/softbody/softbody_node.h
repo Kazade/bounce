@@ -93,33 +93,33 @@ public:
 	// Get the vertex index.
 	u32 GetVertex() const;
 
-	// Set the particle position. 
-	// If the particle is dynamic changing the position directly might lead 
+	// Set the node position. 
+	// If the node is dynamic changing the position directly might lead 
 	// to physically incorrect simulation behaviour.
 	void SetPosition(const b3Vec3& position);
 
-	// Get the particle position.
+	// Get the node position.
 	const b3Vec3& GetPosition() const;
 
-	// Set the particle velocity.
+	// Set the node velocity.
 	void SetVelocity(const b3Vec3& velocity);
 
-	// Get the particle velocity.
+	// Get the node velocity.
 	const b3Vec3& GetVelocity() const;
 
-	// Get the particle mass.
+	// Get the node mass.
 	float32 GetMass() const;
 
-	// Set the particle radius.
+	// Set the node radius.
 	void SetRadius(float32 radius);
 	
-	// Get the particle radius.
+	// Get the node radius.
 	float32 GetRadius() const;
 
-	// Set the particle coefficient of friction.
+	// Set the node coefficient of friction.
 	void SetFriction(float32 friction);
 	
-	// Get the particle coefficient of friction.
+	// Get the node coefficient of friction.
 	float32 GetFriction() const;
 	
 	// Apply a force.
