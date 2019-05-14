@@ -802,7 +802,7 @@ void b3SoftBody::UpdateContacts()
 {
 	B3_PROFILE("Soft Body Update Contacts");
 
-	// Is there a world attached to this cloth?
+	// Is there a world attached to this soft body?
 	if (m_world == nullptr)
 	{
 		return;

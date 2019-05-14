@@ -81,7 +81,7 @@ struct b3SoftBodyDef
 	float32 nu;
 };
 
-// A soft body represents a deformable volume as a collection of nodes.
+// A soft body represents a deformable volume as a collection of nodes and elements.
 class b3SoftBody
 {
 public:
@@ -97,11 +97,11 @@ public:
 	// Get the acceleration of gravity.
 	b3Vec3 GetGravity() const;
 
-	// Attach a world to this cloth. 
-	// The cloth will be able to respond to collisions with the bodies in the attached world.
+	// Attach a world to this soft body. 
+	// The soft body will be able to respond to collisions with the bodies in the attached world.
 	void SetWorld(b3World* world);
 
-	// Get the world attached to this cloth.
+	// Get the world attached to this soft body.
 	const b3World* GetWorld() const;
 	b3World* GetWorld();
 
