@@ -326,7 +326,7 @@ void b3SoftBodyContactSolver::StoreImpulses()
 	}
 }
 
-struct b3ClothSolverBodyContactSolverPoint
+struct b3SoftBodySolverBodyContactSolverPoint
 {
 	void Initialize(const b3SoftBodySolverBodyContactPositionConstraint* pc, const b3Transform& xfA, const b3Transform& xfB)
 	{
@@ -386,7 +386,7 @@ bool b3SoftBodyContactSolver::SolveBodyContactPositionConstraints()
 		xfB.rotation = b3QuatMat33(qB);
 		xfB.position = cB - b3Mul(xfB.rotation, localCenterB);
 
-		b3ClothSolverBodyContactSolverPoint cpcp;
+		b3SoftBodySolverBodyContactSolverPoint cpcp;
 		cpcp.Initialize(pc, xfA, xfB);
 
 		b3Vec3 normal = cpcp.normal;
