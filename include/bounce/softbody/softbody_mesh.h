@@ -40,6 +40,8 @@ struct b3QSoftBodyMesh : public b3SoftBodyMesh
 	~b3QSoftBodyMesh();
 
 	void SetAsSphere(float32 radius, u32 subdivisions);
+	
+	void SetAsCylinder(float32 radius, float32 ey, u32 segments);
 };
 
 #endif

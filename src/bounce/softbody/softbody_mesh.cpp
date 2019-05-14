@@ -18,6 +18,7 @@
 
 #include <bounce/softbody/softbody_mesh.h>
 #include <bounce/meshgen/sphere_mesh.h>
+#include <bounce/meshgen/cylinder_mesh.h>
 
 b3QSoftBodyMesh::b3QSoftBodyMesh()
 {
@@ -38,6 +39,7 @@ void b3QSoftBodyMesh::SetAsSphere(float32 radius, u32 subdivisions)
 	smMesh mesh;
 	smCreateMesh(mesh, subdivisions);
 
+	B3_ASSERT(vertexCount == 0);
 	vertexCount = 1 + mesh.vertexCount;
 	vertices = (b3Vec3*)b3Alloc(vertexCount * sizeof(b3Vec3));
 	vertices[0].SetZero();
@@ -46,6 +48,7 @@ void b3QSoftBodyMesh::SetAsSphere(float32 radius, u32 subdivisions)
 		vertices[1 + i] = mesh.vertices[i];
 	}
 
+	B3_ASSERT(tetrahedronCount == 0);
 	tetrahedronCount = mesh.indexCount / 3;
 	tetrahedrons = (b3SoftBodyMeshTetrahedron*)b3Alloc(tetrahedronCount * sizeof(b3SoftBodyMeshTetrahedron));
 	for (u32 i = 0; i < mesh.indexCount / 3; ++i)
@@ -65,5 +68,46 @@ void b3QSoftBodyMesh::SetAsSphere(float32 radius, u32 subdivisions)
 	for (u32 i = 0; i < vertexCount; ++i)
 	{
 		vertices[i] *= radius;
+	}
+}
+
+void b3QSoftBodyMesh::SetAsCylinder(float32 radius, float32 ey, u32 segments)
+{
+	cymMesh mesh;
+	cymCreateMesh(mesh, segments);
+
+	B3_ASSERT(vertexCount == 0);
+	vertexCount = 1 + mesh.vertexCount;
+	vertices = (b3Vec3*)b3Alloc(vertexCount * sizeof(b3Vec3));
+	vertices[0].SetZero();
+	for (u32 i = 0; i < mesh.vertexCount; ++i)
+	{
+		vertices[1 + i] = mesh.vertices[i];
+	}
+
+	B3_ASSERT(tetrahedronCount == 0);
+	tetrahedronCount = mesh.indexCount / 3;
+	tetrahedrons = (b3SoftBodyMeshTetrahedron*)b3Alloc(tetrahedronCount * sizeof(b3SoftBodyMeshTetrahedron));
+	for (u32 i = 0; i < mesh.indexCount / 3; ++i)
+	{
+		u32 v1 = mesh.indices[3 * i + 0];
+		u32 v2 = mesh.indices[3 * i + 1];
+		u32 v3 = mesh.indices[3 * i + 2];
+
+		b3SoftBodyMeshTetrahedron* t = tetrahedrons + i;
+
+		t->v1 = 1 + v3;
+		t->v2 = 1 + v2;
+		t->v3 = 1 + v1;
+		t->v4 = 0;
+	}
+
+	float32 height = 2.0f * ey;
+
+	for (u32 i = 0; i < vertexCount; ++i)
+	{
+		vertices[i].x *= radius;
+		vertices[i].y *= height;
+		vertices[i].z *= radius;
 	}
 }
