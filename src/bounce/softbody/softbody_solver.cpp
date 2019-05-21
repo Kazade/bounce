@@ -236,13 +236,25 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 		b3Vec3 p3 = p[v3];
 		b3Vec3 p4 = p[v4];
 
-		b3Vec3 e1 = p2 - p1;
-		b3Vec3 e2 = p3 - p1;
-		b3Vec3 e3 = p4 - p1;
+		float32 P[16] =
+		{
+			p1.x, p1.y, p1.z, 1.0f,
+			p2.x, p2.y, p2.z, 1.0f,
+			p3.x, p3.y, p3.z, 1.0f,
+			p4.x, p4.y, p4.z, 1.0f
+		};
 
-		b3Mat33 E(e1, e2, e3);
+		float32 P_invP[16];
+		b3Mul(P_invP, P, 4, 4, e->invP, 4, 4);
 
-		b3Mat33 A = E * e->invE;
+		b3Mat33 A;
+		for (u32 i = 0; i < 3; ++i)
+		{
+			for (u32 j = 0; j < 3; ++j)
+			{
+				A(i, j) = P_invP[i + 4 * j];
+			}
+		}
 
 		b3Mat33 R;
 		b3ExtractRotation(R, e->q, A);

@@ -59,14 +59,144 @@ static B3_FORCE_INLINE void b3Transpose(float32* B, float32* A, u32 AM, u32 AN)
 	}
 }
 
-// Compute the elasticity matrix given Young modulus and Poisson's ratio
-// This is a 6 x 6 matrix 
-static B3_FORCE_INLINE void b3ComputeD(float32 out[36], float32 E, float32 nu)
+static B3_FORCE_INLINE void b3Inverse4(float32 out[16], float32 m[16])
 {
-	float32 lambda = (nu * E) / ((1 + nu) * (1 - 2 * nu));
-	float32 mu = E / (2 * (1 + nu));
+	float32 inv[16];
 
-	float32 D[36] =
+	inv[0] = m[5] * m[10] * m[15] -
+		m[5] * m[11] * m[14] -
+		m[9] * m[6] * m[15] +
+		m[9] * m[7] * m[14] +
+		m[13] * m[6] * m[11] -
+		m[13] * m[7] * m[10];
+
+	inv[4] = -m[4] * m[10] * m[15] +
+		m[4] * m[11] * m[14] +
+		m[8] * m[6] * m[15] -
+		m[8] * m[7] * m[14] -
+		m[12] * m[6] * m[11] +
+		m[12] * m[7] * m[10];
+
+	inv[8] = m[4] * m[9] * m[15] -
+		m[4] * m[11] * m[13] -
+		m[8] * m[5] * m[15] +
+		m[8] * m[7] * m[13] +
+		m[12] * m[5] * m[11] -
+		m[12] * m[7] * m[9];
+
+	inv[12] = -m[4] * m[9] * m[14] +
+		m[4] * m[10] * m[13] +
+		m[8] * m[5] * m[14] -
+		m[8] * m[6] * m[13] -
+		m[12] * m[5] * m[10] +
+		m[12] * m[6] * m[9];
+
+	inv[1] = -m[1] * m[10] * m[15] +
+		m[1] * m[11] * m[14] +
+		m[9] * m[2] * m[15] -
+		m[9] * m[3] * m[14] -
+		m[13] * m[2] * m[11] +
+		m[13] * m[3] * m[10];
+
+	inv[5] = m[0] * m[10] * m[15] -
+		m[0] * m[11] * m[14] -
+		m[8] * m[2] * m[15] +
+		m[8] * m[3] * m[14] +
+		m[12] * m[2] * m[11] -
+		m[12] * m[3] * m[10];
+
+	inv[9] = -m[0] * m[9] * m[15] +
+		m[0] * m[11] * m[13] +
+		m[8] * m[1] * m[15] -
+		m[8] * m[3] * m[13] -
+		m[12] * m[1] * m[11] +
+		m[12] * m[3] * m[9];
+
+	inv[13] = m[0] * m[9] * m[14] -
+		m[0] * m[10] * m[13] -
+		m[8] * m[1] * m[14] +
+		m[8] * m[2] * m[13] +
+		m[12] * m[1] * m[10] -
+		m[12] * m[2] * m[9];
+
+	inv[2] = m[1] * m[6] * m[15] -
+		m[1] * m[7] * m[14] -
+		m[5] * m[2] * m[15] +
+		m[5] * m[3] * m[14] +
+		m[13] * m[2] * m[7] -
+		m[13] * m[3] * m[6];
+
+	inv[6] = -m[0] * m[6] * m[15] +
+		m[0] * m[7] * m[14] +
+		m[4] * m[2] * m[15] -
+		m[4] * m[3] * m[14] -
+		m[12] * m[2] * m[7] +
+		m[12] * m[3] * m[6];
+
+	inv[10] = m[0] * m[5] * m[15] -
+		m[0] * m[7] * m[13] -
+		m[4] * m[1] * m[15] +
+		m[4] * m[3] * m[13] +
+		m[12] * m[1] * m[7] -
+		m[12] * m[3] * m[5];
+
+	inv[14] = -m[0] * m[5] * m[14] +
+		m[0] * m[6] * m[13] +
+		m[4] * m[1] * m[14] -
+		m[4] * m[2] * m[13] -
+		m[12] * m[1] * m[6] +
+		m[12] * m[2] * m[5];
+
+	inv[3] = -m[1] * m[6] * m[11] +
+		m[1] * m[7] * m[10] +
+		m[5] * m[2] * m[11] -
+		m[5] * m[3] * m[10] -
+		m[9] * m[2] * m[7] +
+		m[9] * m[3] * m[6];
+
+	inv[7] = m[0] * m[6] * m[11] -
+		m[0] * m[7] * m[10] -
+		m[4] * m[2] * m[11] +
+		m[4] * m[3] * m[10] +
+		m[8] * m[2] * m[7] -
+		m[8] * m[3] * m[6];
+
+	inv[11] = -m[0] * m[5] * m[11] +
+		m[0] * m[7] * m[9] +
+		m[4] * m[1] * m[11] -
+		m[4] * m[3] * m[9] -
+		m[8] * m[1] * m[7] +
+		m[8] * m[3] * m[5];
+
+	inv[15] = m[0] * m[5] * m[10] -
+		m[0] * m[6] * m[9] -
+		m[4] * m[1] * m[10] +
+		m[4] * m[2] * m[9] +
+		m[8] * m[1] * m[6] -
+		m[8] * m[2] * m[5];
+
+	float32 det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
+
+	if (det != 0.0f)
+	{
+		det = 1.0f / det;
+	}
+
+	for (u32 i = 0; i < 16; ++i)
+	{
+		out[i] = det * inv[i];
+	}
+}
+
+static B3_FORCE_INLINE void b3Lame(float32& lambda, float32& mu, float32 E, float32 nu)
+{
+	lambda = (nu * E) / ((1 + nu) * (1 - 2 * nu));
+	mu = E / (2 * (1 + nu));
+}
+
+static B3_FORCE_INLINE void b3CreateE(float32 out[36], float32 lambda, float32 mu)
+{
+	float32 E[36] =
 	{
 		lambda + 2 * mu, lambda,          lambda,          0,  0,  0,
 		lambda,          lambda + 2 * mu, lambda,          0,  0,  0,
@@ -78,56 +208,338 @@ static B3_FORCE_INLINE void b3ComputeD(float32 out[36], float32 E, float32 nu)
 
 	for (u32 i = 0; i < 36; ++i)
 	{
-		out[i] = D[i];
+		out[i] = E[i];
 	}
 }
 
-// Compute derivatives of shape functions N
-static B3_FORCE_INLINE void b3ComputeBVec(b3Vec3 out[4], 
-	const b3Vec3& e10, 
-	const b3Vec3& e20, 
-	const b3Vec3& e30,
-	float32 V)
+static B3_FORCE_INLINE void b3CreateB(float32 out[72], float32 invP[16])
 {
-	float32 inv6V = 1.0f / (6.0f * V);
+	float32 a11 = invP[0];
+	float32 a21 = invP[1];
+	float32 a31 = invP[2];
+	float32 a41 = invP[3];
 
-	b3Vec3* B = out;
+	float32 a12 = invP[4];
+	float32 a22 = invP[5];
+	float32 a32 = invP[6];
+	float32 a42 = invP[7];
 
-	B[1][0] = (e20[2] * e30[1] - e20[1] * e30[2]) * inv6V;
-	B[2][0] = (e10[1] * e30[2] - e10[2] * e30[1]) * inv6V;
-	B[3][0] = (e10[2] * e20[1] - e10[1] * e20[2]) * inv6V;
-	B[0][0] = -B[1][0] - B[2][0] - B[3][0];
+	float32 a13 = invP[8];
+	float32 a23 = invP[9];
+	float32 a33 = invP[10];
+	float32 a43 = invP[11];
 
-	B[1][1] = (e20[0] * e30[2] - e20[2] * e30[0]) * inv6V;
-	B[2][1] = (e10[2] * e30[0] - e10[0] * e30[2]) * inv6V;
-	B[3][1] = (e10[0] * e20[2] - e10[2] * e20[0]) * inv6V;
-	B[0][1] = -B[1][1] - B[2][1] - B[3][1]; 
+	//float32 a14 = invP[12];
+	//float32 a24 = invP[13];
+	//float32 a34 = invP[14];
+	//float32 a44 = invP[15];
 
-	B[1][2] = (e20[1] * e30[0] - e20[0] * e30[1]) * inv6V;
-	B[2][2] = (e10[0] * e30[1] - e10[1] * e30[0]) * inv6V;
-	B[3][2] = (e10[1] * e20[0] - e10[0] * e20[1]) * inv6V;
-	B[0][2] = -B[1][2] - B[2][2] - B[3][2]; 
-}
-
-// Convert a B vector to its corresponding matrix form.
-// This is a 6 x 3 matrix.
-static B3_FORCE_INLINE void b3ComputeBMat(float32 out[18], const b3Vec3& v)
-{
-	float32 bi = v.x;
-	float32 ci = v.y;
-	float32 di = v.z;
-
-	float32 B[18] =
+	// 6 x 12
+	// a11 0   0   a21 0   0   a31 0   0   a41 0   0
+	// 0   a12 0   0   a22 0   0   a32 0   0   a42 0
+	// 0   0   a13 0   0   a23 0   0   a33 0   0   a43
+	// a12 a11 0   a22 a21 0   a32 a31 0   a42 a41 0
+	// 0   a13 a12 0   a23 a22 0   a33 a32 0   a43 a42
+	// a13 0   a11 a23 0   a21 a33 0   a31 a43 0   a41
+	float32 B[72] =
 	{
-		bi, 0, 0, ci, di, 0,
-		0, ci, 0, bi, 0, di,
-		0, 0, di, 0, bi, ci
+		a11, 0, 0, a12, 0, a13,
+		0, a12, 0, a11, a13, 0,
+		0, 0, a13, 0, a12, a11,
+		a21, 0, 0, a22, 0, a23,
+		0, a22, 0, a21, a23, 0,
+		0, 0, a23, 0, a22, a21,
+		a31, 0, 0, a32, 0, a33,
+		0, a32, 0, a31, a33, 0,
+		0, 0, a33, 0, a32, a31,
+		a41, 0, 0, a42, 0, a43,
+		0, a42, 0, a41, a43, 0,
+		0, 0, a43, 0, a42, a41
 	};
 
-	for (u32 i = 0; i < 18; ++i)
+	for (u32 i = 0; i < 72; ++i)
 	{
 		out[i] = B[i];
 	}
+}
+
+static B3_FORCE_INLINE void b3SetK(b3Mat33 K[16], float32 Ke[144])
+{
+	b3Mat33& k11 = K[0 + 4 * 0];
+	b3Mat33& k12 = K[0 + 4 * 1];
+	b3Mat33& k13 = K[0 + 4 * 2];
+	b3Mat33& k14 = K[0 + 4 * 3];
+
+	b3Mat33& k21 = K[1 + 4 * 0];
+	b3Mat33& k22 = K[1 + 4 * 1];
+	b3Mat33& k23 = K[1 + 4 * 2];
+	b3Mat33& k24 = K[1 + 4 * 3];
+
+	b3Mat33& k31 = K[2 + 4 * 0];
+	b3Mat33& k32 = K[2 + 4 * 1];
+	b3Mat33& k33 = K[2 + 4 * 2];
+	b3Mat33& k34 = K[2 + 4 * 3];
+
+	b3Mat33& k41 = K[3 + 4 * 0];
+	b3Mat33& k42 = K[3 + 4 * 1];
+	b3Mat33& k43 = K[3 + 4 * 2];
+	b3Mat33& k44 = K[3 + 4 * 3];
+
+	// k11                  
+	// a11 a12 a13 
+	// a21 a22 a23 
+	// a31 a32 a33
+	k11.x.x = Ke[0 + 12 * 0];
+	k11.x.y = Ke[1 + 12 * 0];
+	k11.x.z = Ke[2 + 12 * 0];
+
+	k11.y.x = Ke[0 + 12 * 1];
+	k11.y.y = Ke[1 + 12 * 1];
+	k11.y.z = Ke[2 + 12 * 1];
+
+	k11.z.x = Ke[0 + 12 * 2];
+	k11.z.y = Ke[1 + 12 * 2];
+	k11.z.z = Ke[2 + 12 * 2];
+
+	// k12
+	// a14 a15 a16
+	// a24 a25 a26
+	// a34 a35 a36
+	k12.x.x = Ke[0 + 12 * 3];
+	k12.x.y = Ke[1 + 12 * 3];
+	k12.x.z = Ke[2 + 12 * 3];
+
+	k12.y.x = Ke[0 + 12 * 4];
+	k12.y.y = Ke[1 + 12 * 4];
+	k12.y.z = Ke[2 + 12 * 4];
+
+	k12.z.x = Ke[0 + 12 * 5];
+	k12.z.y = Ke[1 + 12 * 5];
+	k12.z.z = Ke[2 + 12 * 5];
+
+	// k13
+	// a17 a18 a19
+	// a27 a28 a29
+	// a37 a38 a39
+	k13.x.x = Ke[0 + 12 * 6];
+	k13.x.y = Ke[1 + 12 * 6];
+	k13.x.z = Ke[2 + 12 * 6];
+
+	k13.y.x = Ke[0 + 12 * 7];
+	k13.y.y = Ke[1 + 12 * 7];
+	k13.y.z = Ke[2 + 12 * 7];
+
+	k13.z.x = Ke[0 + 12 * 8];
+	k13.z.y = Ke[1 + 12 * 8];
+	k13.z.z = Ke[2 + 12 * 8];
+
+	// k14
+	// a1_10 a1_11 a1_12
+	// a2_10 a2_11 a2_12
+	// a3_10 a3_11 a3_12
+	k14.x.x = Ke[0 + 12 * 9];
+	k14.x.y = Ke[1 + 12 * 9];
+	k14.x.z = Ke[2 + 12 * 9];
+
+	k14.y.x = Ke[0 + 12 * 10];
+	k14.y.y = Ke[1 + 12 * 10];
+	k14.y.z = Ke[2 + 12 * 10];
+
+	k14.z.x = Ke[0 + 12 * 11];
+	k14.z.y = Ke[1 + 12 * 11];
+	k14.z.z = Ke[2 + 12 * 11];
+
+	// k21	           
+	// a41 a42 a43	
+	// a51 a52 a53		
+	// a61 a62 a63	
+	k21.x.x = Ke[3 + 12 * 0];
+	k21.x.y = Ke[4 + 12 * 0];
+	k21.x.z = Ke[5 + 12 * 0];
+
+	k21.y.x = Ke[3 + 12 * 1];
+	k21.y.y = Ke[4 + 12 * 1];
+	k21.y.z = Ke[5 + 12 * 1];
+
+	k21.z.x = Ke[3 + 12 * 2];
+	k21.z.y = Ke[4 + 12 * 2];
+	k21.z.z = Ke[5 + 12 * 2];
+
+	// k22	            
+	// a44 a45 a46	
+	// a54 a55 a56	
+	// a64 a65 a66	
+	k22.x.x = Ke[3 + 12 * 3];
+	k22.x.y = Ke[4 + 12 * 3];
+	k22.x.z = Ke[5 + 12 * 3];
+
+	k22.y.x = Ke[3 + 12 * 4];
+	k22.y.y = Ke[4 + 12 * 4];
+	k22.y.z = Ke[5 + 12 * 4];
+
+	k22.z.x = Ke[3 + 12 * 5];
+	k22.z.y = Ke[4 + 12 * 5];
+	k22.z.z = Ke[5 + 12 * 5];
+
+	// k23			            
+	// a47 a48 a49	
+	// a57 a58 a59	
+	// a67 a68 a69	
+	k23.x.x = Ke[3 + 12 * 6];
+	k23.x.y = Ke[4 + 12 * 6];
+	k23.x.z = Ke[5 + 12 * 6];
+
+	k23.y.x = Ke[3 + 12 * 7];
+	k23.y.y = Ke[4 + 12 * 7];
+	k23.y.z = Ke[5 + 12 * 7];
+
+	k23.z.x = Ke[3 + 12 * 8];
+	k23.z.y = Ke[4 + 12 * 8];
+	k23.z.z = Ke[5 + 12 * 8];
+
+	// k24            
+	// a4_10 a4_11 a4_12
+	// a5_10 a5_11 a5_12
+	// a6_10 a6_11 a6_12
+	k24.x.x = Ke[3 + 12 * 9];
+	k24.x.y = Ke[4 + 12 * 9];
+	k24.x.z = Ke[5 + 12 * 9];
+
+	k24.y.x = Ke[3 + 12 * 10];
+	k24.y.y = Ke[4 + 12 * 10];
+	k24.y.z = Ke[5 + 12 * 10];
+
+	k24.z.x = Ke[3 + 12 * 11];
+	k24.z.y = Ke[4 + 12 * 11];
+	k24.z.z = Ke[5 + 12 * 11];
+
+	// k31	
+	// a71 a72 a73	
+	// a81 a82 a83	
+	// a91 a92 a93	
+	k31.x.x = Ke[6 + 12 * 0];
+	k31.x.y = Ke[7 + 12 * 0];
+	k31.x.z = Ke[8 + 12 * 0];
+
+	k31.y.x = Ke[6 + 12 * 1];
+	k31.y.y = Ke[7 + 12 * 1];
+	k31.y.z = Ke[8 + 12 * 1];
+
+	k31.z.x = Ke[6 + 12 * 2];
+	k31.z.y = Ke[7 + 12 * 2];
+	k31.z.z = Ke[8 + 12 * 2];
+
+	// k32	
+	// a74 a75 a76	
+	// a84 a85 a86	
+	// a94 a95 a96	
+	k32.x.x = Ke[6 + 12 * 3];
+	k32.x.y = Ke[7 + 12 * 3];
+	k32.x.z = Ke[8 + 12 * 3];
+
+	k32.y.x = Ke[6 + 12 * 4];
+	k32.y.y = Ke[7 + 12 * 4];
+	k32.y.z = Ke[8 + 12 * 4];
+
+	k32.z.x = Ke[6 + 12 * 5];
+	k32.z.y = Ke[7 + 12 * 5];
+	k32.z.z = Ke[8 + 12 * 5];
+
+	// k33 
+	// a77 a78 a79 
+	// a87 a88 a89 
+	// a97 a98 a99 
+	k33.x.x = Ke[6 + 12 * 6];
+	k33.x.y = Ke[7 + 12 * 6];
+	k33.x.z = Ke[8 + 12 * 6];
+
+	k33.y.x = Ke[6 + 12 * 7];
+	k33.y.y = Ke[7 + 12 * 7];
+	k33.y.z = Ke[8 + 12 * 7];
+
+	k33.z.x = Ke[6 + 12 * 8];
+	k33.z.y = Ke[7 + 12 * 8];
+	k33.z.z = Ke[8 + 12 * 8];
+
+	// k34
+	// a7_10 a7_11 a7_12
+	// a8_10 a8_11 a8_12
+	// a9_10 a9_11 a9_12
+	k34.x.x = Ke[6 + 12 * 9];
+	k34.x.y = Ke[7 + 12 * 9];
+	k34.x.z = Ke[8 + 12 * 9];
+
+	k34.y.x = Ke[6 + 12 * 10];
+	k34.y.y = Ke[7 + 12 * 10];
+	k34.y.z = Ke[8 + 12 * 10];
+
+	k34.z.x = Ke[6 + 12 * 11];
+	k34.z.y = Ke[7 + 12 * 11];
+	k34.z.z = Ke[8 + 12 * 11];
+
+	// k41	
+	// a10_1 a10_2 a10_3	
+	// a11_1 a11_2 a11_3	
+	// a12_1 a12_2 a12_3	
+	k41.x.x = Ke[9 + 12 * 0];
+	k41.x.y = Ke[10 + 12 * 0];
+	k41.x.z = Ke[11 + 12 * 0];
+
+	k41.y.x = Ke[9 + 12 * 1];
+	k41.y.y = Ke[10 + 12 * 1];
+	k41.y.z = Ke[11 + 12 * 1];
+
+	k41.z.x = Ke[9 + 12 * 2];
+	k41.z.y = Ke[10 + 12 * 2];
+	k41.z.z = Ke[11 + 12 * 2];
+
+	// k42 
+	// a10_4 a10_5 a10_6 
+	// a11_4 a11_5 a11_6 
+	// a12_4 a12_5 a12_6 
+	k42.x.x = Ke[9 + 12 * 3];
+	k42.x.y = Ke[10 + 12 * 3];
+	k42.x.z = Ke[11 + 12 * 3];
+
+	k42.y.x = Ke[9 + 12 * 4];
+	k42.y.y = Ke[10 + 12 * 4];
+	k42.y.z = Ke[11 + 12 * 4];
+
+	k42.z.x = Ke[9 + 12 * 5];
+	k42.z.y = Ke[10 + 12 * 5];
+	k42.z.z = Ke[11 + 12 * 5];
+
+	// k43 
+	// a10_7 a10_8 a10_9 
+	// a11_7 a11_8 a11_9 
+	// a12_7 a12_8 a12_9 
+	k43.x.x = Ke[9 + 12 * 6];
+	k43.x.y = Ke[10 + 12 * 6];
+	k43.x.z = Ke[11 + 12 * 6];
+
+	k43.y.x = Ke[9 + 12 * 7];
+	k43.y.y = Ke[10 + 12 * 7];
+	k43.y.z = Ke[11 + 12 * 7];
+
+	k43.z.x = Ke[9 + 12 * 8];
+	k43.z.y = Ke[10 + 12 * 8];
+	k43.z.z = Ke[11 + 12 * 8];
+
+	// k44
+	// a10_10 a10_11 a10_12
+	// a11_10 a11_11 a11_12
+	// a12_10 a12_11 a12_12
+	k44.x.x = Ke[9 + 12 * 9];
+	k44.x.y = Ke[10 + 12 * 9];
+	k44.x.z = Ke[11 + 12 * 9];
+
+	k44.y.x = Ke[9 + 12 * 10];
+	k44.y.y = Ke[10 + 12 * 10];
+	k44.y.z = Ke[11 + 12 * 10];
+
+	k44.z.x = Ke[9 + 12 * 11];
+	k44.z.y = Ke[10 + 12 * 11];
+	k44.z.z = Ke[11 + 12 * 11];
 }
 
 b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
@@ -185,52 +597,47 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 		b3Vec3 p3 = m->vertices[v3];
 		b3Vec3 p4 = m->vertices[v4];
 
-		float32 V = b3Volume(p1, p2, p3, p4);
-
-		B3_ASSERT(V > 0.0f);
-
-		b3Vec3 e10 = p2 - p1;
-		b3Vec3 e20 = p3 - p1;
-		b3Vec3 e30 = p4 - p1;
-
-		b3Mat33 E(e10, e20, e30);
-
-		e->invE = b3Inverse(E);
+		float32 lambda, mu;
+		b3Lame(lambda, mu, m_E, m_nu);
 
 		// 6 x 6
-		float32 D[36];
-		b3ComputeD(D, m_E, m_nu);
+		float32 E[36];
+		b3CreateE(E, lambda, mu);
 
-		b3Vec3 B[4];
-		b3ComputeBVec(B, e10, e20, e30, V);
-
-		for (u32 i = 0; i < 4; ++i)
+		// 4 x 4
+		float32 P[16] =
 		{
-			// 6 x 3
-			float32 B_i[18];
-			b3ComputeBMat(B_i, B[i]);
+			p1.x, p1.y, p1.z, 1.0f,
+			p2.x, p2.y, p2.z, 1.0f,
+			p3.x, p3.y, p3.z, 1.0f,
+			p4.x, p4.y, p4.z, 1.0f
+		};
 
-			// 3 x 6
-			float32 B_i_T[18];
-			b3Transpose(B_i_T, B_i, 6, 3);
+		b3Inverse4(e->invP, P);
 
-			for (u32 j = 0; j < 4; ++j)
-			{
-				// 6 x 3
-				float32 B_j[18];
-				b3ComputeBMat(B_j, B[j]);
+		// 6 x 12
+		float32 B[72];
+		b3CreateB(B, e->invP);
 
-				// 6 x 3
-				float32 D_B_j[18];
-				b3Mul(D_B_j, D, 6, 6, B_j, 6, 3);
+		// 6 x 12
+		float32 EB[72];
+		b3Mul(EB, E, 6, 6, B, 6, 12);
 
-				// 3 x 3
-				b3Mat33& Ke = e->K[i + 4 * j];
-				b3Mul(&Ke.x.x, B_i_T, 3, 6, D_B_j, 6, 3);
+		// 12 x 6
+		float32 BT[72];
+		b3Transpose(BT, B, 6, 12);
 
-				Ke = V * Ke;
-			}
+		float32 V = b3Volume(p1, p2, p3, p4);
+
+		// 12 x 12
+		float32 Ke[144];
+		b3Mul(Ke, BT, 12, 6, EB, 6, 12);
+		for (u32 i = 0; i < 144; ++i)
+		{
+			Ke[i] *= V;
 		}
+
+		b3SetK(e->K, Ke);
 	}
 
 	// Initialize triangles
