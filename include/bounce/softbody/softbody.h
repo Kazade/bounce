@@ -42,8 +42,8 @@ struct b3SoftBodyRayCastSingleOutput
 // Soft body tetrahedron element
 struct b3SoftBodyElement
 {
-	float32 invP[16];
 	b3Mat33 K[16];
+	b3Mat33 invE;
 	b3Quat q;
 };
 
