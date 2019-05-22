@@ -38,14 +38,15 @@
 u32 b3_softBodySolverIterations = 0;
 
 // Enables the stiffness warping solver.
-// bool b3_enableStiffnessWarping = true;
+bool b3_enableStiffnessWarping = true;
 
 b3SoftBodySolver::b3SoftBodySolver(const b3SoftBodySolverDef& def)
 {
-	m_allocator = def.stack;
-	m_mesh = def.mesh;
-	m_nodes = def.nodes;
-	m_elements = def.elements;
+	m_body = def.body;
+	m_allocator = &m_body->m_stackAllocator;
+	m_mesh = m_body->m_mesh;
+	m_nodes = m_body->m_nodes;
+	m_elements = m_body->m_elements;
 }
 
 b3SoftBodySolver::~b3SoftBodySolver()
@@ -178,9 +179,20 @@ static B3_FORCE_INLINE void b3Mul(float32* C, float32* A, u32 AM, u32 AN, float3
 	}
 }
 
+static B3_FORCE_INLINE float32 b3Length(float32* a, u32 an)
+{
+	float32 result = 0.0f;
+	for (u32 i = 0; i < an; ++i)
+	{
+		result += a[i] * a[i];
+	}
+	return b3Sqrt(result);
+}
+
 void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations)
 {
 	float32 h = dt;
+	float32 inv_h = 1.0f / h;
 
 	b3SparseMat33 M(m_mesh->vertexCount);
 	b3DenseVec3 x(m_mesh->vertexCount);
@@ -219,6 +231,9 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 	b3DenseVec3 f0(m_mesh->vertexCount);
 	f0.SetZero();
 
+	b3DenseVec3 f_plastic(m_mesh->vertexCount);
+	f_plastic.SetZero();
+
 	for (u32 ei = 0; ei < m_mesh->tetrahedronCount; ++ei)
 	{
 		b3SoftBodyMeshTetrahedron* mt = m_mesh->tetrahedrons + ei;
@@ -236,16 +251,23 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 		b3Vec3 p3 = p[v3];
 		b3Vec3 p4 = p[v4];
 
-		b3Vec3 e1 = p2 - p1;
-		b3Vec3 e2 = p3 - p1;
-		b3Vec3 e3 = p4 - p1;
-
-		b3Mat33 E(e1, e2, e3);
-
-		b3Mat33 A = E * e->invE;
-
 		b3Mat33 R;
-		b3ExtractRotation(R, e->q, A);
+		if (b3_enableStiffnessWarping)
+		{
+			b3Vec3 e1 = p2 - p1;
+			b3Vec3 e2 = p3 - p1;
+			b3Vec3 e3 = p4 - p1;
+
+			b3Mat33 E(e1, e2, e3);
+
+			b3Mat33 A = E * e->invE;
+
+			b3ExtractRotation(R, e->q, A);
+		}
+		else
+		{
+			R.SetIdentity();
+		}
 
 		b3Mat33 RT = b3Transpose(R);
 
@@ -292,7 +314,7 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 
 	b3SparseMat33 A = M + h * h * K;
 
-	b3DenseVec3 b = M * v - h * (K * p + f0 - fe);
+	b3DenseVec3 b = M * v - h * (K * p + f0 + f_plastic - fe);
 
 	// Solve Ax = b
 	b3DenseVec3 sx(m_mesh->vertexCount);

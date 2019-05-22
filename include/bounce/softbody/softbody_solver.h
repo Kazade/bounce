@@ -24,6 +24,7 @@
 
 class b3StackAllocator;
 
+class b3SoftBody;
 class b3SoftBodyMesh;
 
 class b3SoftBodyNode;
@@ -33,10 +34,7 @@ class b3NodeBodyContact;
 
 struct b3SoftBodySolverDef
 {
-	b3StackAllocator* stack;
-	const b3SoftBodyMesh* mesh;
-	b3SoftBodyNode* nodes;
-	b3SoftBodyElement* elements;
+	b3SoftBody* body;
 };
 
 class b3SoftBodySolver
@@ -47,6 +45,7 @@ public:
 
 	void Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations);
 private:
+	b3SoftBody* m_body;
 	b3StackAllocator* m_allocator;
 	const b3SoftBodyMesh* m_mesh;
 	b3SoftBodyNode* m_nodes;

@@ -42,7 +42,7 @@ struct b3SoftBodyRayCastSingleOutput
 // Soft body tetrahedron element
 struct b3SoftBodyElement
 {
-	b3Mat33 K[16];
+	b3Mat33 K[16]; 
 	b3Mat33 invE;
 	b3Quat q;
 };
@@ -120,6 +120,8 @@ public:
 	// Debug draw the body using the associated mesh.
 	void Draw() const;
 private:
+	friend class b3SoftBodySolver;
+
 	// Compute mass of each node.
 	void ComputeMass();
 
