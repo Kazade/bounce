@@ -42,9 +42,12 @@ struct b3SoftBodyRayCastSingleOutput
 // Soft body tetrahedron element
 struct b3SoftBodyElement
 {
-	b3Mat33 K[16]; 
+	b3Mat33 K[16]; // 12 x 12
 	b3Mat33 invE;
 	b3Quat q;
+	float32 B[72]; // 6 x 12
+	float32 P[72]; // V * BT * E -> 12 x 6
+	float32 epsilon_plastic[6]; // 6 x 1
 };
 
 // Soft body tetrahedron triangle
@@ -64,6 +67,9 @@ struct b3SoftBodyDef
 		density = 0.1f;
 		E = 100.0f;
 		nu = 0.3f;
+		c_yield = B3_MAX_FLOAT;
+		c_creep = 0.0f;
+		c_max = 0.0f;
 	}
 
 	// Soft body mesh
@@ -79,6 +85,17 @@ struct b3SoftBodyDef
 	// Material Poisson ratio in [0, 0.5]
 	// This is a dimensionless value
 	float32 nu;
+
+	// Material yield in [0, inf]
+	// This is a dimensionless value
+	float32 c_yield;
+
+	// Material creep rate in [0, 1 / dt]
+	// Units are inverse seconds
+	float32 c_creep;
+
+	// Material maximum plastic strain in [0, inf]
+	float32 c_max;
 };
 
 // A soft body represents a deformable volume as a collection of nodes and elements.
@@ -148,6 +165,15 @@ private:
 
 	// Material poisson ratio
 	float32 m_nu;
+
+	// Material yield
+	float32 m_c_yield;
+
+	// Material creep rate
+	float32 m_c_creep;
+
+	// Material maximum plastic strain
+	float32 m_c_max;
 
 	// Soft body nodes
 	b3SoftBodyNode* m_nodes;

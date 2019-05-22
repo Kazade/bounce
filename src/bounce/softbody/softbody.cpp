@@ -436,6 +436,9 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 	m_density = def.density;
 	m_E = def.E;
 	m_nu = def.nu;
+	m_c_yield = def.c_yield;
+	m_c_creep = def.c_creep;
+	m_c_max = def.c_max;
 	m_gravity.SetZero();
 	m_world = nullptr;
 
@@ -499,7 +502,7 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 		b3ComputeD(D, m_E, m_nu);
 
 		// 6 x 12
-		float32 B[72];
+		float32* B = e->B;
 		b3ComputeB(B, e10, e20, e30, V);
 
 		// 12 x 6
@@ -519,6 +522,19 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 		}
 
 		b3SetK(e->K, BT_D_B);
+
+		// 12 x 6
+		float32* P = e->P;
+		b3Mul(P, BT, 12, 6, D, 6, 6);
+		for (u32 i = 0; i < 72; ++i)
+		{
+			P[i] *= V;
+		}
+
+		for (u32 i = 0; i < 6; ++i)
+		{
+			e->epsilon_plastic[i] = 0.0f;
+		}
 	}
 
 	// Initialize triangles

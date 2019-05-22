@@ -33,7 +33,10 @@ public:
 		def.mesh = &m_mesh;
 		def.density = 0.2f;
 		def.E = 100.0f;
-		def.nu = 0.33f;
+		def.nu = 0.33f;		
+		def.c_yield = 0.1f;
+		def.c_creep = 0.5f;
+		def.c_max = 1.0f;
 
 		m_body = new b3SoftBody(def);
 

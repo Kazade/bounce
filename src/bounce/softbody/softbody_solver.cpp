@@ -241,6 +241,10 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 
 		b3Mat33* Ke = e->K;
 
+		float32* Be = e->B;
+		float32* Pe = e->P;
+		float32* epsilon_plastic = e->epsilon_plastic;
+
 		u32 v1 = mt->v1;
 		u32 v2 = mt->v2;
 		u32 v3 = mt->v3;
@@ -285,6 +289,7 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 			}
 		}
 
+		// Elasticity
 		b3Vec3 x1 = x[v1];
 		b3Vec3 x2 = x[v2];
 		b3Vec3 x3 = x[v3];
@@ -308,13 +313,66 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 		f0[v2] += f0s[1];
 		f0[v3] += f0s[2];
 		f0[v4] += f0s[3];
+
+		// Plasticity
+		b3Vec3 ps[4] = { p1, p2, p3, p4 };
+
+		b3Vec3 RT_x_x0[4];
+		for (u32 i = 0; i < 4; ++i)
+		{
+			RT_x_x0[i] = RT * ps[i] - xs[i];
+		}
+
+		// 6 x 1
+		float32 epsilon_total[6];
+		b3Mul(epsilon_total, Be, 6, 12, &RT_x_x0[0].x, 12, 1);
+
+		// 6 x 1
+		float32 epsilon_elastic[6];
+		for (u32 i = 0; i < 6; ++i)
+		{
+			epsilon_elastic[i] = epsilon_total[i] - epsilon_plastic[i];
+		}
+
+		float32 len_epsilon_elastic = b3Length(epsilon_elastic, 6);
+		if (len_epsilon_elastic > m_body->m_c_yield)
+		{
+			float32 amount = h * b3Min(m_body->m_c_creep, inv_h);
+			for (u32 i = 0; i < 6; ++i)
+			{
+				epsilon_plastic[i] += amount * epsilon_elastic[i];
+			}
+		}
+
+		float32 len_epsilon_plastic = b3Length(epsilon_plastic, 6);
+		if (len_epsilon_plastic > m_body->m_c_max)
+		{
+			float32 scale = m_body->m_c_max / len_epsilon_plastic;
+			for (u32 i = 0; i < 6; ++i)
+			{
+				epsilon_plastic[i] *= scale;
+			}
+		}
+
+		b3Vec3 fs_plastic[4];
+		b3Mul(&fs_plastic[0].x, Pe, 12, 6, epsilon_plastic, 6, 1);
+		for (u32 i = 0; i < 4; ++i)
+		{
+			fs_plastic[i] = R * fs_plastic[i];
+		}
+
+		f_plastic[v1] += fs_plastic[0];
+		f_plastic[v2] += fs_plastic[1];
+		f_plastic[v3] += fs_plastic[2];
+		f_plastic[v4] += fs_plastic[3];
 	}
 
 	f0 = -f0;
 
 	b3SparseMat33 A = M + h * h * K;
 
-	b3DenseVec3 b = M * v - h * (K * p + f0 + f_plastic - fe);
+	//b3DenseVec3 b = M * v - h * (K * p + f0 + f_plastic - fe);
+	b3DenseVec3 b = M * v - h * (K * p + f0 - (f_plastic + fe));
 
 	// Solve Ax = b
 	b3DenseVec3 sx(m_mesh->vertexCount);
