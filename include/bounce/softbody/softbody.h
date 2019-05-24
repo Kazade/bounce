@@ -26,7 +26,8 @@ class b3World;
 
 struct b3SoftBodyMesh;
 
-class b3SoftBodyNode;
+struct b3SoftBodyNode;
+struct b3SoftBodyElement;
 
 struct b3RayCastInput;
 struct b3RayCastOutput;

@@ -25,15 +25,11 @@
 
 class b3Shape;
 class b3SoftBody;
-class b3SoftBodyNode;
+struct b3SoftBodyNode;
 
 // A contact between a node and a body
-class b3NodeBodyContact
+struct b3NodeBodyContact
 {
-public:
-	b3NodeBodyContact() { }
-	~b3NodeBodyContact() { }
-
 	b3SoftBodyNode* n1;
 	b3Shape* s2;
 
@@ -81,7 +77,7 @@ enum b3SoftBodyNodeType
 };
 
 // A soft body node.
-class b3SoftBodyNode 
+struct b3SoftBodyNode 
 {
 public:
 	// Set the node type.
@@ -109,6 +105,12 @@ public:
 
 	// Get the node mass.
 	float32 GetMass() const;
+
+	// Set the node damping.
+	void SetDamping(float32 damping);
+
+	// Get the node damping.
+	float32 GetDamping() const;
 
 	// Set the node radius.
 	void SetRadius(float32 radius);
@@ -150,6 +152,9 @@ private:
 
 	// Inverse mass
 	float32 m_invMass;
+
+	// Damping
+	float32 m_damping;
 
 	// Radius
 	float32 m_radius;
@@ -225,6 +230,16 @@ inline const b3Vec3& b3SoftBodyNode::GetVelocity() const
 inline float32 b3SoftBodyNode::GetMass() const
 {
 	return m_mass;
+}
+
+inline void b3SoftBodyNode::SetDamping(float32 damping)
+{
+	m_damping = damping;
+}
+
+inline float32 b3SoftBodyNode::GetDamping() const
+{
+	return m_damping;
 }
 
 inline void b3SoftBodyNode::SetRadius(float32 radius)

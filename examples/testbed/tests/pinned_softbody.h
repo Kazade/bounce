@@ -32,13 +32,19 @@ public:
 		b3SoftBodyDef def;
 		def.mesh = &m_mesh;
 		def.density = 0.2f;
-		def.E = 100.0f;
+		def.E = 1000.0f;
 		def.nu = 0.33f;		
 		def.c_yield = 0.1f;
 		def.c_creep = 0.5f;
 		def.c_max = 1.0f;
 
 		m_body = new b3SoftBody(def);
+
+		for (u32 i = 0; i < m_mesh.vertexCount; ++i)
+		{
+			b3SoftBodyNode* n = m_body->GetVertexNode(i);
+			n->SetDamping(0.2f);
+		}
 
 		u32 pinIndex = ~0;
 		float32 pinDot = -B3_MAX_FLOAT;

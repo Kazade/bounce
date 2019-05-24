@@ -195,6 +195,7 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 	float32 inv_h = 1.0f / h;
 
 	b3SparseMat33 M(m_mesh->vertexCount);
+	b3SparseMat33 C(m_mesh->vertexCount);
 	b3DenseVec3 x(m_mesh->vertexCount);
 	b3DenseVec3 p(m_mesh->vertexCount);
 	b3DenseVec3 v(m_mesh->vertexCount);
@@ -207,6 +208,12 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 		b3SoftBodyNode* n = m_nodes + i;
 
 		M(i, i) = b3Diagonal(n->m_mass);
+		
+		// Rayleigh damping 
+		// C = alpha * M + beta * K
+		// Here the stiffness coefficient beta is zero
+		C(i, i) = b3Diagonal(n->m_damping * n->m_mass);
+		
 		x[i] = m_mesh->vertices[i];
 		p[i] = n->m_position;
 		v[i] = n->m_velocity;
@@ -369,9 +376,8 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 
 	f0 = -f0;
 
-	b3SparseMat33 A = M + h * h * K;
+	b3SparseMat33 A = M + h * C + h * h * K;
 
-	//b3DenseVec3 b = M * v - h * (K * p + f0 + f_plastic - fe);
 	b3DenseVec3 b = M * v - h * (K * p + f0 - (f_plastic + fe));
 
 	// Solve Ax = b

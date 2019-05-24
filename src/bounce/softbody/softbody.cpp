@@ -465,6 +465,7 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 		n->m_force.SetZero();
 		n->m_mass = 0.0f;
 		n->m_invMass = 0.0f;
+		n->m_damping = 0.0f;
 		n->m_radius = 0.0f;
 		n->m_friction = 0.0f;
 		n->m_userData = nullptr;

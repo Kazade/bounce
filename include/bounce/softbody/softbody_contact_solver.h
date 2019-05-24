@@ -24,10 +24,10 @@
 
 class b3StackAllocator;
 
-class b3SoftBodyNode;
+struct b3SoftBodyNode;
 class b3Body;
 
-class b3NodeBodyContact;
+struct b3NodeBodyContact;
 
 struct b3DenseVec3;
 

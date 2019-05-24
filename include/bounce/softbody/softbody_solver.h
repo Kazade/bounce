@@ -27,10 +27,10 @@ class b3StackAllocator;
 class b3SoftBody;
 class b3SoftBodyMesh;
 
-class b3SoftBodyNode;
+struct b3SoftBodyNode;
 struct b3SoftBodyElement;
 
-class b3NodeBodyContact;
+struct b3NodeBodyContact;
 
 struct b3SoftBodySolverDef
 {
