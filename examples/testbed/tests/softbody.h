@@ -26,18 +26,11 @@ class SoftBody : public Test
 public:
 	SoftBody()
 	{
-		m_mesh.SetAsSphere(5.0f, 1);
-
-		for (u32 i = 0; i < m_mesh.vertexCount; ++i)
-		{
-			m_mesh.vertices[i].y += 10.0f;
-		}
-
 		// Create soft body
 		b3SoftBodyDef def;
 		def.mesh = &m_mesh;
 		def.density = 0.2f;
-		def.E = 100.0f;
+		def.E = 1000.0f;
 		def.nu = 0.33f;
 
 		m_body = new b3SoftBody(def);
@@ -54,23 +47,37 @@ public:
 			n->SetFriction(0.2f);
 		}
 
-		// Create ground
+		// Create body
 		{
 			b3BodyDef bd;
 			bd.type = e_staticBody;
+			bd.position.x = -3.5f;
 
 			b3Body* b = m_world.CreateBody(bd);
 
-			m_groundHull.SetAsCylinder(20.0f, 2.0f);
+			m_wallHull.Set(1.0f, 5.0f, 5.0f);
 
-			b3HullShape groundShape;
-			groundShape.m_hull = &m_groundHull;
+			b3HullShape wallShape;
+			wallShape.m_hull = &m_wallHull;
 
 			b3ShapeDef sd;
-			sd.shape = &groundShape;
-			sd.friction = 0.3f;
+			sd.shape = &wallShape;
 
-			b->CreateShape(sd);
+			b3Shape* wall = b->CreateShape(sd);
+		}
+
+		b3AABB3 aabb;
+		aabb.m_lower.Set(-3.0f, -5.0f, -5.0f);
+		aabb.m_upper.Set(-2.0f, 5.0f, 5.0f);
+
+		for (u32 i = 0; i < m_mesh.vertexCount; ++i)
+		{
+			b3SoftBodyNode* n = m_body->GetVertexNode(i);
+			b3Vec3 p = n->GetPosition();
+			if (aabb.Contains(p))
+			{
+				n->SetType(e_staticSoftBodyNode);
+			}
 		}
 
 		m_bodyDragger = new b3SoftBodyDragger(&m_ray, m_body);
@@ -144,12 +151,12 @@ public:
 		return new SoftBody();
 	}
 
-	b3QSoftBodyMesh m_mesh;
+	b3BlockSoftBodyMesh<5, 2, 2> m_mesh;
 	
 	b3SoftBody* m_body;
 	b3SoftBodyDragger* m_bodyDragger;
 	
-	b3QHull m_groundHull;
+	b3BoxHull m_wallHull;
 };
 
 #endif
