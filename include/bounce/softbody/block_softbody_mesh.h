@@ -19,7 +19,7 @@
 #ifndef B3_BLOCK_SOFT_BODY_MESH_H
 #define B3_BLOCK_SOFT_BODY_MESH_H
 
-#include <bounce/softbody/softbody_mesh.H>
+#include <bounce/softbody/softbody_mesh.h>
 
 template<u32 W = 1, u32 H = 1, u32 D = 1>
 struct b3BlockSoftBodyMesh : public b3SoftBodyMesh
