@@ -55,7 +55,7 @@ b3SoftBodySolver::~b3SoftBodySolver()
 }
 
 // https://animation.rwth-aachen.de/media/papers/2016-MIG-StableRotation.pdf
-static B3_FORCE_INLINE void b3ExtractRotation(b3Mat33& out, b3Quat& q, const b3Mat33& A, u32 maxIterations = 20)
+static void b3ExtractRotation(b3Mat33& out, b3Quat& q, const b3Mat33& A, u32 maxIterations = 20)
 {
 	for (u32 iteration = 0; iteration < maxIterations; ++iteration)
 	{
@@ -90,7 +90,7 @@ static B3_FORCE_INLINE void b3ExtractRotation(b3Mat33& out, b3Quat& q, const b3M
 	out = b3QuatMat33(q);
 }
 
-static B3_FORCE_INLINE void b3SolveMPCG(b3DenseVec3& x,
+static void b3SolveMPCG(b3DenseVec3& x,
 	const b3SparseMat33& A, const b3DenseVec3& b,
 	const b3DenseVec3& x0, const b3DiagMat33& S, u32 maxIterations = 20)
 {
