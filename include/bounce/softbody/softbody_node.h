@@ -69,10 +69,12 @@ struct b3NodeBodyContactWorldPoint
 };
 
 // Static node: Can be moved manually.
+// Kinematic node: Non-zero velocity, can be moved by the solver.
 // Dynamic node: Non-zero velocity determined by force, can be moved by the solver.
 enum b3SoftBodyNodeType
 {
 	e_staticSoftBodyNode,
+	e_kinematicSoftBodyNode,
 	e_dynamicSoftBodyNode
 };
 

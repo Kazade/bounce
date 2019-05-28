@@ -92,7 +92,7 @@ static void b3ExtractRotation(b3Mat33& out, b3Quat& q, const b3Mat33& A, u32 max
 
 static void b3SolveMPCG(b3DenseVec3& x,
 	const b3SparseMat33& A, const b3DenseVec3& b,
-	const b3DenseVec3& x0, const b3DiagMat33& S, u32 maxIterations = 20)
+	const b3DenseVec3& z, const b3DiagMat33& S, u32 maxIterations = 20)
 {
 	b3DiagMat33 P(A.rowCount);
 	b3DiagMat33 invP(A.rowCount);
@@ -116,7 +116,7 @@ static void b3SolveMPCG(b3DenseVec3& x,
 		invP[i] = b3Diagonal(D.x.x, D.y.y, D.z.z);
 	}
 
-	x = x0;
+	x = z;
 
 	float32 delta_0 = b3Dot(S * b, P * (S * b));
 
@@ -200,7 +200,7 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 	b3DenseVec3 p(m_mesh->vertexCount);
 	b3DenseVec3 v(m_mesh->vertexCount);
 	b3DenseVec3 fe(m_mesh->vertexCount);
-	b3DenseVec3 x0(m_mesh->vertexCount);
+	b3DenseVec3 z(m_mesh->vertexCount);
 	b3DiagMat33 S(m_mesh->vertexCount);
 
 	for (u32 i = 0; i < m_mesh->vertexCount; ++i)
@@ -218,7 +218,7 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 		p[i] = n->m_position;
 		v[i] = n->m_velocity;
 		fe[i] = n->m_force;
-		x0[i] = n->m_velocity;
+		z[i] = n->m_velocity;
 
 		// Apply gravity
 		if (n->m_type == e_dynamicSoftBodyNode)
@@ -382,7 +382,7 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 
 	// Solve Ax = b
 	b3DenseVec3 sx(m_mesh->vertexCount);
-	b3SolveMPCG(sx, A, b, x0, S);
+	b3SolveMPCG(sx, A, b, z, S);
 
 	// Solve constraints
 	b3SoftBodyContactSolverDef contactSolverDef;

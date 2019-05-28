@@ -839,6 +839,11 @@ void b3SoftBody::Draw() const
 			b3Draw_draw->DrawPoint(v, 4.0f, b3Color_white);
 		}
 
+		if (n->m_type == e_kinematicSoftBodyNode)
+		{
+			b3Draw_draw->DrawPoint(v, 4.0f, b3Color_blue);
+		}
+		
 		if (n->m_type == e_dynamicSoftBodyNode)
 		{
 			b3Draw_draw->DrawPoint(v, 4.0f, b3Color_green);
