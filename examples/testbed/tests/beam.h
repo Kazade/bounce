@@ -16,15 +16,15 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef SOFTBODY_H
-#define SOFTBODY_H
+#ifndef BEAM_H
+#define BEAM_H
 
 #include <testbed/framework/softbody_dragger.h>
 
-class SoftBody : public Test
+class Beam : public Test
 {
 public:
-	SoftBody()
+	Beam()
 	{
 		// Create soft body
 		b3SoftBodyDef def;
@@ -83,7 +83,7 @@ public:
 		m_bodyDragger = new b3SoftBodyDragger(&m_ray, m_body);
 	}
 
-	~SoftBody()
+	~Beam()
 	{
 		delete m_bodyDragger;
 		delete m_body;
@@ -148,7 +148,7 @@ public:
 
 	static Test* Create()
 	{
-		return new SoftBody();
+		return new Beam();
 	}
 
 	b3BlockSoftBodyMesh<5, 2, 2> m_mesh;
