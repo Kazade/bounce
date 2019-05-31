@@ -85,12 +85,7 @@ inline const b3Mat33& b3SparseMat33View::operator()(u32 i, u32 j) const
 {
 	B3_ASSERT(i < rowCount);
 	B3_ASSERT(j < rowCount);
-
-	if (i > j)
-	{
-		b3Swap(i, j);
-	}
-
+	
 	b3RowValueArray* vs = rows + i;
 
 	for (u32 c = 0; c < vs->count; ++c)
