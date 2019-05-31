@@ -287,9 +287,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 
 		// x
 		b3DenseVec3 x(m_particleCount);
-		u32 iterations = 0;
-		Solve(x, iterations, viewA, b, S, z, sx0);
-		b3_clothSolverIterations = iterations;
+		SolveMPCG(x, viewA, b, S, z, sx0);
 #if 0
 		// Copy constraint forces to the contacts
 		b3DenseVec3 f = A * x - b;
@@ -398,17 +396,21 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	}
 }
 
-void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
-	const b3SparseSymMat33View& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const
+void b3ClothSolver::SolveMPCG(b3DenseVec3& x,
+	const b3SparseSymMat33View& A, const b3DenseVec3& b, 
+	const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y, u32 maxIterations) const
 {
 	B3_PROFILE("Cloth Solve Ax = b");
 
 	// P = diag(A)
-	b3DiagMat33 inv_P(m_particleCount);
-	A.Diagonal(inv_P);
+	b3DiagMat33 inv_P(A.rowCount);
+	for (u32 i = 0; i < A.rowCount; ++i)
+	{
+		inv_P[i] = A(i, i);
+	}
 
 	// Invert
-	for (u32 i = 0; i < m_particleCount; ++i)
+	for (u32 i = 0; i < inv_P.n; ++i)
 	{
 		b3Mat33& D = inv_P[i];
 
@@ -427,81 +429,53 @@ void b3ClothSolver::Solve(b3DenseVec3& x, u32& iterations,
 		D = b3Diagonal(xx, yy, zz);
 	}
 
-	// I
 	b3DiagMat33 I(m_particleCount);
 	I.SetIdentity();
 
-	// x = S * y + (I - S) * z 
 	x = (S * y) + (I - S) * z;
 
-	// b^ = S * (b - A * (I - S) * z)
 	b3DenseVec3 b_hat = S * (b - A * ((I - S) * z));
 
-	// b_delta = dot(b^, P^-1 * b_^)
 	float32 b_delta = b3Dot(b_hat, inv_P * b_hat);
 
-	// r = S * (b - A * x)
 	b3DenseVec3 r = S * (b - A * x);
 
-	// p = S * (P^-1 * r)
 	b3DenseVec3 p = S * (inv_P * r);
 
-	// delta_new = dot(r, p)
 	float32 delta_new = b3Dot(r, p);
 
-	// Set the tolerance.
-	const float32 tolerance = 2.0f * B3_EPSILON;
-
-	// Maximum number of iterations.
-	// Stop at this iteration if diverged.
-	const u32 max_iterations = 50;
-
 	u32 iteration = 0;
-
-	// Main iteration loop.
 	for (;;)
 	{
-		// Divergence check.
-		if (iteration >= max_iterations)
+		if (iteration >= maxIterations)
+		{
+			break;
+		}
+		
+		if (delta_new <= B3_EPSILON * B3_EPSILON * b_delta)
 		{
 			break;
 		}
 
-		// Convergence check.
-		if (delta_new <= tolerance * tolerance * b_delta)
-		{
-			break;
-		}
-
-		// s = S * (A * p)
 		b3DenseVec3 s = S * (A * p);
 
-		// alpha = delta_new / dot(p, s)
 		float32 alpha = delta_new / b3Dot(p, s);
 
-		// x = x + alpha * p
 		x = x + alpha * p;
-
-		// r = r - alpha * s
 		r = r - alpha * s;
 
-		// h = inv_P * r
 		b3DenseVec3 h = inv_P * r;
 
-		// delta_old = delta_new
 		float32 delta_old = delta_new;
 
-		// delta_new = dot(r, h)
 		delta_new = b3Dot(r, h);
 
-		// beta = delta_new / delta_old
 		float32 beta = delta_new / delta_old;
 
-		// p = S * (h + beta * p)
 		p = S * (h + beta * p);
 
 		++iteration;
 	}
 
-	iterations = iteration;
+	b3_clothSolverIterations = iteration;
 }

@@ -19,44 +19,14 @@
 #ifndef B3_SPARSE_SYM_MAT_33_H
 #define B3_SPARSE_SYM_MAT_33_H
 
-#include <bounce/common/math/mat33.h>
-#include <bounce/cloth/diag_mat33.h>
-#include <bounce/cloth/dense_vec3.h>
-
-// An element in a sparse symmetric matrix.
-struct b3RowValue
-{
-	u32 column;
-	b3Mat33 value;
-	b3RowValue* next;
-};
-
-// Doubly linked list of row elements.
-struct b3RowValueList
-{
-	b3RowValueList()
-	{
-		head = nullptr;
-		count = 0;
-	}
-
-	~b3RowValueList() { }
-
-	void PushFront(b3RowValue* link)
-	{
-		link->next = head;
-		head = link;
-		++count;
-	}
-
-	b3RowValue* head;
-	u32 count;
-};
+#include <bounce/cloth/sparse_mat33.h>
 
 // A sparse symmetric matrix.
 // Each row is a list of non-zero elements in the row.
 // The total matrix capacity is bounded by 
 // M * (M + 1) / 2
+// You must write only the upper triangle elements of the original
+// matrix to this matrix because a_ji = a_ij.
 struct b3SparseSymMat33
 {
 	//

@@ -22,7 +22,36 @@
 #include <bounce/common/math/mat33.h>
 #include <bounce/cloth/diag_mat33.h>
 #include <bounce/cloth/dense_vec3.h>
-#include <bounce/cloth/sparse_sym_mat33.h>
+
+// An element in a sparse matrix.
+struct b3RowValue
+{
+	u32 column;
+	b3Mat33 value;
+	b3RowValue* next;
+};
+
+// Singly linked list of row elements.
+struct b3RowValueList
+{
+	b3RowValueList()
+	{
+		head = nullptr;
+		count = 0;
+	}
+
+	~b3RowValueList() { }
+
+	void PushFront(b3RowValue* link)
+	{
+		link->next = head;
+		head = link;
+		++count;
+	}
+
+	b3RowValue* head;
+	u32 count;
+};
 
 // A sparse matrix.
 // Each row is a list of non-zero elements in the row.

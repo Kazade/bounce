@@ -20,11 +20,13 @@
 #include <bounce/softbody/softbody_mesh.h>
 #include <bounce/softbody/softbody_node.h>
 #include <bounce/softbody/softbody.h>
-#include <bounce/softbody/sparse_mat33.h>
 #include <bounce/softbody/softbody_contact_solver.h>
 
 #include <bounce/dynamics/body.h>
 #include <bounce/dynamics/shapes/shape.h>
+
+#include <bounce/cloth/sparse_mat33.h>
+#include <bounce/cloth/sparse_mat33_view.h>
 
 // This work is based on the paper "Interactive Virtual Materials" written by 
 // Matthias Mueller Fischer
@@ -91,9 +93,11 @@ static void b3ExtractRotation(b3Mat33& out, b3Quat& q, const b3Mat33& A, u32 max
 }
 
 static void b3SolveMPCG(b3DenseVec3& x,
-	const b3SparseMat33& A, const b3DenseVec3& b,
+	const b3SparseMat33View& A, const b3DenseVec3& b,
 	const b3DenseVec3& z, const b3DiagMat33& S, u32 maxIterations = 20)
 {
+	B3_PROFILE("Soft Body Solve Ax = b");
+
 	b3DiagMat33 P(A.rowCount);
 	b3DiagMat33 invP(A.rowCount);
 	for (u32 i = 0; i < A.rowCount; ++i)
@@ -377,12 +381,14 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 	f0 = -f0;
 
 	b3SparseMat33 A = M + h * C + h * h * K;
+	
+	b3SparseMat33View viewA(A);
 
 	b3DenseVec3 b = M * v - h * (K * p + f0 - (f_plastic + fe));
 
 	// Solve Ax = b
 	b3DenseVec3 sx(m_mesh->vertexCount);
-	b3SolveMPCG(sx, A, b, z, S);
+	b3SolveMPCG(sx, viewA, b, z, S);
 
 	// Solve constraints
 	b3SoftBodyContactSolverDef contactSolverDef;

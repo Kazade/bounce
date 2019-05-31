@@ -16,29 +16,40 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_SPARSE_SYM_MAT_33_VIEW_H
-#define B3_SPARSE_SYM_MAT_33_VIEW_H
+#ifndef B3_SPARSE_MAT_33_VIEW_H
+#define B3_SPARSE_MAT_33_VIEW_H
 
-#include <bounce/cloth/sparse_mat33_view.h>
-#include <bounce/cloth/sparse_sym_mat33.h>
+#include <bounce/cloth/sparse_mat33.h>
 
-// A read-only sparse symmetric matrix.
-struct b3SparseSymMat33View
+struct b3ArrayRowValue
+{
+	u32 column;
+	b3Mat33 value;
+};
+
+struct b3RowValueArray
+{
+	u32 count;
+	b3ArrayRowValue* values;
+};
+
+// A read-only sparse matrix.
+struct b3SparseMat33View
 {
 	//
-	b3SparseSymMat33View(const b3SparseSymMat33& _m);
+	b3SparseMat33View(const b3SparseMat33& _m);
 
 	//
-	~b3SparseSymMat33View();
+	~b3SparseMat33View();
 
 	//
 	const b3Mat33& operator()(u32 i, u32 j) const;
-	
+
 	u32 rowCount;
 	b3RowValueArray* rows;
 };
 
-inline b3SparseSymMat33View::b3SparseSymMat33View(const b3SparseSymMat33& _m)
+inline b3SparseMat33View::b3SparseMat33View(const b3SparseMat33& _m)
 {
 	rowCount = _m.rowCount;
 	rows = (b3RowValueArray*)b3Alloc(rowCount * sizeof(b3RowValueArray));
@@ -60,7 +71,7 @@ inline b3SparseSymMat33View::b3SparseSymMat33View(const b3SparseSymMat33& _m)
 	}
 }
 
-inline b3SparseSymMat33View::~b3SparseSymMat33View()
+inline b3SparseMat33View::~b3SparseMat33View()
 {
 	for (u32 i = 0; i < rowCount; ++i)
 	{
@@ -70,7 +81,7 @@ inline b3SparseSymMat33View::~b3SparseSymMat33View()
 	b3Free(rows);
 }
 
-inline const b3Mat33& b3SparseSymMat33View::operator()(u32 i, u32 j) const
+inline const b3Mat33& b3SparseMat33View::operator()(u32 i, u32 j) const
 {
 	B3_ASSERT(i < rowCount);
 	B3_ASSERT(j < rowCount);
@@ -85,7 +96,6 @@ inline const b3Mat33& b3SparseSymMat33View::operator()(u32 i, u32 j) const
 	for (u32 c = 0; c < vs->count; ++c)
 	{
 		b3ArrayRowValue* rv = vs->values + c;
-		
 		if (rv->column == j)
 		{
 			return rv->value;
@@ -95,7 +105,7 @@ inline const b3Mat33& b3SparseSymMat33View::operator()(u32 i, u32 j) const
 	return b3Mat33_zero;
 }
 
-inline void b3Mul(b3DenseVec3& out, const b3SparseSymMat33View& A, const b3DenseVec3& v)
+inline void b3Mul(b3DenseVec3& out, const b3SparseMat33View& A, const b3DenseVec3& v)
 {
 	B3_ASSERT(A.rowCount == out.n);
 
@@ -113,16 +123,11 @@ inline void b3Mul(b3DenseVec3& out, const b3SparseSymMat33View& A, const b3Dense
 			b3Mat33 a = rv->value;
 
 			out[i] += a * v[j];
-
-			if (i != j)
-			{
-				out[j] += a * v[i];
-			}
 		}
 	}
 }
 
-inline b3DenseVec3 operator*(const b3SparseSymMat33View& A, const b3DenseVec3& v)
+inline b3DenseVec3 operator*(const b3SparseMat33View& A, const b3DenseVec3& v)
 {
 	b3DenseVec3 result(v.n);
 	b3Mul(result, A, v);

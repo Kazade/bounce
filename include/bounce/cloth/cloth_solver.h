@@ -87,7 +87,9 @@ private:
 	void ApplyConstraints();
 
 	// Solve Ax = b.
-	void Solve(b3DenseVec3& x, u32& iterations, const b3SparseSymMat33View& A, const b3DenseVec3& b, const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y) const;
+	void SolveMPCG(b3DenseVec3& x, 
+		const b3SparseSymMat33View& A, const b3DenseVec3& b, 
+		const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y, u32 maxIterations = 30) const;
 
 	b3StackAllocator* m_allocator;
 
