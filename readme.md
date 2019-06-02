@@ -104,8 +104,6 @@ Below are the external dependencies for testbed. If you don't care about testbed
 ### Dynamics
 
 * Rigid bodies
-* Cloth
-* Soft body
 * Contact, friction, restitution
 * Mouse, spring, sphere, cone, revolute joint types
 * Quaternion constraints
@@ -118,6 +116,27 @@ Below are the external dependencies for testbed. If you don't care about testbed
 * Contact clustering, reduction, and persistence
 * Contact callbacks: begin, pre-solve, post-solve
 * Ray-casting and volume queries
+
+### Rope
+
+* Rope 
+* Linear time solver
+
+### Cloth
+
+* Cloth
+* Vertex contact, friction
+* Linear time solver
+* Unconditional simulation stability
+* Ray-casting 
+
+### Soft Body
+
+* Soft body
+* Vertex contact, friction
+* Linear time solver
+* Unconditional simulation stability
+* Ray-casting 
 
 ### Testbed
 	
