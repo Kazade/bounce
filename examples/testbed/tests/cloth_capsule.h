@@ -16,13 +16,13 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef SELF_COLLISION_H
-#define SELF_COLLISION_H
+#ifndef CLOTH_CAPSULE_H
+#define CLOTH_CAPSULE_H
 
-class SelfCollision : public Test
+class ClothCapsule : public Test
 {
 public:
-	SelfCollision() : m_rectangleGarment(5.0f, 5.0f)
+	ClothCapsule() : m_rectangleGarment(5.0f, 5.0f)
 	{
 		// Generate 2D mesh
 		m_rectangleGarmentMesh.Set(&m_rectangleGarment, 1.0f);
@@ -76,7 +76,7 @@ public:
 		m_clothDragger = new b3ClothDragger(&m_ray, m_cloth);
 	}
 
-	~SelfCollision()
+	~ClothCapsule()
 	{
 		delete m_cloth;
 		delete m_clothDragger;
@@ -141,7 +141,7 @@ public:
 
 	static Test* Create()
 	{
-		return new SelfCollision();
+		return new ClothCapsule();
 	}
 
 	b3RectangleGarment m_rectangleGarment;

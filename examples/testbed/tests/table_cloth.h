@@ -53,7 +53,7 @@ public:
 
 		for (b3Particle* p = m_cloth->GetParticleList().m_head; p; p = p->GetNext())
 		{
-			p->SetRadius(0.05f);
+			p->SetRadius(0.1f);
 			p->SetFriction(0.2f);
 		}
 

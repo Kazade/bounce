@@ -17,9 +17,7 @@
 */
 
 #include <bounce/dynamics/shapes/mesh_shape.h>
-#include <bounce/dynamics/shapes/hull_shape.h>
 #include <bounce/collision/shapes/mesh.h>
-#include <bounce/collision/shapes/triangle_hull.h>
 
 b3MeshShape::b3MeshShape() 
 {
@@ -92,20 +90,11 @@ bool b3MeshShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere,
 
 bool b3MeshShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere, const b3Transform& xf, u32 index) const
 {
-	B3_ASSERT(index < m_mesh->triangleCount);
-	b3Triangle* triangle = m_mesh->triangles + index;
-	b3Vec3 v1 = m_mesh->vertices[triangle->v1];
-	b3Vec3 v2 = m_mesh->vertices[triangle->v2];
-	b3Vec3 v3 = m_mesh->vertices[triangle->v3];
-
-	b3TriangleHull hull(v1, v2, v3);
-
-	b3HullShape hullShape;
-	hullShape.m_body = m_body;
-	hullShape.m_hull = &hull;
-	hullShape.m_radius = B3_HULL_RADIUS;
-
-	return hullShape.TestSphere(output, sphere, xf);
+	B3_NOT_USED(output);
+	B3_NOT_USED(sphere);
+	B3_NOT_USED(xf);
+	B3_NOT_USED(index);
+	return false;
 }
 
 bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf, u32 index) const
@@ -137,7 +126,7 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 	return false;
 }
 
-struct b3MeshRayCastCallback
+struct b3MeshShapeRayCastCallback
 {
 	float32 Report(const b3RayCastInput& subInput, u32 proxyId)
 	{
@@ -169,7 +158,7 @@ struct b3MeshRayCastCallback
 
 bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf) const 
 {
-	b3MeshRayCastCallback callback;
+	b3MeshShapeRayCastCallback callback;
 	callback.input = input;
 	callback.mesh = this;
 	callback.xf = xf;

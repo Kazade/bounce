@@ -54,7 +54,6 @@
 #include <testbed/tests/pyramids.h>
 #include <testbed/tests/ray_cast.h>
 #include <testbed/tests/sensor_test.h>
-#include <testbed/tests/character_test.h>
 #include <testbed/tests/body_types.h>
 #include <testbed/tests/varying_friction.h>
 #include <testbed/tests/varying_restitution.h>
@@ -64,7 +63,7 @@
 #include <testbed/tests/pinned_cloth.h>
 #include <testbed/tests/particle_types.h>
 #include <testbed/tests/tension_mapping.h>
-#include <testbed/tests/self_collision.h>
+#include <testbed/tests/cloth_capsule.h>
 #include <testbed/tests/rope_test.h>
 #include <testbed/tests/beam.h>
 #include <testbed/tests/pinned_softbody.h>
@@ -107,7 +106,6 @@ TestEntry g_tests[] =
 	{ "Box Pyramid Rows", &Pyramids::Create },
 	{ "Ray Cast", &RayCast::Create },
 	{ "Sensor Test", &SensorTest::Create },
-	{ "Character", &CharacterTest::Create },
 	{ "Body Types", &BodyTypes::Create },
 	{ "Varying Friction", &VaryingFriction::Create },
 	{ "Varying Restitution", &VaryingRestitution::Create },
@@ -118,7 +116,7 @@ TestEntry g_tests[] =
 	{ "Pinned Cloth", &PinnedCloth::Create },
 	{ "Particle Types", &ParticleTypes::Create },
 	{ "Tension Mapping", &TensionMapping::Create },
-	{ "Self-Collision", &SelfCollision::Create },
+	{ "Cloth and Capsule", &ClothCapsule::Create },
 	{ "Beam", &Beam::Create },
 	{ "Pinned Soft Body", &PinnedSoftBody::Create },
 	{ "Smash Soft Body", &SmashSoftBody::Create },
