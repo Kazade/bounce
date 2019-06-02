@@ -20,7 +20,7 @@ Bounce uses [premake](https://premake.github.io/) for generating project files i
 * Say { premake5 vs2017 } on a command line. 
 * Open build/vs2017/bounce.sln.
 * Set testbed as the startup project.
-* In the testbed debugging properties, set the Working Directory to ..\..\examples\testbed.
+* In the testbed debugging properties, set the Working Directory to ..\\..\examples\testbed.
 * Press F5 to run.
 
 ### Linux
