@@ -62,27 +62,13 @@ struct b3ParticleDef
 };
 
 // A contact between a particle and a solid
-class b3BodyContact
+struct b3ParticleBodyContact
 {
-public:
-	b3BodyContact() { }
-	~b3BodyContact() { }
-
 	b3Particle* p1;
 	b3Shape* s2;
 
 	// Contact constraint
-	float32 s;
-	b3Vec3 p;
-	b3Vec3 n;
-	float32 fn0;
-	float32 fn;
-	float32 ft1, ft2;
-	bool nActive;
-	bool t1Active;
-	bool t2Active;
-
-	// Contact constraint
+	b3Vec3 normal1;
 	b3Vec3 localPoint1;
 	b3Vec3 localPoint2;
 	float32 normalImpulse;
@@ -94,9 +80,9 @@ public:
 	bool active;
 };
 
-struct b3BodyContactWorldPoint
+struct b3ParticleBodyContactWorldPoint
 {
-	void Initialize(const b3BodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB);
+	void Initialize(const b3ParticleBodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB);
 
 	b3Vec3 point;
 	b3Vec3 normal;
@@ -210,8 +196,8 @@ private:
 	// 
 	b3Cloth* m_cloth;
 
-	// 
-	b3BodyContact m_bodyContact;
+	// Contact
+	b3ParticleBodyContact m_bodyContact;
 
 	// 
 	b3Particle* m_prev;

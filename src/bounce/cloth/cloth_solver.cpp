@@ -57,7 +57,7 @@ b3ClothSolver::b3ClothSolver(const b3ClothSolverDef& def)
 
 	m_bodyContactCapacity = def.bodyContactCapacity;
 	m_bodyContactCount = 0;
-	m_bodyContacts = (b3BodyContact**)m_allocator->Allocate(m_bodyContactCapacity * sizeof(b3BodyContact*));;
+	m_bodyContacts = (b3ParticleBodyContact**)m_allocator->Allocate(m_bodyContactCapacity * sizeof(b3ParticleBodyContact*));;
 }
 
 b3ClothSolver::~b3ClothSolver()
@@ -80,14 +80,9 @@ void b3ClothSolver::Add(b3Force* f)
 	m_forces[m_forceCount++] = f;
 }
 
-void b3ClothSolver::Add(b3BodyContact* c)
+void b3ClothSolver::Add(b3ParticleBodyContact* c)
 {
 	m_bodyContacts[m_bodyContactCount++] = c;
-}
-
-void b3ClothSolver::Add(b3ParticleContact* c)
-{
-	m_particleContacts[m_particleContactCount++] = c;
 }
 
 void b3ClothSolver::ApplyForces()
@@ -149,6 +144,7 @@ void b3ClothSolver::ApplyConstraints()
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
 		b3Particle* p = m_particles[i];
+		
 		if (p->m_type != e_dynamicParticle)
 		{
 			b3AccelerationConstraint* ac = m_constraints + m_constraintCount;
@@ -158,47 +154,6 @@ void b3ClothSolver::ApplyConstraints()
 			ac->z.SetZero();
 		}
 	}
-#if 0
-	for (u32 i = 0; i < m_bodyContactCount; ++i)
-	{
-		b3BodyContact* bc = m_bodyContacts[i];
-		
-		if (bc->nActive == false)
-		{
-			continue;
-		}
-
-		b3Particle* p1 = bc->p1;
-
-		B3_ASSERT(p1->m_type == e_dynamicParticle);
-
-		b3AccelerationConstraint* ac = m_constraints + m_constraintCount;
-		++m_constraintCount;
-		ac->i1 = p1->m_solverId;
-		ac->ndof = 2;
-		ac->p = bc->n;
-		ac->z.SetZero();
-
-		if (bc->t1Active && bc->t2Active)
-		{
-			ac->ndof = 0;
-		}
-		else
-		{
-			if (bc->t1Active)
-			{
-				ac->ndof = 1;
-				ac->q = bc->t1;
-			}
-
-			if (bc->t2Active)
-			{
-				ac->ndof = 1;
-				ac->q = bc->t2;
-			}
-		}
-	}
-#endif
 
 	for (u32 i = 0; i < m_constraintCount; ++i)
 	{
@@ -206,7 +161,7 @@ void b3ClothSolver::ApplyConstraints()
 	}
 }
 
-void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
+void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations)
 {
 	float32 h = dt;
 	float32 inv_h = 1.0f / h;
@@ -288,23 +243,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		// x
 		b3DenseVec3 x(m_particleCount);
 		SolveMPCG(x, viewA, b, S, z, sx0);
-#if 0
-		// Copy constraint forces to the contacts
-		b3DenseVec3 f = A * x - b;
 
-		for (u32 i = 0; i < m_bodyContactCount; ++i)
-		{
-			b3BodyContact* c = m_bodyContacts[i];
-			b3Particle* p1 = c->p1;
-
-			b3Vec3 cf = f[p1->m_solverId];
-
-			c->fn0 = c->fn;
-			c->fn = b3Dot(cf, c->n);
-			c->ft1 = b3Dot(cf, c->t1);
-			c->ft2 = b3Dot(cf, c->t2);
-		}
-#endif
 		// 
 		sv = sv + x;
 		sx = sx + sy;
@@ -319,7 +258,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 			p->m_velocity = sv[i];
 		}
 	}
-#if 1
+
 	// Solve constraints
 	b3ClothContactSolverDef contactSolverDef;
 	contactSolverDef.allocator = m_allocator;
@@ -338,11 +277,8 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 		contactSolver.WarmStart();
 	}
 
-	// Solve velocity constraints
 	{
-		const u32 kVelocityIterations = 10;
-
-		for (u32 i = 0; i < kVelocityIterations; ++i)
+		for (u32 i = 0; i < velocityIterations; ++i)
 		{
 			contactSolver.SolveBodyContactVelocityConstraints();
 		}
@@ -351,18 +287,14 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 	{
 		contactSolver.StoreImpulses();
 	}
-#endif
 
 	// Integrate positions
 	sx = sx + h * sv;
 
-#if 1
 	// Solve position constraints
 	{
-		const u32 kPositionIterations = 2;
-
 		bool positionSolved = false;
-		for (u32 i = 0; i < kPositionIterations; ++i)
+		for (u32 i = 0; i < positionIterations; ++i)
 		{
 			bool bodyContactsSolved = contactSolver.SolveBodyContactPositionConstraints();
 
@@ -385,7 +317,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity)
 
 		body->SynchronizeShapes();
 	}
-#endif
+
 	// Copy state buffers back to the particles
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{

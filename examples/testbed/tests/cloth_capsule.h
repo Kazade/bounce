@@ -86,7 +86,7 @@ public:
 	{
 		Test::Step();
 
-		m_cloth->Step(g_testSettings->inv_hertz);
+		m_cloth->Step(g_testSettings->inv_hertz, g_testSettings->velocityIterations, g_testSettings->positionIterations);
 
 		m_cloth->Draw();
 

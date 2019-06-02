@@ -29,8 +29,7 @@ class b3Shape;
 
 class b3Particle;
 class b3Force;
-class b3BodyContact;
-class b3ParticleContact;
+struct b3ParticleBodyContact;
 
 struct b3ParticleDef;
 struct b3ForceDef;
@@ -134,7 +133,7 @@ public:
 	float32 GetEnergy() const;
 
 	// Perform a time step. 
-	void Step(float32 dt);
+	void Step(float32 dt, u32 velocityIterations, u32 positionIterations);
 
 	// Debug draw the cloth using the associated cloth mesh.
 	void Draw() const;
@@ -149,7 +148,7 @@ private:
 	void UpdateContacts();
 
 	// Solve
-	void Solve(float32 dt, const b3Vec3& gravity);
+	void Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations);
 
 	// Stack allocator
 	b3StackAllocator m_stackAllocator;

@@ -33,8 +33,7 @@ struct b3DiagMat33;
 struct b3SparseSymMat33;
 struct b3SparseSymMat33View;
 
-class b3BodyContact;
-class b3ParticleContact;
+struct b3ParticleBodyContact;
 
 struct b3ClothSolverDef
 {
@@ -75,10 +74,9 @@ public:
 	
 	void Add(b3Particle* p);
 	void Add(b3Force* f);
-	void Add(b3BodyContact* c);
-	void Add(b3ParticleContact* c);
+	void Add(b3ParticleBodyContact* c);
 
-	void Solve(float32 dt, const b3Vec3& gravity);
+	void Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations);
 private:
 	// Apply forces.
 	void ApplyForces();
@@ -107,11 +105,7 @@ private:
 	
 	u32 m_bodyContactCapacity;
 	u32 m_bodyContactCount;
-	b3BodyContact** m_bodyContacts;
-
-	u32 m_particleContactCapacity;
-	u32 m_particleContactCount;
-	b3ParticleContact** m_particleContacts;
+	b3ParticleBodyContact** m_bodyContacts;
 
 	b3ClothSolverData m_solverData;
 };

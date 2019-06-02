@@ -27,7 +27,7 @@ class b3StackAllocator;
 class b3Particle;
 class b3Body;
 
-class b3BodyContact;
+struct b3ParticleBodyContact;
 
 struct b3DenseVec3;
 
@@ -88,7 +88,7 @@ struct b3ClothContactSolverDef
 	b3DenseVec3* velocities;
 	
 	u32 bodyContactCount;
-	b3BodyContact** bodyContacts;
+	b3ParticleBodyContact** bodyContacts;
 };
 
 inline float32 b3MixFriction(float32 u1, float32 u2)
@@ -118,7 +118,7 @@ protected:
 	b3DenseVec3* m_velocities;
 
 	u32 m_bodyContactCount;
-	b3BodyContact** m_bodyContacts;
+	b3ParticleBodyContact** m_bodyContacts;
 	b3ClothSolverBodyContactVelocityConstraint* m_bodyVelocityConstraints;
 	b3ClothSolverBodyContactPositionConstraint* m_bodyPositionConstraints;
 };

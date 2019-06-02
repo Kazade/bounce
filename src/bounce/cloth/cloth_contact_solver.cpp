@@ -49,7 +49,7 @@ void b3ClothContactSolver::InitializeBodyContactConstraints()
 
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
-		b3BodyContact* c = m_bodyContacts[i];
+		b3ParticleBodyContact* c = m_bodyContacts[i];
 		b3ClothSolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
 		b3ClothSolverBodyContactPositionConstraint* pc = m_bodyPositionConstraints + i;
 
@@ -79,14 +79,14 @@ void b3ClothContactSolver::InitializeBodyContactConstraints()
 		pc->localCenterA.SetZero();
 		pc->localCenterB = pc->bodyB->m_sweep.localCenter;
 
-		pc->normalA = c->n;
+		pc->normalA = c->normal1;
 		pc->localPointA = c->localPoint1;
 		pc->localPointB = c->localPoint2;
 	}
 
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
-		b3BodyContact* c = m_bodyContacts[i];
+		b3ParticleBodyContact* c = m_bodyContacts[i];
 		b3ClothSolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
 		b3ClothSolverBodyContactPositionConstraint* pc = m_bodyPositionConstraints + i;
 
@@ -116,7 +116,7 @@ void b3ClothContactSolver::InitializeBodyContactConstraints()
 		xfB.rotation = b3QuatMat33(qB);
 		xfB.position = xB - b3Mul(xfB.rotation, localCenterB);
 
-		b3BodyContactWorldPoint wp;
+		b3ParticleBodyContactWorldPoint wp;
 		wp.Initialize(c, pc->radiusA, xfA, pc->radiusB, xfB);
 
 		vc->normal = wp.normal;
@@ -310,7 +310,7 @@ void b3ClothContactSolver::StoreImpulses()
 {
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
-		b3BodyContact* c = m_bodyContacts[i];
+		b3ParticleBodyContact* c = m_bodyContacts[i];
 		b3ClothSolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
 
 		c->normalImpulse = vc->normalImpulse;
@@ -322,14 +322,14 @@ struct b3ClothSolverBodyContactSolverPoint
 {
 	void Initialize(const b3ClothSolverBodyContactPositionConstraint* pc, const b3Transform& xfA, const b3Transform& xfB)
 	{
+		b3Vec3 nA = pc->normalA;
+
 		b3Vec3 cA = b3Mul(xfA, pc->localPointA);
 		b3Vec3 cB = b3Mul(xfB, pc->localPointB);
 
 		float32 rA = pc->radiusA;
 		float32 rB = pc->radiusB;
 		
-		b3Vec3 nA = pc->normalA;
-
 		b3Vec3 pA = cA + rA * nA;
 		b3Vec3 pB = cB - rB * nA;
 

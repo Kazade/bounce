@@ -110,7 +110,7 @@ public:
 	{
 		Test::Step();
 
-		m_cloth->Step(g_testSettings->inv_hertz);
+		m_cloth->Step(g_testSettings->inv_hertz, g_testSettings->velocityIterations, g_testSettings->positionIterations);
 
 		const b3ClothMesh* mesh = m_cloth->GetMesh();
 

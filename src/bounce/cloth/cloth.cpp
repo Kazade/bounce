@@ -464,23 +464,14 @@ void b3Cloth::UpdateBodyContacts()
 		b3Vec3 point = bestPoint;
 		b3Vec3 normal = -bestNormal;
 
-		b3BodyContact* c = &p->m_bodyContact;
+		b3ParticleBodyContact* c = &p->m_bodyContact;
 		
-		b3BodyContact c0 = *c;
+		b3ParticleBodyContact c0 = *c;
 
 		c->active = true;
 		c->p1 = p;
 		c->s2 = shape;
-		c->s = separation;
-		c->p = point;
-		c->n = normal;
-		c->fn0 = 0.0f;
-		c->fn = 0.0f;
-		c->ft1 = 0.0f;
-		c->ft2 = 0.0f;
-		c->nActive = true;
-		c->t1Active = false;
-		c->t2Active = false;
+		c->normal1 = normal;
 		c->localPoint1.SetZero();
 		c->localPoint2 = body->GetLocalPoint(point);
 		c->t1 = b3Perp(normal);
@@ -488,97 +479,15 @@ void b3Cloth::UpdateBodyContacts()
 		c->normalImpulse = 0.0f;
 		c->tangentImpulse.SetZero();
 
-#if 0
-		// Apply position correction
-		p->m_translation += separation * normal;
-#endif
-
-		// Update contact state
 		if (c0.active == true)
 		{
-			if (c0.nActive == true)
-			{
-				c->fn0 = c0.fn0;
-				c->fn = c0.fn;
-				c->ft1 = c0.ft1;
-				c->ft2 = c0.ft2;
-
-				c->normalImpulse = c0.normalImpulse;
-				c->tangentImpulse = c0.tangentImpulse;
-#if 0
-				const float32 kForceTol = 0.0f;
-
-				// Allow the contact to release when the constraint force 
-				// switches from a repulsive force to an attractive one.
-				// if (c0.fn0 < kForceTol && c0.fn > kForceTol)
-				if (c0.fn > kForceTol)
-				{
-					// Contact force is attractive.
-					c->nActive = false;
-					continue;
-				}
-#endif
-			}
+			c->normalImpulse = c0.normalImpulse;
+			c->tangentImpulse = c0.tangentImpulse;
 		}
-#if 0
-		if (c0.active == false)
-		{
-			continue;
-		}
-		
-		// A friction force requires an associated normal force.
-		if (c0.nActive == false)
-		{
-			continue;
-		}
-		
-		b3Vec3 v1; v1.SetZero();
-		b3Vec3 v2 = p->m_velocity;
-		b3Vec3 dv = v2 - v1;
-
-		const float32 kVelTol = 2.0f * B3_EPSILON;
-
-		// Lock particle on surface
-		float32 dvt1 = b3Dot(dv, c->t1);
-		if (dvt1 * dvt1 < kVelTol * kVelTol)
-		{
-			c->t1Active = true;
-		}
-
-		float32 dvt2 = b3Dot(dv, c->t2);
-		if (dvt2 * dvt2 < kVelTol * kVelTol)
-		{
-			c->t2Active = true;
-		}
-
-		// Unlock particle off surface
-		float32 normalForce = c->fn;
-		
-		float32 friction = shape->GetFriction();
-		float32 maxFrictionForce = friction * normalForce;
-
-		if (c0.t1Active == true)
-		{
-			float32 tangentForce1 = c0.ft1;
-			if (tangentForce1 * tangentForce1 > maxFrictionForce * maxFrictionForce)
-			{
-				c->t1Active = false;
-			}
-		}
-
-		if (c0.t2Active == true)
-		{
-			float32 tangentForce2 = c0.ft2;
-			if (tangentForce2 * tangentForce2 > maxFrictionForce* maxFrictionForce)
-			{
-				c->t2Active = false;
-			}
-		}
-#endif
 	}
 }
 
-void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
+void b3Cloth::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations)
 {
 	B3_PROFILE("Cloth Solve");
 
@@ -610,7 +519,7 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity)
 	}
 
 	// Solve	
-	solver.Solve(dt, gravity);
+	solver.Solve(dt, gravity, velocityIterations, positionIterations);
 }
 
 void b3Cloth::UpdateContacts()
@@ -619,7 +528,7 @@ void b3Cloth::UpdateContacts()
 	UpdateBodyContacts();
 }
 
-void b3Cloth::Step(float32 dt)
+void b3Cloth::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 {
 	B3_PROFILE("Cloth Step");
 
@@ -629,7 +538,7 @@ void b3Cloth::Step(float32 dt)
 	// Solve constraints, integrate state, clear forces and translations. 
 	if (dt > 0.0f)
 	{
-		Solve(dt, m_gravity);
+		Solve(dt, m_gravity, velocityIterations, positionIterations);
 	}
 
 	// Clear external applied forces and translations

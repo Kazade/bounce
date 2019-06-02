@@ -22,13 +22,13 @@
 #include <bounce/cloth/dense_vec3.h>
 #include <bounce/cloth/sparse_sym_mat33.h>
 
-void b3BodyContactWorldPoint::Initialize(const b3BodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB)
+void b3ParticleBodyContactWorldPoint::Initialize(const b3ParticleBodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB)
 {
+	b3Vec3 nA = c->normal1;
+
 	b3Vec3 cA = b3Mul(xfA, c->localPoint1);
 	b3Vec3 cB = b3Mul(xfB, c->localPoint2);
 
-	b3Vec3 nA = c->n;
-	
 	b3Vec3 pA = cA + rA * nA;
 	b3Vec3 pB = cB - rB * nA;
 
