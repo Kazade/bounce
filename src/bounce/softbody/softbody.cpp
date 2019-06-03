@@ -83,13 +83,18 @@ static B3_FORCE_INLINE void b3ComputeD(float32 out[36], float32 E, float32 nu)
 	}
 }
 
+// Compute B = S * N,
+// where S is the operational matrix and N are the shape functions
+// This is a 6 x 12 matrix
+// A derivation and corresponding simplification for this matrix 
+// can be found here:
+// https://github.com/erleben/OpenTissue/blob/master/OpenTissue/dynamics/fem/fem_compute_b.h
 static B3_FORCE_INLINE void b3ComputeB(float32 out[72],
 	const b3Vec3& e10,
 	const b3Vec3& e20,
 	const b3Vec3& e30,
 	float32 V)
 {
-	// Compute derivatives of shape functions N
 	float32 inv6V = 1.0f / (6.0f * V);
 
 	b3Vec3 B[4];
@@ -125,7 +130,7 @@ static B3_FORCE_INLINE void b3ComputeB(float32 out[72],
 	float32 c4 = B[3].y;
 	float32 d4 = B[3].z;
 
-	float32 MB[72] =
+	float32 B_out[72] =
 	{
 		b1, 0, 0, c1, d1, 0,
 		0, c1, 0, b1, 0, d1,
@@ -146,7 +151,7 @@ static B3_FORCE_INLINE void b3ComputeB(float32 out[72],
 
 	for (u32 i = 0; i < 72; ++i)
 	{
-		out[i] = MB[i];
+		out[i] = B_out[i];
 	}
 }
 
@@ -502,11 +507,11 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 
 		B3_ASSERT(V > 0.0f);
 
-		b3Vec3 e10 = p2 - p1;
-		b3Vec3 e20 = p3 - p1;
-		b3Vec3 e30 = p4 - p1;
+		b3Vec3 e1 = p2 - p1;
+		b3Vec3 e2 = p3 - p1;
+		b3Vec3 e3 = p4 - p1;
 
-		b3Mat33 E(e10, e20, e30);
+		b3Mat33 E(e1, e2, e3);
 
 		e->invE = b3Inverse(E);
 
@@ -516,7 +521,7 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 
 		// 6 x 12
 		float32* B = e->B;
-		b3ComputeB(B, e10, e20, e30, V);
+		b3ComputeB(B, e1, e2, e3, V);
 
 		// 12 x 6
 		float32 BT[72];
