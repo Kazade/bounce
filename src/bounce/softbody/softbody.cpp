@@ -25,6 +25,7 @@
 #include <bounce/collision/collision.h>
 
 #include <bounce/dynamics/world.h>
+#include <bounce/dynamics/world_listeners.h>
 #include <bounce/dynamics/body.h>
 #include <bounce/dynamics/shapes/shape.h>
 
@@ -451,9 +452,8 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 
 	const b3SoftBodyMesh* m = m_mesh;
 
-	m_nodes = (b3SoftBodyNode*)b3Alloc(m->vertexCount * sizeof(b3SoftBodyNode));
-
 	// Initialize nodes
+	m_nodes = (b3SoftBodyNode*)b3Alloc(m->vertexCount * sizeof(b3SoftBodyNode));
 	for (u32 i = 0; i < m->vertexCount; ++i)
 	{
 		b3SoftBodyNode* n = m_nodes + i;
@@ -465,12 +465,17 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 		n->m_force.SetZero();
 		n->m_mass = 0.0f;
 		n->m_invMass = 0.0f;
-		n->m_damping = 0.0f;
+		n->m_massDamping = 0.0f;
 		n->m_radius = 0.0f;
 		n->m_friction = 0.0f;
 		n->m_userData = nullptr;
 		n->m_vertex = i;
 		n->m_bodyContact.active = false;
+
+		b3AABB3 aabb;
+		aabb.Set(n->m_position, 0.0f);
+
+		n->m_treeId = m_nodeTree.InsertNode(aabb, n);
 	}
 
 	// Compute mass
@@ -703,6 +708,43 @@ void b3SoftBody::ComputeMass()
 	}
 }
 
+class b3SoftBodyUpdateContactsQueryListener : public b3QueryListener
+{
+public:
+	bool ReportShape(b3Shape* shape)
+	{
+		b3Body* body = shape->GetBody();
+
+		if (body->GetType() != e_staticBody)
+		{
+			//continue;
+		}
+
+		b3Transform xf = body->GetTransform();
+
+		b3TestSphereOutput output;
+		if (shape->TestSphere(&output, sphere, xf))
+		{
+			if (output.separation < bestSeparation)
+			{
+				bestShape = shape;
+				bestSeparation = output.separation;
+				bestPoint = output.point;
+				bestNormal = output.normal;
+			}
+		}
+
+		return true;
+	}
+
+	b3SoftBodyNode* node;
+	b3Sphere sphere;
+	b3Shape* bestShape;
+	float32 bestSeparation;
+	b3Vec3 bestPoint;
+	b3Vec3 bestNormal;
+};
+
 void b3SoftBody::UpdateContacts()
 {
 	B3_PROFILE("Soft Body Update Contacts");
@@ -718,56 +760,33 @@ void b3SoftBody::UpdateContacts()
 	{
 		b3SoftBodyNode* n = m_nodes + i;
 
-		b3Sphere s1;
-		s1.vertex = n->m_position;
-		s1.radius = n->m_radius;
-
-		// Find the deepest penetration
-		b3Shape* bestShape = nullptr;
-		float32 bestSeparation = 0.0f;
-		b3Vec3 bestPoint(0.0f, 0.0f, 0.0f);
-		b3Vec3 bestNormal(0.0f, 0.0f, 0.0f);
-
-		for (b3Body* body = m_world->GetBodyList().m_head; body; body = body->GetNext())
+		if (n->m_type != e_dynamicSoftBodyNode)
 		{
-			if (n->m_type != e_dynamicSoftBodyNode)
-			{
-				continue;
-			}
-
-			if (body->GetType() != e_staticBody)
-			{
-				//continue;
-			}
-
-			b3Transform xf = body->GetTransform();
-			for (b3Shape* shape = body->GetShapeList().m_head; shape; shape = shape->GetNext())
-			{
-				b3TestSphereOutput output;
-				if (shape->TestSphere(&output, s1, xf))
-				{
-					if (output.separation < bestSeparation)
-					{
-						bestShape = shape;
-						bestSeparation = output.separation;
-						bestPoint = output.point;
-						bestNormal = output.normal;
-					}
-				}
-			}
+			continue;
 		}
 
-		if (bestShape == nullptr)
+		b3AABB3 aabb = m_nodeTree.GetAABB(n->m_treeId);
+
+		b3SoftBodyUpdateContactsQueryListener listener;
+		listener.node = n;
+		listener.sphere.vertex = n->m_position;
+		listener.sphere.radius = n->m_radius;
+		listener.bestShape = nullptr;
+		listener.bestSeparation = 0.0f;
+
+		m_world->QueryAABB(&listener, aabb);
+
+		if (listener.bestShape == nullptr)
 		{
 			n->m_bodyContact.active = false;
 			continue;
 		}
 
-		b3Shape* shape = bestShape;
+		b3Shape* shape = listener.bestShape;
 		b3Body* body = shape->GetBody();
-		float32 separation = bestSeparation;
-		b3Vec3 point = bestPoint;
-		b3Vec3 normal = -bestNormal;
+		float32 separation = listener.bestSeparation;
+		b3Vec3 point = listener.bestPoint;
+		b3Vec3 normal = -listener.bestNormal;
 
 		b3NodeBodyContact* c = &n->m_bodyContact;
 
@@ -821,6 +840,19 @@ void b3SoftBody::Step(float32 dt, u32 velocityIterations, u32 positionIterations
 	for (u32 i = 0; i < m_mesh->vertexCount; ++i)
 	{
 		m_nodes[i].m_force.SetZero();
+	}
+
+	// Synchronize nodes
+	for (u32 i = 0; i < m_mesh->vertexCount; ++i)
+	{
+		b3SoftBodyNode* n = m_nodes + i;
+
+		if (n->m_type == e_staticSoftBodyNode)
+		{
+			continue;
+		}
+
+		n->Synchronize();
 	}
 }
 

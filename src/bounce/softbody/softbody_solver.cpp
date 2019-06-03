@@ -216,7 +216,7 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 		// Rayleigh damping 
 		// C = alpha * M + beta * K
 		// Here the stiffness coefficient beta is zero
-		C(i, i) = b3Diagonal(n->m_damping * n->m_mass);
+		C(i, i) = b3Diagonal(n->m_massDamping * n->m_mass);
 		
 		x[i] = m_mesh->vertices[i];
 		p[i] = n->m_position;

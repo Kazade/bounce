@@ -48,21 +48,8 @@ struct b3NodeBodyContact
 
 struct b3NodeBodyContactWorldPoint
 {
-	void Initialize(const b3NodeBodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB)
-	{
-		b3Vec3 nA = c->normal1;
-		
-		b3Vec3 cA = xfA * c->localPoint1;
-		b3Vec3 cB = xfB * c->localPoint2;
-
-		b3Vec3 pA = cA + rA * nA;
-		b3Vec3 pB = cB - rB * nA;
-
-		point = 0.5f * (pA + pB);
-		normal = nA;
-		separation = b3Dot(cB - cA, nA) - rA - rB;
-	}
-
+	void Initialize(const b3NodeBodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB);
+	
 	b3Vec3 point;
 	b3Vec3 normal;
 	float32 separation;
@@ -108,11 +95,11 @@ public:
 	// Get the node mass.
 	float32 GetMass() const;
 
-	// Set the node damping.
-	void SetDamping(float32 damping);
+	// Set the node mass damping.
+	void SetMassDamping(float32 damping);
 
-	// Get the node damping.
-	float32 GetDamping() const;
+	// Get the node mass damping.
+	float32 GetMassDamping() const;
 
 	// Set the node radius.
 	void SetRadius(float32 radius);
@@ -137,6 +124,9 @@ private:
 
 	~b3SoftBodyNode() { }
 
+	// Synchronize node
+	void Synchronize();
+
 	// Type
 	b3SoftBodyNodeType m_type;
 
@@ -155,8 +145,8 @@ private:
 	// Inverse mass
 	float32 m_invMass;
 
-	// Damping
-	float32 m_damping;
+	// Mass damping
+	float32 m_massDamping;
 
 	// Radius
 	float32 m_radius;
@@ -172,6 +162,9 @@ private:
 
 	// Node and body contact
 	b3NodeBodyContact m_bodyContact;
+
+	// Tree identifier
+	u32 m_treeId;
 
 	// Soft body
 	b3SoftBody* m_body;
@@ -190,6 +183,7 @@ inline void b3SoftBodyNode::SetType(b3SoftBodyNodeType type)
 	if (type == e_staticSoftBodyNode)
 	{
 		m_velocity.SetZero();
+		Synchronize();
 	}
 
 	m_bodyContact.active = false;
@@ -208,6 +202,8 @@ inline u32 b3SoftBodyNode::GetVertex() const
 inline void b3SoftBodyNode::SetPosition(const b3Vec3& position)
 {
 	m_position = position;
+
+	Synchronize();
 }
 
 inline const b3Vec3& b3SoftBodyNode::GetPosition() const
@@ -234,19 +230,21 @@ inline float32 b3SoftBodyNode::GetMass() const
 	return m_mass;
 }
 
-inline void b3SoftBodyNode::SetDamping(float32 damping)
+inline void b3SoftBodyNode::SetMassDamping(float32 massDamping)
 {
-	m_damping = damping;
+	m_massDamping = massDamping;
 }
 
-inline float32 b3SoftBodyNode::GetDamping() const
+inline float32 b3SoftBodyNode::GetMassDamping() const
 {
-	return m_damping;
+	return m_massDamping;
 }
 
 inline void b3SoftBodyNode::SetRadius(float32 radius)
 {
 	m_radius = radius;
+	
+	Synchronize();
 }
 
 inline float32 b3SoftBodyNode::GetRadius() const

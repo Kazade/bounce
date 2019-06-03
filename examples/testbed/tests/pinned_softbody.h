@@ -43,7 +43,7 @@ public:
 		for (u32 i = 0; i < m_mesh.vertexCount; ++i)
 		{
 			b3SoftBodyNode* n = m_body->GetVertexNode(i);
-			n->SetDamping(0.2f);
+			n->SetMassDamping(0.2f);
 		}
 
 		u32 pinIndex = ~0;

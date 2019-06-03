@@ -22,6 +22,8 @@
 #include <bounce/common/math/transform.h>
 #include <bounce/common/memory/stack_allocator.h>
 
+#include <bounce/collision/trees/dynamic_tree.h>
+
 class b3World;
 
 struct b3SoftBodyMesh;
@@ -56,6 +58,7 @@ struct b3SoftBodyTriangle
 {
 	u32 v1, v2, v3;
 	u32 tetrahedron;
+	u32 treeId;
 };
 
 // Soft body definition
@@ -138,6 +141,7 @@ public:
 	// Debug draw the body using the associated mesh.
 	void Draw() const;
 private:
+	friend class b3SoftBodyNode;
 	friend class b3SoftBodySolver;
 
 	// Compute mass of each node.
@@ -184,6 +188,9 @@ private:
 
 	// Soft body triangles
 	b3SoftBodyTriangle* m_triangles;
+
+	// Node tree
+	b3DynamicTree m_nodeTree;
 
 	// Attached world
 	b3World* m_world;
