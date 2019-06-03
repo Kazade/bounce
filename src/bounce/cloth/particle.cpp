@@ -18,9 +18,6 @@
 
 #include <bounce/cloth/particle.h>
 #include <bounce/cloth/cloth.h>
-#include <bounce/cloth/cloth_solver.h>
-#include <bounce/cloth/dense_vec3.h>
-#include <bounce/cloth/sparse_sym_mat33.h>
 
 void b3ParticleBodyContactWorldPoint::Initialize(const b3ParticleBodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB)
 {
@@ -60,6 +57,14 @@ b3Particle::~b3Particle()
 
 }
 
+void b3Particle::Synchronize()
+{
+	b3AABB3 aabb;
+	aabb.Set(m_position, m_radius);
+
+	m_cloth->m_particleTree.UpdateNode(m_treeId, aabb);
+}
+
 void b3Particle::SetType(b3ParticleType type)
 {
 	if (m_type == type)
@@ -74,6 +79,8 @@ void b3Particle::SetType(b3ParticleType type)
 	{
 		m_velocity.SetZero();
 		m_translation.SetZero();
+		
+		Synchronize();
 	}
 
 	m_bodyContact.active = false;

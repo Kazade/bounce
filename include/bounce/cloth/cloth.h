@@ -23,6 +23,7 @@
 #include <bounce/common/template/list.h>
 #include <bounce/common/memory/stack_allocator.h>
 #include <bounce/common/memory/block_pool.h>
+#include <bounce/collision/trees/dynamic_tree.h>
 
 class b3World;
 class b3Shape;
@@ -138,11 +139,10 @@ public:
 	// Debug draw the cloth using the associated cloth mesh.
 	void Draw() const;
 private:
+	friend class b3Particle;
+
 	// Compute mass of each particle.
 	void ComputeMass();
-
-	// Update body contacts. 
-	void UpdateBodyContacts();
 
 	// Update contacts
 	void UpdateContacts();
@@ -173,7 +173,10 @@ private:
 
 	// List of particles
 	b3List2<b3Particle> m_particleList;
-	
+
+	// Particle tree
+	b3DynamicTree m_particleTree;
+
 	// List of forces
 	b3List2<b3Force> m_forceList;
 };

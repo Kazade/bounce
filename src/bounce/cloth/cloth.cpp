@@ -22,10 +22,14 @@
 #include <bounce/cloth/force.h>
 #include <bounce/cloth/spring_force.h>
 #include <bounce/cloth/cloth_solver.h>
+
 #include <bounce/dynamics/world.h>
+#include <bounce/dynamics/world_listeners.h>
 #include <bounce/dynamics/body.h>
 #include <bounce/dynamics/shapes/shape.h>
+
 #include <bounce/collision/collision.h>
+
 #include <bounce/common/draw.h>
 
 static B3_FORCE_INLINE u32 b3NextIndex(u32 i)
@@ -157,9 +161,8 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 
 	const b3ClothMesh* m = m_mesh;
 
-	m_vertexParticles = (b3Particle**)b3Alloc(m->vertexCount * sizeof(b3Particle*));
-
 	// Create particles
+	m_vertexParticles = (b3Particle**)b3Alloc(m->vertexCount * sizeof(b3Particle*));
 	for (u32 i = 0; i < m->vertexCount; ++i)
 	{
 		b3ParticleDef pd;
@@ -169,6 +172,11 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 		b3Particle* p = CreateParticle(pd);
 
 		p->m_vertex = i;
+
+		b3AABB3 aabb;
+		aabb.Set(p->m_position, p->m_radius);
+
+		p->m_treeId = m_particleTree.InsertNode(aabb, p);
 
 		m_vertexParticles[i] = p;
 	}
@@ -245,6 +253,9 @@ b3Cloth::~b3Cloth()
 	{
 		b3Particle* p0 = p;
 		p = p->m_next;
+		
+		m_particleTree.RemoveNode(p0->m_treeId);
+
 		p0->~b3Particle();
 	}
 
@@ -264,7 +275,14 @@ b3Particle* b3Cloth::CreateParticle(const b3ParticleDef& def)
 {
 	void* mem = m_particleBlocks.Allocate();
 	b3Particle* p = new(mem) b3Particle(def, this);
+	
+	b3AABB3 aabb;
+	aabb.Set(p->m_position, p->m_radius);
+	
+	p->m_treeId = m_particleTree.InsertNode(aabb, p);
+
 	m_particleList.PushFront(p);
+
 	return p;
 }
 
@@ -274,6 +292,8 @@ void b3Cloth::DestroyParticle(b3Particle* particle)
 	{
 		m_vertexParticles[particle->m_vertex] = NULL;
 	}
+
+	m_particleTree.RemoveNode(particle->m_treeId);
 
 	m_particleList.Remove(particle);
 	particle->~b3Particle();
@@ -399,9 +419,43 @@ bool b3Cloth::RayCast(b3RayCastOutput* output, const b3RayCastInput* input, u32 
 	return b3RayCast(output, input, v1, v2, v3);
 }
 
-void b3Cloth::UpdateBodyContacts()
+class b3ClothUpdateContactsQueryListener : public b3QueryListener
 {
-	B3_PROFILE("Cloth Update Body Contacts");
+public:
+	bool ReportShape(b3Shape* shape)
+	{
+		b3Body* body = shape->GetBody();
+
+		if (body->GetType() != e_staticBody)
+		{
+			return true;
+		}
+
+		b3Transform xf = body->GetTransform();
+
+		b3TestSphereOutput output;
+		if (shape->TestSphere(&output, sphere, xf))
+		{
+			if (output.separation < bestSeparation)
+			{
+				bestShape = shape;
+				bestSeparation = output.separation;
+				bestPoint = output.point;
+				bestNormal = output.normal;
+			}
+		}
+	}
+
+	b3Sphere sphere;
+	b3Shape* bestShape;
+	float32 bestSeparation;
+	b3Vec3 bestPoint;
+	b3Vec3 bestNormal;
+};
+
+void b3Cloth::UpdateContacts()
+{
+	B3_PROFILE("Cloth Update Contacts");
 
 	// Is there a world attached to this cloth?
 	if (m_world == nullptr)
@@ -412,57 +466,32 @@ void b3Cloth::UpdateBodyContacts()
 	// Create contacts 
 	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
 	{
-		b3Sphere s1;
-		s1.vertex = p->m_position;
-		s1.radius = p->m_radius;
-
-		// Find the deepest penetration
-		b3Shape* bestShape = nullptr;
-		float32 bestSeparation = 0.0f;
-		b3Vec3 bestPoint(0.0f, 0.0f, 0.0f);
-		b3Vec3 bestNormal(0.0f, 0.0f, 0.0f);
-
-		for (b3Body* body = m_world->GetBodyList().m_head; body; body = body->GetNext())
+		if (p->m_type != e_dynamicParticle)
 		{
-			if (p->m_type != e_dynamicParticle)
-			{
-				continue;
-			}
-
-			if (body->GetType() != e_staticBody)
-			{
-				continue;
-			}
-
-			b3Transform xf = body->GetTransform();
-			for (b3Shape* shape = body->GetShapeList().m_head; shape; shape = shape->GetNext())
-			{
-				b3TestSphereOutput output;
-				if (shape->TestSphere(&output, s1, xf))
-				{
-					if (output.separation < bestSeparation)
-					{
-						bestShape = shape;
-						bestSeparation = output.separation;
-						bestPoint = output.point;
-						bestNormal = output.normal;
-					}
-				}
-			}
+			continue;
 		}
 
-		if (bestShape == nullptr)
+		b3AABB3 aabb = m_particleTree.GetAABB(p->m_treeId);
+
+		b3ClothUpdateContactsQueryListener listener;
+		listener.sphere.vertex = p->m_position;
+		listener.sphere.radius = p->m_radius;
+		listener.bestShape = nullptr;
+		listener.bestSeparation = 0.0f;
+
+		m_world->QueryAABB(&listener, aabb);
+
+		if (listener.bestShape == nullptr)
 		{
 			p->m_bodyContact.active = false;
 			continue;
 		}
 
-		// Ensure the the normal points from the particle 1 to shape 2
-		b3Shape* shape = bestShape;
+		b3Shape* shape = listener.bestShape;
 		b3Body* body = shape->GetBody();
-		float32 separation = bestSeparation;
-		b3Vec3 point = bestPoint;
-		b3Vec3 normal = -bestNormal;
+		float32 separation = listener.bestSeparation;
+		b3Vec3 point = listener.bestPoint;
+		b3Vec3 normal = -listener.bestNormal;
 
 		b3ParticleBodyContact* c = &p->m_bodyContact;
 		
@@ -522,12 +551,6 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u
 	solver.Solve(dt, gravity, velocityIterations, positionIterations);
 }
 
-void b3Cloth::UpdateContacts()
-{
-	// Update body contacts
-	UpdateBodyContacts();
-}
-
 void b3Cloth::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 {
 	B3_PROFILE("Cloth Step");
@@ -535,7 +558,7 @@ void b3Cloth::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 	// Update contacts
 	UpdateContacts();
 
-	// Solve constraints, integrate state, clear forces and translations. 
+	// Integrate state, solve constraints. 
 	if (dt > 0.0f)
 	{
 		Solve(dt, m_gravity, velocityIterations, positionIterations);
@@ -546,6 +569,17 @@ void b3Cloth::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 	{
 		p->m_force.SetZero();
 		p->m_translation.SetZero();
+	}
+
+	// Synchronize particles
+	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
+	{
+		if (p->m_type == e_staticParticle)
+		{
+			continue;
+		}
+
+		p->Synchronize();
 	}
 }
 

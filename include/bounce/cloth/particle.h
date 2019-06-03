@@ -152,6 +152,9 @@ private:
 	b3Particle(const b3ParticleDef& def, b3Cloth* cloth);
 	~b3Particle();
 
+	// Synchronize AABB
+	void Synchronize();
+
 	// Type
 	b3ParticleType m_type;
 
@@ -193,11 +196,14 @@ private:
 	// Solution
 	b3Vec3 m_x;
 
-	// 
+	// Parent cloth
 	b3Cloth* m_cloth;
 
 	// Contact
 	b3ParticleBodyContact m_bodyContact;
+
+	// Particle tree identifier
+	u32 m_treeId;
 
 	// 
 	b3Particle* m_prev;
@@ -220,6 +226,8 @@ inline void b3Particle::SetPosition(const b3Vec3& position)
 {
 	m_position = position;
 	m_translation.SetZero();
+
+	Synchronize();
 }
 
 inline const b3Vec3& b3Particle::GetPosition() const
@@ -249,6 +257,8 @@ inline float32 b3Particle::GetMass() const
 inline void b3Particle::SetRadius(float32 radius)
 {
 	m_radius = radius;
+	
+	Synchronize();
 }
 
 inline float32 b3Particle::GetRadius() const

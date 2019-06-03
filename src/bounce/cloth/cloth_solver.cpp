@@ -379,7 +379,7 @@ void b3ClothSolver::SolveMPCG(b3DenseVec3& x,
 	u32 iteration = 0;
 	for (;;)
 	{
-		if (iteration >= maxIterations)
+		if (iteration == maxIterations)
 		{
 			break;
 		}

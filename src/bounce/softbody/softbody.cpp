@@ -717,7 +717,7 @@ public:
 
 		if (body->GetType() != e_staticBody)
 		{
-			//continue;
+			// return true;
 		}
 
 		b3Transform xf = body->GetTransform();
