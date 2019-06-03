@@ -737,7 +737,6 @@ public:
 		return true;
 	}
 
-	b3SoftBodyNode* node;
 	b3Sphere sphere;
 	b3Shape* bestShape;
 	float32 bestSeparation;
@@ -768,7 +767,6 @@ void b3SoftBody::UpdateContacts()
 		b3AABB3 aabb = m_nodeTree.GetAABB(n->m_treeId);
 
 		b3SoftBodyUpdateContactsQueryListener listener;
-		listener.node = n;
 		listener.sphere.vertex = n->m_position;
 		listener.sphere.radius = n->m_radius;
 		listener.bestShape = nullptr;
