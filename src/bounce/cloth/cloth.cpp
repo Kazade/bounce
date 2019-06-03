@@ -438,6 +438,8 @@ public:
 				bestNormal = output.normal;
 			}
 		}
+
+		return true;
 	}
 
 	b3Sphere sphere;
