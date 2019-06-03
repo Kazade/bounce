@@ -60,6 +60,20 @@ struct b3AABB3
 		}
 	}
 
+	// Set this AABB from a center point and a radius vector.
+	void Set(const b3Vec3& center, const b3Vec3& r)
+	{
+		m_lower = center - r;
+		m_upper = center + r;
+	}
+
+	// Set this AABB from a center point and a radius value.
+	void Set(const b3Vec3& center, float32 radius)
+	{
+		b3Vec3 r(radius, radius, radius);	
+		Set(center, r);
+	}
+
 	// Extend this AABB by a scalar.
 	void Extend(float32 s) 
 	{
