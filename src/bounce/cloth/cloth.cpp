@@ -172,12 +172,6 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 		b3Particle* p = CreateParticle(pd);
 
 		p->m_vertex = i;
-
-		b3AABB3 aabb;
-		aabb.Set(p->m_position, p->m_radius);
-
-		p->m_treeId = m_particleTree.InsertNode(aabb, p);
-
 		m_vertexParticles[i] = p;
 	}
 
