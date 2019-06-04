@@ -91,6 +91,10 @@ public:
 
 	void DrawSolidCapsule(const b3Vec3& p1, const b3Vec3& p2, float32 radius, const b3Color& color);
 
+	void DrawPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color);
+
+	void DrawSolidPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color);
+
 	void DrawAABB(const b3AABB3& aabb, const b3Color& color);
 
 	void DrawTransform(const b3Transform& xf);

@@ -107,6 +107,12 @@ public :
 	// Draw a solid capsule with segment and radius.
 	virtual void DrawSolidCapsule(const b3Vec3& p1, const b3Vec3& p2, float32 radius, const b3Color& color) = 0;
 
+	// Draw a plane with center, normal and radius.
+	virtual void DrawPlane(const b3Vec3& center, const b3Vec3& normal, float32 radius, const b3Color& color) = 0;
+
+	// Draw a solid plane with center, normal and radius.
+	virtual void DrawSolidPlane(const b3Vec3& center, const b3Vec3& normal, float32 radius, const b3Color& color) = 0;
+
 	// Draw a AABB.
 	virtual void DrawAABB(const b3AABB3& aabb, const b3Color& color) = 0;
 

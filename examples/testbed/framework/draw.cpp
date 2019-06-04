@@ -251,24 +251,9 @@ void Draw::DrawSolidPolygon(const b3Vec3& normal, const b3Vec3* vertices, u32 co
 
 void Draw::DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
 {
-	// Build a tangent vector to normal.
-	b3Vec3 u = b3Cross(normal, b3Vec3(1.0f, 0.0f, 0.0f));
-	b3Vec3 v = b3Cross(normal, b3Vec3(0.0f, 1.0f, 0.0f));
+	b3Vec3 n1, n3;
+	b3ComputeBasis(normal, n1, n3);
 
-	// Handle edge cases (zero cross product).
-	b3Vec3 n1;
-	if (b3LengthSquared(u) > b3LengthSquared(v))
-	{
-		n1 = u;
-	}
-	else
-	{
-		n1 = v;
-	}
-
-	n1.Normalize();
-
-	// Build a quaternion to rotate the tangent about the normal.
 	u32 kEdgeCount = 20;
 	float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
 	b3Quat q(normal, kAngleInc);
@@ -292,24 +277,9 @@ void Draw::DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, float32 r
 	b3Color fillColor(color.r, color.g, color.b, color.a);
 	b3Color frameColor(0.5f * color.r, 0.5f * color.g, 0.5f * color.b, 1.0f);
 
-	// Build a tangent vector to normal.
-	b3Vec3 u = b3Cross(normal, b3Vec3(1.0f, 0.0f, 0.0f));
-	b3Vec3 v = b3Cross(normal, b3Vec3(0.0f, 1.0f, 0.0f));
+	b3Vec3 n1, n3;
+	b3ComputeBasis(normal, n1, n3);
 
-	// Handle edge cases (zero cross product).
-	b3Vec3 n1;
-	if (b3LengthSquared(u) > b3LengthSquared(v))
-	{
-		n1 = u;
-	}
-	else
-	{
-		n1 = v;
-	}
-
-	n1.Normalize();
-
-	// Build a quaternion to rotate the tangent about the normal.
 	const u32 kEdgeCount = 20;
 	const float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
 	b3Quat q(normal, kAngleInc);
@@ -458,6 +428,54 @@ void Draw::DrawAABB(const b3AABB3& aabb, const b3Color& color)
 
 	DrawSegment(vs[6], vs[0], color);
 	DrawSegment(vs[1], vs[7], color);
+}
+
+void Draw::DrawPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
+{
+	b3Vec3 n1, n2;
+	b3ComputeBasis(normal, n1, n2);
+
+	float32 scale = 2.0f * radius;
+	
+	// v1__v4
+	// |    |
+	// v2__v3
+	b3Vec3 v1 = center - scale * n1 - scale * n2;
+	b3Vec3 v2 = center + scale * n1 - scale * n2;
+	b3Vec3 v3 = center + scale * n1 + scale * n2;
+	b3Vec3 v4 = center - scale * n1 + scale * n2;
+
+	DrawSegment(v1, v2, color);
+	DrawSegment(v2, v3, color);
+	DrawSegment(v3, v4, color);
+	DrawSegment(v4, v1, color);
+	
+	DrawSegment(center, center + normal, color);
+}
+
+void Draw::DrawSolidPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
+{
+	b3Color frameColor(0.5f * color.r, 0.5f * color.g, 0.5f * color.b, 1.0f);
+
+	b3Vec3 n1, n2;
+	b3ComputeBasis(normal, n1, n2);
+
+	float32 scale = 2.0f * radius;
+
+	b3Vec3 v1 = center - scale * n1 - scale * n2;
+	b3Vec3 v2 = center + scale * n1 - scale * n2;
+	b3Vec3 v3 = center + scale * n1 + scale * n2;
+	b3Vec3 v4 = center - scale * n1 + scale * n2;
+	
+	DrawSegment(v1, v2, frameColor);
+	DrawSegment(v2, v3, frameColor);
+	DrawSegment(v3, v4, frameColor);
+	DrawSegment(v4, v1, frameColor);
+
+	DrawSegment(center, center + normal, frameColor);
+
+	DrawSolidTriangle(normal, v1, v2, v3, color);
+	DrawSolidTriangle(normal, v3, v4, v1, color);
 }
 
 void Draw::DrawString(const b3Color& color, const b3Vec2& ps, const char* text, ...)
