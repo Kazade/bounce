@@ -22,6 +22,7 @@
 #include <bounce/common/memory/stack_allocator.h>
 #include <bounce/common/memory/block_pool.h>
 #include <bounce/common/template/list.h>
+#include <bounce/common/draw.h>
 #include <bounce/dynamics/time_step.h>
 #include <bounce/dynamics/joint_manager.h>
 #include <bounce/dynamics/contact_manager.h>
@@ -121,9 +122,15 @@ public:
 	// Draw the entities in this world.
 	void Draw() const;
 	
+	// Draw solid the entities in this world.
+	void DrawSolid() const;
+
 	// Draw a shape.
-	void DrawShape(const b3Transform& xf, const b3Shape* shape) const;
-private :
+	void DrawShape(const b3Transform& xf, const b3Shape* shape, const b3Color& color) const;
+
+	// Draw solid a shape.
+	void DrawSolidShape(const b3Transform& xf, const b3Shape* shape, const b3Color& color) const;
+private:
 	enum b3Flags 
 	{
 		e_shapeAddedFlag = 0x0001,

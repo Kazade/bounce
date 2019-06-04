@@ -88,7 +88,7 @@ void Test::Step()
 
 	if (g_settings->drawTriangles)
 	{
-		g_draw->DrawSolidShapes(m_world);
+		m_world.DrawSolid();
 	}
 
 	if (g_settings->drawStats)

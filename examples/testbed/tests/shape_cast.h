@@ -30,11 +30,11 @@ public:
 		g_draw->DrawTransform(m_xfA);
 		g_draw->DrawTransform(m_xfB);
 
-		m_world.DrawShape(m_xfA, &m_shapeA);
-		m_world.DrawShape(m_xfB, &m_shapeB);
+		m_world.DrawShape(m_xfA, &m_shapeA, b3Color_black);
+		m_world.DrawShape(m_xfB, &m_shapeB, b3Color_black);
 
-		g_draw->DrawSolidShape(&m_shapeA, b3Color_white, m_xfA);
-		g_draw->DrawSolidShape(&m_shapeB, b3Color_white, m_xfB);
+		m_world.DrawSolidShape(m_xfA, &m_shapeA, b3Color_white);
+		m_world.DrawSolidShape(m_xfB, &m_shapeB, b3Color_white);
 
 		b3Vec3 translationB = -100.0f * b3Vec3_x;
 		g_draw->DrawSegment(m_xfB.position, m_xfB.position + translationB, b3Color_white);
@@ -53,7 +53,7 @@ public:
 			xfB.rotation = m_xfB.rotation;
 			xfB.position = m_xfB.position + out.t * translationB;
 
-			m_world.DrawShape(xfB, &m_shapeB);
+			m_world.DrawShape(xfB, &m_shapeB, b3Color_black);
 		}
 	}
 

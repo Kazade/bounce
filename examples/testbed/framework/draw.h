@@ -85,7 +85,7 @@ public:
 
 	void DrawSphere(const b3Vec3& center, float32 radius, const b3Color& color);
 	
-	void DrawSolidSphere(const b3Vec3& center, float32 radius, const b3Color& color);
+	void DrawSolidSphere(const b3Vec3& center, float32 radius, const b3Mat33& rotation, const b3Color& color);
 
 	void DrawCapsule(const b3Vec3& p1, const b3Vec3& p2, float32 radius, const b3Color& color);
 
@@ -104,18 +104,6 @@ public:
 	void DrawString(const b3Color& color, const b3Vec3& pw, const char* string, ...);
 
 	void DrawString(const b3Color& color, const char* string, ...);
-
-	void DrawSolidSphere(const b3SphereShape* s, const b3Color& c, const b3Transform& xf);
-
-	void DrawSolidCapsule(const b3CapsuleShape* s, const b3Color& c, const b3Transform& xf);
-	
-	void DrawSolidHull(const b3HullShape* s, const b3Color& c, const b3Transform& xf);
-	
-	void DrawSolidMesh(const b3MeshShape* s, const b3Color& c, const b3Transform& xf);
-
-	void DrawSolidShape(const b3Shape* s, const b3Color& c, const b3Transform& xf);
-
-	void DrawSolidShapes(const b3World& world);
 
 	void Flush();
 private:

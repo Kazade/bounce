@@ -480,7 +480,7 @@ void b3Rope::Draw() const
 		b3RopeBody* b = m_links;
 		
 		b3Draw_draw->DrawTransform(b->m_X);
-		b3Draw_draw->DrawSolidSphere(b->m_X.position, 0.2f, b3Color_green);
+		b3Draw_draw->DrawSolidSphere(b->m_X.position, 0.2f, b->m_X.rotation, b3Color_green);
 	}
 
 	for (u32 i = 1; i < m_count; ++i)
@@ -498,6 +498,6 @@ void b3Rope::Draw() const
 		b3Draw_draw->DrawPoint(X_J0.position, 5.0f, b3Color_red);
 
 		b3Draw_draw->DrawTransform(b->m_X);
-		b3Draw_draw->DrawSolidSphere(b->m_X.position, 0.2f, b3Color_green);
+		b3Draw_draw->DrawSolidSphere(b->m_X.position, 0.2f, b->m_X.rotation, b3Color_green);
 	}
 }

@@ -68,8 +68,8 @@ public:
 		g_draw->DrawTransform(m_xfA);
 		g_draw->DrawTransform(m_xfB);
 		
-		m_world.DrawShape(m_xfA, &m_shapeA);
-		m_world.DrawShape(m_xfB, &m_shapeB);
+		m_world.DrawShape(m_xfA, &m_shapeA, b3Color_black);
+		m_world.DrawShape(m_xfB, &m_shapeB, b3Color_black);
 
 		g_draw->DrawString(b3Color_white, "Left/Right/Up/Down Arrow - Translate shape");
 		g_draw->DrawString(b3Color_white, "X/Y/Z - Rotate shape");
