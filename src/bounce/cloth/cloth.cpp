@@ -247,9 +247,6 @@ b3Cloth::~b3Cloth()
 	{
 		b3Particle* p0 = p;
 		p = p->m_next;
-		
-		m_particleTree.RemoveNode(p0->m_treeId);
-
 		p0->~b3Particle();
 	}
 
@@ -282,10 +279,7 @@ b3Particle* b3Cloth::CreateParticle(const b3ParticleDef& def)
 
 void b3Cloth::DestroyParticle(b3Particle* particle)
 {
-	if (particle->m_vertex != ~0)
-	{
-		m_vertexParticles[particle->m_vertex] = NULL;
-	}
+	B3_ASSERT(particle->m_vertex == ~0);
 
 	m_particleTree.RemoveNode(particle->m_treeId);
 
