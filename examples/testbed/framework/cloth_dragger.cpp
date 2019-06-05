@@ -17,7 +17,6 @@
 */
 
 #include <testbed/framework/cloth_dragger.h>
-#include <bounce/common/draw.h>
 
 b3ClothDragger::b3ClothDragger(b3Ray3* ray, b3Cloth* cloth)
 {
