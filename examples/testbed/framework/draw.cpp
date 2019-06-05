@@ -341,15 +341,15 @@ void Draw::DrawCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const
 	}
 }
 
-void Draw::DrawSolidCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const b3Color& c)
+void Draw::DrawSolidCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const b3Transform& transform, const b3Color& c)
 {
 	float32 height = b3Length(c1 - c2);
 
 	{
-		b3Transform xfc;
-		xfc.rotation.SetIdentity();
-		xfc.position = c1;
-		m_solid->DrawSphere(radius, c, xfc);
+		b3Transform xf;
+		xf.rotation = transform.rotation;
+		xf.position = transform * c1;
+		m_solid->DrawSphere(radius, c, xf);
 	}
 
 	if (height > 0.0f)
@@ -360,18 +360,18 @@ void Draw::DrawSolidCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, 
 			R.z = b3Perp(R.y);
 			R.x = b3Cross(R.y, R.z);
 
-			b3Transform xfc;
-			xfc.position = 0.5f * (c1 + c2);
-			xfc.rotation = R;
+			b3Transform xf;
+			xf.position = transform * (0.5f * (c1 + c2));
+			xf.rotation = transform.rotation * R;
 
-			m_solid->DrawCylinder(radius, height, c, xfc);
+			m_solid->DrawCylinder(radius, height, c, xf);
 		}
 
 		{
-			b3Transform xfc;
-			xfc.rotation.SetIdentity();
-			xfc.position = c2;
-			m_solid->DrawSphere(radius, c, xfc);
+			b3Transform xf;
+			xf.rotation = transform.rotation;
+			xf.position = transform * c2;
+			m_solid->DrawSphere(radius, c, xf);
 		}
 	}
 }

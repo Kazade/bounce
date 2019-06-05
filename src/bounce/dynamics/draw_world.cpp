@@ -250,10 +250,7 @@ void b3World::DrawSolidShape(const b3Transform& xf, const b3Shape* shape, const 
 	{
 		const b3CapsuleShape* capsule = (b3CapsuleShape*)shape;
 
-		b3Vec3 c1 = xf * capsule->m_centers[0];
-		b3Vec3 c2 = xf * capsule->m_centers[1];
-
-		b3Draw_draw->DrawSolidCapsule(c1, c2, capsule->m_radius, color);
+		b3Draw_draw->DrawSolidCapsule(capsule->m_centers[0], capsule->m_centers[1], capsule->m_radius, xf, color);
 
 		break;
 	}
