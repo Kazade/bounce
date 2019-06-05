@@ -110,7 +110,7 @@ public :
 	// Draw a capsule with segment, and radius.
 	virtual void DrawCapsule(const b3Vec3& p1, const b3Vec3& p2, float32 radius, const b3Color& color) = 0;
 
-	// Draw a solid capsule with local segment, radius, and rotation.
+	// Draw a solid capsule with segment, radius, and rotation.
 	virtual void DrawSolidCapsule(const b3Vec3& p1, const b3Vec3& p2, float32 radius, const b3Mat33& rotation, const b3Color& color) = 0;
 
 	// Draw a AABB.
