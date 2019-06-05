@@ -46,6 +46,9 @@ public:
 
 	//
 	b3Force* GetNext();
+
+	//
+	virtual bool HasParticle(const b3Particle* particle) const = 0;
 protected:
 	friend class b3List2<b3Force>;
 	friend class b3Cloth;

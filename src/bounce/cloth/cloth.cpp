@@ -257,8 +257,7 @@ b3Cloth::~b3Cloth()
 	{
 		b3Force* f0 = f;
 		f = f->m_next;
-		f0->~b3Force();
-		b3Free(f0);
+		b3Force::Destroy(f0);
 	}
 }
 
@@ -280,6 +279,19 @@ b3Particle* b3Cloth::CreateParticle(const b3ParticleDef& def)
 void b3Cloth::DestroyParticle(b3Particle* particle)
 {
 	B3_ASSERT(particle->m_vertex == ~0);
+	
+	b3Force* f = m_forceList.m_head;
+	while (f)
+	{
+		b3Force* f0 = f;
+		f = f->m_next;
+		
+		if (f0->HasParticle(particle))
+		{
+			m_forceList.Remove(f0);
+			b3Force::Destroy(f0);
+		}
+	}
 
 	m_particleTree.RemoveNode(particle->m_treeId);
 

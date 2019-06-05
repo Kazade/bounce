@@ -67,6 +67,8 @@ public:
 	float32 GetDampingStiffness() const;
 
 	b3Vec3 GetActionForce() const;
+
+	bool HasParticle(const b3Particle* particle) const;
 private:
 	friend class b3Force;
 	friend class b3Cloth;
@@ -125,6 +127,11 @@ inline float32 b3SpringForce::GetDampingStiffness() const
 inline b3Vec3 b3SpringForce::GetActionForce() const
 {
 	return m_f;
+}
+
+inline bool b3SpringForce::HasParticle(const b3Particle* particle) const
+{
+	return m_p1 == particle || m_p2 == particle;
 }
 
 #endif
