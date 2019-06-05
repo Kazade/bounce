@@ -106,10 +106,11 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 	mid.segmentmarkerlist = NULL;
 
 	// Run triangulation
+	// Q - quiet
 	// z - zero based indices
 	// p - PSLG
 	// c - preserve the convex hull
-	triangulate("zpc", &in, &mid, NULL);
+	triangulate("Qzpc", &in, &mid, NULL);
 
 	// Refine
 
@@ -131,11 +132,12 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 	out.segmentmarkerlist = NULL;
 
 	// Run triangulation
+	// Q - quiet
 	// z - zero based indices
 	// p - PSLG
 	// c - preserve the convex hull
 	// r - read triangles
-	triangulate("zpcra", &mid, &out, NULL);
+	triangulate("Qzpcra", &mid, &out, NULL);
 
 	// The first vertices of the output structure must be the vertices of the input structure.
 	for (int i = 0; i < in.numberofpoints; ++i)
