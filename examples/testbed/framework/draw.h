@@ -89,7 +89,7 @@ public:
 
 	void DrawCapsule(const b3Vec3& p1, const b3Vec3& p2, float32 radius, const b3Color& color);
 
-	void DrawSolidCapsule(const b3Vec3& p1, const b3Vec3& p2, float32 radius, const b3Transform& transform, const b3Color& color);
+	void DrawSolidCapsule(const b3Vec3& p1, const b3Vec3& p2, float32 radius, const b3Mat33& rotation, const b3Color& color);
 
 	void DrawPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color);
 
