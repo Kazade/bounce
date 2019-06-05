@@ -322,10 +322,10 @@ void Draw::DrawCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const
 	float32 height = b3Length(c1 - c2);
 
 	{
-		b3Transform xfc;
-		xfc.rotation.SetIdentity();
-		xfc.position = c1;
-		m_wire->DrawSphere(radius, color, xfc);
+		b3Transform xf;
+		xf.rotation.SetIdentity();
+		xf.position = c1;
+		m_wire->DrawSphere(radius, color, xf);
 	}
 
 	if (height > 0.0f)
@@ -333,10 +333,10 @@ void Draw::DrawCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const
 		DrawSegment(c1, c2, color);
 
 		{
-			b3Transform xfc;
-			xfc.rotation.SetIdentity();
-			xfc.position = c2;
-			m_wire->DrawSphere(radius, color, xfc);
+			b3Transform xf;
+			xf.rotation.SetIdentity();
+			xf.position = c2;
+			m_wire->DrawSphere(radius, color, xf);
 		}
 	}
 }
@@ -360,7 +360,7 @@ void Draw::DrawSolidCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, 
 			b3ComputeBasis(R.y, R.z, R.x);
 
 			b3Transform xf;
-			xf.position = (0.5f * (c1 + c2));
+			xf.position = 0.5f * (c1 + c2);
 			xf.rotation = R;
 
 			m_solid->DrawCylinder(radius, height, c, xf);
@@ -379,10 +379,6 @@ void Draw::DrawTransform(const b3Transform& xf)
 {
 	float32 lenght = 1.0f;
 
-	b3Color red(1.0f, 0.0f, 0.0f, 1.0f);
-	b3Color green(0.0f, 1.0f, 0.0f, 1.0f);
-	b3Color blue(0.0f, 0.0f, 1.0f, 1.0f);
-
 	b3Vec3 position = xf.position;
 	b3Mat33 rotation = xf.rotation;
 
@@ -390,9 +386,9 @@ void Draw::DrawTransform(const b3Transform& xf)
 	b3Vec3 B = position + lenght * rotation.y;
 	b3Vec3 C = position + lenght * rotation.z;
 
-	DrawSegment(position, A, red);
-	DrawSegment(position, B, green);
-	DrawSegment(position, C, blue);
+	DrawSegment(position, A, b3Color_red);
+	DrawSegment(position, B, b3Color_green);
+	DrawSegment(position, C, b3Color_blue);
 }
 
 void Draw::DrawAABB(const b3AABB3& aabb, const b3Color& color)
