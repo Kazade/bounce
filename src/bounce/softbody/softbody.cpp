@@ -117,7 +117,7 @@ static B3_FORCE_INLINE void b3ComputeB(float32 out[72],
 
 	float32 e21 = minor.x.y; //   det(E)^-1 * det(E_21)
 	float32 e22 = -minor.y.y; // -det(E)^-1 * det(E_22)
-	float32 e23 = minor.z.y; //  -det(E)^-1 * det(E_23)
+	float32 e23 = minor.z.y; //   det(E)^-1 * det(E_23)
 
 	float32 e31 = -minor.x.z; // -det(E)^-1 * det(E_31)
 	float32 e32 = minor.y.z; //   det(E)^-1 * det(E_32) 
