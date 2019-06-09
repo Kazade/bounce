@@ -62,7 +62,8 @@ static B3_FORCE_INLINE void b3Transpose(float32* B, float32* A, u32 AM, u32 AN)
 
 // Compute the elasticity matrix given Young modulus and Poisson's ratio
 // This is a 6 x 6 matrix 
-static B3_FORCE_INLINE void b3ComputeD(float32 out[36], float32 E, float32 nu)
+static B3_FORCE_INLINE void b3ComputeD(float32 out[36], 
+	float32 E, float32 nu)
 {
 	float32 lambda = (nu * E) / ((1 + nu) * (1 - 2 * nu));
 	float32 mu = E / (2 * (1 + nu));
@@ -90,47 +91,55 @@ static B3_FORCE_INLINE void b3ComputeD(float32 out[36], float32 E, float32 nu)
 // can be found here:
 // https://github.com/erleben/OpenTissue/blob/master/OpenTissue/dynamics/fem/fem_compute_b.h
 static B3_FORCE_INLINE void b3ComputeB(float32 out[72],
-	const b3Vec3& e10,
-	const b3Vec3& e20,
-	const b3Vec3& e30,
-	float32 V)
+	const b3Mat33& invE)
 {
-	float32 inv6V = 1.0f / (6.0f * V);
+	// cofactor = det(E)^-1 * cofactor(E)
+	b3Mat33 cofactor = b3Transpose(invE);
 
-	b3Vec3 B[4];
+	// minor = det(E)^-1 * minor(E)
+	b3Mat33 minor;
 
-	B[1][0] = (e20[2] * e30[1] - e20[1] * e30[2]) * inv6V;
-	B[2][0] = (e10[1] * e30[2] - e10[2] * e30[1]) * inv6V;
-	B[3][0] = (e10[2] * e20[1] - e10[1] * e20[2]) * inv6V;
-	B[0][0] = -B[1][0] - B[2][0] - B[3][0];
+	minor.x.x = cofactor.x.x;
+	minor.x.y = -cofactor.x.y;
+	minor.x.z = cofactor.x.z;
 
-	B[1][1] = (e20[0] * e30[2] - e20[2] * e30[0]) * inv6V;
-	B[2][1] = (e10[2] * e30[0] - e10[0] * e30[2]) * inv6V;
-	B[3][1] = (e10[0] * e20[2] - e10[2] * e20[0]) * inv6V;
-	B[0][1] = -B[1][1] - B[2][1] - B[3][1];
+	minor.y.x = -cofactor.y.x;
+	minor.y.y = cofactor.y.y;
+	minor.y.z = -cofactor.y.z;
 
-	B[1][2] = (e20[1] * e30[0] - e20[0] * e30[1]) * inv6V;
-	B[2][2] = (e10[0] * e30[1] - e10[1] * e30[0]) * inv6V;
-	B[3][2] = (e10[1] * e20[0] - e10[0] * e20[1]) * inv6V;
-	B[0][2] = -B[1][2] - B[2][2] - B[3][2];
+	minor.z.x = cofactor.z.x;
+	minor.z.y = -cofactor.z.y;
+	minor.z.z = cofactor.z.z;
 
-	float32 b1 = B[0].x;
-	float32 c1 = B[0].y;
-	float32 d1 = B[0].z;
+	float32 e11 = -minor.x.x; // -det(E)^-1 * det(E_11)
+	float32 e12 = minor.y.x; //   det(E)^-1 * det(E_12) 
+	float32 e13 = -minor.z.x; // -det(E)^-1 * det(E_13)
 
-	float32 b2 = B[1].x;
-	float32 c2 = B[1].y;
-	float32 d2 = B[1].z;
-	
-	float32 b3 = B[2].x;
-	float32 c3 = B[2].y;
-	float32 d3 = B[2].z;
+	float32 e21 = minor.x.y; //   det(E)^-1 * det(E_21)
+	float32 e22 = -minor.y.y; // -det(E)^-1 * det(E_22)
+	float32 e23 = minor.z.y; //  -det(E)^-1 * det(E_23)
 
-	float32 b4 = B[3].x;
-	float32 c4 = B[3].y;
-	float32 d4 = B[3].z;
+	float32 e31 = -minor.x.z; // -det(E)^-1 * det(E_31)
+	float32 e32 = minor.y.z; //   det(E)^-1 * det(E_32) 
+	float32 e33 = -minor.z.z; // -det(E)^-1 * det(E_33)
 
-	float32 B_out[72] =
+	float32 b1 = -e11 - e12 - e13;
+	float32 c1 = -e21 - e22 - e23;
+	float32 d1 = -e31 - e32 - e33;
+
+	float32 b2 = e11;
+	float32 c2 = e21;
+	float32 d2 = e31;
+
+	float32 b3 = e12;
+	float32 c3 = e22;
+	float32 d3 = e32;
+
+	float32 b4 = e13;
+	float32 c4 = e23;
+	float32 d4 = e33;
+
+	float32 B[72] =
 	{
 		b1, 0, 0, c1, d1, 0,
 		0, c1, 0, b1, 0, d1,
@@ -151,7 +160,7 @@ static B3_FORCE_INLINE void b3ComputeB(float32 out[72],
 
 	for (u32 i = 0; i < 72; ++i)
 	{
-		out[i] = B_out[i];
+		out[i] = B[i];
 	}
 }
 
@@ -521,7 +530,7 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 
 		// 6 x 12
 		float32* B = e->B;
-		b3ComputeB(B, e1, e2, e3, V);
+		b3ComputeB(B, e->invE);
 
 		// 12 x 6
 		float32 BT[72];
@@ -878,7 +887,7 @@ void b3SoftBody::Draw() const
 		{
 			b3Draw_draw->DrawPoint(v, 4.0f, b3Color_blue);
 		}
-		
+
 		if (n->m_type == e_dynamicSoftBodyNode)
 		{
 			b3Draw_draw->DrawPoint(v, 4.0f, b3Color_green);
@@ -905,28 +914,28 @@ void b3SoftBody::Draw() const
 
 		// v1, v2, v3
 		b3Draw_draw->DrawTriangle(v1, v2, v3, b3Color_black);
-		
+
 		b3Vec3 n1 = b3Cross(v2 - v1, v3 - v1);
 		n1.Normalize();
 		b3Draw_draw->DrawSolidTriangle(-n1, v1, v2, v3, b3Color_blue);
 
 		// v1, v3, v4
 		b3Draw_draw->DrawTriangle(v1, v3, v4, b3Color_black);
-		
+
 		b3Vec3 n2 = b3Cross(v3 - v1, v4 - v1);
 		n2.Normalize();
 		b3Draw_draw->DrawSolidTriangle(-n2, v1, v3, v4, b3Color_blue);
 
 		// v1, v4, v2
 		b3Draw_draw->DrawTriangle(v1, v4, v2, b3Color_black);
-		
+
 		b3Vec3 n3 = b3Cross(v4 - v1, v2 - v1);
 		n3.Normalize();
 		b3Draw_draw->DrawSolidTriangle(-n3, v1, v4, v2, b3Color_blue);
 
 		// v2, v4, v3
 		b3Draw_draw->DrawTriangle(v2, v4, v3, b3Color_black);
-		
+
 		b3Vec3 n4 = b3Cross(v4 - v2, v3 - v2);
 		n4.Normalize();
 		b3Draw_draw->DrawSolidTriangle(-n4, v2, v4, v3, b3Color_blue);
