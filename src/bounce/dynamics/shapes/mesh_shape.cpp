@@ -56,7 +56,7 @@ void b3MeshShape::ComputeMass(b3MassData* massData, float32 density) const
 
 void b3MeshShape::ComputeAABB(b3AABB3* output, const b3Transform& xf) const 
 {
-	output->Compute(m_mesh->vertices, m_mesh->vertexCount, xf);
+	output->Set(m_mesh->vertices, m_mesh->vertexCount, xf);
 	output->Extend(m_radius);
 }
 

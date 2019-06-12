@@ -37,8 +37,8 @@ struct b3AABB3
 		return support;
 	}
 
-	// Compute this AABB from a list of points.
-	void Compute(const b3Vec3* points, u32 count)
+	// Set this AABB from a list of points.
+	void Set(const b3Vec3* points, u32 count)
 	{
 		m_lower = m_upper = points[0];
 		for (u32 i = 1; i < count; ++i)
@@ -48,8 +48,8 @@ struct b3AABB3
 		}
 	}
 
-	// Compute this AABB from a list of points and a transform.
-	void Compute(const b3Vec3* points, u32 count, const b3Transform& xf)
+	// Set this AABB from a list of points and a transform.
+	void Set(const b3Vec3* points, u32 count, const b3Transform& xf)
 	{
 		m_lower = m_upper = b3Mul(xf, points[0]);
 		for (u32 i = 1; i < count; ++i)
@@ -58,6 +58,13 @@ struct b3AABB3
 			m_lower = b3Min(m_lower, v);
 			m_upper = b3Max(m_upper, v);
 		}
+	}
+
+	// Set this AABB from a triangle.
+	void Set(const b3Vec3& v1, const b3Vec3& v2, const b3Vec3& v3)
+	{
+		m_lower = b3Min(v1, b3Min(v2, v3));
+		m_upper = b3Max(v1, b3Max(v2, v3));
 	}
 
 	// Set this AABB from a center point and a radius vector.
