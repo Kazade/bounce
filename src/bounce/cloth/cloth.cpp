@@ -32,6 +32,8 @@
 
 #include <bounce/common/draw.h>
 
+#define B3_ENABLE_SELF_COLLISION 0
+
 static B3_FORCE_INLINE u32 b3NextIndex(u32 i)
 {
 	return i + 1 < 3 ? i + 1 : 0;
@@ -158,6 +160,8 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 
 	m_mesh = def.mesh;
 	m_density = def.density;
+	m_contactManager.m_cloth = this;
+	m_dt = 0.0f;
 
 	const b3ClothMesh* m = m_mesh;
 
@@ -167,10 +171,12 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 	{
 		b3ParticleDef pd;
 		pd.type = e_dynamicParticle;
+		pd.mass = 1.0f;
 		pd.position = m->vertices[i];
 
 		b3Particle* p = CreateParticle(pd);
 
+		p->m_aabbProxy.index = i;
 		p->m_vertex = i;
 		m_vertexParticles[i] = p;
 	}
@@ -200,7 +206,10 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 		b3SpringForceDef fd;
 		fd.Initialize(p1, p2, def.structural, def.damping);
 
-		CreateForce(fd);
+		if (def.structural > 0.0f)
+		{
+			CreateForce(fd);
+		}
 	}
 
 	// Bending
@@ -216,9 +225,12 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 		b3SpringForceDef fd;
 		fd.Initialize(p3, p4, def.bending, def.damping);
 
-		CreateForce(fd);
+		if (def.bending > 0.0f)
+		{
+			CreateForce(fd);
+		}
 	}
-
+	
 	allocator->Free(sharedEdges);
 	allocator->Free(uniqueEdges);
 
@@ -233,7 +245,30 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 		b3SpringForceDef fd;
 		fd.Initialize(p1, p2, def.structural, def.damping);
 
-		CreateForce(fd);
+		if (def.structural > 0.0f)
+		{
+			CreateForce(fd);
+		}
+	}
+
+	// Initialize triangle proxies
+	m_triangleProxies = (b3ClothAABBProxy*)b3Alloc(m_mesh->triangleCount * sizeof(b3ClothAABBProxy));
+	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
+	{
+		b3ClothMeshTriangle* triangle = m_mesh->triangles + i;
+		b3ClothAABBProxy* triangleProxy = m_triangleProxies + i;
+
+		b3Vec3 v1 = m_mesh->vertices[triangle->v1];
+		b3Vec3 v2 = m_mesh->vertices[triangle->v2];
+		b3Vec3 v3 = m_mesh->vertices[triangle->v3];
+
+		b3AABB3 aabb;
+		aabb.Set(v1, v2, v3);
+
+		triangleProxy->type = e_triangleProxy;
+		triangleProxy->index = i;
+		triangleProxy->data = triangle;
+		triangleProxy->broadPhaseId = m_contactManager.m_broadPhase.CreateProxy(aabb, triangleProxy);
 	}
 
 	m_gravity.SetZero();
@@ -251,6 +286,7 @@ b3Cloth::~b3Cloth()
 	}
 
 	b3Free(m_vertexParticles);
+	b3Free(m_triangleProxies);
 
 	b3Force* f = m_forceList.m_head;
 	while (f)
@@ -265,11 +301,14 @@ b3Particle* b3Cloth::CreateParticle(const b3ParticleDef& def)
 {
 	void* mem = m_particleBlocks.Allocate();
 	b3Particle* p = new(mem) b3Particle(def, this);
-	
+
 	b3AABB3 aabb;
 	aabb.Set(p->m_position, p->m_radius);
-	
-	p->m_treeId = m_particleTree.InsertNode(aabb, p);
+
+	p->m_aabbProxy.type = e_particleProxy;
+	p->m_aabbProxy.data = p;
+	p->m_aabbProxy.index = p->m_vertex;
+	p->m_aabbProxy.broadPhaseId = m_contactManager.m_broadPhase.CreateProxy(aabb, &p->m_aabbProxy);
 
 	m_particleList.PushFront(p);
 
@@ -280,6 +319,7 @@ void b3Cloth::DestroyParticle(b3Particle* particle)
 {
 	B3_ASSERT(particle->m_vertex == ~0);
 	
+	// Destroy particle forces
 	b3Force* f = m_forceList.m_head;
 	while (f)
 	{
@@ -293,7 +333,11 @@ void b3Cloth::DestroyParticle(b3Particle* particle)
 		}
 	}
 
-	m_particleTree.RemoveNode(particle->m_treeId);
+	// Destroy particle contacts
+	particle->DestroyContacts();
+
+	// Destroy AABB proxy
+	m_contactManager.m_broadPhase.DestroyProxy(particle->m_aabbProxy.broadPhaseId);
 
 	m_particleList.Remove(particle);
 	particle->~b3Particle();
@@ -370,6 +414,44 @@ void b3Cloth::ComputeMass()
 	}
 }
 
+struct b3ClothRayCastSingleCallback
+{
+	float32 Report(const b3RayCastInput& input, u32 proxyId)
+	{
+		// Get primitive associated with the proxy.
+		void* userData = broadPhase->GetUserData(proxyId);
+		b3ClothAABBProxy* proxy = (b3ClothAABBProxy*)userData;
+
+		if (proxy->type != e_triangleProxy)
+		{
+			// Continue search from where we stopped.
+			return input.maxFraction;
+		}
+
+		u32 triangleIndex = proxy->index;
+
+		b3RayCastOutput subOutput;
+		if (cloth->RayCast(&subOutput, &input, triangleIndex))
+		{
+			// Ray hits triangle.
+			if (subOutput.fraction < output0.fraction)
+			{
+				triangle0 = proxy->index;
+				output0.fraction = subOutput.fraction;
+				output0.normal = subOutput.normal;
+			}
+		}
+
+		// Continue search from where we stopped.
+		return input.maxFraction;
+	}
+
+	const b3Cloth* cloth;
+	const b3BroadPhase* broadPhase;
+	u32 triangle0;
+	b3RayCastOutput output0;
+};
+
 bool b3Cloth::RayCastSingle(b3ClothRayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
 {
 	b3RayCastInput input;
@@ -377,29 +459,19 @@ bool b3Cloth::RayCastSingle(b3ClothRayCastSingleOutput* output, const b3Vec3& p1
 	input.p2 = p2;
 	input.maxFraction = 1.0f;
 
-	u32 triangle0 = ~0;
-	b3RayCastOutput output0;
-	output0.fraction = B3_MAX_FLOAT;
+	b3ClothRayCastSingleCallback callback;
+	callback.cloth = this;
+	callback.broadPhase = &m_contactManager.m_broadPhase;
+	callback.triangle0 = ~0;
+	callback.output0.fraction = B3_MAX_FLOAT;
 
-	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
-	{
-		b3RayCastOutput subOutput;
-		if (RayCast(&subOutput, &input, i))
-		{
-			if (subOutput.fraction < output0.fraction)
-			{
-				triangle0 = i;
-				output0.fraction = subOutput.fraction;
-				output0.normal = subOutput.normal;
-			}
-		}
-	}
+	m_contactManager.m_broadPhase.RayCast(&callback, input);
 
-	if (triangle0 != ~0)
+	if (callback.triangle0 != ~0)
 	{
-		output->triangle = triangle0;
-		output->fraction = output0.fraction;
-		output->normal = output0.normal;
+		output->triangle = callback.triangle0;
+		output->fraction = callback.output0.fraction;
+		output->normal = callback.output0.normal;
 
 		return true;
 	}
@@ -455,9 +527,9 @@ public:
 	b3Vec3 bestNormal;
 };
 
-void b3Cloth::UpdateContacts()
+void b3Cloth::UpdateParticleBodyContacts()
 {
-	B3_PROFILE("Cloth Update Contacts");
+	B3_PROFILE("Cloth Update Particle Body Contacts");
 
 	// Is there a world attached to this cloth?
 	if (m_world == nullptr)
@@ -473,7 +545,7 @@ void b3Cloth::UpdateContacts()
 			continue;
 		}
 
-		b3AABB3 aabb = m_particleTree.GetAABB(p->m_treeId);
+		b3AABB3 aabb = m_contactManager.m_broadPhase.GetAABB(p->m_aabbProxy.broadPhaseId);
 
 		b3ClothUpdateContactsQueryListener listener;
 		listener.sphere.vertex = p->m_position;
@@ -528,6 +600,7 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u
 	solverDef.particleCapacity = m_particleList.m_count;
 	solverDef.forceCapacity = m_forceList.m_count;
 	solverDef.bodyContactCapacity = m_particleList.m_count;
+	solverDef.triangleContactCapacity = m_contactManager.m_particleTriangleContactList.m_count;
 
 	b3ClothSolver solver(solverDef);
 
@@ -549,6 +622,14 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u
 		}
 	}
 
+	for (b3ParticleTriangleContact* c = m_contactManager.m_particleTriangleContactList.m_head; c; c = c->m_next)
+	{
+		if (c->m_active)
+		{
+			solver.Add(c);
+		}
+	}
+
 	// Solve	
 	solver.Solve(dt, gravity, velocityIterations, positionIterations);
 }
@@ -557,8 +638,13 @@ void b3Cloth::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 {
 	B3_PROFILE("Cloth Step");
 
-	// Update contacts
-	UpdateContacts();
+	m_dt = dt;
+
+	// Update particle-body contacts
+	UpdateParticleBodyContacts();
+
+	// Update self-contacts
+	m_contactManager.UpdateContacts();
 
 	// Integrate state, solve constraints. 
 	if (dt > 0.0f)
@@ -576,13 +662,49 @@ void b3Cloth::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 	// Synchronize particles
 	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
 	{
-		if (p->m_type == e_staticParticle)
-		{
-			continue;
-		}
-
 		p->Synchronize();
 	}
+
+	// Synchronize triangles
+	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
+	{
+		SynchronizeTriangle(i);
+	}
+
+#if B3_ENABLE_SELF_COLLISION
+
+	// Find new self-contacts
+	m_contactManager.FindNewContacts();
+
+#endif
+}
+
+void b3Cloth::SynchronizeTriangle(u32 triangleIndex)
+{
+	b3ClothMeshTriangle* triangle = m_mesh->triangles + triangleIndex;
+	b3ClothAABBProxy* triangleProxy = m_triangleProxies + triangleIndex;
+
+	b3Particle* p1 = m_vertexParticles[triangle->v1];
+	b3Particle* p2 = m_vertexParticles[triangle->v2];
+	b3Particle* p3 = m_vertexParticles[triangle->v3];
+
+	b3Vec3 x1 = p1->m_position;
+	b3Vec3 x2 = p2->m_position;
+	b3Vec3 x3 = p3->m_position;
+
+	b3Vec3 v1 = p1->m_velocity;
+	b3Vec3 v2 = p2->m_velocity;
+	b3Vec3 v3 = p3->m_velocity;
+
+	b3AABB3 aabb;
+	aabb.Set(x1, x2, x3);
+
+	const float32 kInv3 = 1.0f / 3.0f;
+	
+	b3Vec3 center_velocity = kInv3 * (v1 + v2 + v3);
+	b3Vec3 center_displacement = m_dt * center_velocity;
+
+	m_contactManager.m_broadPhase.MoveProxy(triangleProxy->broadPhaseId, aabb, center_displacement);
 }
 
 void b3Cloth::Draw() const

@@ -18,6 +18,7 @@
 
 #include <bounce/cloth/particle.h>
 #include <bounce/cloth/cloth.h>
+#include <bounce/cloth/cloth_mesh.h>
 
 void b3ParticleBodyContactWorldPoint::Initialize(const b3ParticleBodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB)
 {
@@ -42,8 +43,20 @@ b3Particle::b3Particle(const b3ParticleDef& def, b3Cloth* cloth)
 	m_velocity = def.velocity;
 	m_force = def.force;
 	m_translation.SetZero();
-	m_mass = 0.0f;
-	m_invMass = 0.0f;
+	m_mass = def.mass;
+
+	if (m_mass == 0.0f)
+	{
+		m_type = e_staticParticle;
+		m_mass = 1.0f;
+		m_invMass = 1.0f;
+	}
+	else
+	{
+		m_type = e_dynamicParticle;
+		m_invMass = 1.0f / m_mass;
+	}
+
 	m_radius = def.radius;
 	m_friction = def.friction;
 	m_userData = nullptr;
@@ -62,7 +75,48 @@ void b3Particle::Synchronize()
 	b3AABB3 aabb;
 	aabb.Set(m_position, m_radius);
 
-	m_cloth->m_particleTree.UpdateNode(m_treeId, aabb);
+	b3Vec3 displacement = m_cloth->m_dt * m_velocity;
+
+	m_cloth->m_contactManager.m_broadPhase.MoveProxy(m_aabbProxy.broadPhaseId, aabb, displacement);
+}
+
+void b3Particle::SynchronizeTriangles()
+{
+	if (m_vertex == ~0)
+	{
+		return;
+	}
+
+	for (u32 i = 0; i < m_cloth->m_mesh->triangleCount; ++i)
+	{
+		b3ClothMeshTriangle* triangle = m_cloth->m_mesh->triangles + i;
+
+		if (triangle->v1 == m_vertex || triangle->v2 == m_vertex || triangle->v3 == m_vertex)
+		{
+			m_cloth->SynchronizeTriangle(i);
+		}
+	}
+}
+
+void b3Particle::DestroyContacts()
+{
+	// Destroy body contacts
+	m_bodyContact.active = false;
+
+	// Destroy triangle contacts
+	b3ParticleTriangleContact* c = m_cloth->m_contactManager.m_particleTriangleContactList.m_head;
+	while (c)
+	{
+		if (c->m_p1 == this)
+		{
+			b3ParticleTriangleContact* quack = c;
+			c = c->m_next;
+			m_cloth->m_contactManager.Destroy(quack);
+			continue;
+		}
+
+		c = c->m_next;
+	}
 }
 
 void b3Particle::SetType(b3ParticleType type)
@@ -81,7 +135,11 @@ void b3Particle::SetType(b3ParticleType type)
 		m_translation.SetZero();
 		
 		Synchronize();
+		SynchronizeTriangles();
 	}
 
-	m_bodyContact.active = false;
+	DestroyContacts();
+	
+	// Move the proxy so new contacts can be created.
+	m_cloth->m_contactManager.m_broadPhase.TouchProxy(m_aabbProxy.broadPhaseId);
 }

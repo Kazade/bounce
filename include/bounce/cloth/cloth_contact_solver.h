@@ -28,6 +28,7 @@ class b3Particle;
 class b3Body;
 
 struct b3ParticleBodyContact;
+class b3ParticleTriangleContact;
 
 struct b3DenseVec3;
 
@@ -80,6 +81,44 @@ struct b3ClothSolverBodyContactPositionConstraint
 	b3Vec3 localPointB;
 };
 
+struct b3ClothSolverTriangleContactVelocityConstraint
+{
+	u32 indexA;
+	float32 invMassA;
+
+	u32 indexB;
+	float32 invMassB;
+	u32 indexC;
+	float32 invMassC;
+	u32 indexD;
+	float32 invMassD;
+
+	b3Vec3 JA;
+	b3Vec3 JB;
+	b3Vec3 JC;
+	b3Vec3 JD;
+
+	float32 normalMass;
+	float32 normalImpulse;
+};
+
+struct b3ClothSolverTriangleContactPositionConstraint
+{
+	u32 indexA;
+	float32 invMassA;
+	float32 radiusA;
+
+	u32 indexB;
+	float32 invMassB;
+	u32 indexC;
+	float32 invMassC;
+	u32 indexD;
+	float32 invMassD;
+	float32 triangleRadius;
+
+	bool front;
+};
+
 struct b3ClothContactSolverDef
 {
 	b3StackAllocator* allocator;
@@ -89,6 +128,9 @@ struct b3ClothContactSolverDef
 	
 	u32 bodyContactCount;
 	b3ParticleBodyContact** bodyContacts;
+
+	u32 triangleContactCount;
+	b3ParticleTriangleContact** triangleContacts;
 };
 
 inline float32 b3MixFriction(float32 u1, float32 u2)
@@ -103,14 +145,18 @@ public:
 	~b3ClothContactSolver();
 
 	void InitializeBodyContactConstraints();
+	void InitializeTriangleContactConstraints();
 
-	void WarmStart();
+	void WarmStartBodyContactConstraints();
+	void WarmStartTriangleContactConstraints();
 
 	void SolveBodyContactVelocityConstraints();
+	void SolveTriangleContactVelocityConstraints();
 
 	void StoreImpulses();
 
 	bool SolveBodyContactPositionConstraints();
+	bool SolveTriangleContactPositionConstraints();
 protected:
 	b3StackAllocator* m_allocator;
 
@@ -121,6 +167,11 @@ protected:
 	b3ParticleBodyContact** m_bodyContacts;
 	b3ClothSolverBodyContactVelocityConstraint* m_bodyVelocityConstraints;
 	b3ClothSolverBodyContactPositionConstraint* m_bodyPositionConstraints;
+
+	u32 m_triangleContactCount;
+	b3ParticleTriangleContact** m_triangleContacts;
+	b3ClothSolverTriangleContactVelocityConstraint* m_triangleVelocityConstraints;
+	b3ClothSolverTriangleContactPositionConstraint* m_trianglePositionConstraints;
 };
 
 #endif

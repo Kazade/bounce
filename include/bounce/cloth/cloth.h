@@ -19,11 +19,11 @@
 #ifndef B3_CLOTH_H
 #define B3_CLOTH_H
 
-#include <bounce/common/math/transform.h>
 #include <bounce/common/template/list.h>
 #include <bounce/common/memory/stack_allocator.h>
 #include <bounce/common/memory/block_pool.h>
-#include <bounce/collision/trees/dynamic_tree.h>
+#include <bounce/common/math/transform.h>
+#include <bounce/cloth/cloth_contact_manager.h>
 
 class b3World;
 class b3Shape;
@@ -41,6 +41,8 @@ class b3RayCastListener;
 
 struct b3RayCastInput;
 struct b3RayCastOutput;
+
+struct b3ClothAABBProxy;
 
 struct b3ClothRayCastSingleOutput
 {
@@ -140,15 +142,22 @@ public:
 	void Draw() const;
 private:
 	friend class b3Particle;
+	friend class b3ClothContactManager;
 
 	// Compute mass of each particle.
 	void ComputeMass();
 
-	// Update contacts
-	void UpdateContacts();
+	// Update particle-body contacts
+	void UpdateParticleBodyContacts();
 
 	// Solve
 	void Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations);
+
+	// Synchronize triangle AABB.
+	void SynchronizeTriangle(u32 triangleIndex);
+
+	// Time-step
+	float32 m_dt;
 
 	// Stack allocator
 	b3StackAllocator m_stackAllocator;
@@ -165,6 +174,9 @@ private:
 	// Vertex particles
 	b3Particle** m_vertexParticles;
 
+	// Triangle proxies
+	b3ClothAABBProxy* m_triangleProxies;
+
 	// Cloth density
 	float32 m_density;
 
@@ -174,11 +186,11 @@ private:
 	// List of particles
 	b3List2<b3Particle> m_particleList;
 
-	// Particle tree
-	b3DynamicTree m_particleTree;
-
 	// List of forces
 	b3List2<b3Force> m_forceList;
+
+	// Contact manager
+	b3ClothContactManager m_contactManager;
 };
 
 inline void b3Cloth::SetGravity(const b3Vec3& gravity)

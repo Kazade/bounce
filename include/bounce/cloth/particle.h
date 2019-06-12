@@ -44,6 +44,7 @@ struct b3ParticleDef
 	b3ParticleDef()
 	{
 		type = e_staticParticle;
+		mass = 0.0f;
 		position.SetZero();
 		velocity.SetZero();
 		force.SetZero();
@@ -53,6 +54,7 @@ struct b3ParticleDef
 	}
 
 	b3ParticleType type;
+	float32 mass;
 	b3Vec3 position;
 	b3Vec3 velocity;
 	b3Vec3 force;
@@ -87,6 +89,20 @@ struct b3ParticleBodyContactWorldPoint
 	b3Vec3 point;
 	b3Vec3 normal;
 	float32 separation;
+};
+
+enum b3ClothAABBProxyType
+{
+	e_particleProxy,
+	e_triangleProxy
+};
+
+struct b3ClothAABBProxy
+{
+	b3ClothAABBProxyType type;
+	void* data;
+	u32 index;
+	u32 broadPhaseId;
 };
 
 // A cloth particle.
@@ -143,17 +159,22 @@ private:
 	friend class b3List2<b3Particle>;
 	friend class b3Cloth;
 	friend class b3ClothSolver;
+	friend class b3ClothContactManager;
 	friend class b3ClothContactSolver;
 	friend class b3Force;
 	friend class b3SpringForce;
-	friend class b3BendForce;
-	friend class b3FrictionForce;
 
 	b3Particle(const b3ParticleDef& def, b3Cloth* cloth);
 	~b3Particle();
 
-	// Synchronize AABB
+	// Synchronize particle AABB
 	void Synchronize();
+
+	// Synchronize triangles AABB
+	void SynchronizeTriangles();
+
+	// Destroy contacts.
+	void DestroyContacts();
 
 	// Type
 	b3ParticleType m_type;
@@ -202,8 +223,8 @@ private:
 	// Contact
 	b3ParticleBodyContact m_bodyContact;
 
-	// Particle tree identifier
-	u32 m_treeId;
+	// AABB Proxy
+	b3ClothAABBProxy m_aabbProxy;
 
 	// 
 	b3Particle* m_prev;
@@ -228,6 +249,7 @@ inline void b3Particle::SetPosition(const b3Vec3& position)
 	m_translation.SetZero();
 
 	Synchronize();
+	SynchronizeTriangles();
 }
 
 inline const b3Vec3& b3Particle::GetPosition() const

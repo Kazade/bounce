@@ -58,10 +58,15 @@ b3ClothSolver::b3ClothSolver(const b3ClothSolverDef& def)
 	m_bodyContactCapacity = def.bodyContactCapacity;
 	m_bodyContactCount = 0;
 	m_bodyContacts = (b3ParticleBodyContact**)m_allocator->Allocate(m_bodyContactCapacity * sizeof(b3ParticleBodyContact*));;
+
+	m_triangleContactCapacity = def.triangleContactCapacity;
+	m_triangleContactCount = 0;
+	m_triangleContacts = (b3ParticleTriangleContact**)m_allocator->Allocate(m_triangleContactCapacity * sizeof(b3ParticleTriangleContact*));;
 }
 
 b3ClothSolver::~b3ClothSolver()
 {
+	m_allocator->Free(m_triangleContacts);
 	m_allocator->Free(m_bodyContacts);
 
 	m_allocator->Free(m_constraints);
@@ -83,6 +88,11 @@ void b3ClothSolver::Add(b3Force* f)
 void b3ClothSolver::Add(b3ParticleBodyContact* c)
 {
 	m_bodyContacts[m_bodyContactCount++] = c;
+}
+
+void b3ClothSolver::Add(b3ParticleTriangleContact* c)
+{
+	m_triangleContacts[m_triangleContactCount++] = c;
 }
 
 void b3ClothSolver::ApplyForces()
@@ -266,21 +276,26 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterati
 	contactSolverDef.velocities = m_solverData.v;
 	contactSolverDef.bodyContactCount = m_bodyContactCount;
 	contactSolverDef.bodyContacts = m_bodyContacts;
+	contactSolverDef.triangleContactCount = m_triangleContactCount;
+	contactSolverDef.triangleContacts = m_triangleContacts;
 
 	b3ClothContactSolver contactSolver(contactSolverDef);
 
 	{
 		contactSolver.InitializeBodyContactConstraints();
+		contactSolver.InitializeTriangleContactConstraints();
 	}
 
 	{
-		contactSolver.WarmStart();
+		contactSolver.WarmStartBodyContactConstraints();
+		contactSolver.WarmStartTriangleContactConstraints();
 	}
 
 	{
 		for (u32 i = 0; i < velocityIterations; ++i)
 		{
 			contactSolver.SolveBodyContactVelocityConstraints();
+			contactSolver.SolveTriangleContactVelocityConstraints();
 		}
 	}
 
@@ -297,9 +312,11 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterati
 		for (u32 i = 0; i < positionIterations; ++i)
 		{
 			bool bodyContactsSolved = contactSolver.SolveBodyContactPositionConstraints();
+			bool triangleContactsSolved = contactSolver.SolveTriangleContactPositionConstraints();
 
-			if (bodyContactsSolved)
+			if (bodyContactsSolved && triangleContactsSolved)
 			{
+				// Early out if the position errors are small.
 				positionSolved = true;
 				break;
 			}
