@@ -258,7 +258,8 @@ void b3ClothContactSolver::InitializeTriangleContactConstraints()
 		vc->JC = b3Cross(xD - xB, N_n);
 		vc->JD = b3Cross(xC - xB, N_n);
 
-		float32 K = mA + mB * b3Dot(vc->JB, vc->JB) + mC * b3Dot(vc->JC, vc->JC) + mD * b3Dot(vc->JD, vc->JD);
+		//float32 K = mA + mB * b3Dot(vc->JB, vc->JB) + mC * b3Dot(vc->JC, vc->JC) + mD * b3Dot(vc->JD, vc->JD);
+		float32 K = mA + mB + mC + mD;
 
 		vc->normalMass = K > 0.0f ? 1.0f / K : 0.0f;
 		vc->normalImpulse = c->m_normalImpulse;
