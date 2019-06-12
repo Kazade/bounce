@@ -675,7 +675,8 @@ bool b3ClothContactSolver::SolveTriangleContactPositionConstraints()
 		b3Vec3 JD = b3Cross(xC - xB, N_n);
 
 		// Compute effective mass.
-		float32 K = mA + mB * b3Dot(JB, JB) + mC * b3Dot(JC, JC) + mD * b3Dot(JD, JD);
+		//float32 K = mA + mB * b3Dot(JB, JB) + mC * b3Dot(JC, JC) + mD * b3Dot(JD, JD);
+		float32 K = mA + mB + mC + mD;
 
 		// Compute normal impulse.
 		float32 impulse = K > 0.0f ? -C / K : 0.0f;
