@@ -21,8 +21,6 @@
 #include <bounce/cloth/cloth_mesh.h>
 #include <bounce/cloth/particle.h>
 
-#include <bounce/common/draw.h>
-
 b3ClothContactManager::b3ClothContactManager() : 
 	m_particleTriangleContactBlocks(sizeof(b3ParticleTriangleContact))
 {
