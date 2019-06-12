@@ -78,14 +78,10 @@ inline u32 b3Mesh::GetSize() const
 inline b3AABB3 b3Mesh::GetTriangleAABB(u32 index) const
 {
 	const b3Triangle* triangle = triangles + index;
-	
-	u32 i1 = triangle->v1;
-	u32 i2 = triangle->v2;
-	u32 i3 = triangle->v3;
 
 	b3AABB3 aabb;
-	aabb.m_lower = b3Min(b3Min(vertices[i1], vertices[i2]), vertices[i3]);
-	aabb.m_upper = b3Max(b3Max(vertices[i1], vertices[i2]), vertices[i3]);
+	aabb.Set(vertices[triangle->v1], vertices[triangle->v2], vertices[triangle->v3]);
+
 	return aabb;
 }
 
