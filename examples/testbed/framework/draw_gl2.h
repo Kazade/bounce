@@ -625,6 +625,7 @@ struct DrawWire
 		b3Mat44 m3 = g_glProjectionMatrix;
 		b3Mat44 m = m3 * m2 * m1;
 
+		glUniform4fv(m_colorUniform, 1, &c.r);
 		glUniformMatrix4fv(m_projectionUniform, 1, GL_FALSE, &m.x.x);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_sphere.m_vboId);
