@@ -20,6 +20,8 @@
 
 b3BroadPhase::b3BroadPhase() 
 {
+	m_proxyCount = 0;
+
 	m_moveBufferCapacity = 16;
 	m_moveBuffer = (u32*)b3Alloc(m_moveBufferCapacity * sizeof(u32));
 	memset(m_moveBuffer, 0, m_moveBufferCapacity * sizeof(u32));
@@ -57,6 +59,17 @@ void b3BroadPhase::BufferMove(u32 proxyId)
 	++m_moveBufferCount;
 }
 
+void b3BroadPhase::UnbufferMove(u32 proxyId)
+{
+	for (u32 i = 0; i < m_moveBufferCount; ++i)
+	{
+		if (m_moveBuffer[i] == proxyId)
+		{
+			m_moveBuffer[i] = B3_NULL_PROXY;
+		}
+	}
+}
+
 bool b3BroadPhase::TestOverlap(u32 proxy1, u32 proxy2) const 
 {
 	return m_tree.TestOverlap(proxy1, proxy2);
@@ -64,20 +77,23 @@ bool b3BroadPhase::TestOverlap(u32 proxy1, u32 proxy2) const
 
 u32 b3BroadPhase::CreateProxy(const b3AABB3& aabb, void* userData) 
 {
-	// Later, if the node aabb has changed then it should be reinserted into the tree.
-	// However, this can be expansive due to the hierarchy reconstruction.
-	// Therefore, the original AABB is extended and inserted into the tree,
-	// so we can check later if the new (original) AABB is inside the old (fat) AABB.
 	b3AABB3 fatAABB = aabb;
 	fatAABB.Extend(B3_AABB_EXTENSION);	
+	
 	u32 proxyId = m_tree.InsertNode(fatAABB, userData);
+	
+	++m_proxyCount;
+	
 	BufferMove(proxyId);
+
 	return proxyId;
 }
 
 void b3BroadPhase::DestroyProxy(u32 proxyId) 
 {
-	return m_tree.RemoveNode(proxyId);
+	UnbufferMove(proxyId);
+	--m_proxyCount;
+	m_tree.RemoveNode(proxyId);
 }
 
 bool b3BroadPhase::MoveProxy(u32 proxyId, const b3AABB3& aabb, const b3Vec3& displacement)
@@ -88,39 +104,38 @@ bool b3BroadPhase::MoveProxy(u32 proxyId, const b3AABB3& aabb, const b3Vec3& dis
 		return false;
 	}
 
-	// Update the tree with a fat and motion predicted AABB.
-	const b3Vec3 kExtension(B3_AABB_EXTENSION, B3_AABB_EXTENSION, B3_AABB_EXTENSION);
+	// Extend the AABB.
+	b3AABB3 fatAABB = aabb;
+	fatAABB.Extend(B3_AABB_EXTENSION);
 
-	// Extend the new (original) AABB.
-	b3AABB3 fatAABB;
-	fatAABB.m_lower = aabb.m_lower - kExtension;
-	fatAABB.m_upper = aabb.m_upper + kExtension;
+	// Predict AABB displacement.
+	b3Vec3 d = B3_AABB_MULTIPLIER * displacement;
 
-	if (displacement.x < 0.0f)
+	if (d.x < 0.0f)
 	{
-		fatAABB.m_lower.x += B3_AABB_MULTIPLIER * displacement.x;
+		fatAABB.m_lower.x += d.x;
 	}
 	else
 	{
-		fatAABB.m_upper.x += B3_AABB_MULTIPLIER * displacement.x;
+		fatAABB.m_upper.x += d.x;
 	}
 
-	if (displacement.y < 0.0f)
+	if (d.y < 0.0f)
 	{
-		fatAABB.m_lower.y += B3_AABB_MULTIPLIER * displacement.y;
+		fatAABB.m_lower.y += d.y;
 	}
 	else
 	{
-		fatAABB.m_upper.y += B3_AABB_MULTIPLIER * displacement.y;
+		fatAABB.m_upper.y += d.y;
 	}
 
-	if (displacement.z < 0.0f)
+	if (d.z < 0.0f)
 	{
-		fatAABB.m_lower.z += B3_AABB_MULTIPLIER * displacement.z;
+		fatAABB.m_lower.z += d.z;
 	}
 	else
 	{
-		fatAABB.m_upper.z += B3_AABB_MULTIPLIER * displacement.z;
+		fatAABB.m_upper.z += d.z;
 	}
 
 	// Update proxy with the extented AABB.
@@ -131,6 +146,11 @@ bool b3BroadPhase::MoveProxy(u32 proxyId, const b3AABB3& aabb, const b3Vec3& dis
 	
 	// Notify the proxy has moved.
 	return true;
+}
+
+void b3BroadPhase::TouchProxy(u32 proxyId)
+{
+	BufferMove(proxyId);
 }
 
 bool b3BroadPhase::Report(u32 proxyId) 

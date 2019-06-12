@@ -457,7 +457,7 @@ void b3Body::SetType(b3BodyType type)
 	b3BroadPhase* phase = &m_world->m_contactMan.m_broadPhase;
 	for (b3Shape* s = m_shapeList.m_head; s; s = s->m_next)
 	{
-		phase->BufferMove(s->m_broadPhaseID);
+		phase->TouchProxy(s->m_broadPhaseID);
 	}
 }
 

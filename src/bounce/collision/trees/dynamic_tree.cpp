@@ -123,6 +123,7 @@ void b3DynamicTree::RemoveNode(u32 proxyId)
 {
 	// Remove from the tree.
 	RemoveLeaf(proxyId);
+	
 	// Remove from the node array and make it available.
 	FreeNode(proxyId);
 }
@@ -131,8 +132,10 @@ void b3DynamicTree::UpdateNode(u32 proxyId, const b3AABB3& aabb)
 {
 	B3_ASSERT(m_root != B3_NULL_NODE_D);
 	B3_ASSERT(m_nodes[proxyId].IsLeaf());
+	
 	// Remove old AABB from the tree.
 	RemoveLeaf(proxyId);
+	
 	// Insert the new AABB to the tree.
 	m_nodes[proxyId].aabb = aabb;
 	InsertLeaf(proxyId);

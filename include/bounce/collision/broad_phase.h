@@ -22,6 +22,8 @@
 #include <bounce/collision/trees/dynamic_tree.h>
 #include <algorithm>
 
+#define B3_NULL_PROXY (0xFFFFFFFF)
+
 // A pair of broad-phase proxies.
 struct b3Pair
 {
@@ -49,15 +51,17 @@ public:
 	// Return true if the proxy has moved.
 	bool MoveProxy(u32 proxyId, const b3AABB3& aabb, const b3Vec3& displacement);
 
-	// Add a proxy to the list of moved proxies.
-	// Only moved proxies will be used internally as an AABB query reference object.
-	void BufferMove(u32 proxyId);
+	// Force move the proxy
+	void TouchProxy(u32 proxyId);
 
 	// Get the AABB of a given proxy.
 	const b3AABB3& GetAABB(u32 proxyId) const;
 
 	// Get the user data attached to a proxy.
 	void* GetUserData(u32 proxyId) const;
+
+	// Get the number of proxies.
+	u32 GetProxyCount() const;
 
 	// Test if two proxy AABBs are overlapping.
 	bool TestOverlap(u32 proxy1, u32 proxy2) const;
@@ -81,6 +85,9 @@ public:
 	void Draw() const;
 private :
 	friend class b3DynamicTree;
+
+	void BufferMove(u32 proxyId);
+	void UnbufferMove(u32 proxyId);
 	
 	// The client callback used to add an overlapping pair
 	// to the overlapping pair buffer.
@@ -88,6 +95,9 @@ private :
 	
 	// The dynamic tree.
 	b3DynamicTree m_tree;
+
+	// Number of proxies
+	u32 m_proxyCount;
 
 	// The current proxy being queried for overlap with another proxies. 
 	// It is used to avoid a proxy overlap with itself.
@@ -112,6 +122,11 @@ inline const b3AABB3& b3BroadPhase::GetAABB(u32 proxyId) const
 inline void* b3BroadPhase::GetUserData(u32 proxyId) const 
 {
 	return m_tree.GetUserData(proxyId);
+}
+
+inline u32 b3BroadPhase::GetProxyCount() const
+{
+	return m_proxyCount;
 }
 
 template<class T>
@@ -152,8 +167,10 @@ inline void b3BroadPhase::FindPairs(T* callback)
 	{
 		// Keep the current queried proxy ID to avoid self overlapping.
 		m_queryProxyId = m_moveBuffer[i];
-		if (m_queryProxyId == B3_NULL_NODE_D) 
+
+		if (m_queryProxyId == B3_NULL_PROXY)
 		{
+			// Proxy was unbuffered
 			continue;
 		}
 
