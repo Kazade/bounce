@@ -67,7 +67,7 @@ struct b3ClothDef
 	// Cloth mesh 
 	const b3ClothMesh* mesh;
 
-	// Cloth density in kg/m^3
+	// Cloth density in kg/m^2
 	float32 density;
 
 	// Structural stiffness
