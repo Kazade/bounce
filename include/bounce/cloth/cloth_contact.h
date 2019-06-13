@@ -16,37 +16,49 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_CLOTH_CONTACT_MANAGER_H
-#define B3_CLOTH_CONTACT_MANAGER_H
+#ifndef B3_CLOTH_CONTACT_H
+#define B3_CLOTH_CONTACT_H
 
-#include <bounce/cloth/cloth_contact.h>
-#include <bounce/collision/broad_phase.h>
-#include <bounce/common/memory/block_pool.h>
 #include <bounce/common/template/list.h>
 
-class b3Cloth;
+class b3Particle;
+struct b3ClothMeshTriangle;
+struct b3ClothAABBProxy;
 
-// Contact delegator for b3Cloth.
-class b3ClothContactManager
+// Contact between particle and a triangle
+class b3ParticleTriangleContact
 {
 public:
-	b3ClothContactManager();
+private:
+	friend class b3Cloth;
+	friend class b3Particle;
+	friend class b3ClothContactManager;
+	friend class b3List2<b3ParticleTriangleContact>;
+	friend class b3ClothContactSolver;
 
-	// The broad-phase callback.
-	void AddPair(void* data1, void* data2);
+	b3ParticleTriangleContact() { }
+	~b3ParticleTriangleContact() { }
 
-	void FindNewContacts();
+	void Update();
 
-	void UpdateContacts();
+	// Particle
+	b3Particle* m_p1;
 
-	b3ParticleTriangleContact* CreateParticleTriangleContact();
-	void Destroy(b3ParticleTriangleContact* c);
+	// Triangle
+	b3ClothMeshTriangle* m_triangle;
+	b3ClothAABBProxy* m_triangleProxy;
+	b3Particle* m_p2;
+	b3Particle* m_p3;
+	b3Particle* m_p4;
 
-	b3BlockPool m_particleTriangleContactBlocks;
-	
-	b3Cloth* m_cloth;
-	b3BroadPhase m_broadPhase;
-	b3List2<b3ParticleTriangleContact> m_particleTriangleContactList;
+	float32 m_normalImpulse;
+
+	bool m_front;
+
+	bool m_active;
+
+	b3ParticleTriangleContact* m_prev;
+	b3ParticleTriangleContact* m_next;
 };
 
 #endif

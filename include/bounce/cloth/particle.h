@@ -19,10 +19,10 @@
 #ifndef B3_PARTICLE_H
 #define B3_PARTICLE_H
 
+#include <bounce/cloth/force.h>
 #include <bounce/common/math/transform.h>
 #include <bounce/common/math/vec2.h>
 #include <bounce/common/template/list.h>
-#include <bounce/cloth/force.h>
 
 class b3Shape;
 class b3Cloth;
@@ -91,12 +91,14 @@ struct b3ParticleBodyContactWorldPoint
 	float32 separation;
 };
 
+// Cloth primitive type
 enum b3ClothAABBProxyType
 {
 	e_particleProxy,
 	e_triangleProxy
 };
 
+// Cloth primitive broadphase proxy
 struct b3ClothAABBProxy
 {
 	b3ClothAABBProxyType type;
@@ -160,6 +162,7 @@ private:
 	friend class b3Cloth;
 	friend class b3ClothSolver;
 	friend class b3ClothContactManager;
+	friend class b3ParticleTriangleContact;
 	friend class b3ClothContactSolver;
 	friend class b3Force;
 	friend class b3SpringForce;
@@ -226,10 +229,8 @@ private:
 	// AABB Proxy
 	b3ClothAABBProxy m_aabbProxy;
 
-	// 
+	// Links to the cloth particle list.
 	b3Particle* m_prev;
-
-	//
 	b3Particle* m_next;
 };
 
