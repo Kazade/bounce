@@ -171,6 +171,84 @@ void b3ClothSolver::ApplyConstraints()
 	}
 }
 
+// 
+static void b3SolveMPCG(b3DenseVec3& x,
+	const b3SparseSymMat33View& A, const b3DenseVec3& b,
+	const b3DiagMat33& S, const b3DenseVec3& z, 
+	const b3DenseVec3& y, const b3DiagMat33& I, u32 maxIterations = 20)
+{
+	B3_PROFILE("Cloth Solve MPCG");
+
+	// Jacobi preconditioner 
+	// P = diag(A)
+	b3DiagMat33 inv_P(A.rowCount);
+	for (u32 i = 0; i < A.rowCount; ++i)
+	{
+		b3Mat33 a = A(i, i);
+
+		// Sylvester Criterion to ensure PD-ness
+		B3_ASSERT(b3Det(a.x, a.y, a.z) > 0.0f);
+
+		B3_ASSERT(a.x.x != 0.0f);
+		float32 xx = 1.0f / a.x.x;
+
+		B3_ASSERT(a.y.y != 0.0f);
+		float32 yy = 1.0f / a.y.y;
+
+		B3_ASSERT(a.z.z != 0.0f);
+		float32 zz = 1.0f / a.z.z;
+
+		inv_P[i] = b3Diagonal(xx, yy, zz);
+	}
+
+	x = (S * y) + (I - S) * z;
+
+	b3DenseVec3 b_hat = S * (b - A * ((I - S) * z));
+
+	float32 b_delta = b3Dot(b_hat, inv_P * b_hat);
+
+	b3DenseVec3 r = S * (b - A * x);
+
+	b3DenseVec3 p = S * (inv_P * r);
+
+	float32 delta_new = b3Dot(r, p);
+
+	u32 iteration = 0;
+	for (;;)
+	{
+		if (iteration == maxIterations)
+		{
+			break;
+		}
+
+		if (delta_new <= B3_EPSILON * B3_EPSILON * b_delta)
+		{
+			break;
+		}
+
+		b3DenseVec3 s = S * (A * p);
+
+		float32 alpha = delta_new / b3Dot(p, s);
+
+		x = x + alpha * p;
+		r = r - alpha * s;
+
+		b3DenseVec3 h = inv_P * r;
+
+		float32 delta_old = delta_new;
+
+		delta_new = b3Dot(r, h);
+
+		float32 beta = delta_new / delta_old;
+
+		p = S * (h + beta * p);
+
+		++iteration;
+	}
+
+	b3_clothSolverIterations = iteration;
+}
+
 void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations)
 {
 	float32 h = dt;
@@ -250,11 +328,15 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterati
 		// b
 		b3DenseVec3 b = h * (sf + h * (dfdx * sv) + dfdx * sy);
 
+		// I
+		b3DiagMat33 I(m_particleCount);
+		I.SetIdentity();
+
 		// x
 		b3DenseVec3 x(m_particleCount);
-		SolveMPCG(x, viewA, b, S, z, sx0);
+		b3SolveMPCG(x, viewA, b, S, z, sx0, I);
 
-		// 
+		// Velocity update
 		sv = sv + x;
 		sx = sx + sy;
 
@@ -343,88 +425,4 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterati
 		p->m_position = sx[i];
 		p->m_velocity = sv[i];
 	}
-}
-
-void b3ClothSolver::SolveMPCG(b3DenseVec3& x,
-	const b3SparseSymMat33View& A, const b3DenseVec3& b, 
-	const b3DiagMat33& S, const b3DenseVec3& z, const b3DenseVec3& y, u32 maxIterations) const
-{
-	B3_PROFILE("Cloth Solve Ax = b");
-
-	// P = diag(A)
-	b3DiagMat33 inv_P(A.rowCount);
-	for (u32 i = 0; i < A.rowCount; ++i)
-	{
-		inv_P[i] = A(i, i);
-	}
-
-	// Invert
-	for (u32 i = 0; i < inv_P.n; ++i)
-	{
-		b3Mat33& D = inv_P[i];
-
-		// Sylvester Criterion to ensure PD-ness
-		B3_ASSERT(b3Det(D.x, D.y, D.z) > 0.0f);
-
-		B3_ASSERT(D.x.x != 0.0f);
-		float32 xx = 1.0f / D.x.x;
-
-		B3_ASSERT(D.y.y != 0.0f);
-		float32 yy = 1.0f / D.y.y;
-
-		B3_ASSERT(D.z.z != 0.0f);
-		float32 zz = 1.0f / D.z.z;
-
-		D = b3Diagonal(xx, yy, zz);
-	}
-
-	b3DiagMat33 I(m_particleCount);
-	I.SetIdentity();
-
-	x = (S * y) + (I - S) * z;
-
-	b3DenseVec3 b_hat = S * (b - A * ((I - S) * z));
-
-	float32 b_delta = b3Dot(b_hat, inv_P * b_hat);
-
-	b3DenseVec3 r = S * (b - A * x);
-
-	b3DenseVec3 p = S * (inv_P * r);
-
-	float32 delta_new = b3Dot(r, p);
-
-	u32 iteration = 0;
-	for (;;)
-	{
-		if (iteration == maxIterations)
-		{
-			break;
-		}
-		
-		if (delta_new <= B3_EPSILON * B3_EPSILON * b_delta)
-		{
-			break;
-		}
-
-		b3DenseVec3 s = S * (A * p);
-
-		float32 alpha = delta_new / b3Dot(p, s);
-
-		x = x + alpha * p;
-		r = r - alpha * s;
-
-		b3DenseVec3 h = inv_P * r;
-
-		float32 delta_old = delta_new;
-
-		delta_new = b3Dot(r, h);
-
-		float32 beta = delta_new / delta_old;
-
-		p = S * (h + beta * p);
-
-		++iteration;
-	}
-
-	b3_clothSolverIterations = iteration;
 }
