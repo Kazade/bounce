@@ -92,32 +92,35 @@ static void b3ExtractRotation(b3Mat33& out, b3Quat& q, const b3Mat33& A, u32 max
 	out = b3QuatMat33(q);
 }
 
+// 
 static void b3SolveMPCG(b3DenseVec3& x,
 	const b3SparseMat33View& A, const b3DenseVec3& b,
 	const b3DenseVec3& z, const b3DiagMat33& S, u32 maxIterations = 20)
 {
-	B3_PROFILE("Soft Body Solve Ax = b");
+	B3_PROFILE("Soft Body Solve MPCG");
 
+	// Jacobi preconditioner
+	// P = diag(A) 
 	b3DiagMat33 P(A.rowCount);
 	b3DiagMat33 invP(A.rowCount);
 	for (u32 i = 0; i < A.rowCount; ++i)
 	{
-		b3Mat33 D = A(i, i);
+		b3Mat33 a = A(i, i);
 
 		// Sylvester Criterion to ensure PD-ness
-		B3_ASSERT(b3Det(D.x, D.y, D.z) > 0.0f);
+		B3_ASSERT(b3Det(a.x, a.y, a.z) > 0.0f);
 
-		B3_ASSERT(D.x.x != 0.0f);
-		float32 xx = 1.0f / D.x.x;
+		B3_ASSERT(a.x.x != 0.0f);
+		float32 xx = 1.0f / a.x.x;
 
-		B3_ASSERT(D.y.y != 0.0f);
-		float32 yy = 1.0f / D.y.y;
+		B3_ASSERT(a.y.y != 0.0f);
+		float32 yy = 1.0f / a.y.y;
 
-		B3_ASSERT(D.z.z != 0.0f);
-		float32 zz = 1.0f / D.z.z;
+		B3_ASSERT(a.z.z != 0.0f);
+		float32 zz = 1.0f / a.z.z;
 
-		P[i] = b3Diagonal(xx, yy, zz);
-		invP[i] = b3Diagonal(D.x.x, D.y.y, D.z.z);
+		P[i] = b3Diagonal(a.x.x, a.y.y, a.z.z);
+		invP[i] = b3Diagonal(xx, yy, zz);
 	}
 
 	x = z;
