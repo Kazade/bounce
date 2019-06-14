@@ -96,10 +96,10 @@ public :
 	virtual void DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color) = 0;
 
 	// Draw a plane with center, normal and radius.
-	virtual void DrawPlane(const b3Vec3& center, const b3Vec3& normal, float32 radius, const b3Color& color) = 0;
+	virtual void DrawPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color) = 0;
 
 	// Draw a solid plane with center, normal and radius.
-	virtual void DrawSolidPlane(const b3Vec3& center, const b3Vec3& normal, float32 radius, const b3Color& color) = 0;
+	virtual void DrawSolidPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color) = 0;
 
 	// Draw a sphere with center, and radius.
 	virtual void DrawSphere(const b3Vec3& center, float32 radius, const b3Color& color) = 0;
