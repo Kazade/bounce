@@ -58,7 +58,6 @@ struct b3SoftBodyTriangle
 {
 	u32 v1, v2, v3;
 	u32 tetrahedron;
-	u32 treeId;
 };
 
 // Soft body definition
@@ -90,15 +89,16 @@ struct b3SoftBodyDef
 	// This is a dimensionless value
 	float32 nu;
 
-	// Material yield in [0, inf]
+	// Material elastic strain yield in [0, inf]
 	// This is a dimensionless value
 	float32 c_yield;
 
 	// Material creep rate in [0, 1 / dt]
-	// Units are inverse seconds
+	// Units are Hz
 	float32 c_creep;
 
 	// Material maximum plastic strain in [0, inf]
+	// This is a dimensionless value
 	float32 c_max;
 };
 
