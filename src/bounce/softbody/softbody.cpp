@@ -463,6 +463,7 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 	m_c_max = def.c_max;
 	m_gravity.SetZero();
 	m_world = nullptr;
+	m_dt = 0.0f;
 
 	const b3SoftBodyMesh* m = m_mesh;
 
@@ -489,7 +490,7 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 		b3AABB3 aabb;
 		aabb.Set(n->m_position, 0.0f);
 
-		n->m_treeId = m_nodeTree.InsertNode(aabb, n);
+		n->m_broadPhaseId = m_broadPhase.CreateProxy(aabb, n);
 	}
 
 	// Compute mass
@@ -778,7 +779,7 @@ void b3SoftBody::UpdateContacts()
 			continue;
 		}
 
-		b3AABB3 aabb = m_nodeTree.GetAABB(n->m_treeId);
+		b3AABB3 aabb = m_broadPhase.GetAABB(n->m_broadPhaseId);
 
 		b3SoftBodyUpdateContactsQueryListener listener;
 		listener.sphere.vertex = n->m_position;
@@ -838,6 +839,8 @@ void b3SoftBody::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations
 void b3SoftBody::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 {
 	B3_PROFILE("Soft Body Step");
+
+	m_dt = dt;
 
 	// Update contacts
 	UpdateContacts();

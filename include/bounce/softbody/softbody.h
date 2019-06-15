@@ -22,7 +22,7 @@
 #include <bounce/common/math/transform.h>
 #include <bounce/common/memory/stack_allocator.h>
 
-#include <bounce/collision/trees/dynamic_tree.h>
+#include <bounce/collision/broad_phase.h>
 
 class b3World;
 
@@ -189,8 +189,11 @@ private:
 	// Soft body triangles
 	b3SoftBodyTriangle* m_triangles;
 
-	// Node tree
-	b3DynamicTree m_nodeTree;
+	// Broadphase
+	b3BroadPhase m_broadPhase;
+
+	// Time-step
+	float32 m_dt;
 
 	// Attached world
 	b3World* m_world;

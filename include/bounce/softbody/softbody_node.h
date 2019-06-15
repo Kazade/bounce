@@ -163,8 +163,8 @@ private:
 	// Node and body contact
 	b3NodeBodyContact m_bodyContact;
 
-	// Tree identifier
-	u32 m_treeId;
+	// Broadphase proxy
+	u32 m_broadPhaseId;
 
 	// Soft body
 	b3SoftBody* m_body;

@@ -39,5 +39,7 @@ void b3SoftBodyNode::Synchronize()
 	b3AABB3 aabb;
 	aabb.Set(m_position, m_radius);
 
-	m_body->m_nodeTree.UpdateNode(m_treeId, aabb);
+	b3Vec3 displacement = m_body->m_dt * m_velocity;
+
+	m_body->m_broadPhase.MoveProxy(m_broadPhaseId, aabb, displacement);
 }
