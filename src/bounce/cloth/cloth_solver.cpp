@@ -189,13 +189,13 @@ static void b3SolveMPCG(b3DenseVec3& x,
 		// Sylvester Criterion to ensure PD-ness
 		B3_ASSERT(b3Det(a.x, a.y, a.z) > 0.0f);
 
-		B3_ASSERT(a.x.x != 0.0f);
+		B3_ASSERT(a.x.x > 0.0f);
 		float32 xx = 1.0f / a.x.x;
 
-		B3_ASSERT(a.y.y != 0.0f);
+		B3_ASSERT(a.y.y > 0.0f);
 		float32 yy = 1.0f / a.y.y;
 
-		B3_ASSERT(a.z.z != 0.0f);
+		B3_ASSERT(a.z.z > 0.0f);
 		float32 zz = 1.0f / a.z.z;
 
 		inv_P[i] = b3Diagonal(xx, yy, zz);
