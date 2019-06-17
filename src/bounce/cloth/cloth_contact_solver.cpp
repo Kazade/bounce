@@ -216,9 +216,9 @@ void b3ClothContactSolver::InitializeTriangleContactConstraints()
 
 		pc->triangleRadius = 0.0f;
 
-		pc->wB = c->w2;
-		pc->wC = c->w3;
-		pc->wD = c->w4;
+		pc->wB = c->m_w2;
+		pc->wC = c->m_w3;
+		pc->wD = c->m_w4;
 
 		u32 indexA = pc->indexA;
 		float32 mA = pc->invMassA;

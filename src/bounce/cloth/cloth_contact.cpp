@@ -172,7 +172,7 @@ void b3ParticleTriangleContact::Update()
 	m_active = true;
 
 	// Store Barycentric coordinates for P1
-	w2 = wABC[0];
-	w3 = wABC[1];
-	w4 = wABC[2];
+	m_w2 = wABC[0];
+	m_w3 = wABC[1];
+	m_w4 = wABC[2];
 }
