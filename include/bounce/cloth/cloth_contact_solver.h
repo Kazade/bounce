@@ -92,11 +92,10 @@ struct b3ClothSolverTriangleContactVelocityConstraint
 	float32 invMassC;
 	u32 indexD;
 	float32 invMassD;
+	
+	float32 wB, wC, wD;
 
-	b3Vec3 JA;
-	b3Vec3 JB;
-	b3Vec3 JC;
-	b3Vec3 JD;
+	b3Vec3 normal;
 
 	float32 normalMass;
 	float32 normalImpulse;
@@ -116,7 +115,7 @@ struct b3ClothSolverTriangleContactPositionConstraint
 	float32 invMassD;
 	float32 triangleRadius;
 
-	bool front;
+	float32 wB, wC, wD;
 };
 
 struct b3ClothContactSolverDef

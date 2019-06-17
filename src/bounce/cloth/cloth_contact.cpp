@@ -171,13 +171,8 @@ void b3ParticleTriangleContact::Update()
 	// Activate the contact
 	m_active = true;
 
-	// Is P1 in front or back of the plane? 
-	if (distance >= 0.0f)
-	{
-		m_front = true;
-	}
-	else
-	{
-		m_front = false;
-	}
+	// Store Barycentric coordinates for P1
+	w2 = wABC[0];
+	w3 = wABC[1];
+	w4 = wABC[2];
 }

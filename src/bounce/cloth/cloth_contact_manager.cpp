@@ -102,7 +102,6 @@ void b3ClothContactManager::AddPair(void* data1, void* data2)
 	c->m_p3 = p3;
 	c->m_p4 = p4;
 	c->m_normalImpulse = 0.0f;
-	c->m_front = false;
 	c->m_active = false;
 
 	// Add the contact to the cloth contact list.

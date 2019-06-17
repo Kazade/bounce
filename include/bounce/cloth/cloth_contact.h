@@ -53,7 +53,7 @@ private:
 
 	float32 m_normalImpulse;
 
-	bool m_front;
+	float32 w2, w3, w4;
 
 	bool m_active;
 

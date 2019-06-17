@@ -215,7 +215,10 @@ void b3ClothContactSolver::InitializeTriangleContactConstraints()
 		pc->invMassD = c->m_p4->m_type == e_staticParticle ? 0.0f : c->m_p4->m_invMass;
 
 		pc->triangleRadius = 0.0f;
-		pc->front = c->m_front;
+
+		pc->wB = c->w2;
+		pc->wC = c->w3;
+		pc->wD = c->w4;
 
 		u32 indexA = pc->indexA;
 		float32 mA = pc->invMassA;
@@ -234,32 +237,21 @@ void b3ClothContactSolver::InitializeTriangleContactConstraints()
 		b3Vec3 xC = x[indexC];
 		b3Vec3 xD = x[indexD];
 
-		b3Vec3 n = b3Cross(xC - xB, xD - xB);
+		float32 wB = pc->wB;
+		float32 wC = pc->wC;
+		float32 wD = pc->wD;
 
-		if (pc->front == false)
-		{
-			n = -n;
-		}
+		b3Vec3 cB = wB * xB + wC * xC + wD * xD;
 
-		float32 n_len = n.Normalize();
+		b3Vec3 n = cB - xA;
+		n.Normalize();
 
-		b3Mat33 I; I.SetIdentity();
+		vc->normal = n;
+		vc->wB = wB;
+		vc->wC = wC;
+		vc->wD = wD;
 
-		b3Mat33 N = I - b3Outer(n, n);
-		if (n_len > B3_EPSILON)
-		{
-			N = (1.0f / n_len) * N;
-		}
-
-		b3Vec3 N_n = N * n;
-
-		vc->JA = n;
-		vc->JB = b3Cross(xC - xD, N_n) - n;
-		vc->JC = b3Cross(xD - xB, N_n);
-		vc->JD = b3Cross(xC - xB, N_n);
-
-		//float32 K = mA + mB * b3Dot(vc->JB, vc->JB) + mC * b3Dot(vc->JC, vc->JC) + mD * b3Dot(vc->JD, vc->JD);
-		float32 K = mA + mB + mC + mD;
+		float32 K = mA + mB * wB * wB + mC * wC * wC + mD * wD * wD;
 
 		vc->normalMass = K > 0.0f ? 1.0f / K : 0.0f;
 		vc->normalImpulse = c->m_normalImpulse;
@@ -336,10 +328,15 @@ void b3ClothContactSolver::WarmStartTriangleContactConstraints()
 		float32 mC = vc->invMassC;
 		float32 mD = vc->invMassD;
 
-		b3Vec3 PA = vc->normalImpulse * vc->JA;
-		b3Vec3 PB = vc->normalImpulse * vc->JB;
-		b3Vec3 PC = vc->normalImpulse * vc->JC;
-		b3Vec3 PD = vc->normalImpulse * vc->JD;
+		b3Vec3 JA = -vc->normal;
+		b3Vec3 JB = vc->wB * vc->normal;
+		b3Vec3 JC = vc->wC * vc->normal;
+		b3Vec3 JD = vc->wD * vc->normal;
+
+		b3Vec3 PA = vc->normalImpulse * JA;
+		b3Vec3 PB = vc->normalImpulse * JB;
+		b3Vec3 PC = vc->normalImpulse * JC;
+		b3Vec3 PD = vc->normalImpulse * JD;
 
 		vA += mA * PA;
 		vB += mB * PB;
@@ -461,12 +458,18 @@ void b3ClothContactSolver::SolveTriangleContactVelocityConstraints()
 		u32 indexD = vc->indexD;
 		float32 mD = vc->invMassD;
 
+		float32 wB = vc->wB;
+		float32 wC = vc->wC;
+		float32 wD = vc->wD;
+
 		b3Vec3 vA = v[indexA];
 		b3Vec3 vB = v[indexB];
 		b3Vec3 vC = v[indexC];
 		b3Vec3 vD = v[indexD];
 
-		float32 Cdot = b3Dot(vc->JA, vA) + b3Dot(vc->JB, vB) + b3Dot(vc->JC, vC) + b3Dot(vc->JD, vD);
+		b3Vec3 vCB = wB * vB + wC * vC + wD * vD;
+
+		float32 Cdot = b3Dot(vCB - vA, vc->normal);
 
 		float32 impulse = -vc->normalMass * Cdot;
 
@@ -474,10 +477,15 @@ void b3ClothContactSolver::SolveTriangleContactVelocityConstraints()
 		vc->normalImpulse = b3Max(vc->normalImpulse + impulse, 0.0f);
 		impulse = vc->normalImpulse - oldImpulse;
 
-		b3Vec3 PA = impulse * vc->JA;
-		b3Vec3 PB = impulse * vc->JB;
-		b3Vec3 PC = impulse * vc->JC;
-		b3Vec3 PD = impulse * vc->JD;
+		b3Vec3 JA = -vc->normal;
+		b3Vec3 JB = wB * vc->normal;
+		b3Vec3 JC = wC * vc->normal;
+		b3Vec3 JD = wD * vc->normal;
+
+		b3Vec3 PA = impulse * JA;
+		b3Vec3 PB = impulse * JB;
+		b3Vec3 PC = impulse * JC;
+		b3Vec3 PD = impulse * JD;
 
 		vA += mA * PA;
 		vB += mB * PB;
@@ -638,20 +646,21 @@ bool b3ClothContactSolver::SolveTriangleContactPositionConstraints()
 
 		float32 triangleRadius = pc->triangleRadius;
 
+		float32 wB = pc->wB;
+		float32 wC = pc->wC;
+		float32 wD = pc->wD;
+
 		b3Vec3 xA = x[indexA];
 		b3Vec3 xB = x[indexB];
 		b3Vec3 xC = x[indexC];
 		b3Vec3 xD = x[indexD];
 
-		b3Vec3 n = b3Cross(xC - xB, xD - xB);
-		if (pc->front == false)
-		{
-			n = -n;
-		}
+		b3Vec3 cB = wB * xB + wC * xC + wD * xD;
 
-		float32 n_len = n.Normalize();
+		b3Vec3 n = cB - xA;
+		
+		float32 distance = n.Normalize();
 
-		float32 distance = b3Dot(n, xA - xB);
 		float32 separation = distance - radiusA - triangleRadius;
 
 		// Update max constraint error.
@@ -660,24 +669,13 @@ bool b3ClothContactSolver::SolveTriangleContactPositionConstraints()
 		// Allow some slop and prevent large corrections.
 		float32 C = b3Clamp(B3_BAUMGARTE * (separation + B3_LINEAR_SLOP), -B3_MAX_LINEAR_CORRECTION, 0.0f);
 
-		b3Mat33 I; I.SetIdentity();
-
-		b3Mat33 N = I - b3Outer(n, n);
-		if (n_len > B3_EPSILON)
-		{
-			N = (1.0f / n_len) * N;
-		}
-
-		b3Vec3 N_n = N * n;
-
-		b3Vec3 JA = n;
-		b3Vec3 JB = b3Cross(xC - xD, N_n) - n;
-		b3Vec3 JC = b3Cross(xD - xB, N_n);
-		b3Vec3 JD = b3Cross(xC - xB, N_n);
+		b3Vec3 JA = -n;
+		b3Vec3 JB = wB * n;
+		b3Vec3 JC = wC * n;
+		b3Vec3 JD = wD * n;
 
 		// Compute effective mass.
-		//float32 K = mA + mB * b3Dot(JB, JB) + mC * b3Dot(JC, JC) + mD * b3Dot(JD, JD);
-		float32 K = mA + mB + mC + mD;
+		float32 K = mA + mB * wB * wB + mC * wC * wC + mD * wD * wD;
 
 		// Compute normal impulse.
 		float32 impulse = K > 0.0f ? -C / K : 0.0f;
