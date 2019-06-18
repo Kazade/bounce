@@ -19,6 +19,7 @@
 #include <bounce/cloth/cloth_contact.h>
 #include <bounce/cloth/cloth_mesh.h>
 #include <bounce/cloth/particle.h>
+#include <bounce/cloth/cloth_triangle.h>
 #include <bounce/common/geometry.h>
 
 // 
@@ -134,7 +135,7 @@ void b3ParticleTriangleContact::Update()
 	}
 
 	float32 r1 = m_p1->m_radius;
-	float32 r2 = 0.0f;
+	float32 r2 = m_t2->m_radius;
 
 	float32 totalRadius = r1 + r2;
 
