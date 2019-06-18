@@ -173,6 +173,7 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 		pd.type = e_dynamicParticle;
 		pd.mass = 1.0f;
 		pd.position = m->vertices[i];
+		pd.radius = def.thickness;
 
 		b3Particle* p = CreateParticle(pd);
 
