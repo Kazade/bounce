@@ -19,6 +19,7 @@
 #include <bounce/cloth/cloth_contact_solver.h>
 #include <bounce/cloth/cloth_contact_manager.h>
 #include <bounce/cloth/particle.h>
+#include <bounce/cloth/cloth_triangle.h>
 #include <bounce/cloth/dense_vec3.h>
 #include <bounce/common/memory/stack_allocator.h>
 #include <bounce/dynamics/shapes/shape.h>
@@ -214,7 +215,7 @@ void b3ClothContactSolver::InitializeTriangleContactConstraints()
 		pc->indexD = c->m_p4->m_solverId;
 		pc->invMassD = c->m_p4->m_type == e_staticParticle ? 0.0f : c->m_p4->m_invMass;
 
-		pc->triangleRadius = 0.0f;
+		pc->triangleRadius = c->m_t2->m_radius;
 
 		pc->wB = c->m_w2;
 		pc->wC = c->m_w3;
@@ -255,6 +256,14 @@ void b3ClothContactSolver::InitializeTriangleContactConstraints()
 
 		vc->normalMass = K > 0.0f ? 1.0f / K : 0.0f;
 		vc->normalImpulse = c->m_normalImpulse;
+
+		vc->friction = b3MixFriction(c->m_p1->m_friction, c->m_t2->m_friction);
+		vc->tangent1 = b3Perp(n);
+		vc->tangent2 = b3Cross(vc->tangent1, n);
+		vc->tangentMass1 = vc->normalMass;
+		vc->tangentMass2 = vc->normalMass;
+		vc->tangentImpulse1 = c->m_tangentImpulse1;
+		vc->tangentImpulse2 = c->m_tangentImpulse2;
 	}
 }
 
@@ -328,21 +337,57 @@ void b3ClothContactSolver::WarmStartTriangleContactConstraints()
 		float32 mC = vc->invMassC;
 		float32 mD = vc->invMassD;
 
-		b3Vec3 JA = -vc->normal;
-		b3Vec3 JB = vc->wB * vc->normal;
-		b3Vec3 JC = vc->wC * vc->normal;
-		b3Vec3 JD = vc->wD * vc->normal;
+		{
+			b3Vec3 JA = -vc->normal;
+			b3Vec3 JB = vc->wB * vc->normal;
+			b3Vec3 JC = vc->wC * vc->normal;
+			b3Vec3 JD = vc->wD * vc->normal;
 
-		b3Vec3 PA = vc->normalImpulse * JA;
-		b3Vec3 PB = vc->normalImpulse * JB;
-		b3Vec3 PC = vc->normalImpulse * JC;
-		b3Vec3 PD = vc->normalImpulse * JD;
+			b3Vec3 PA = vc->normalImpulse * JA;
+			b3Vec3 PB = vc->normalImpulse * JB;
+			b3Vec3 PC = vc->normalImpulse * JC;
+			b3Vec3 PD = vc->normalImpulse * JD;
 
-		vA += mA * PA;
-		vB += mB * PB;
-		vC += mC * PC;
-		vD += mD * PD;
+			vA += mA * PA;
+			vB += mB * PB;
+			vC += mC * PC;
+			vD += mD * PD; 
+		}
 
+		{
+			b3Vec3 JA = -vc->tangent1;
+			b3Vec3 JB = vc->wB * vc->tangent1;
+			b3Vec3 JC = vc->wC * vc->tangent1;
+			b3Vec3 JD = vc->wD * vc->tangent1;
+
+			b3Vec3 PA = vc->tangentImpulse1 * JA;
+			b3Vec3 PB = vc->tangentImpulse1 * JB;
+			b3Vec3 PC = vc->tangentImpulse1 * JC;
+			b3Vec3 PD = vc->tangentImpulse1 * JD;
+
+			vA += mA * PA;
+			vB += mB * PB;
+			vC += mC * PC;
+			vD += mD * PD; 
+		}
+		
+		{
+			b3Vec3 JA = -vc->tangent2;
+			b3Vec3 JB = vc->wB * vc->tangent2;
+			b3Vec3 JC = vc->wC * vc->tangent2;
+			b3Vec3 JD = vc->wD * vc->tangent2;
+
+			b3Vec3 PA = vc->tangentImpulse2 * JA;
+			b3Vec3 PB = vc->tangentImpulse2 * JB;
+			b3Vec3 PC = vc->tangentImpulse2 * JC;
+			b3Vec3 PD = vc->tangentImpulse2 * JD;
+
+			vA += mA * PA;
+			vB += mB * PB;
+			vC += mC * PC;
+			vD += mD * PD;
+		}
+		
 		v[indexA] = vA;
 		v[indexB] = vB;
 		v[indexC] = vC;
@@ -467,30 +512,95 @@ void b3ClothContactSolver::SolveTriangleContactVelocityConstraints()
 		b3Vec3 vC = v[indexC];
 		b3Vec3 vD = v[indexD];
 
-		b3Vec3 vCB = wB * vB + wC * vC + wD * vD;
+		// Solve normal constraint.
+		{
+			b3Vec3 vCB = wB * vB + wC * vC + wD * vD;
 
-		float32 Cdot = b3Dot(vCB - vA, vc->normal);
+			float32 Cdot = b3Dot(vCB - vA, vc->normal);
 
-		float32 impulse = -vc->normalMass * Cdot;
+			float32 impulse = -vc->normalMass * Cdot;
 
-		float32 oldImpulse = vc->normalImpulse;
-		vc->normalImpulse = b3Max(vc->normalImpulse + impulse, 0.0f);
-		impulse = vc->normalImpulse - oldImpulse;
+			float32 oldImpulse = vc->normalImpulse;
+			vc->normalImpulse = b3Max(vc->normalImpulse + impulse, 0.0f);
+			impulse = vc->normalImpulse - oldImpulse;
 
-		b3Vec3 JA = -vc->normal;
-		b3Vec3 JB = wB * vc->normal;
-		b3Vec3 JC = wC * vc->normal;
-		b3Vec3 JD = wD * vc->normal;
+			b3Vec3 JA = -vc->normal;
+			b3Vec3 JB = wB * vc->normal;
+			b3Vec3 JC = wC * vc->normal;
+			b3Vec3 JD = wD * vc->normal;
 
-		b3Vec3 PA = impulse * JA;
-		b3Vec3 PB = impulse * JB;
-		b3Vec3 PC = impulse * JC;
-		b3Vec3 PD = impulse * JD;
+			b3Vec3 PA = impulse * JA;
+			b3Vec3 PB = impulse * JB;
+			b3Vec3 PC = impulse * JC;
+			b3Vec3 PD = impulse * JD;
 
-		vA += mA * PA;
-		vB += mB * PB;
-		vC += mC * PC;
-		vD += mD * PD;
+			vA += mA * PA;
+			vB += mB * PB;
+			vC += mC * PC;
+			vD += mD * PD;
+		}
+
+		// Solve tangent constraint.
+		{
+			float32 hi = vc->friction * vc->normalImpulse;
+			float32 lo = -hi;
+
+			b3Vec3 vCB = wB * vB + wC * vC + wD * vD;
+
+			float32 Cdot = b3Dot(vCB - vA, vc->tangent1);
+
+			float32 impulse = -vc->tangentMass1 * Cdot;
+
+			float32 oldImpulse = vc->tangentImpulse1;
+			vc->tangentImpulse1 = b3Clamp(vc->tangentImpulse1 + impulse, lo, hi);
+			impulse = vc->tangentImpulse1 - oldImpulse;
+
+			b3Vec3 JA = -vc->tangent1;
+			b3Vec3 JB = wB * vc->tangent1;
+			b3Vec3 JC = wC * vc->tangent1;
+			b3Vec3 JD = wD * vc->tangent1;
+
+			b3Vec3 PA = impulse * JA;
+			b3Vec3 PB = impulse * JB;
+			b3Vec3 PC = impulse * JC;
+			b3Vec3 PD = impulse * JD;
+
+			vA += mA * PA;
+			vB += mB * PB;
+			vC += mC * PC;
+			vD += mD * PD;
+		}
+
+		// Solve bitangent constraint.
+		{
+			float32 hi = vc->friction * vc->normalImpulse;
+			float32 lo = -hi;
+
+			b3Vec3 vCB = wB * vB + wC * vC + wD * vD;
+
+			float32 Cdot = b3Dot(vCB - vA, vc->tangent2);
+
+			float32 impulse = -vc->tangentMass2 * Cdot;
+
+			float32 oldImpulse = vc->tangentImpulse2;
+			vc->tangentImpulse2 = b3Clamp(vc->tangentImpulse2 + impulse, lo, hi);
+			impulse = vc->tangentImpulse2 - oldImpulse;
+
+			b3Vec3 JA = -vc->tangent2;
+			b3Vec3 JB = wB * vc->tangent2;
+			b3Vec3 JC = wC * vc->tangent2;
+			b3Vec3 JD = wD * vc->tangent2;
+
+			b3Vec3 PA = impulse * JA;
+			b3Vec3 PB = impulse * JB;
+			b3Vec3 PC = impulse * JC;
+			b3Vec3 PD = impulse * JD;
+
+			vA += mA * PA;
+			vB += mB * PB;
+			vC += mC * PC;
+			vD += mD * PD;
+		}
 
 		v[indexA] = vA;
 		v[indexB] = vB;
@@ -516,6 +626,8 @@ void b3ClothContactSolver::StoreImpulses()
 		b3ClothSolverTriangleContactVelocityConstraint* vc = m_triangleVelocityConstraints + i;
 
 		c->m_normalImpulse = vc->normalImpulse;
+		c->m_tangentImpulse1 = vc->tangentImpulse1;
+		c->m_tangentImpulse2 = vc->tangentImpulse2;
 	}
 }
 

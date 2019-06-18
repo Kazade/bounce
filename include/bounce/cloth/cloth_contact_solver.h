@@ -96,9 +96,17 @@ struct b3ClothSolverTriangleContactVelocityConstraint
 	float32 wB, wC, wD;
 
 	b3Vec3 normal;
-
 	float32 normalMass;
 	float32 normalImpulse;
+
+	float32 friction;
+
+	b3Vec3 tangent1;
+	b3Vec3 tangent2;
+	float32 tangentMass1;
+	float32 tangentMass2;
+	float32 tangentImpulse1;
+	float32 tangentImpulse2;
 };
 
 struct b3ClothSolverTriangleContactPositionConstraint

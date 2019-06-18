@@ -103,7 +103,6 @@ struct b3ClothAABBProxy
 {
 	b3ClothAABBProxyType type;
 	void* data;
-	u32 index;
 	u32 broadPhaseId;
 };
 
@@ -160,6 +159,7 @@ public:
 private:
 	friend class b3List2<b3Particle>;
 	friend class b3Cloth;
+	friend class b3ClothTriangle;
 	friend class b3ClothSolver;
 	friend class b3ClothContactManager;
 	friend class b3ParticleTriangleContact;
@@ -171,7 +171,7 @@ private:
 	~b3Particle();
 
 	// Synchronize particle AABB
-	void Synchronize();
+	void Synchronize(const b3Vec3& displacement);
 
 	// Synchronize triangles AABB
 	void SynchronizeTriangles();
@@ -246,10 +246,12 @@ inline u32 b3Particle::GetVertex() const
 
 inline void b3Particle::SetPosition(const b3Vec3& position)
 {
+	b3Vec3 displacement = position - m_position;
+
 	m_position = position;
 	m_translation.SetZero();
 
-	Synchronize();
+	Synchronize(displacement);
 	SynchronizeTriangles();
 }
 
@@ -281,7 +283,7 @@ inline void b3Particle::SetRadius(float32 radius)
 {
 	m_radius = radius;
 	
-	Synchronize();
+	Synchronize(b3Vec3_zero);
 }
 
 inline float32 b3Particle::GetRadius() const

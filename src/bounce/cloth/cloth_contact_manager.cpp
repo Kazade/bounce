@@ -20,6 +20,7 @@
 #include <bounce/cloth/cloth.h>
 #include <bounce/cloth/cloth_mesh.h>
 #include <bounce/cloth/particle.h>
+#include <bounce/cloth/cloth_triangle.h>
 
 b3ClothContactManager::b3ClothContactManager() : 
 	m_particleTriangleContactBlocks(sizeof(b3ParticleTriangleContact))
@@ -62,7 +63,8 @@ void b3ClothContactManager::AddPair(void* data1, void* data2)
 
 	b3Particle* p1 = (b3Particle*)proxy1->data;
 
-	b3ClothMeshTriangle* triangle = (b3ClothMeshTriangle*)proxy2->data;
+	b3ClothTriangle* t2 = (b3ClothTriangle*)proxy2->data;
+	b3ClothMeshTriangle* triangle = m_cloth->m_mesh->triangles + t2->m_triangle;
 	b3Particle* p2 = m_cloth->m_vertexParticles[triangle->v1];
 	b3Particle* p3 = m_cloth->m_vertexParticles[triangle->v2];
 	b3Particle* p4 = m_cloth->m_vertexParticles[triangle->v3];
@@ -70,7 +72,7 @@ void b3ClothContactManager::AddPair(void* data1, void* data2)
 	// Check if there is a contact between the two entities.
 	for (b3ParticleTriangleContact* c = m_particleTriangleContactList.m_head; c; c = c->m_next)
 	{
-		if (c->m_p1 == p1 && c->m_triangle == triangle)
+		if (c->m_p1 == p1 && c->m_t2 == t2)
 		{
 			// A contact already exists.
 			return;
@@ -86,7 +88,7 @@ void b3ClothContactManager::AddPair(void* data1, void* data2)
 		return;
 	}
 
-	if (triangle->v1 == p1->m_vertex || triangle->v2 == p1->m_vertex || triangle->v3 == p1->m_vertex)
+	if (p1 == p2 || p1 == p3 || p1 == p4)
 	{
 		// The entities must not collide with each other.
 		return;
@@ -96,12 +98,13 @@ void b3ClothContactManager::AddPair(void* data1, void* data2)
 	b3ParticleTriangleContact* c = CreateParticleTriangleContact();
 
 	c->m_p1 = p1;
-	c->m_triangle = triangle;
-	c->m_triangleProxy = proxy2;
+	c->m_t2 = t2;
 	c->m_p2 = p2;
 	c->m_p3 = p3;
 	c->m_p4 = p4;
 	c->m_normalImpulse = 0.0f;
+	c->m_tangentImpulse1 = 0.0f;
+	c->m_tangentImpulse2 = 0.0f;
 	c->m_active = false;
 
 	// Add the contact to the cloth contact list.
@@ -144,7 +147,7 @@ void b3ClothContactManager::UpdateContacts()
 		}
 
 		u32 proxy1 = c->m_p1->m_aabbProxy.broadPhaseId;
-		u32 proxy2 = c->m_triangleProxy->broadPhaseId;
+		u32 proxy2 = c->m_t2->m_aabbProxy.broadPhaseId;
 
 		// Destroy the contact if primitive AABBs are not overlapping.
 		bool overlap = m_broadPhase.TestOverlap(proxy1, proxy2);

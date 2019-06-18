@@ -19,6 +19,7 @@
 #include <bounce/cloth/cloth.h>
 #include <bounce/cloth/cloth_mesh.h>
 #include <bounce/cloth/particle.h>
+#include <bounce/cloth/cloth_triangle.h>
 #include <bounce/cloth/force.h>
 #include <bounce/cloth/spring_force.h>
 #include <bounce/cloth/cloth_solver.h>
@@ -161,11 +162,10 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 	m_mesh = def.mesh;
 	m_density = def.density;
 	m_contactManager.m_cloth = this;
-	m_dt = 0.0f;
 
 	const b3ClothMesh* m = m_mesh;
 
-	// Create particles
+	// Initialize particles
 	m_vertexParticles = (b3Particle**)b3Alloc(m->vertexCount * sizeof(b3Particle*));
 	for (u32 i = 0; i < m->vertexCount; ++i)
 	{
@@ -176,7 +176,6 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 
 		b3Particle* p = CreateParticle(pd);
 
-		p->m_aabbProxy.index = i;
 		p->m_vertex = i;
 		m_vertexParticles[i] = p;
 	}
@@ -184,7 +183,32 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 	// Compute mass
 	ComputeMass();
 
-	// Create forces
+	// Initialize triangles
+	m_triangles = (b3ClothTriangle*)b3Alloc(m_mesh->triangleCount * sizeof(b3ClothTriangle));
+	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
+	{
+		b3ClothMeshTriangle* meshTriangle = m_mesh->triangles + i;
+		b3ClothTriangle* triangle = m_triangles + i;
+
+		triangle->m_cloth = this;
+		triangle->m_radius = def.thickness;
+		triangle->m_friction = def.friction;
+		triangle->m_triangle = i;
+
+		b3Vec3 v1 = m_mesh->vertices[meshTriangle->v1];
+		b3Vec3 v2 = m_mesh->vertices[meshTriangle->v2];
+		b3Vec3 v3 = m_mesh->vertices[meshTriangle->v3];
+
+		b3AABB3 aabb;
+		aabb.Set(v1, v2, v3);
+		aabb.Extend(triangle->m_radius);
+
+		triangle->m_aabbProxy.type = e_triangleProxy;
+		triangle->m_aabbProxy.data = triangle;
+		triangle->m_aabbProxy.broadPhaseId = m_contactManager.m_broadPhase.CreateProxy(aabb, &triangle->m_aabbProxy);
+	}
+
+	// Initialize forces
 	b3StackAllocator* allocator = &m_stackAllocator;
 
 	// Worst-case edge memory
@@ -251,32 +275,15 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 		}
 	}
 
-	// Initialize triangle proxies
-	m_triangleProxies = (b3ClothAABBProxy*)b3Alloc(m_mesh->triangleCount * sizeof(b3ClothAABBProxy));
-	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
-	{
-		b3ClothMeshTriangle* triangle = m_mesh->triangles + i;
-		b3ClothAABBProxy* triangleProxy = m_triangleProxies + i;
-
-		b3Vec3 v1 = m_mesh->vertices[triangle->v1];
-		b3Vec3 v2 = m_mesh->vertices[triangle->v2];
-		b3Vec3 v3 = m_mesh->vertices[triangle->v3];
-
-		b3AABB3 aabb;
-		aabb.Set(v1, v2, v3);
-
-		triangleProxy->type = e_triangleProxy;
-		triangleProxy->index = i;
-		triangleProxy->data = triangle;
-		triangleProxy->broadPhaseId = m_contactManager.m_broadPhase.CreateProxy(aabb, triangleProxy);
-	}
-
 	m_gravity.SetZero();
 	m_world = nullptr;
 }
 
 b3Cloth::~b3Cloth()
 {
+	b3Free(m_vertexParticles);
+	b3Free(m_triangles);
+
 	b3Particle* p = m_particleList.m_head;
 	while (p)
 	{
@@ -284,9 +291,6 @@ b3Cloth::~b3Cloth()
 		p = p->m_next;
 		p0->~b3Particle();
 	}
-
-	b3Free(m_vertexParticles);
-	b3Free(m_triangleProxies);
 
 	b3Force* f = m_forceList.m_head;
 	while (f)
@@ -307,7 +311,6 @@ b3Particle* b3Cloth::CreateParticle(const b3ParticleDef& def)
 
 	p->m_aabbProxy.type = e_particleProxy;
 	p->m_aabbProxy.data = p;
-	p->m_aabbProxy.index = p->m_vertex;
 	p->m_aabbProxy.broadPhaseId = m_contactManager.m_broadPhase.CreateProxy(aabb, &p->m_aabbProxy);
 
 	m_particleList.PushFront(p);
@@ -373,6 +376,12 @@ b3Particle* b3Cloth::GetVertexParticle(u32 i)
 	return m_vertexParticles[i];
 }
 
+b3ClothTriangle* b3Cloth::GetTriangle(u32 i)
+{
+	B3_ASSERT(i < m_mesh->triangleCount);
+	return m_triangles + i;
+}
+
 void b3Cloth::ComputeMass()
 {
 	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
@@ -428,7 +437,8 @@ struct b3ClothRayCastSingleCallback
 			return input.maxFraction;
 		}
 
-		u32 triangleIndex = proxy->index;
+		b3ClothTriangle* triangle = (b3ClothTriangle*)proxy->data;
+		u32 triangleIndex = triangle->GetTriangle();
 
 		b3RayCastOutput subOutput;
 		if (cloth->RayCast(&subOutput, &input, triangleIndex))
@@ -436,7 +446,7 @@ struct b3ClothRayCastSingleCallback
 			// Ray hits triangle.
 			if (subOutput.fraction < output0.fraction)
 			{
-				triangle0 = proxy->index;
+				triangle0 = triangleIndex;
 				output0.fraction = subOutput.fraction;
 				output0.normal = subOutput.normal;
 			}
@@ -638,8 +648,6 @@ void b3Cloth::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 {
 	B3_PROFILE("Cloth Step");
 
-	m_dt = dt;
-
 	// Update particle-body contacts
 	UpdateParticleBodyContacts();
 
@@ -662,13 +670,29 @@ void b3Cloth::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 	// Synchronize particles
 	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
 	{
-		p->Synchronize();
+		b3Vec3 displacement = dt * p->m_velocity;
+
+		p->Synchronize(displacement);
 	}
 
 	// Synchronize triangles
 	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
 	{
-		SynchronizeTriangle(i);
+		b3ClothMeshTriangle* triangle = m_mesh->triangles + i;
+
+		b3Particle* p1 = m_vertexParticles[triangle->v1];
+		b3Particle* p2 = m_vertexParticles[triangle->v2];
+		b3Particle* p3 = m_vertexParticles[triangle->v3];
+
+		b3Vec3 v1 = p1->m_velocity;
+		b3Vec3 v2 = p2->m_velocity;
+		b3Vec3 v3 = p3->m_velocity;
+
+		b3Vec3 velocity = (v1 + v2 + v3) / 3.0f;
+
+		b3Vec3 displacement = dt * velocity;
+
+		m_triangles[i].Synchronize(displacement);
 	}
 
 #if B3_ENABLE_SELF_COLLISION
@@ -677,34 +701,6 @@ void b3Cloth::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 	m_contactManager.FindNewContacts();
 
 #endif
-}
-
-void b3Cloth::SynchronizeTriangle(u32 triangleIndex)
-{
-	b3ClothMeshTriangle* triangle = m_mesh->triangles + triangleIndex;
-	b3ClothAABBProxy* triangleProxy = m_triangleProxies + triangleIndex;
-
-	b3Particle* p1 = m_vertexParticles[triangle->v1];
-	b3Particle* p2 = m_vertexParticles[triangle->v2];
-	b3Particle* p3 = m_vertexParticles[triangle->v3];
-
-	b3Vec3 x1 = p1->m_position;
-	b3Vec3 x2 = p2->m_position;
-	b3Vec3 x3 = p3->m_position;
-
-	b3Vec3 v1 = p1->m_velocity;
-	b3Vec3 v2 = p2->m_velocity;
-	b3Vec3 v3 = p3->m_velocity;
-
-	b3AABB3 aabb;
-	aabb.Set(x1, x2, x3);
-
-	const float32 kInv3 = 1.0f / 3.0f;
-	
-	b3Vec3 center_velocity = kInv3 * (v1 + v2 + v3);
-	b3Vec3 center_displacement = m_dt * center_velocity;
-
-	m_contactManager.m_broadPhase.MoveProxy(triangleProxy->broadPhaseId, aabb, center_displacement);
 }
 
 void b3Cloth::Draw() const

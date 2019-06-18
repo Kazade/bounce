@@ -19,6 +19,7 @@
 #include <bounce/cloth/particle.h>
 #include <bounce/cloth/cloth.h>
 #include <bounce/cloth/cloth_mesh.h>
+#include <bounce/cloth/cloth_triangle.h>
 
 void b3ParticleBodyContactWorldPoint::Initialize(const b3ParticleBodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB)
 {
@@ -70,12 +71,10 @@ b3Particle::~b3Particle()
 
 }
 
-void b3Particle::Synchronize()
+void b3Particle::Synchronize(const b3Vec3& displacement)
 {
 	b3AABB3 aabb;
 	aabb.Set(m_position, m_radius);
-
-	b3Vec3 displacement = m_cloth->m_dt * m_velocity;
 
 	m_cloth->m_contactManager.m_broadPhase.MoveProxy(m_aabbProxy.broadPhaseId, aabb, displacement);
 }
@@ -93,7 +92,7 @@ void b3Particle::SynchronizeTriangles()
 
 		if (triangle->v1 == m_vertex || triangle->v2 == m_vertex || triangle->v3 == m_vertex)
 		{
-			m_cloth->SynchronizeTriangle(i);
+			m_cloth->GetTriangle(i)->Synchronize(b3Vec3_zero);
 		}
 	}
 }
@@ -134,7 +133,7 @@ void b3Particle::SetType(b3ParticleType type)
 		m_velocity.SetZero();
 		m_translation.SetZero();
 		
-		Synchronize();
+		Synchronize(b3Vec3_zero);
 		SynchronizeTriangles();
 	}
 

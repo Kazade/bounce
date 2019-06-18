@@ -29,6 +29,8 @@ class b3World;
 class b3Shape;
 
 class b3Particle;
+class b3ClothTriangle;
+
 class b3Force;
 struct b3ParticleBodyContact;
 
@@ -62,6 +64,8 @@ struct b3ClothDef
 		structural = 0.0f;
 		bending = 0.0f;
 		damping = 0.0f;
+		thickness = 0.0f;
+		friction = 0.2f;
 	}
 
 	// Cloth mesh 
@@ -78,6 +82,12 @@ struct b3ClothDef
 
 	// Damping stiffness
 	float32 damping;
+
+	// Cloth thickness
+	float32 thickness;
+
+	// Cloth coefficient of friction
+	float32 friction;
 };
 
 // A cloth represents a deformable surface as a collection of particles.
@@ -126,6 +136,9 @@ public:
 	// Return the particle associated with the given vertex.
 	b3Particle* GetVertexParticle(u32 i);
 
+	// Return the cloth triangle given the triangle index.
+	b3ClothTriangle* GetTriangle(u32 i);
+
 	// Return the list of particles in this cloth.
 	const b3List2<b3Particle>& GetParticleList() const;
 
@@ -142,6 +155,7 @@ public:
 	void Draw() const;
 private:
 	friend class b3Particle;
+	friend class b3ClothTriangle;
 	friend class b3ClothContactManager;
 
 	// Compute mass of each particle.
@@ -152,12 +166,6 @@ private:
 
 	// Solve
 	void Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations);
-
-	// Synchronize triangle AABB.
-	void SynchronizeTriangle(u32 triangleIndex);
-
-	// Time-step
-	float32 m_dt;
 
 	// Stack allocator
 	b3StackAllocator m_stackAllocator;
@@ -174,8 +182,8 @@ private:
 	// Vertex particles
 	b3Particle** m_vertexParticles;
 
-	// Triangle proxies
-	b3ClothAABBProxy* m_triangleProxies;
+	// Triangles
+	b3ClothTriangle* m_triangles;
 
 	// Cloth density
 	float32 m_density;
