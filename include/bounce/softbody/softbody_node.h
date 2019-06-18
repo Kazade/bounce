@@ -125,7 +125,7 @@ private:
 	~b3SoftBodyNode() { }
 
 	// Synchronize node
-	void Synchronize();
+	void Synchronize(const b3Vec3& displacement);
 
 	// Type
 	b3SoftBodyNodeType m_type;
@@ -183,7 +183,7 @@ inline void b3SoftBodyNode::SetType(b3SoftBodyNodeType type)
 	if (type == e_staticSoftBodyNode)
 	{
 		m_velocity.SetZero();
-		Synchronize();
+		Synchronize(b3Vec3_zero);
 	}
 
 	m_bodyContact.active = false;
@@ -201,9 +201,11 @@ inline u32 b3SoftBodyNode::GetVertex() const
 
 inline void b3SoftBodyNode::SetPosition(const b3Vec3& position)
 {
+	b3Vec3 displacement = position - m_position;
+
 	m_position = position;
 
-	Synchronize();
+	Synchronize(displacement);
 }
 
 inline const b3Vec3& b3SoftBodyNode::GetPosition() const
@@ -244,7 +246,7 @@ inline void b3SoftBodyNode::SetRadius(float32 radius)
 {
 	m_radius = radius;
 	
-	Synchronize();
+	Synchronize(b3Vec3_zero);
 }
 
 inline float32 b3SoftBodyNode::GetRadius() const

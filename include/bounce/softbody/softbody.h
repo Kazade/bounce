@@ -192,9 +192,6 @@ private:
 	// Broadphase
 	b3BroadPhase m_broadPhase;
 
-	// Time-step
-	float32 m_dt;
-
 	// Attached world
 	b3World* m_world;
 };

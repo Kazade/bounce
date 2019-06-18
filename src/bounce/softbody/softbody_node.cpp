@@ -34,12 +34,10 @@ void b3NodeBodyContactWorldPoint::Initialize(const b3NodeBodyContact* c, float32
 	separation = b3Dot(cB - cA, nA) - rA - rB;
 }
 
-void b3SoftBodyNode::Synchronize()
+void b3SoftBodyNode::Synchronize(const b3Vec3& displacement)
 {
 	b3AABB3 aabb;
 	aabb.Set(m_position, m_radius);
-
-	b3Vec3 displacement = m_body->m_dt * m_velocity;
 
 	m_body->m_broadPhase.MoveProxy(m_broadPhaseId, aabb, displacement);
 }

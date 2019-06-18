@@ -463,7 +463,6 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 	m_c_max = def.c_max;
 	m_gravity.SetZero();
 	m_world = nullptr;
-	m_dt = 0.0f;
 
 	const b3SoftBodyMesh* m = m_mesh;
 
@@ -840,8 +839,6 @@ void b3SoftBody::Step(float32 dt, u32 velocityIterations, u32 positionIterations
 {
 	B3_PROFILE("Soft Body Step");
 
-	m_dt = dt;
-
 	// Update contacts
 	UpdateContacts();
 
@@ -867,7 +864,9 @@ void b3SoftBody::Step(float32 dt, u32 velocityIterations, u32 positionIterations
 			continue;
 		}
 
-		n->Synchronize();
+		b3Vec3 displacement = dt * n->m_velocity;
+
+		n->Synchronize(displacement);
 	}
 }
 
