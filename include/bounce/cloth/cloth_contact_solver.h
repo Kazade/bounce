@@ -30,8 +30,6 @@ class b3Body;
 struct b3ParticleBodyContact;
 class b3ParticleTriangleContact;
 
-struct b3DenseVec3;
-
 struct b3ClothSolverBodyContactVelocityConstraint
 {
 	u32 indexA;
@@ -130,8 +128,8 @@ struct b3ClothContactSolverDef
 {
 	b3StackAllocator* allocator;
 	
-	b3DenseVec3* positions;
-	b3DenseVec3* velocities;
+	b3Vec3* positions;
+	b3Vec3* velocities;
 	
 	u32 bodyContactCount;
 	b3ParticleBodyContact** bodyContacts;
@@ -167,8 +165,8 @@ public:
 protected:
 	b3StackAllocator* m_allocator;
 
-	b3DenseVec3* m_positions;
-	b3DenseVec3* m_velocities;
+	b3Vec3* m_positions;
+	b3Vec3* m_velocities;
 
 	u32 m_bodyContactCount;
 	b3ParticleBodyContact** m_bodyContacts;

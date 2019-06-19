@@ -76,7 +76,7 @@ private:
 	b3SpringForce(const b3SpringForceDef* def);
 	~b3SpringForce();
 
-	void Apply(const b3ClothSolverData* data);
+	void Apply(const b3ClothForceSolverData* data);
 
 	// Solver shared
 

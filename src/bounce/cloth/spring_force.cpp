@@ -18,7 +18,7 @@
 
 #include <bounce/cloth/spring_force.h>
 #include <bounce/cloth/particle.h>
-#include <bounce/cloth/cloth_solver.h>
+#include <bounce/cloth/cloth_force_solver.h>
 #include <bounce/cloth/dense_vec3.h>
 #include <bounce/cloth/sparse_sym_mat33.h>
 
@@ -50,7 +50,7 @@ b3SpringForce::~b3SpringForce()
 
 }
 
-void b3SpringForce::Apply(const b3ClothSolverData* data)
+void b3SpringForce::Apply(const b3ClothForceSolverData* data)
 {
 	b3DenseVec3& x = *data->x;
 	b3DenseVec3& v = *data->v;

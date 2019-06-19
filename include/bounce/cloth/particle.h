@@ -160,6 +160,7 @@ private:
 	friend class b3Cloth;
 	friend class b3ClothTriangle;
 	friend class b3ClothSolver;
+	friend class b3ClothForceSolver;
 	friend class b3ClothContactManager;
 	friend class b3ParticleTriangleContact;
 	friend class b3ClothContactSolver;

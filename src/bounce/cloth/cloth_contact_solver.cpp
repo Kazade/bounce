@@ -20,7 +20,6 @@
 #include <bounce/cloth/cloth_contact_manager.h>
 #include <bounce/cloth/particle.h>
 #include <bounce/cloth/cloth_triangle.h>
-#include <bounce/cloth/dense_vec3.h>
 #include <bounce/common/memory/stack_allocator.h>
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/body.h>
@@ -54,9 +53,6 @@ b3ClothContactSolver::~b3ClothContactSolver()
 
 void b3ClothContactSolver::InitializeBodyContactConstraints()
 {
-	b3DenseVec3& x = *m_positions;
-	b3DenseVec3& v = *m_velocities;
-
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
 		b3ParticleBodyContact* c = m_bodyContacts[i];
@@ -109,7 +105,7 @@ void b3ClothContactSolver::InitializeBodyContactConstraints()
 		b3Mat33 iA = vc->invIA;
 		b3Mat33 iB = vc->invIB;
 
-		b3Vec3 xA = x[indexA];
+		b3Vec3 xA = m_positions[indexA];
 		b3Vec3 xB = bodyB->m_sweep.worldCenter;
 
 		b3Quat qA; qA.SetIdentity();
@@ -182,8 +178,6 @@ void b3ClothContactSolver::InitializeBodyContactConstraints()
 }
 void b3ClothContactSolver::InitializeTriangleContactConstraints()
 {
-	b3DenseVec3& x = *m_positions;
-
 	for (u32 i = 0; i < m_triangleContactCount; ++i)
 	{
 		b3ParticleTriangleContact* c = m_triangleContacts[i];
@@ -233,10 +227,10 @@ void b3ClothContactSolver::InitializeTriangleContactConstraints()
 		u32 indexD = pc->indexD;
 		float32 mD = pc->invMassD;
 
-		b3Vec3 xA = x[indexA];
-		b3Vec3 xB = x[indexB];
-		b3Vec3 xC = x[indexC];
-		b3Vec3 xD = x[indexD];
+		b3Vec3 xA = m_positions[indexA];
+		b3Vec3 xB = m_positions[indexB];
+		b3Vec3 xC = m_positions[indexC];
+		b3Vec3 xD = m_positions[indexD];
 
 		float32 wB = pc->wB;
 		float32 wC = pc->wC;
@@ -269,8 +263,6 @@ void b3ClothContactSolver::InitializeTriangleContactConstraints()
 
 void b3ClothContactSolver::WarmStartBodyContactConstraints()
 {
-	b3DenseVec3& v = *m_velocities;
-
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
 		b3ClothSolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
@@ -278,7 +270,7 @@ void b3ClothContactSolver::WarmStartBodyContactConstraints()
 		u32 indexA = vc->indexA;
 		b3Body* bodyB = vc->bodyB;
 
-		b3Vec3 vA = v[indexA];
+		b3Vec3 vA = m_velocities[indexA];
 		b3Vec3 vB = bodyB->GetLinearVelocity();
 
 		b3Vec3 wA; wA.SetZero();
@@ -307,7 +299,7 @@ void b3ClothContactSolver::WarmStartBodyContactConstraints()
 		vB += mB * (P1 + P2);
 		wB += iB * b3Cross(vc->rB, P1 + P2);
 
-		v[indexA] = vA;
+		m_velocities[indexA] = vA;
 
 		bodyB->SetLinearVelocity(vB);
 		bodyB->SetAngularVelocity(wB);
@@ -316,8 +308,6 @@ void b3ClothContactSolver::WarmStartBodyContactConstraints()
 
 void b3ClothContactSolver::WarmStartTriangleContactConstraints()
 {
-	b3DenseVec3& v = *m_velocities;
-	
 	for (u32 i = 0; i < m_triangleContactCount; ++i)
 	{
 		b3ClothSolverTriangleContactVelocityConstraint* vc = m_triangleVelocityConstraints + i;
@@ -327,10 +317,10 @@ void b3ClothContactSolver::WarmStartTriangleContactConstraints()
 		u32 indexC = vc->indexC;
 		u32 indexD = vc->indexD;
 
-		b3Vec3 vA = v[indexA];
-		b3Vec3 vB = v[indexB];
-		b3Vec3 vC = v[indexC];
-		b3Vec3 vD = v[indexD];
+		b3Vec3 vA = m_velocities[indexA];
+		b3Vec3 vB = m_velocities[indexB];
+		b3Vec3 vC = m_velocities[indexC];
+		b3Vec3 vD = m_velocities[indexD];
 
 		float32 mA = vc->invMassA;
 		float32 mB = vc->invMassB;
@@ -388,17 +378,15 @@ void b3ClothContactSolver::WarmStartTriangleContactConstraints()
 			vD += mD * PD;
 		}
 		
-		v[indexA] = vA;
-		v[indexB] = vB;
-		v[indexC] = vC;
-		v[indexD] = vD;
+		m_velocities[indexA] = vA;
+		m_velocities[indexB] = vB;
+		m_velocities[indexC] = vC;
+		m_velocities[indexD] = vD;
 	}
 }
 
 void b3ClothContactSolver::SolveBodyContactVelocityConstraints()
 {
-	b3DenseVec3& v = *m_velocities;
-
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
 		b3ClothSolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
@@ -406,7 +394,7 @@ void b3ClothContactSolver::SolveBodyContactVelocityConstraints()
 		u32 indexA = vc->indexA;
 		b3Body* bodyB = vc->bodyB;
 
-		b3Vec3 vA = v[indexA];
+		b3Vec3 vA = m_velocities[indexA];
 		b3Vec3 vB = bodyB->GetLinearVelocity();
 
 		b3Vec3 wA; wA.SetZero();
@@ -476,7 +464,7 @@ void b3ClothContactSolver::SolveBodyContactVelocityConstraints()
 			wB += iB * b3Cross(rB, P);
 		}
 
-		v[indexA] = vA;
+		m_velocities[indexA] = vA;
 
 		bodyB->SetLinearVelocity(vB);
 		bodyB->SetAngularVelocity(wB);
@@ -485,8 +473,6 @@ void b3ClothContactSolver::SolveBodyContactVelocityConstraints()
 
 void b3ClothContactSolver::SolveTriangleContactVelocityConstraints()
 {
-	b3DenseVec3& v = *m_velocities;
-
 	for (u32 i = 0; i < m_triangleContactCount; ++i)
 	{
 		b3ClothSolverTriangleContactVelocityConstraint* vc = m_triangleVelocityConstraints + i;
@@ -507,10 +493,10 @@ void b3ClothContactSolver::SolveTriangleContactVelocityConstraints()
 		float32 wC = vc->wC;
 		float32 wD = vc->wD;
 
-		b3Vec3 vA = v[indexA];
-		b3Vec3 vB = v[indexB];
-		b3Vec3 vC = v[indexC];
-		b3Vec3 vD = v[indexD];
+		b3Vec3 vA = m_velocities[indexA];
+		b3Vec3 vB = m_velocities[indexB];
+		b3Vec3 vC = m_velocities[indexC];
+		b3Vec3 vD = m_velocities[indexD];
 
 		// Solve normal constraint.
 		{
@@ -602,10 +588,10 @@ void b3ClothContactSolver::SolveTriangleContactVelocityConstraints()
 			vD += mD * PD;
 		}
 
-		v[indexA] = vA;
-		v[indexB] = vB;
-		v[indexC] = vC;
-		v[indexD] = vD;
+		m_velocities[indexA] = vA;
+		m_velocities[indexB] = vB;
+		m_velocities[indexC] = vC;
+		m_velocities[indexD] = vD;
 	}
 }
 
@@ -658,8 +644,6 @@ struct b3ClothSolverBodyContactSolverPoint
 
 bool b3ClothContactSolver::SolveBodyContactPositionConstraints()
 {
-	b3DenseVec3& x = *m_positions;
-
 	float32 minSeparation = 0.0f;
 
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
@@ -676,7 +660,7 @@ bool b3ClothContactSolver::SolveBodyContactPositionConstraints()
 		b3Mat33 iB = pc->invIB;
 		b3Vec3 localCenterB = pc->localCenterB;
 
-		b3Vec3 cA = x[indexA];
+		b3Vec3 cA = m_positions[indexA];
 		b3Quat qA; qA.SetIdentity();
 
 		b3Vec3 cB = bodyB->m_sweep.worldCenter;
@@ -724,7 +708,7 @@ bool b3ClothContactSolver::SolveBodyContactPositionConstraints()
 		qB += b3Derivative(qB, iB * b3Cross(rB, P));
 		qB.Normalize();
 
-		x[indexA] = cA;
+		m_positions[indexA] = cA;
 
 		bodyB->m_sweep.worldCenter = cB;
 		bodyB->m_sweep.orientation = qB;
@@ -735,8 +719,6 @@ bool b3ClothContactSolver::SolveBodyContactPositionConstraints()
 
 bool b3ClothContactSolver::SolveTriangleContactPositionConstraints()
 {
-	b3DenseVec3& x = *m_positions;
-
 	float32 minSeparation = 0.0f;
 
 	for (u32 i = 0; i < m_triangleContactCount; ++i)
@@ -762,10 +744,10 @@ bool b3ClothContactSolver::SolveTriangleContactPositionConstraints()
 		float32 wC = pc->wC;
 		float32 wD = pc->wD;
 
-		b3Vec3 xA = x[indexA];
-		b3Vec3 xB = x[indexB];
-		b3Vec3 xC = x[indexC];
-		b3Vec3 xD = x[indexD];
+		b3Vec3 xA = m_positions[indexA];
+		b3Vec3 xB = m_positions[indexB];
+		b3Vec3 xC = m_positions[indexC];
+		b3Vec3 xD = m_positions[indexD];
 
 		b3Vec3 cB = wB * xB + wC * xC + wD * xD;
 
@@ -802,10 +784,10 @@ bool b3ClothContactSolver::SolveTriangleContactPositionConstraints()
 		xC += mC * PC;
 		xD += mD * PD;
 
-		x[indexA] = xA;
-		x[indexB] = xB;
-		x[indexC] = xC;
-		x[indexD] = xD;
+		m_positions[indexA] = xA;
+		m_positions[indexB] = xB;
+		m_positions[indexC] = xC;
+		m_positions[indexD] = xD;
 	}
 
 	return minSeparation >= -3.0f * B3_LINEAR_SLOP;

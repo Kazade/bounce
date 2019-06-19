@@ -22,7 +22,7 @@
 #include <bounce/common/math/transform.h>
 #include <bounce/common/template/list.h>
 
-struct b3ClothSolverData;
+struct b3ClothForceSolverData;
 
 class b3Particle;
 
@@ -52,7 +52,7 @@ public:
 protected:
 	friend class b3List2<b3Force>;
 	friend class b3Cloth;
-	friend class b3ClothSolver;
+	friend class b3ClothForceSolver;
 	friend class b3Particle;
 
 	static b3Force* Create(const b3ForceDef* def);
@@ -61,7 +61,7 @@ protected:
 	b3Force() { }
 	virtual ~b3Force() { }
 
-	virtual void Apply(const b3ClothSolverData* data) = 0;
+	virtual void Apply(const b3ClothForceSolverData* data) = 0;
 
 	// Force type
 	b3ForceType m_type;
