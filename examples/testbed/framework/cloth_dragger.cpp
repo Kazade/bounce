@@ -45,9 +45,9 @@ bool b3ClothDragger::StartDragging()
 	m_triangle = m_mesh->triangles + rayOut.triangle;
 	m_x = rayOut.fraction;
 
-	b3Particle* p1 = m_cloth->GetVertexParticle(m_triangle->v1);
-	b3Particle* p2 = m_cloth->GetVertexParticle(m_triangle->v2);
-	b3Particle* p3 = m_cloth->GetVertexParticle(m_triangle->v3);
+	b3Particle* p1 = m_cloth->GetParticle(m_triangle->v1);
+	b3Particle* p2 = m_cloth->GetParticle(m_triangle->v2);
+	b3Particle* p3 = m_cloth->GetParticle(m_triangle->v3);
 
 	b3Vec3 v1 = p1->GetPosition();
 	b3Vec3 v2 = p2->GetPosition();
@@ -133,13 +133,13 @@ void b3ClothDragger::Drag()
 	}
 	else
 	{
-		b3Particle* p1 = m_cloth->GetVertexParticle(m_triangle->v1);
+		b3Particle* p1 = m_cloth->GetParticle(m_triangle->v1);
 		p1->ApplyTranslation(dx);
 
-		b3Particle* p2 = m_cloth->GetVertexParticle(m_triangle->v2);
+		b3Particle* p2 = m_cloth->GetParticle(m_triangle->v2);
 		p2->ApplyTranslation(dx);
 
-		b3Particle* p3 = m_cloth->GetVertexParticle(m_triangle->v3);
+		b3Particle* p3 = m_cloth->GetParticle(m_triangle->v3);
 		p3->ApplyTranslation(dx);
 	}
 }
@@ -172,9 +172,9 @@ void b3ClothDragger::StopDragging()
 	}
 	else
 	{
-		m_cloth->GetVertexParticle(m_triangle->v1)->SetType(m_t1);
-		m_cloth->GetVertexParticle(m_triangle->v2)->SetType(m_t2);
-		m_cloth->GetVertexParticle(m_triangle->v3)->SetType(m_t3);
+		m_cloth->GetParticle(m_triangle->v1)->SetType(m_t1);
+		m_cloth->GetParticle(m_triangle->v2)->SetType(m_t2);
+		m_cloth->GetParticle(m_triangle->v3)->SetType(m_t3);
 	}
 
 	m_triangle = nullptr;
@@ -184,9 +184,9 @@ b3Vec3 b3ClothDragger::GetPointA() const
 {
 	B3_ASSERT(IsDragging() == true);
 
-	b3Vec3 A = m_cloth->GetVertexParticle(m_triangle->v1)->GetPosition();
-	b3Vec3 B = m_cloth->GetVertexParticle(m_triangle->v2)->GetPosition();
-	b3Vec3 C = m_cloth->GetVertexParticle(m_triangle->v3)->GetPosition();
+	b3Vec3 A = m_cloth->GetParticle(m_triangle->v1)->GetPosition();
+	b3Vec3 B = m_cloth->GetParticle(m_triangle->v2)->GetPosition();
+	b3Vec3 C = m_cloth->GetParticle(m_triangle->v3)->GetPosition();
 
 	return m_u * A + m_v * B + (1.0f - m_u - m_v) * C;
 }

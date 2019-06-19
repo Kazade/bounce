@@ -102,8 +102,7 @@ enum b3ClothAABBProxyType
 struct b3ClothAABBProxy
 {
 	b3ClothAABBProxyType type;
-	void* data;
-	u32 broadPhaseId;
+	void* owner;
 };
 
 // A cloth particle.
@@ -228,6 +227,9 @@ private:
 
 	// AABB Proxy
 	b3ClothAABBProxy m_aabbProxy;
+
+	// Broadphase ID
+	u32 m_broadPhaseId;
 
 	// Links to the cloth particle list.
 	b3Particle* m_prev;

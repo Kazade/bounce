@@ -76,7 +76,7 @@ void b3Particle::Synchronize(const b3Vec3& displacement)
 	b3AABB3 aabb;
 	aabb.Set(m_position, m_radius);
 
-	m_cloth->m_contactManager.m_broadPhase.MoveProxy(m_aabbProxy.broadPhaseId, aabb, displacement);
+	m_cloth->m_contactManager.m_broadPhase.MoveProxy(m_broadPhaseId, aabb, displacement);
 }
 
 void b3Particle::SynchronizeTriangles()
@@ -140,5 +140,5 @@ void b3Particle::SetType(b3ParticleType type)
 	DestroyContacts();
 	
 	// Move the proxy so new contacts can be created.
-	m_cloth->m_contactManager.m_broadPhase.TouchProxy(m_aabbProxy.broadPhaseId);
+	m_cloth->m_contactManager.m_broadPhase.TouchProxy(m_broadPhaseId);
 }

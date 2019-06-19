@@ -130,8 +130,15 @@ public:
 				u32 v1 = s->GetParticle1()->GetVertex();
 				u32 v2 = s->GetParticle2()->GetVertex();
 
-				tension[v1] += s->GetActionForce();
-				tension[v2] -= s->GetActionForce();
+				if (v1 != ~0)
+				{
+					tension[v1] += s->GetActionForce();
+				}
+
+				if (v2 != ~0)
+				{
+					tension[v2] -= s->GetActionForce();
+				}
 			}
 		}
 
@@ -139,13 +146,13 @@ public:
 		{
 			b3ClothMeshTriangle* t = mesh->triangles + i;
 
-			b3Vec3 v1 = m_cloth->GetVertexParticle(t->v1)->GetPosition();
-			b3Vec3 v2 = m_cloth->GetVertexParticle(t->v2)->GetPosition();
-			b3Vec3 v3 = m_cloth->GetVertexParticle(t->v3)->GetPosition();
+			b3Vec3 v1 = m_cloth->GetParticle(t->v1)->GetPosition();
+			b3Vec3 v2 = m_cloth->GetParticle(t->v2)->GetPosition();
+			b3Vec3 v3 = m_cloth->GetParticle(t->v3)->GetPosition();
 
-			b3Draw_draw->DrawSegment(v1, v2, b3Color_black);
-			b3Draw_draw->DrawSegment(v2, v3, b3Color_black);
-			b3Draw_draw->DrawSegment(v3, v1, b3Color_black);
+			g_draw->DrawSegment(v1, v2, b3Color_black);
+			g_draw->DrawSegment(v2, v3, b3Color_black);
+			g_draw->DrawSegment(v3, v1, b3Color_black);
 
 			b3Vec3 f1 = tension[t->v1];
 			float32 L1 = b3Length(f1);

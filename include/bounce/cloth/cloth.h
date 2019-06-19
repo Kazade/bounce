@@ -133,8 +133,8 @@ public:
 	// Return the cloth mesh proxy.
 	const b3ClothMesh* GetMesh() const;
 
-	// Return the particle associated with the given vertex.
-	b3Particle* GetVertexParticle(u32 i);
+	// Return the cloth particle given vertex index.
+	b3Particle* GetParticle(u32 i);
 
 	// Return the cloth triangle given the triangle index.
 	b3ClothTriangle* GetTriangle(u32 i);
@@ -179,8 +179,8 @@ private:
 	// Proxy mesh
 	const b3ClothMesh* m_mesh;
 	
-	// Vertex particles
-	b3Particle** m_vertexParticles;
+	// Particles
+	b3Particle** m_particles;
 
 	// Triangles
 	b3ClothTriangle* m_triangles;

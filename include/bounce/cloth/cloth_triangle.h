@@ -67,6 +67,9 @@ private:
 
 	// AABB Proxy
 	b3ClothAABBProxy m_aabbProxy;
+
+	// Broadphase ID
+	u32 m_broadPhaseId;
 };
 
 inline u32 b3ClothTriangle::GetTriangle() const

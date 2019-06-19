@@ -61,13 +61,13 @@ void b3ClothContactManager::AddPair(void* data1, void* data2)
 	B3_ASSERT(proxy1->type == e_particleProxy);
 	B3_ASSERT(proxy2->type == e_triangleProxy);
 
-	b3Particle* p1 = (b3Particle*)proxy1->data;
+	b3Particle* p1 = (b3Particle*)proxy1->owner;
 
-	b3ClothTriangle* t2 = (b3ClothTriangle*)proxy2->data;
+	b3ClothTriangle* t2 = (b3ClothTriangle*)proxy2->owner;
 	b3ClothMeshTriangle* triangle = m_cloth->m_mesh->triangles + t2->m_triangle;
-	b3Particle* p2 = m_cloth->m_vertexParticles[triangle->v1];
-	b3Particle* p3 = m_cloth->m_vertexParticles[triangle->v2];
-	b3Particle* p4 = m_cloth->m_vertexParticles[triangle->v3];
+	b3Particle* p2 = m_cloth->m_particles[triangle->v1];
+	b3Particle* p3 = m_cloth->m_particles[triangle->v2];
+	b3Particle* p4 = m_cloth->m_particles[triangle->v3];
 
 	// Check if there is a contact between the two entities.
 	for (b3ParticleTriangleContact* c = m_particleTriangleContactList.m_head; c; c = c->m_next)
@@ -146,8 +146,8 @@ void b3ClothContactManager::UpdateContacts()
 			continue;
 		}
 
-		u32 proxy1 = c->m_p1->m_aabbProxy.broadPhaseId;
-		u32 proxy2 = c->m_t2->m_aabbProxy.broadPhaseId;
+		u32 proxy1 = c->m_p1->m_broadPhaseId;
+		u32 proxy2 = c->m_t2->m_broadPhaseId;
 
 		// Destroy the contact if primitive AABBs are not overlapping.
 		bool overlap = m_broadPhase.TestOverlap(proxy1, proxy2);

@@ -24,9 +24,9 @@ void b3ClothTriangle::Synchronize(const b3Vec3& displacement)
 {
 	b3ClothMeshTriangle* triangle = m_cloth->m_mesh->triangles + m_triangle;
 
-	b3Particle* p1 = m_cloth->m_vertexParticles[triangle->v1];
-	b3Particle* p2 = m_cloth->m_vertexParticles[triangle->v2];
-	b3Particle* p3 = m_cloth->m_vertexParticles[triangle->v3];
+	b3Particle* p1 = m_cloth->m_particles[triangle->v1];
+	b3Particle* p2 = m_cloth->m_particles[triangle->v2];
+	b3Particle* p3 = m_cloth->m_particles[triangle->v3];
 
 	b3Vec3 x1 = p1->m_position;
 	b3Vec3 x2 = p2->m_position;
@@ -36,5 +36,5 @@ void b3ClothTriangle::Synchronize(const b3Vec3& displacement)
 	aabb.Set(x1, x2, x3);
 	aabb.Extend(m_radius);
 
-	m_cloth->m_contactManager.m_broadPhase.MoveProxy(m_aabbProxy.broadPhaseId, aabb, displacement);
+	m_cloth->m_contactManager.m_broadPhase.MoveProxy(m_broadPhaseId, aabb, displacement);
 }
