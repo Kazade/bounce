@@ -16,8 +16,8 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_SOFT_BODY_SOLVER_H
-#define B3_SOFT_BODY_SOLVER_H
+#ifndef B3_SOFT_BODY_FORCE_SOLVER_H
+#define B3_SOFT_BODY_FORCE_SOLVER_H
 
 #include <bounce/common/math/mat22.h>
 #include <bounce/common/math/mat33.h>
@@ -30,31 +30,24 @@ class b3SoftBodyMesh;
 struct b3SoftBodyNode;
 struct b3SoftBodyElement;
 
-struct b3NodeBodyContact;
-
-struct b3SoftBodySolverDef
+struct b3SoftBodyForceSolverDef
 {
 	b3SoftBody* body;
 };
 
-class b3SoftBodySolver
+class b3SoftBodyForceSolver
 {
 public:
-	b3SoftBodySolver(const b3SoftBodySolverDef& def);
-	~b3SoftBodySolver();
+	b3SoftBodyForceSolver(const b3SoftBodyForceSolverDef& def);
+	~b3SoftBodyForceSolver();
 
-	void Add(b3NodeBodyContact* c);
-
-	void Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations);
+	void Solve(float32 dt, const b3Vec3& gravity);
 private:
 	b3SoftBody* m_body;
 	b3StackAllocator* m_allocator;
 	const b3SoftBodyMesh* m_mesh;
 	b3SoftBodyNode* m_nodes;
 	b3SoftBodyElement* m_elements;
-	u32 m_bodyContactCapacity;
-	u32 m_bodyContactCount;
-	b3NodeBodyContact** m_bodyContacts;
 };
 
 #endif

@@ -18,10 +18,9 @@
 
 #include <bounce/softbody/softbody_contact_solver.h>
 #include <bounce/softbody/softbody_node.h>
-#include <bounce/cloth/dense_vec3.h>
-#include <bounce/common/memory/stack_allocator.h>
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/body.h>
+#include <bounce/common/memory/stack_allocator.h>
 
 b3SoftBodyContactSolver::b3SoftBodyContactSolver(const b3SoftBodyContactSolverDef& def)
 {
@@ -30,30 +29,20 @@ b3SoftBodyContactSolver::b3SoftBodyContactSolver(const b3SoftBodyContactSolverDe
 	m_positions = def.positions;
 	m_velocities = def.velocities;
 
-	m_bodyContactCapacity = def.bodyContactCapacity;
-	m_bodyContactCount = 0;
-	m_bodyContacts = (b3NodeBodyContact**)m_allocator->Allocate(m_bodyContactCapacity * sizeof(b3NodeBodyContact*));
+	m_bodyContactCount = def.bodyContactCount;
+	m_bodyContacts = def.bodyContacts;
 }
 
 b3SoftBodyContactSolver::~b3SoftBodyContactSolver()
 {
 	m_allocator->Free(m_bodyPositionConstraints);
 	m_allocator->Free(m_bodyVelocityConstraints);
-	m_allocator->Free(m_bodyContacts);
-}
-
-void b3SoftBodyContactSolver::Add(b3NodeBodyContact* c)
-{
-	m_bodyContacts[m_bodyContactCount++] = c;
 }
 
 void b3SoftBodyContactSolver::InitializeBodyContactConstraints()
 {
 	m_bodyVelocityConstraints = (b3SoftBodySolverBodyContactVelocityConstraint*)m_allocator->Allocate(m_bodyContactCount * sizeof(b3SoftBodySolverBodyContactVelocityConstraint));
 	m_bodyPositionConstraints = (b3SoftBodySolverBodyContactPositionConstraint*)m_allocator->Allocate(m_bodyContactCount * sizeof(b3SoftBodySolverBodyContactPositionConstraint));
-	
-	b3DenseVec3& x = *m_positions;
-	b3DenseVec3& v = *m_velocities;
 
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
@@ -107,7 +96,7 @@ void b3SoftBodyContactSolver::InitializeBodyContactConstraints()
 		b3Mat33 iA = vc->invIA;
 		b3Mat33 iB = vc->invIB;
 
-		b3Vec3 xA = x[indexA];
+		b3Vec3 xA = m_positions[indexA];
 		b3Vec3 xB = bodyB->m_sweep.worldCenter;
 
 		b3Quat qA; qA.SetIdentity();
@@ -181,8 +170,6 @@ void b3SoftBodyContactSolver::InitializeBodyContactConstraints()
 
 void b3SoftBodyContactSolver::WarmStart()
 {
-	b3DenseVec3& v = *m_velocities;
-
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
 		b3SoftBodySolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
@@ -190,7 +177,7 @@ void b3SoftBodyContactSolver::WarmStart()
 		u32 indexA = vc->indexA;
 		b3Body* bodyB = vc->bodyB;
 
-		b3Vec3 vA = v[indexA];
+		b3Vec3 vA = m_velocities[indexA];
 		b3Vec3 vB = bodyB->GetLinearVelocity();
 
 		b3Vec3 wA; wA.SetZero();
@@ -219,7 +206,7 @@ void b3SoftBodyContactSolver::WarmStart()
 		vB += mB * (P1 + P2);
 		wB += iB * b3Cross(vc->rB, P1 + P2);
 
-		v[indexA] = vA;
+		m_velocities[indexA] = vA;
 
 		bodyB->SetLinearVelocity(vB);
 		bodyB->SetAngularVelocity(wB);
@@ -228,8 +215,6 @@ void b3SoftBodyContactSolver::WarmStart()
 
 void b3SoftBodyContactSolver::SolveBodyContactVelocityConstraints()
 {
-	b3DenseVec3& v = *m_velocities;
-
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
 	{
 		b3SoftBodySolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
@@ -237,7 +222,7 @@ void b3SoftBodyContactSolver::SolveBodyContactVelocityConstraints()
 		u32 indexA = vc->indexA;
 		b3Body* bodyB = vc->bodyB;
 
-		b3Vec3 vA = v[indexA];
+		b3Vec3 vA = m_velocities[indexA];
 		b3Vec3 vB = bodyB->GetLinearVelocity();
 
 		b3Vec3 wA; wA.SetZero();
@@ -307,7 +292,7 @@ void b3SoftBodyContactSolver::SolveBodyContactVelocityConstraints()
 			wB += iB * b3Cross(rB, P);
 		}
 
-		v[indexA] = vA;
+		m_velocities[indexA] = vA;
 
 		bodyB->SetLinearVelocity(vB);
 		bodyB->SetAngularVelocity(wB);
@@ -353,8 +338,6 @@ struct b3SoftBodySolverBodyContactSolverPoint
 
 bool b3SoftBodyContactSolver::SolveBodyContactPositionConstraints()
 {
-	b3DenseVec3& x = *m_positions;
-
 	float32 minSeparation = 0.0f;
 
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
@@ -371,7 +354,7 @@ bool b3SoftBodyContactSolver::SolveBodyContactPositionConstraints()
 		b3Mat33 iB = pc->invIB;
 		b3Vec3 localCenterB = pc->localCenterB;
 
-		b3Vec3 cA = x[indexA];
+		b3Vec3 cA = m_positions[indexA];
 		b3Quat qA; qA.SetIdentity();
 
 		b3Vec3 cB = bodyB->m_sweep.worldCenter;
@@ -419,7 +402,7 @@ bool b3SoftBodyContactSolver::SolveBodyContactPositionConstraints()
 		qB += b3Derivative(qB, iB * b3Cross(rB, P));
 		qB.Normalize();
 
-		x[indexA] = cA;
+		m_positions[indexA] = cA;
 
 		bodyB->m_sweep.worldCenter = cB;
 		bodyB->m_sweep.orientation = qB;

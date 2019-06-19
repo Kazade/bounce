@@ -143,6 +143,7 @@ public:
 private:
 	friend class b3SoftBodyNode;
 	friend class b3SoftBodySolver;
+	friend class b3SoftBodyForceSolver;
 
 	// Compute mass of each node.
 	void ComputeMass();

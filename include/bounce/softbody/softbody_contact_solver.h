@@ -84,10 +84,11 @@ struct b3SoftBodyContactSolverDef
 {
 	b3StackAllocator* allocator;
 
-	b3DenseVec3* positions;
-	b3DenseVec3* velocities;
+	b3Vec3* positions;
+	b3Vec3* velocities;
 
-	u32 bodyContactCapacity;
+	u32 bodyContactCount;
+	b3NodeBodyContact** bodyContacts;
 };
 
 inline float32 b3MixFriction(float32 u1, float32 u2)
@@ -101,8 +102,6 @@ public:
 	b3SoftBodyContactSolver(const b3SoftBodyContactSolverDef& def);
 	~b3SoftBodyContactSolver();
 
-	void Add(b3NodeBodyContact* c);
-
 	void InitializeBodyContactConstraints();
 
 	void WarmStart();
@@ -115,10 +114,9 @@ public:
 protected:
 	b3StackAllocator* m_allocator;
 
-	b3DenseVec3* m_positions;
-	b3DenseVec3* m_velocities;
+	b3Vec3* m_positions;
+	b3Vec3* m_velocities;
 
-	u32 m_bodyContactCapacity;
 	u32 m_bodyContactCount;
 	b3NodeBodyContact** m_bodyContacts;
 	

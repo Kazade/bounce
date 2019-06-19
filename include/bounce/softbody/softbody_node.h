@@ -118,6 +118,7 @@ public:
 private:
 	friend class b3SoftBody;
 	friend class b3SoftBodySolver;
+	friend class b3SoftBodyForceSolver;
 	friend class b3SoftBodyContactSolver;
 
 	b3SoftBodyNode() { }

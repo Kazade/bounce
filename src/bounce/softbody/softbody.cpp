@@ -832,6 +832,15 @@ void b3SoftBody::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations
 
 	b3SoftBodySolver solver(def);
 
+	// Push the active contacts
+	for (u32 i = 0; i < m_mesh->vertexCount; ++i)
+	{
+		if (m_nodes[i].m_bodyContact.active)
+		{
+			solver.Add(&m_nodes[i].m_bodyContact);
+		}
+	}
+
 	solver.Solve(dt, gravity, velocityIterations, positionIterations);
 }
 
