@@ -58,24 +58,11 @@ static inline b3Color Color(float32 x, float32 a, float32 b)
 class TensionMapping : public Test
 {
 public:
-	TensionMapping() : m_rectangleGarment(5.0f, 5.0f)
+	TensionMapping()
 	{
-		// Generate 2D mesh
-		m_rectangleGarmentMesh.Set(&m_rectangleGarment, 1.0f);
-
-		// Create 3D mesh
-		m_rectangleClothMesh.Set(&m_rectangleGarmentMesh);
-		
-		// Rotate the mesh
-		b3Mat33 rotation = b3Mat33RotationX(0.5f * B3_PI);
-		for (u32 i = 0; i < m_rectangleClothMesh.vertexCount; ++i)
-		{
-			m_rectangleClothMesh.vertices[i] = rotation * m_rectangleClothMesh.vertices[i];
-		}
-
 		// Create cloth
 		b3ClothDef def;
-		def.mesh = &m_rectangleClothMesh;
+		def.mesh = &m_clothMesh;
 		def.density = 0.2f;
 		def.structural = 10000.0f;
 
@@ -230,10 +217,7 @@ public:
 		return new TensionMapping();
 	}
 
-	b3RectangleGarment m_rectangleGarment;
-	b3GarmentMesh m_rectangleGarmentMesh;
-	b3GarmentClothMesh m_rectangleClothMesh;
-
+	b3GridClothMesh<10, 10> m_clothMesh;
 	b3Cloth* m_cloth;
 	b3ClothDragger* m_clothDragger; 
 };

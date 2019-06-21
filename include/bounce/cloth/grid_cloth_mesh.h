@@ -16,22 +16,23 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_GRID_MESH_H
-#define B3_GRID_MESH_H
+#ifndef B3_GRID_CLOTH_MESH_H
+#define B3_GRID_CLOTH_MESH_H
 
-#include <bounce/collision/shapes/mesh.h>
+#include <bounce/cloth/cloth_mesh.h>
 
 // A (H + 1) x (W + 1) grid mesh stored in row-major order.
-// v(i, j) = i * (W + 1) + j
-template<u32 H = 1, u32 W = 1>
-struct b3GridMesh : public b3Mesh
+// v(i, j) = i + (W + 1) + j
+template<u32 W = 1, u32 H = 1>
+struct b3GridClothMesh : public b3ClothMesh
 {
-	b3Vec3 gridVertices[ (H + 1) * (W + 1) ];
-	b3Triangle gridTriangles[2 * H * W];
+	b3Vec3 gridVertices[(H + 1) * (W + 1)];
+	b3ClothMeshTriangle gridTriangles[2 * H * W];
+	b3ClothMeshMesh gridMesh;
 
 	// Set this grid to a W (width) per H (height) dimensioned grid centered at the origin and aligned
 	// with the world x-z axes.
-	b3GridMesh()
+	b3GridClothMesh()
 	{
 		vertexCount = 0;
 		for (u32 i = 0; i <= H; ++i)
@@ -42,8 +43,8 @@ struct b3GridMesh : public b3Mesh
 			}
 		}
 
-		B3_ASSERT(vertexCount == (H + 1) * (W + 1));
-
+		B3_ASSERT(vertexCount == (W + 1) * (H + 1));
+		
 		b3Vec3 translation;
 		translation.x = -0.5f * float32(W);
 		translation.y = 0.0f;
@@ -64,22 +65,31 @@ struct b3GridMesh : public b3Mesh
 				u32 v3 = (i + 1) * (W + 1) + (j + 1);
 				u32 v4 = i * (W + 1) + (j + 1);
 
-				b3Triangle* t1 = gridTriangles + triangleCount++;
+				b3ClothMeshTriangle* t1 = gridTriangles + triangleCount++;
 				t1->v1 = v3;
 				t1->v2 = v2;
 				t1->v3 = v1;
 
-				b3Triangle* t2 = gridTriangles + triangleCount++;
+				b3ClothMeshTriangle* t2 = gridTriangles + triangleCount++;
 				t2->v1 = v1;
 				t2->v2 = v4;
 				t2->v3 = v3;
 			}
 		}
-
+		
 		B3_ASSERT(triangleCount == 2 * H * W);
+
+		gridMesh.startTriangle = 0;
+		gridMesh.triangleCount = triangleCount;
+		gridMesh.startVertex = 0;
+		gridMesh.vertexCount = vertexCount;
 
 		vertices = gridVertices;
 		triangles = gridTriangles;
+		meshCount = 1;
+		meshes = &gridMesh;
+		sewingLineCount = 0;
+		sewingLines = nullptr;
 	}
 };
 

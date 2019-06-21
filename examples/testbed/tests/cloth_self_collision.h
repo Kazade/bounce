@@ -16,44 +16,32 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef CLOTH_CAPSULE_H
-#define CLOTH_CAPSULE_H
+#ifndef CLOTH_SELF_COLLISION_H
+#define CLOTH_SELF_COLLISION_H
 
-class ClothCapsule : public Test
+class ClothSelfCollision : public Test
 {
 public:
-	ClothCapsule() : m_rectangleGarment(5.0f, 5.0f)
+	ClothSelfCollision()
 	{
-		// Generate 2D mesh
-		m_rectangleGarmentMesh.Set(&m_rectangleGarment, 1.0f);
-
-		// Create 3D mesh
-		m_rectangleClothMesh.Set(&m_rectangleGarmentMesh);
-
-		// Rotate and translate the mesh
-		b3Mat33 rotation = b3Mat33RotationX(0.5f * B3_PI);
-		for (u32 i = 0; i < m_rectangleClothMesh.vertexCount; ++i)
+		// Translate the mesh
+		for (u32 i = 0; i < m_clothMesh.vertexCount; ++i)
 		{
-			m_rectangleClothMesh.vertices[i] = rotation * m_rectangleClothMesh.vertices[i];
-			m_rectangleClothMesh.vertices[i].y += 5.0f;
+			m_clothMesh.vertices[i].y += 5.0f;
 		}
 
 		// Create cloth
 		b3ClothDef def;
-		def.mesh = &m_rectangleClothMesh;
+		def.mesh = &m_clothMesh;
 		def.density = 1.0f;
 		def.structural = 100000.0f;
-		
+		def.thickness = 0.2f;
+		def.friction = 0.3f;
+
 		m_cloth = new b3Cloth(def);
 
 		m_cloth->SetGravity(b3Vec3(0.0f, -9.8f, 0.0f));
 		m_cloth->SetWorld(&m_world);
-
-		for (b3Particle* p = m_cloth->GetParticleList().m_head; p; p = p->GetNext())
-		{
-			p->SetRadius(0.2f);
-			p->SetFriction(0.2f);
-		}
 
 		{
 			b3BodyDef bd;
@@ -76,7 +64,7 @@ public:
 		m_clothDragger = new b3ClothDragger(&m_ray, m_cloth);
 	}
 
-	~ClothCapsule()
+	~ClothSelfCollision()
 	{
 		delete m_cloth;
 		delete m_clothDragger;
@@ -141,15 +129,12 @@ public:
 
 	static Test* Create()
 	{
-		return new ClothCapsule();
+		return new ClothSelfCollision();
 	}
 
-	b3RectangleGarment m_rectangleGarment;
-	b3GarmentMesh m_rectangleGarmentMesh;
-	b3GarmentClothMesh m_rectangleClothMesh;
-
+	b3GridClothMesh<10, 10> m_clothMesh;
 	b3Cloth* m_cloth;
 	b3ClothDragger* m_clothDragger; 
-	};
+};
 
 #endif

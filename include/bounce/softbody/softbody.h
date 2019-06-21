@@ -141,7 +141,7 @@ public:
 	// Debug draw the body using the associated mesh.
 	void Draw() const;
 private:
-	friend class b3SoftBodyNode;
+	friend struct b3SoftBodyNode;
 	friend class b3SoftBodySolver;
 	friend class b3SoftBodyForceSolver;
 

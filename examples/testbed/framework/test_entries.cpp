@@ -63,7 +63,7 @@
 #include <testbed/tests/pinned_cloth.h>
 #include <testbed/tests/particle_types.h>
 #include <testbed/tests/tension_mapping.h>
-#include <testbed/tests/cloth_capsule.h>
+#include <testbed/tests/cloth_self_collision.h>
 #include <testbed/tests/rope_test.h>
 #include <testbed/tests/beam.h>
 #include <testbed/tests/pinned_softbody.h>
@@ -116,7 +116,7 @@ TestEntry g_tests[] =
 	{ "Pinned Cloth", &PinnedCloth::Create },
 	{ "Particle Types", &ParticleTypes::Create },
 	{ "Tension Mapping", &TensionMapping::Create },
-	{ "Cloth and Capsule", &ClothCapsule::Create },
+	{ "Cloth Self-Collision", &ClothSelfCollision::Create },
 	{ "Beam", &Beam::Create },
 	{ "Pinned Soft Body", &PinnedSoftBody::Create },
 	{ "Smash Soft Body", &SmashSoftBody::Create },

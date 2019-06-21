@@ -36,7 +36,7 @@ struct b3BlockSoftBodyMesh : public b3SoftBodyMesh
 			{
 				for (u32 z = 0; z <= D; ++z)
 				{
-					blockVertices[vertexCount++].Set(x, y, z);
+					blockVertices[vertexCount++].Set(float32(x), float32(y), float32(z));
 				}
 			}
 		}
