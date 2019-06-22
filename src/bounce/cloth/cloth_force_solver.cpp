@@ -214,9 +214,12 @@ void b3ClothForceSolver::Solve(float32 dt, const b3Vec3& gravity)
 	b3DenseVec3 sy(m_particleCount);
 	b3DenseVec3 sz(m_particleCount);
 	b3DenseVec3 sx0(m_particleCount);
+	b3SparseSymMat33 M(m_particleCount);
 	b3SparseSymMat33 dfdx(m_particleCount);
 	b3SparseSymMat33 dfdv(m_particleCount);
 	b3DiagMat33 S(m_particleCount);
+	b3DiagMat33 I(m_particleCount);
+	I.SetIdentity();
 
 	m_solverData.x = &sx;
 	m_solverData.v = &sv;
@@ -231,6 +234,8 @@ void b3ClothForceSolver::Solve(float32 dt, const b3Vec3& gravity)
 	{
 		b3Particle* p = m_particles[i];
 
+		M(i, i) = b3Diagonal(p->m_mass);
+		
 		sx[i] = p->m_position;
 		sv[i] = p->m_velocity;
 		sf[i] = p->m_force;
@@ -254,12 +259,7 @@ void b3ClothForceSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// Solve Ax = b, where
 	// A = M - h * dfdv - h * h * dfdx
 	// b = h * (f0 + h * dfdx * v0 + dfdx * y) 
-	b3SparseSymMat33 M(m_particleCount);
-	for (u32 i = 0; i < m_particleCount; ++i)
-	{
-		M(i, i) = b3Diagonal(m_particles[i]->m_mass);
-	}
-
+	
 	// A
 	b3SparseSymMat33 A = M - h * dfdv - h * h * dfdx;
 
@@ -268,10 +268,6 @@ void b3ClothForceSolver::Solve(float32 dt, const b3Vec3& gravity)
 
 	// b
 	b3DenseVec3 b = h * (sf + h * (dfdx * sv) + dfdx * sy);
-
-	// I
-	b3DiagMat33 I(m_particleCount);
-	I.SetIdentity();
 
 	// x
 	b3DenseVec3 x(m_particleCount);
