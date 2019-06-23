@@ -283,7 +283,7 @@ void b3ClothContactManager::UpdateBodyContacts()
 	while (c)
 	{
 		bool isntDynamic1 = c->m_p1->m_type != e_dynamicParticle;
-		bool isntDynamic2 = c->m_s2->GetType() != e_dynamicBody;
+		bool isntDynamic2 = c->m_s2->GetBody()->GetType() != e_dynamicBody;
 
 		// Cease the contact if entities must not collide with each other.
 		if (isntDynamic1 && isntDynamic2)
