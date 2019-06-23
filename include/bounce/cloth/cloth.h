@@ -204,11 +204,6 @@ inline b3Vec3 b3Cloth::GetGravity() const
 	return m_gravity;
 }
 
-inline void b3Cloth::SetWorld(b3World* world)
-{
-	m_world = world;
-}
-
 inline const b3World* b3Cloth::GetWorld() const
 {
 	return m_world;

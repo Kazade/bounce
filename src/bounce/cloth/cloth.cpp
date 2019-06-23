@@ -293,6 +293,23 @@ b3Cloth::~b3Cloth()
 	}
 }
 
+void b3Cloth::SetWorld(b3World* world)
+{
+	if (!world && m_world)
+	{
+		// Destroy body contacts
+		b3ParticleBodyContact* c = m_contactManager.m_particleBodyContactList.m_head;
+		while (c)
+		{
+			b3ParticleBodyContact* boom = c;
+			c = c->m_next;
+			m_contactManager.Destroy(boom);
+		}
+	}
+
+	m_world = world;
+}
+
 b3Particle* b3Cloth::CreateParticle(const b3ParticleDef& def)
 {
 	void* mem = m_particleBlocks.Allocate();
