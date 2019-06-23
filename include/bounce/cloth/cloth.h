@@ -87,7 +87,7 @@ struct b3ClothDef
 };
 
 // A cloth represents a deformable surface as a collection of particles.
-// Particles may be connected with each other.
+// Particles may be connected with each other by springs.
 class b3Cloth
 {
 public:
@@ -101,7 +101,7 @@ public:
 	b3Vec3 GetGravity() const;
 
 	// Attach a world to this cloth. 
-	// The cloth will be able to respond to collisions with the static shapes in the attached world.
+	// The cloth will be able to respond to collisions with the rigid bodies in the attached world.
 	void SetWorld(b3World* world);
 
 	// Get the world attached to this cloth.
@@ -129,7 +129,7 @@ public:
 	// Return the cloth mesh proxy.
 	const b3ClothMesh* GetMesh() const;
 
-	// Return the cloth particle given vertex index.
+	// Return the cloth particle given the vertex index.
 	b3Particle* GetParticle(u32 i);
 
 	// Return the cloth triangle given the triangle index.
