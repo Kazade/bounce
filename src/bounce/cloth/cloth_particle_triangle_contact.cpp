@@ -16,7 +16,7 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/cloth/cloth_contact.h>
+#include <bounce/cloth/cloth_particle_triangle_contact.h>
 #include <bounce/cloth/cloth_mesh.h>
 #include <bounce/cloth/particle.h>
 #include <bounce/cloth/cloth_triangle.h>

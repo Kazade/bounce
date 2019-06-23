@@ -19,14 +19,10 @@
 #ifndef B3_PARTICLE_H
 #define B3_PARTICLE_H
 
-#include <bounce/cloth/force.h>
-#include <bounce/common/math/transform.h>
-#include <bounce/common/math/vec2.h>
+#include <bounce/cloth/cloth_collision.h>
 #include <bounce/common/template/list.h>
 
-class b3Shape;
 class b3Cloth;
-class b3Particle;
 
 // Static particle: Can be moved manually.
 // Kinematic particle: Non-zero velocity, can be moved by the solver.
@@ -38,7 +34,7 @@ enum b3ParticleType
 	e_dynamicParticle
 };
 
-//
+// Particle definition
 struct b3ParticleDef
 {
 	b3ParticleDef()
@@ -61,48 +57,6 @@ struct b3ParticleDef
 	float32 radius;
 	float32 friction;
 	void* userData;
-};
-
-// A contact between a particle and a solid
-struct b3ParticleBodyContact
-{
-	b3Particle* p1;
-	b3Shape* s2;
-
-	// Contact constraint
-	b3Vec3 normal1;
-	b3Vec3 localPoint1;
-	b3Vec3 localPoint2;
-	float32 normalImpulse;
-
-	// Friction constraint
-	b3Vec3 t1, t2;
-	b3Vec2 tangentImpulse;
-
-	bool active;
-};
-
-struct b3ParticleBodyContactWorldPoint
-{
-	void Initialize(const b3ParticleBodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB);
-
-	b3Vec3 point;
-	b3Vec3 normal;
-	float32 separation;
-};
-
-// Cloth primitive type
-enum b3ClothAABBProxyType
-{
-	e_particleProxy,
-	e_triangleProxy
-};
-
-// Cloth primitive broadphase proxy
-struct b3ClothAABBProxy
-{
-	b3ClothAABBProxyType type;
-	void* owner;
 };
 
 // A cloth particle.
@@ -162,6 +116,7 @@ private:
 	friend class b3ClothSolver;
 	friend class b3ClothForceSolver;
 	friend class b3ClothContactManager;
+	friend class b3ParticleBodyContact;
 	friend class b3ParticleTriangleContact;
 	friend class b3ClothContactSolver;
 	friend class b3Force;
@@ -222,9 +177,6 @@ private:
 
 	// Parent cloth
 	b3Cloth* m_cloth;
-
-	// Contact
-	b3ParticleBodyContact m_bodyContact;
 
 	// AABB Proxy
 	b3ClothAABBProxy m_aabbProxy;

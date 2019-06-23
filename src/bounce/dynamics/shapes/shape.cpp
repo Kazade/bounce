@@ -65,6 +65,11 @@ void b3Shape::DestroyContacts()
 	}
 }
 
+const b3AABB3& b3Shape::GetAABB() const
+{
+	return m_body->GetWorld()->m_contactMan.m_broadPhase.GetAABB(m_broadPhaseID);
+}
+
 void b3Shape::Dump(u32 bodyIndex) const
 {
 	switch (m_type)

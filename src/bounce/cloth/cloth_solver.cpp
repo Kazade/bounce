@@ -167,7 +167,7 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterati
 		// Synchronize bodies
 		for (u32 i = 0; i < m_bodyContactCount; ++i)
 		{
-			b3Body* body = m_bodyContacts[i]->s2->GetBody();
+			b3Body* body = m_bodyContacts[i]->m_s2->GetBody();
 
 			body->SynchronizeTransform();
 

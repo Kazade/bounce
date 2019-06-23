@@ -16,50 +16,23 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_CLOTH_CONTACT_H
-#define B3_CLOTH_CONTACT_H
+#ifndef B3_CLOTH_COLLISION_H
+#define B3_CLOTH_COLLISION_H
 
-#include <bounce/common/template/list.h>
+#include <bounce/common/math/vec3.h>
 
-class b3Particle;
-class b3ClothTriangle;
-
-// Contact between particle and a triangle
-class b3ParticleTriangleContact
+// Cloth primitive type
+enum b3ClothAABBProxyType
 {
-public:
-private:
-	friend class b3Cloth;
-	friend class b3Particle;
-	friend class b3ClothTriangle;
-	friend class b3ClothContactManager;
-	friend class b3List2<b3ParticleTriangleContact>;
-	friend class b3ClothContactSolver;
+	e_particleProxy,
+	e_triangleProxy
+};
 
-	b3ParticleTriangleContact() { }
-	~b3ParticleTriangleContact() { }
-
-	void Update();
-
-	// Particle
-	b3Particle* m_p1;
-
-	// Triangle
-	b3ClothTriangle* m_t2;
-	b3Particle* m_p2;
-	b3Particle* m_p3;
-	b3Particle* m_p4;
-
-	float32 m_w2, m_w3, m_w4;
-
-	float32 m_normalImpulse;
-	float32 m_tangentImpulse1;
-	float32 m_tangentImpulse2;
-
-	bool m_active;
-
-	b3ParticleTriangleContact* m_prev;
-	b3ParticleTriangleContact* m_next;
+// Cloth primitive broadphase proxy
+struct b3ClothAABBProxy
+{
+	b3ClothAABBProxyType type;
+	void* owner;
 };
 
 #endif

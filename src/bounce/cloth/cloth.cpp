@@ -23,14 +23,6 @@
 #include <bounce/cloth/force.h>
 #include <bounce/cloth/spring_force.h>
 #include <bounce/cloth/cloth_solver.h>
-
-#include <bounce/dynamics/world.h>
-#include <bounce/dynamics/world_listeners.h>
-#include <bounce/dynamics/body.h>
-#include <bounce/dynamics/shapes/shape.h>
-
-#include <bounce/collision/collision.h>
-
 #include <bounce/common/draw.h>
 
 static B3_FORCE_INLINE u32 b3NextIndex(u32 i)
@@ -501,105 +493,6 @@ bool b3Cloth::RayCast(b3RayCastOutput* output, const b3RayCastInput* input, u32 
 	return b3RayCast(output, input, v1, v2, v3);
 }
 
-class b3ClothUpdateContactsQueryListener : public b3QueryListener
-{
-public:
-	bool ReportShape(b3Shape* shape)
-	{
-		b3Body* body = shape->GetBody();
-
-		if (body->GetType() != e_staticBody)
-		{
-			return true;
-		}
-
-		b3Transform xf = body->GetTransform();
-
-		b3TestSphereOutput output;
-		if (shape->TestSphere(&output, sphere, xf))
-		{
-			if (output.separation < bestSeparation)
-			{
-				bestShape = shape;
-				bestSeparation = output.separation;
-				bestPoint = output.point;
-				bestNormal = output.normal;
-			}
-		}
-
-		return true;
-	}
-
-	b3Sphere sphere;
-	b3Shape* bestShape;
-	float32 bestSeparation;
-	b3Vec3 bestPoint;
-	b3Vec3 bestNormal;
-};
-
-void b3Cloth::UpdateParticleBodyContacts()
-{
-	B3_PROFILE("Cloth Update Particle Body Contacts");
-
-	// Is there a world attached to this cloth?
-	if (m_world == nullptr)
-	{
-		return;
-	}
-
-	// Create contacts 
-	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
-	{
-		if (p->m_type != e_dynamicParticle)
-		{
-			continue;
-		}
-
-		b3AABB3 aabb = m_contactManager.m_broadPhase.GetAABB(p->m_broadPhaseId);
-
-		b3ClothUpdateContactsQueryListener listener;
-		listener.sphere.vertex = p->m_position;
-		listener.sphere.radius = p->m_radius;
-		listener.bestShape = nullptr;
-		listener.bestSeparation = 0.0f;
-
-		m_world->QueryAABB(&listener, aabb);
-
-		if (listener.bestShape == nullptr)
-		{
-			p->m_bodyContact.active = false;
-			continue;
-		}
-
-		b3Shape* shape = listener.bestShape;
-		b3Body* body = shape->GetBody();
-		float32 separation = listener.bestSeparation;
-		b3Vec3 point = listener.bestPoint;
-		b3Vec3 normal = -listener.bestNormal;
-
-		b3ParticleBodyContact* c = &p->m_bodyContact;
-		
-		b3ParticleBodyContact c0 = *c;
-
-		c->active = true;
-		c->p1 = p;
-		c->s2 = shape;
-		c->normal1 = normal;
-		c->localPoint1.SetZero();
-		c->localPoint2 = body->GetLocalPoint(point);
-		c->t1 = b3Perp(normal);
-		c->t2 = b3Cross(c->t1, normal);
-		c->normalImpulse = 0.0f;
-		c->tangentImpulse.SetZero();
-
-		if (c0.active == true)
-		{
-			c->normalImpulse = c0.normalImpulse;
-			c->tangentImpulse = c0.tangentImpulse;
-		}
-	}
-}
-
 void b3Cloth::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations)
 {
 	B3_PROFILE("Cloth Solve");
@@ -624,14 +517,6 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u
 		solver.Add(f);
 	}
 
-	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
-	{
-		if (p->m_bodyContact.active)
-		{
-			solver.Add(&p->m_bodyContact);
-		}
-	}
-
 	for (b3ParticleTriangleContact* c = m_contactManager.m_particleTriangleContactList.m_head; c; c = c->m_next)
 	{
 		if (c->m_active)
@@ -640,6 +525,14 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u
 		}
 	}
 
+	for (b3ParticleBodyContact* c = m_contactManager.m_particleBodyContactList.m_head; c; c = c->m_next)
+	{
+		if (c->m_active)
+		{
+			solver.Add(c);
+		}
+	}
+	
 	// Solve	
 	solver.Solve(dt, gravity, velocityIterations, positionIterations);
 }
@@ -648,10 +541,7 @@ void b3Cloth::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 {
 	B3_PROFILE("Cloth Step");
 
-	// Update particle-body contacts
-	UpdateParticleBodyContacts();
-
-	// Update self-contacts
+	// Update contacts
 	m_contactManager.UpdateContacts();
 
 	// Integrate state, solve constraints. 
@@ -695,7 +585,7 @@ void b3Cloth::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 		m_triangles[i].Synchronize(displacement);
 	}
 
-	// Find new self-contacts
+	// Find new contacts
 	m_contactManager.FindNewContacts();
 }
 

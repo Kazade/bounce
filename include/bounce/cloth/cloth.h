@@ -26,16 +26,14 @@
 #include <bounce/cloth/cloth_contact_manager.h>
 
 class b3World;
-class b3Shape;
-
-class b3Particle;
-class b3ClothTriangle;
-
-class b3Force;
-struct b3ParticleBodyContact;
 
 struct b3ParticleDef;
+class b3Particle;
+
 struct b3ForceDef;
+class b3Force;
+
+class b3ClothTriangle;
 
 struct b3ClothMesh;
 
@@ -43,8 +41,6 @@ class b3RayCastListener;
 
 struct b3RayCastInput;
 struct b3RayCastOutput;
-
-struct b3ClothAABBProxy;
 
 struct b3ClothRayCastSingleOutput
 {
@@ -160,9 +156,6 @@ private:
 
 	// Compute mass of each particle.
 	void ComputeMass();
-
-	// Update particle-body contacts
-	void UpdateParticleBodyContacts();
 
 	// Solve
 	void Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations);

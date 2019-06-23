@@ -140,6 +140,9 @@ public:
 	// Set the user data associated with this shape.
 	void SetUserData(void* data);
 
+	// Get broadphase AABB
+	const b3AABB3& GetAABB() const;
+
 	// Dump this shape to the log file.
 	void Dump(u32 bodyIndex) const;
 

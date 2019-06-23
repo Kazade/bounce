@@ -16,26 +16,50 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/cloth/cloth_triangle.h>
-#include <bounce/cloth/cloth.h>
-#include <bounce/cloth/particle.h>
-#include <bounce/cloth/cloth_mesh.h>
+#ifndef B3_CLOTH_PARTICLE_TRIANGLE_CONTACT_H
+#define B3_CLOTH_PARTICLE_TRIANGLE_CONTACT_H
 
-void b3ClothTriangle::Synchronize(const b3Vec3& displacement)
+#include <bounce/common/template/list.h>
+
+class b3Particle;
+class b3ClothTriangle;
+
+// Contact between particle and a triangle
+class b3ParticleTriangleContact
 {
-	b3ClothMeshTriangle* triangle = m_cloth->m_mesh->triangles + m_triangle;
+public:
+private:
+	friend class b3List2<b3ParticleTriangleContact>;
+	friend class b3Cloth;
+	friend class b3Particle;
+	friend class b3ClothTriangle;
+	friend class b3ClothContactManager;
+	friend class b3ClothContactSolver;
 
-	b3Particle* p1 = m_cloth->m_particles[triangle->v1];
-	b3Particle* p2 = m_cloth->m_particles[triangle->v2];
-	b3Particle* p3 = m_cloth->m_particles[triangle->v3];
+	b3ParticleTriangleContact() { }
+	~b3ParticleTriangleContact() { }
 
-	b3Vec3 x1 = p1->m_position;
-	b3Vec3 x2 = p2->m_position;
-	b3Vec3 x3 = p3->m_position;
+	void Update();
 
-	b3AABB3 aabb;
-	aabb.Set(x1, x2, x3);
-	aabb.Extend(m_radius);
+	// Particle
+	b3Particle* m_p1;
 
-	m_cloth->m_contactManager.m_broadPhase.MoveProxy(m_broadPhaseId, aabb, displacement);
-}
+	// Triangle
+	b3ClothTriangle* m_t2;
+	b3Particle* m_p2;
+	b3Particle* m_p3;
+	b3Particle* m_p4;
+
+	float32 m_w2, m_w3, m_w4;
+
+	float32 m_normalImpulse;
+	float32 m_tangentImpulse1;
+	float32 m_tangentImpulse2;
+
+	bool m_active;
+
+	b3ParticleTriangleContact* m_prev;
+	b3ParticleTriangleContact* m_next;
+};
+
+#endif

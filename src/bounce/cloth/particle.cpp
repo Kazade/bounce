@@ -21,21 +21,6 @@
 #include <bounce/cloth/cloth_mesh.h>
 #include <bounce/cloth/cloth_triangle.h>
 
-void b3ParticleBodyContactWorldPoint::Initialize(const b3ParticleBodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB)
-{
-	b3Vec3 nA = c->normal1;
-
-	b3Vec3 cA = b3Mul(xfA, c->localPoint1);
-	b3Vec3 cB = b3Mul(xfB, c->localPoint2);
-
-	b3Vec3 pA = cA + rA * nA;
-	b3Vec3 pB = cB - rB * nA;
-
-	point = 0.5f * (pA + pB);
-	normal = nA;
-	separation = b3Dot(cB - cA, nA) - rA - rB;
-}
-
 b3Particle::b3Particle(const b3ParticleDef& def, b3Cloth* cloth)
 {
 	m_cloth = cloth;
@@ -63,7 +48,6 @@ b3Particle::b3Particle(const b3ParticleDef& def, b3Cloth* cloth)
 	m_userData = nullptr;
 	m_x.SetZero();
 	m_vertex = ~0;
-	m_bodyContact.active = false;
 }
 
 b3Particle::~b3Particle()
@@ -99,22 +83,38 @@ void b3Particle::SynchronizeTriangles()
 
 void b3Particle::DestroyContacts()
 {
-	// Destroy body contacts
-	m_bodyContact.active = false;
-
-	// Destroy triangle contacts
-	b3ParticleTriangleContact* c = m_cloth->m_contactManager.m_particleTriangleContactList.m_head;
-	while (c)
 	{
-		if (c->m_p1 == this)
+		// Destroy body contacts
+		b3ParticleBodyContact* c = m_cloth->m_contactManager.m_particleBodyContactList.m_head;
+		while (c)
 		{
-			b3ParticleTriangleContact* quack = c;
-			c = c->m_next;
-			m_cloth->m_contactManager.Destroy(quack);
-			continue;
-		}
+			if (c->m_p1 == this)
+			{
+				b3ParticleBodyContact* quack = c;
+				c = c->m_next;
+				m_cloth->m_contactManager.Destroy(quack);
+				continue;
+			}
 
-		c = c->m_next;
+			c = c->m_next;
+		}
+	}
+
+	{
+		// Destroy triangle contacts
+		b3ParticleTriangleContact* c = m_cloth->m_contactManager.m_particleTriangleContactList.m_head;
+		while (c)
+		{
+			if (c->m_p1 == this)
+			{
+				b3ParticleTriangleContact* quack = c;
+				c = c->m_next;
+				m_cloth->m_contactManager.Destroy(quack);
+				continue;
+			}
+
+			c = c->m_next;
+		}
 	}
 }
 
@@ -132,13 +132,13 @@ void b3Particle::SetType(b3ParticleType type)
 	{
 		m_velocity.SetZero();
 		m_translation.SetZero();
-		
+
 		Synchronize(b3Vec3_zero);
 		SynchronizeTriangles();
 	}
 
 	DestroyContacts();
-	
+
 	// Move the proxy so new contacts can be created.
 	m_cloth->m_contactManager.m_broadPhase.TouchProxy(m_broadPhaseId);
 }

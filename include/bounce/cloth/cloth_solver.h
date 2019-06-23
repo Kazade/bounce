@@ -26,7 +26,7 @@ class b3StackAllocator;
 
 class b3Particle;
 class b3Force;
-struct b3ParticleBodyContact;
+class b3ParticleBodyContact;
 class b3ParticleTriangleContact;
 
 struct b3ClothSolverDef
