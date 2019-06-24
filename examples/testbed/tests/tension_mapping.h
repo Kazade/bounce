@@ -126,6 +126,11 @@ public:
 				{
 					tension[v2] -= s->GetActionForce();
 				}
+
+				b3Vec3 p1 = s->GetParticle1()->GetPosition();
+				b3Vec3 p2 = s->GetParticle2()->GetPosition();
+
+				g_draw->DrawSegment(p1, p2, b3Color_black);
 			}
 		}
 
@@ -136,10 +141,14 @@ public:
 			b3Vec3 v1 = m_cloth->GetParticle(t->v1)->GetPosition();
 			b3Vec3 v2 = m_cloth->GetParticle(t->v2)->GetPosition();
 			b3Vec3 v3 = m_cloth->GetParticle(t->v3)->GetPosition();
+			
+			b3Vec3 c = (v1 + v2 + v3) / 3.0f;
 
-			g_draw->DrawSegment(v1, v2, b3Color_black);
-			g_draw->DrawSegment(v2, v3, b3Color_black);
-			g_draw->DrawSegment(v3, v1, b3Color_black);
+			float32 s = 0.9f;
+
+			v1 = s * (v1 - c) + c;
+			v2 = s * (v2 - c) + c;
+			v3 = s * (v3 - c) + c;
 
 			b3Vec3 f1 = tension[t->v1];
 			float32 L1 = b3Length(f1);
@@ -160,7 +169,7 @@ public:
 			g_draw->DrawSolidTriangle(n1, v1, v2, v3, color);
 
 			b3Vec3 n2 = -n1;
-			g_draw->DrawSolidTriangle(n2, v1, v3, v2, color);
+			g_draw->DrawSolidTriangle(n2, v3, v2, v1, color);
 		}
 
 		if (m_clothDragger->IsDragging())

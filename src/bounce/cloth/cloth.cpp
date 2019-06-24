@@ -661,11 +661,19 @@ void b3Cloth::Draw() const
 		b3Vec3 v2 = p2->m_position;
 		b3Vec3 v3 = p3->m_position;
 
+		b3Vec3 c = (v1 + v2 + v3) / 3.0f;
+
+		float32 s = 0.9f;
+
+		v1 = s * (v1 - c) + c;
+		v2 = s * (v2 - c) + c;
+		v3 = s * (v3 - c) + c;
+
 		b3Vec3 n1 = b3Cross(v2 - v1, v3 - v1);
 		n1.Normalize();
 		b3Draw_draw->DrawSolidTriangle(n1, v1, v2, v3, b3Color_blue);
 
 		b3Vec3 n2 = -n1;
-		b3Draw_draw->DrawSolidTriangle(n2, v1, v3, v2, b3Color_blue);
+		b3Draw_draw->DrawSolidTriangle(n2, v3, v2, v1, b3Color_blue);
 	}
 }
