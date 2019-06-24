@@ -16,8 +16,8 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/softbody/softbody_contact_solver.h>
-#include <bounce/softbody/softbody_node_body_contact.h>
+#include <bounce/softbody/contacts/softbody_contact_solver.h>
+#include <bounce/softbody/contacts/softbody_node_body_contact.h>
 #include <bounce/softbody/softbody_node.h>
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/body.h>

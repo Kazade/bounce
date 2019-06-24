@@ -19,7 +19,7 @@
 #ifndef B3_SOFTBODY_CONTACT_MANAGER_H
 #define B3_SOFTBODY_CONTACT_MANAGER_H
 
-#include <bounce/softbody/softbody_node_body_contact.h>
+#include <bounce/softbody/contacts/softbody_node_body_contact.h>
 #include <bounce/collision/broad_phase.h>
 #include <bounce/common/memory/block_pool.h>
 #include <bounce/common/template/list.h>

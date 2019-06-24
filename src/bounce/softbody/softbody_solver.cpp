@@ -21,7 +21,7 @@
 #include <bounce/softbody/softbody_node.h>
 #include <bounce/softbody/softbody.h>
 #include <bounce/softbody/softbody_force_solver.h>
-#include <bounce/softbody/softbody_contact_solver.h>
+#include <bounce/softbody/contacts/softbody_contact_solver.h>
 #include <bounce/dynamics/body.h>
 #include <bounce/dynamics/shapes/shape.h>
 
@@ -32,7 +32,7 @@ b3SoftBodySolver::b3SoftBodySolver(const b3SoftBodySolverDef& def)
 	m_mesh = m_body->m_mesh;
 	m_nodes = m_body->m_nodes;
 	m_elements = m_body->m_elements;
-	m_bodyContactCapacity = m_mesh->vertexCount;
+	m_bodyContactCapacity = m_body->m_contactManager.m_nodeBodyContactList.m_count;
 	m_bodyContactCount = 0;
 	m_bodyContacts = (b3NodeBodyContact**)m_allocator->Allocate(m_bodyContactCapacity * sizeof(b3NodeBodyContact*));
 }
