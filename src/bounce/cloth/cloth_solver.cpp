@@ -18,7 +18,7 @@
 
 #include <bounce/cloth/cloth_solver.h>
 #include <bounce/cloth/cloth_force_solver.h>
-#include <bounce/cloth/cloth_contact_solver.h>
+#include <bounce/cloth/contacts/cloth_contact_solver.h>
 #include <bounce/cloth/cloth.h>
 #include <bounce/cloth/particle.h>
 #include <bounce/dynamics/shapes/shape.h>

@@ -16,13 +16,13 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/cloth/cloth_particle_triangle_contact.h>
+#include <bounce/cloth/contacts/cloth_particle_triangle_contact.h>
 #include <bounce/cloth/cloth_mesh.h>
 #include <bounce/cloth/particle.h>
 #include <bounce/cloth/cloth_triangle.h>
 #include <bounce/common/geometry.h>
 
-// 
+// Solve constrained Barycentric coordinates for point Q
 static void b3Solve3(float32 out[3],
 	const b3Vec3& A, const b3Vec3& B, const b3Vec3& C,
 	const b3Vec3& Q)

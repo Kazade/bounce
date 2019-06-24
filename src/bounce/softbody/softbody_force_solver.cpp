@@ -20,8 +20,8 @@
 #include <bounce/softbody/softbody_mesh.h>
 #include <bounce/softbody/softbody_node.h>
 #include <bounce/softbody/softbody.h>
-#include <bounce/cloth/sparse_mat33.h>
-#include <bounce/cloth/sparse_mat33_view.h>
+#include <bounce/sparse/sparse_mat33.h>
+#include <bounce/sparse/sparse_mat33_view.h>
 
 // This work is based on the paper "Interactive Virtual Materials" written by 
 // Matthias Mueller Fischer

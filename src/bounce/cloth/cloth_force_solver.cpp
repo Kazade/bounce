@@ -19,10 +19,10 @@
 #include <bounce/cloth/cloth_force_solver.h>
 #include <bounce/cloth/particle.h>
 #include <bounce/cloth/force.h>
-#include <bounce/cloth/dense_vec3.h>
-#include <bounce/cloth/diag_mat33.h>
-#include <bounce/cloth/sparse_sym_mat33.h>
-#include <bounce/cloth/sparse_sym_mat33_view.h>
+#include <bounce/sparse/dense_vec3.h>
+#include <bounce/sparse/diag_mat33.h>
+#include <bounce/sparse/sparse_sym_mat33.h>
+#include <bounce/sparse/sparse_sym_mat33_view.h>
 #include <bounce/common/memory/stack_allocator.h>
 
 // Here, we solve Ax = b using the Modified Preconditioned Conjugate Gradient (MPCG) algorithm.

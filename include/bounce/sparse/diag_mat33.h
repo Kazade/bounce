@@ -20,7 +20,7 @@
 #define B3_DIAG_MAT_33_H
 
 #include <bounce/common/math/mat33.h>
-#include <bounce/cloth/dense_vec3.h>
+#include <bounce/sparse/dense_vec3.h>
 
 // Diagonal matrix storing only the diagonal elements of the 
 // original matrix.

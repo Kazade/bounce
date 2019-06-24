@@ -19,8 +19,8 @@
 #ifndef B3_SPARSE_SYM_MAT_33_VIEW_H
 #define B3_SPARSE_SYM_MAT_33_VIEW_H
 
-#include <bounce/cloth/sparse_mat33_view.h>
-#include <bounce/cloth/sparse_sym_mat33.h>
+#include <bounce/sparse/sparse_mat33_view.h>
+#include <bounce/sparse/sparse_sym_mat33.h>
 
 // A read-only sparse symmetric matrix.
 struct b3SparseSymMat33View

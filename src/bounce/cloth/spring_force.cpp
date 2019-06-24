@@ -19,8 +19,8 @@
 #include <bounce/cloth/spring_force.h>
 #include <bounce/cloth/particle.h>
 #include <bounce/cloth/cloth_force_solver.h>
-#include <bounce/cloth/dense_vec3.h>
-#include <bounce/cloth/sparse_sym_mat33.h>
+#include <bounce/sparse/dense_vec3.h>
+#include <bounce/sparse/sparse_sym_mat33.h>
 
 void b3SpringForceDef::Initialize(b3Particle* particle1, b3Particle* particle2, float32 structuralStiffness, float32 dampingStiffness)
 {

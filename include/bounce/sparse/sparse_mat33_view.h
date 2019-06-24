@@ -19,7 +19,7 @@
 #ifndef B3_SPARSE_MAT_33_VIEW_H
 #define B3_SPARSE_MAT_33_VIEW_H
 
-#include <bounce/cloth/sparse_mat33.h>
+#include <bounce/sparse/sparse_mat33.h>
 
 struct b3ArrayRowValue
 {

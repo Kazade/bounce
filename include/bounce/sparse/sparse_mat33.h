@@ -20,8 +20,8 @@
 #define B3_SPARSE_MAT_33_H
 
 #include <bounce/common/math/mat33.h>
-#include <bounce/cloth/diag_mat33.h>
-#include <bounce/cloth/dense_vec3.h>
+#include <bounce/sparse/diag_mat33.h>
+#include <bounce/sparse/dense_vec3.h>
 
 // An element in a sparse matrix.
 struct b3RowValue

@@ -19,7 +19,7 @@
 #ifndef B3_SPARSE_SYM_MAT_33_H
 #define B3_SPARSE_SYM_MAT_33_H
 
-#include <bounce/cloth/sparse_mat33.h>
+#include <bounce/sparse/sparse_mat33.h>
 
 // A sparse symmetric matrix.
 // Each row is a list of non-zero elements in the row.

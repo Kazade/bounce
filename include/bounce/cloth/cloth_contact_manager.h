@@ -19,8 +19,8 @@
 #ifndef B3_CLOTH_CONTACT_MANAGER_H
 #define B3_CLOTH_CONTACT_MANAGER_H
 
-#include <bounce/cloth/cloth_particle_body_contact.h>
-#include <bounce/cloth/cloth_particle_triangle_contact.h>
+#include <bounce/cloth/contacts/cloth_particle_body_contact.h>
+#include <bounce/cloth/contacts/cloth_particle_triangle_contact.h>
 #include <bounce/collision/broad_phase.h>
 #include <bounce/common/memory/block_pool.h>
 #include <bounce/common/template/list.h>
