@@ -519,7 +519,7 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u
 	solverDef.stack = &m_stackAllocator;
 	solverDef.particleCapacity = m_particleList.m_count;
 	solverDef.forceCapacity = m_forceList.m_count;
-	solverDef.bodyContactCapacity = m_particleList.m_count;
+	solverDef.bodyContactCapacity = m_contactManager.m_particleBodyContactList.m_count;
 	solverDef.triangleContactCapacity = m_contactManager.m_particleTriangleContactList.m_count;
 
 	b3ClothSolver solver(solverDef);
