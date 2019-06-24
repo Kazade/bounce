@@ -17,6 +17,7 @@
 */
 
 #include <bounce/softbody/softbody_contact_solver.h>
+#include <bounce/softbody/softbody_node_body_contact.h>
 #include <bounce/softbody/softbody_node.h>
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/body.h>
@@ -50,35 +51,35 @@ void b3SoftBodyContactSolver::InitializeBodyContactConstraints()
 		b3SoftBodySolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
 		b3SoftBodySolverBodyContactPositionConstraint* pc = m_bodyPositionConstraints + i;
 
-		vc->indexA = c->n1->m_vertex;
-		vc->bodyB = c->s2->GetBody();
+		vc->indexA = c->m_n1->m_vertex;
+		vc->bodyB = c->m_s2->GetBody();
 
-		vc->invMassA = c->n1->m_type == e_staticSoftBodyNode ? 0.0f : c->n1->m_invMass;
+		vc->invMassA = c->m_n1->m_type == e_staticSoftBodyNode ? 0.0f : c->m_n1->m_invMass;
 		vc->invMassB = vc->bodyB->GetInverseMass();
 
 		vc->invIA.SetZero();
 		vc->invIB = vc->bodyB->GetWorldInverseInertia();
 
-		vc->friction = b3MixFriction(c->n1->m_friction, c->s2->GetFriction());
+		vc->friction = b3MixFriction(c->m_n1->m_friction, c->m_s2->GetFriction());
 
-		pc->indexA = c->n1->m_vertex;
+		pc->indexA = c->m_n1->m_vertex;
 		pc->bodyB = vc->bodyB;
 
-		pc->invMassA = c->n1->m_type == e_staticSoftBodyNode ? 0.0f : c->n1->m_invMass;
+		pc->invMassA = c->m_n1->m_type == e_staticSoftBodyNode ? 0.0f : c->m_n1->m_invMass;
 		pc->invMassB = vc->bodyB->m_invMass;
 
 		pc->invIA.SetZero();
 		pc->invIB = vc->bodyB->m_worldInvI;
 
-		pc->radiusA = c->n1->m_radius;
-		pc->radiusB = c->s2->m_radius;
+		pc->radiusA = c->m_n1->m_radius;
+		pc->radiusB = c->m_s2->m_radius;
 
 		pc->localCenterA.SetZero();
 		pc->localCenterB = pc->bodyB->m_sweep.localCenter;
 
-		pc->normalA = c->normal1;
-		pc->localPointA = c->localPoint1;
-		pc->localPointB = c->localPoint2;
+		pc->normalA = c->m_normal1;
+		pc->localPointA = c->m_localPoint1;
+		pc->localPointB = c->m_localPoint2;
 	}
 
 	for (u32 i = 0; i < m_bodyContactCount; ++i)
@@ -117,8 +118,8 @@ void b3SoftBodyContactSolver::InitializeBodyContactConstraints()
 		wp.Initialize(c, pc->radiusA, xfA, pc->radiusB, xfB);
 
 		vc->normal = wp.normal;
-		vc->tangent1 = c->t1;
-		vc->tangent2 = c->t2;
+		vc->tangent1 = c->m_tangent1;
+		vc->tangent2 = c->m_tangent2;
 		vc->point = wp.point;
 
 		b3Vec3 point = vc->point;
@@ -129,8 +130,8 @@ void b3SoftBodyContactSolver::InitializeBodyContactConstraints()
 		vc->rA = rA;
 		vc->rB = rB;
 
-		vc->normalImpulse = c->normalImpulse;
-		vc->tangentImpulse = c->tangentImpulse;
+		vc->normalImpulse = c->m_normalImpulse;
+		vc->tangentImpulse = c->m_tangentImpulse;
 
 		{
 			b3Vec3 n = vc->normal;
@@ -306,8 +307,8 @@ void b3SoftBodyContactSolver::StoreImpulses()
 		b3NodeBodyContact* c = m_bodyContacts[i];
 		b3SoftBodySolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
 
-		c->normalImpulse = vc->normalImpulse;
-		c->tangentImpulse = vc->tangentImpulse;
+		c->m_normalImpulse = vc->normalImpulse;
+		c->m_tangentImpulse = vc->tangentImpulse;
 	}
 }
 
@@ -315,13 +316,13 @@ struct b3SoftBodySolverBodyContactSolverPoint
 {
 	void Initialize(const b3SoftBodySolverBodyContactPositionConstraint* pc, const b3Transform& xfA, const b3Transform& xfB)
 	{
+		b3Vec3 nA = pc->normalA;
+
 		b3Vec3 cA = xfA * pc->localPointA;
 		b3Vec3 cB = xfB * pc->localPointB;
 
 		float32 rA = pc->radiusA;
 		float32 rB = pc->radiusB;
-
-		b3Vec3 nA = pc->normalA;
 
 		b3Vec3 pA = cA + rA * nA;
 		b3Vec3 pB = cB - rB * nA;

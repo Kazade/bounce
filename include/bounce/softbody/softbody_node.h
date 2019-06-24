@@ -23,37 +23,7 @@
 #include <bounce/common/math/vec3.h>
 #include <bounce/common/math/transform.h>
 
-class b3Shape;
 class b3SoftBody;
-struct b3SoftBodyNode;
-
-// A contact between a node and a body
-struct b3NodeBodyContact
-{
-	b3SoftBodyNode* n1;
-	b3Shape* s2;
-
-	// Contact constraint
-	b3Vec3 normal1;
-	b3Vec3 localPoint1;
-	b3Vec3 localPoint2;
-	float32 normalImpulse;
-
-	// Friction constraint
-	b3Vec3 t1, t2;
-	b3Vec2 tangentImpulse;
-
-	bool active;
-};
-
-struct b3NodeBodyContactWorldPoint
-{
-	void Initialize(const b3NodeBodyContact* c, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB);
-	
-	b3Vec3 point;
-	b3Vec3 normal;
-	float32 separation;
-};
 
 // Static node: Can be moved manually.
 // Kinematic node: Non-zero velocity, can be moved by the solver.
@@ -117,9 +87,11 @@ public:
 	void ApplyForce(const b3Vec3& force);
 private:
 	friend class b3SoftBody;
+	friend class b3SoftBodyContactManager;
 	friend class b3SoftBodySolver;
 	friend class b3SoftBodyForceSolver;
 	friend class b3SoftBodyContactSolver;
+	friend class b3NodeBodyContact;
 
 	b3SoftBodyNode() { }
 
@@ -127,6 +99,9 @@ private:
 
 	// Synchronize node
 	void Synchronize(const b3Vec3& displacement);
+
+	// Destroy associated contacts
+	void DestroyContacts();
 
 	// Type
 	b3SoftBodyNodeType m_type;
@@ -161,9 +136,6 @@ private:
 	// Soft body mesh vertex index.
 	u32 m_vertex;
 
-	// Node and body contact
-	b3NodeBodyContact m_bodyContact;
-
 	// Broadphase proxy
 	u32 m_broadPhaseId;
 
@@ -187,7 +159,7 @@ inline void b3SoftBodyNode::SetType(b3SoftBodyNodeType type)
 		Synchronize(b3Vec3_zero);
 	}
 
-	m_bodyContact.active = false;
+	DestroyContacts();
 }
 
 inline b3SoftBodyNodeType b3SoftBodyNode::GetType() const

@@ -16,31 +16,33 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/softbody/softbody_node.h>
-#include <bounce/softbody/softbody.h>
+#ifndef B3_SOFTBODY_CONTACT_MANAGER_H
+#define B3_SOFTBODY_CONTACT_MANAGER_H
 
-void b3SoftBodyNode::Synchronize(const b3Vec3& displacement)
+#include <bounce/softbody/softbody_node_body_contact.h>
+#include <bounce/collision/broad_phase.h>
+#include <bounce/common/memory/block_pool.h>
+#include <bounce/common/template/list.h>
+
+class b3SoftBody;
+
+// Contact delegator for b3SoftBody.
+class b3SoftBodyContactManager
 {
-	b3AABB3 aabb;
-	aabb.Set(m_position, m_radius);
+public:
+	b3SoftBodyContactManager();
 
-	m_body->m_contactManager.m_broadPhase.MoveProxy(m_broadPhaseId, aabb, displacement);
-}
+	void FindNewBodyContacts();
+	void AddNSPair(b3SoftBodyNode* n1, b3Shape* s2);
+	void UpdateBodyContacts();
 
-void b3SoftBodyNode::DestroyContacts()
-{
-	// Destroy body contacts
-	b3NodeBodyContact* c = m_body->m_contactManager.m_nodeBodyContactList.m_head;
-	while (c)
-	{
-		if (c->m_n1 == this)
-		{
-			b3NodeBodyContact* quack = c;
-			c = c->m_next;
-			m_body->m_contactManager.Destroy(quack);
-			continue;
-		}
+	b3NodeBodyContact* CreateNodeBodyContact();
+	void Destroy(b3NodeBodyContact* c);
 
-		c = c->m_next;
-	}
-}
+	b3BlockPool m_nodeBodyContactBlocks;
+	b3SoftBody* m_body;
+	b3BroadPhase m_broadPhase;
+	b3List2<b3NodeBodyContact> m_nodeBodyContactList;
+};
+
+#endif

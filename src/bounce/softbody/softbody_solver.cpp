@@ -126,18 +126,14 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 		}
 
 		// Synchronize bodies
-		for (u32 i = 0; i < m_mesh->vertexCount; ++i)
+		for (u32 i = 0; i < m_bodyContactCount; ++i)
 		{
-			b3SoftBodyNode* n = m_nodes + i;
+			b3Body* body = m_bodyContacts[i]->m_s2->GetBody();
 
-			b3NodeBodyContact* c = &n->m_bodyContact;
-
-			if (c->active == false)
+			if (body->GetType() == e_staticBody)
 			{
 				continue;
 			}
-
-			b3Body* body = c->s2->GetBody();
 
 			body->SynchronizeTransform();
 

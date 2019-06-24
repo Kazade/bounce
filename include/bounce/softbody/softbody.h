@@ -19,10 +19,8 @@
 #ifndef B3_SOFT_BODY_H
 #define B3_SOFT_BODY_H
 
-#include <bounce/common/math/transform.h>
+#include <bounce/softbody/softbody_contact_manager.h>
 #include <bounce/common/memory/stack_allocator.h>
-
-#include <bounce/collision/broad_phase.h>
 
 class b3World;
 
@@ -141,15 +139,13 @@ public:
 	// Debug draw the body using the associated mesh.
 	void Draw() const;
 private:
-	friend struct b3SoftBodyNode;
+	friend class b3SoftBodyContactManager;
 	friend class b3SoftBodySolver;
 	friend class b3SoftBodyForceSolver;
+	friend struct b3SoftBodyNode;
 
 	// Compute mass of each node.
 	void ComputeMass();
-
-	// Update contacts.
-	void UpdateContacts();
 
 	// Solve
 	void Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations);
@@ -190,8 +186,8 @@ private:
 	// Soft body triangles
 	b3SoftBodyTriangle* m_triangles;
 
-	// Broadphase
-	b3BroadPhase m_broadPhase;
+	// Contact manager
+	b3SoftBodyContactManager m_contactManager;
 
 	// Attached world
 	b3World* m_world;
@@ -205,11 +201,6 @@ inline void b3SoftBody::SetGravity(const b3Vec3& gravity)
 inline b3Vec3 b3SoftBody::GetGravity() const
 {
 	return m_gravity;
-}
-
-inline void b3SoftBody::SetWorld(b3World* world)
-{
-	m_world = world;
 }
 
 inline const b3World* b3SoftBody::GetWorld() const

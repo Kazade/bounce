@@ -19,18 +19,11 @@
 #include <bounce/softbody/softbody.h>
 #include <bounce/softbody/softbody_mesh.h>
 #include <bounce/softbody/softbody_node.h>
-
 #include <bounce/softbody/softbody_solver.h>
-
 #include <bounce/collision/collision.h>
-
-#include <bounce/dynamics/world.h>
-#include <bounce/dynamics/world_listeners.h>
-#include <bounce/dynamics/body.h>
-#include <bounce/dynamics/shapes/shape.h>
-
 #include <bounce/common/draw.h>
 
+// C = A * B
 static B3_FORCE_INLINE void b3Mul(float32* C, float32* A, u32 AM, u32 AN, float32* B, u32 BM, u32 BN)
 {
 	B3_ASSERT(AN == BM);
@@ -49,6 +42,7 @@ static B3_FORCE_INLINE void b3Mul(float32* C, float32* A, u32 AM, u32 AN, float3
 	}
 }
 
+// B = A^T
 static B3_FORCE_INLINE void b3Transpose(float32* B, float32* A, u32 AM, u32 AN)
 {
 	for (u32 i = 0; i < AM; ++i)
@@ -62,7 +56,7 @@ static B3_FORCE_INLINE void b3Transpose(float32* B, float32* A, u32 AM, u32 AN)
 
 // Compute the elasticity matrix given Young modulus and Poisson's ratio
 // This is a 6 x 6 matrix 
-static B3_FORCE_INLINE void b3ComputeD(float32 out[36], 
+static B3_FORCE_INLINE void b3ComputeD(float32 out[36],
 	float32 E, float32 nu)
 {
 	float32 lambda = (nu * E) / ((1 + nu) * (1 - 2 * nu));
@@ -463,6 +457,7 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 	m_c_max = def.c_max;
 	m_gravity.SetZero();
 	m_world = nullptr;
+	m_contactManager.m_body = this;
 
 	const b3SoftBodyMesh* m = m_mesh;
 
@@ -484,12 +479,11 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 		n->m_friction = 0.0f;
 		n->m_userData = nullptr;
 		n->m_vertex = i;
-		n->m_bodyContact.active = false;
 
 		b3AABB3 aabb;
 		aabb.Set(n->m_position, 0.0f);
 
-		n->m_broadPhaseId = m_broadPhase.CreateProxy(aabb, n);
+		n->m_broadPhaseId = m_contactManager.m_broadPhase.CreateProxy(aabb, n);
 	}
 
 	// Compute mass
@@ -722,107 +716,6 @@ void b3SoftBody::ComputeMass()
 	}
 }
 
-class b3SoftBodyUpdateContactsQueryListener : public b3QueryListener
-{
-public:
-	bool ReportShape(b3Shape* shape)
-	{
-		b3Body* body = shape->GetBody();
-
-		if (body->GetType() != e_staticBody)
-		{
-			// return true;
-		}
-
-		b3Transform xf = body->GetTransform();
-
-		b3TestSphereOutput output;
-		if (shape->TestSphere(&output, sphere, xf))
-		{
-			if (output.separation < bestSeparation)
-			{
-				bestShape = shape;
-				bestSeparation = output.separation;
-				bestPoint = output.point;
-				bestNormal = output.normal;
-			}
-		}
-
-		return true;
-	}
-
-	b3Sphere sphere;
-	b3Shape* bestShape;
-	float32 bestSeparation;
-	b3Vec3 bestPoint;
-	b3Vec3 bestNormal;
-};
-
-void b3SoftBody::UpdateContacts()
-{
-	B3_PROFILE("Soft Body Update Contacts");
-
-	// Is there a world attached to this soft body?
-	if (m_world == nullptr)
-	{
-		return;
-	}
-
-	// Create contacts 
-	for (u32 i = 0; i < m_mesh->vertexCount; ++i)
-	{
-		b3SoftBodyNode* n = m_nodes + i;
-
-		if (n->m_type != e_dynamicSoftBodyNode)
-		{
-			continue;
-		}
-
-		b3AABB3 aabb = m_broadPhase.GetAABB(n->m_broadPhaseId);
-
-		b3SoftBodyUpdateContactsQueryListener listener;
-		listener.sphere.vertex = n->m_position;
-		listener.sphere.radius = n->m_radius;
-		listener.bestShape = nullptr;
-		listener.bestSeparation = 0.0f;
-
-		m_world->QueryAABB(&listener, aabb);
-
-		if (listener.bestShape == nullptr)
-		{
-			n->m_bodyContact.active = false;
-			continue;
-		}
-
-		b3Shape* shape = listener.bestShape;
-		b3Body* body = shape->GetBody();
-		float32 separation = listener.bestSeparation;
-		b3Vec3 point = listener.bestPoint;
-		b3Vec3 normal = -listener.bestNormal;
-
-		b3NodeBodyContact* c = &n->m_bodyContact;
-
-		b3NodeBodyContact c0 = *c;
-
-		c->active = true;
-		c->n1 = n;
-		c->s2 = shape;
-		c->normal1 = normal;
-		c->localPoint1.SetZero();
-		c->localPoint2 = body->GetLocalPoint(point);
-		c->t1 = b3Perp(normal);
-		c->t2 = b3Cross(c->t1, normal);
-		c->normalImpulse = 0.0f;
-		c->tangentImpulse.SetZero();
-
-		if (c0.active == true)
-		{
-			c->normalImpulse = c0.normalImpulse;
-			c->tangentImpulse = c0.tangentImpulse;
-		}
-	}
-}
-
 void b3SoftBody::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations)
 {
 	B3_PROFILE("Soft Body Solve");
@@ -832,12 +725,12 @@ void b3SoftBody::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations
 
 	b3SoftBodySolver solver(def);
 
-	// Push the active contacts
-	for (u32 i = 0; i < m_mesh->vertexCount; ++i)
+	// Push the body contacts
+	for (b3NodeBodyContact* c = m_contactManager.m_nodeBodyContactList.m_head; c; c = c->m_next)
 	{
-		if (m_nodes[i].m_bodyContact.active)
+		if (c->m_active)
 		{
-			solver.Add(&m_nodes[i].m_bodyContact);
+			solver.Add(c);
 		}
 	}
 
@@ -849,7 +742,7 @@ void b3SoftBody::Step(float32 dt, u32 velocityIterations, u32 positionIterations
 	B3_PROFILE("Soft Body Step");
 
 	// Update contacts
-	UpdateContacts();
+	m_contactManager.UpdateBodyContacts();
 
 	// Integrate state, solve constraints. 
 	if (dt > 0.0f)
@@ -877,6 +770,26 @@ void b3SoftBody::Step(float32 dt, u32 velocityIterations, u32 positionIterations
 
 		n->Synchronize(displacement);
 	}
+
+	// Find new contacts
+	m_contactManager.FindNewBodyContacts();
+}
+
+void b3SoftBody::SetWorld(b3World* world)
+{
+	if (!world && m_world)
+	{
+		// Destroy body contacts
+		b3NodeBodyContact* c = m_contactManager.m_nodeBodyContactList.m_head;
+		while (c)
+		{
+			b3NodeBodyContact* kaboom = c;
+			c = c->m_next;
+			m_contactManager.Destroy(kaboom);
+		}
+	}
+
+	m_world = world;
 }
 
 void b3SoftBody::Draw() const

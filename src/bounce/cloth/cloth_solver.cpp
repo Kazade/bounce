@@ -168,6 +168,11 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterati
 		for (u32 i = 0; i < m_bodyContactCount; ++i)
 		{
 			b3Body* body = m_bodyContacts[i]->m_s2->GetBody();
+			
+			if (body->GetType() == e_staticBody)
+			{
+				continue;
+			}
 
 			body->SynchronizeTransform();
 
@@ -180,10 +185,8 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterati
 	// Copy state buffers back to the particles
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
-		b3Particle* p = m_particles[i];
-
-		p->m_position = positions[i];
-		p->m_velocity = velocities[i];
+		m_particles[i]->m_position = positions[i];
+		m_particles[i]->m_velocity = velocities[i];
 	}
 
 	m_allocator->Free(velocities);
