@@ -64,7 +64,8 @@ public:
 		b3ClothDef def;
 		def.mesh = &m_clothMesh;
 		def.density = 0.2f;
-		def.structural = 10000.0f;
+		def.streching = 10000.0f;
+		def.damping = 100.0f;
 
 		m_cloth = new b3Cloth(def);
 
@@ -110,27 +111,25 @@ public:
 
 		for (b3Force* f = m_cloth->GetForceList().m_head; f; f = f->GetNext())
 		{
-			if (f->GetType() == e_springForce)
+			if (f->GetType() == e_strechForce)
 			{
-				b3SpringForce* s = (b3SpringForce*)f;
+				b3StrechForce* s = (b3StrechForce*)f;
+				
+				b3ClothTriangle* triangle = s->GetTriangle();
+				u32 triangleIndex = triangle->GetTriangle();
+				b3ClothMeshTriangle* mesh_triangle = m_clothMesh.triangles + triangleIndex;
+				
+				u32 v1 = mesh_triangle->v1;
+				u32 v2 = mesh_triangle->v2;
+				u32 v3 = mesh_triangle->v3;
 
-				u32 v1 = s->GetParticle1()->GetVertex();
-				u32 v2 = s->GetParticle2()->GetVertex();
+				b3Vec3 f1 = s->GetActionForce1();
+				b3Vec3 f2 = s->GetActionForce2();
+				b3Vec3 f3 = s->GetActionForce3();
 
-				if (v1 != ~0)
-				{
-					tension[v1] += s->GetActionForce();
-				}
-
-				if (v2 != ~0)
-				{
-					tension[v2] -= s->GetActionForce();
-				}
-
-				b3Vec3 p1 = s->GetParticle1()->GetPosition();
-				b3Vec3 p2 = s->GetParticle2()->GetPosition();
-
-				g_draw->DrawSegment(p1, p2, b3Color_black);
+				tension[v1] += f1;
+				tension[v2] += f2;
+				tension[v3] += f3;
 			}
 		}
 
@@ -142,6 +141,8 @@ public:
 			b3Vec3 v2 = m_cloth->GetParticle(t->v2)->GetPosition();
 			b3Vec3 v3 = m_cloth->GetParticle(t->v3)->GetPosition();
 			
+			g_draw->DrawTriangle(v1, v2, v3, b3Color_black);
+
 			b3Vec3 c = (v1 + v2 + v3) / 3.0f;
 
 			float32 s = 0.9f;
@@ -161,7 +162,7 @@ public:
 
 			float32 L = (L1 + L2 + L3) / 3.0f;
 
-			const float32 kMaxT = 100000.0f;
+			const float32 kMaxT = 10000.0f;
 			b3Color color = Color(L, 0.0f, kMaxT);
 			
 			b3Vec3 n1 = b3Cross(v2 - v1, v3 - v1);

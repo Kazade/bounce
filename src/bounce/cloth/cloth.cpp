@@ -22,63 +22,13 @@
 #include <bounce/cloth/cloth_triangle.h>
 #include <bounce/cloth/force.h>
 #include <bounce/cloth/spring_force.h>
+#include <bounce/cloth/strech_force.h>
 #include <bounce/cloth/cloth_solver.h>
 #include <bounce/common/draw.h>
 
 static B3_FORCE_INLINE u32 b3NextIndex(u32 i)
 {
 	return i + 1 < 3 ? i + 1 : 0;
-}
-
-struct b3UniqueEdge
-{
-	u32 v1, v2;
-};
-
-static u32 b3FindUniqueEdges(b3UniqueEdge* uniqueEdges, const b3ClothMesh* m)
-{
-	u32 uniqueCount = 0;
-
-	for (u32 i = 0; i < m->triangleCount; ++i)
-	{
-		b3ClothMeshTriangle* t1 = m->triangles + i;
-		u32 i1s[3] = { t1->v1, t1->v2, t1->v3 };
-
-		for (u32 j1 = 0; j1 < 3; ++j1)
-		{
-			u32 t1v1 = i1s[j1];
-			u32 t1v2 = i1s[b3NextIndex(j1)];
-
-			bool unique = true;
-
-			for (u32 j = 0; j < uniqueCount; ++j)
-			{
-				b3UniqueEdge* ue = uniqueEdges + j;
-
-				if (ue->v1 == t1v1 && ue->v2 == t1v2)
-				{
-					unique = false;
-					break;
-				}
-
-				if (ue->v2 == t1v1 && ue->v1 == t1v2)
-				{
-					unique = false;
-					break;
-				}
-			}
-
-			if (unique)
-			{
-				b3UniqueEdge ue;
-				ue.v1 = t1v1;
-				ue.v2 = t1v2;
-				uniqueEdges[uniqueCount++] = ue;
-			}
-		}
-	}
-
-	return uniqueCount;
 }
 
 struct b3SharedEdge
@@ -187,17 +137,69 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 		triangle->m_friction = def.friction;
 		triangle->m_triangle = i;
 
-		b3Vec3 v1 = m_mesh->vertices[meshTriangle->v1];
-		b3Vec3 v2 = m_mesh->vertices[meshTriangle->v2];
-		b3Vec3 v3 = m_mesh->vertices[meshTriangle->v3];
+		b3Vec3 A = m_mesh->vertices[meshTriangle->v1];
+		b3Vec3 B = m_mesh->vertices[meshTriangle->v2];
+		b3Vec3 C = m_mesh->vertices[meshTriangle->v3];
 
 		b3AABB3 aabb;
-		aabb.Set(v1, v2, v3);
+		aabb.Set(A, B, C);
 		aabb.Extend(triangle->m_radius);
 
 		triangle->m_aabbProxy.type = e_triangleProxy;
 		triangle->m_aabbProxy.owner = triangle;
 		triangle->m_broadPhaseId = m_contactManager.m_broadPhase.CreateProxy(aabb, &triangle->m_aabbProxy);
+
+		// uv coordinates for triangle
+		
+		// v1
+		b3Vec2 uv1;
+		uv1.SetZero();
+
+		// v2
+		b3Vec3 AB = B - A;
+		
+		b3Vec2 uv2;
+		uv2.x = b3Length(AB);
+		uv2.y = 0.0f;
+
+		// v3
+		b3Vec3 n_AB = b3Normalize(AB);
+		b3Vec3 AC = C - A;
+		float32 len_AC = b3Length(AC);
+
+		b3Vec2 uv3;
+		uv3.x = b3Dot(n_AB, AC);
+		uv3.y = b3Sqrt(len_AC * len_AC - uv3.x * uv3.x);
+
+		// Strech matrix
+		float32 du1 = uv2.x - uv1.x;
+		float32 dv1 = uv2.y - uv1.y;
+		float32 du2 = uv3.x - uv1.x;
+		float32 dv2 = uv3.y - uv1.y;
+		
+		triangle->m_du1 = du1;
+		triangle->m_dv1 = dv1;
+		triangle->m_du2 = du2;
+		triangle->m_dv2 = dv2;
+
+		float32 det = du1 * dv2 - du2 * dv1;
+		B3_ASSERT(det != 0.0f);
+		triangle->m_inv_det = 1.0f / det;
+
+		// Triangle area
+		b3Vec3 v1(du1, dv1, 0.0f);
+		b3Vec3 v2(du2, dv2, 0.0f);
+		triangle->m_alpha = 0.5f * b3Length(b3Cross(v1, v2));
+
+		// Create strech force
+		b3StrechForceDef sfdef;
+		sfdef.triangle = triangle;
+		sfdef.streching = def.streching;
+		sfdef.damping = def.damping;
+		sfdef.bu = 1.0f;
+		sfdef.bv = 1.0f;
+
+		CreateForce(sfdef);
 	}
 
 	// Initialize forces
@@ -206,27 +208,8 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 	// Worst-case edge memory
 	u32 edgeCount = 3 * m->triangleCount;
 
-	b3UniqueEdge* uniqueEdges = (b3UniqueEdge*)allocator->Allocate(edgeCount * sizeof(b3UniqueEdge));
-	u32 uniqueCount = b3FindUniqueEdges(uniqueEdges, m);
-
 	b3SharedEdge* sharedEdges = (b3SharedEdge*)allocator->Allocate(edgeCount * sizeof(b3SharedEdge));
 	u32 sharedCount = b3FindSharedEdges(sharedEdges, m);
-
-	for (u32 i = 0; i < uniqueCount; ++i)
-	{
-		b3UniqueEdge* e = uniqueEdges + i;
-
-		b3Particle* p1 = m_particles[e->v1];
-		b3Particle* p2 = m_particles[e->v2];
-
-		b3SpringForceDef fd;
-		fd.Initialize(p1, p2, def.structural, def.damping);
-
-		if (def.structural > 0.0f)
-		{
-			CreateForce(fd);
-		}
-	}
 
 	// Bending
 	for (u32 i = 0; i < sharedCount; ++i)
@@ -248,7 +231,6 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 	}
 	
 	allocator->Free(sharedEdges);
-	allocator->Free(uniqueEdges);
 
 	// Sewing
 	for (u32 i = 0; i < m->sewingLineCount; ++i)
@@ -259,9 +241,9 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 		b3Particle* p2 = m_particles[line->v2];
 
 		b3SpringForceDef fd;
-		fd.Initialize(p1, p2, def.structural, def.damping);
+		fd.Initialize(p1, p2, def.sewing, def.damping);
 
-		if (def.structural > 0.0f)
+		if (def.sewing > 0.0f)
 		{
 			CreateForce(fd);
 		}
@@ -660,6 +642,8 @@ void b3Cloth::Draw() const
 		b3Vec3 v1 = p1->m_position;
 		b3Vec3 v2 = p2->m_position;
 		b3Vec3 v3 = p3->m_position;
+
+		b3Draw_draw->DrawTriangle(v1, v2, v3, b3Color_black);
 
 		b3Vec3 c = (v1 + v2 + v3) / 3.0f;
 

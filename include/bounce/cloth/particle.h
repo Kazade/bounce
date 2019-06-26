@@ -120,6 +120,7 @@ private:
 	friend class b3ParticleTriangleContact;
 	friend class b3ClothContactSolver;
 	friend class b3Force;
+	friend class b3StrechForce;
 	friend class b3SpringForce;
 
 	b3Particle(const b3ParticleDef& def, b3Cloth* cloth);

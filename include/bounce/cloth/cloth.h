@@ -57,7 +57,8 @@ struct b3ClothDef
 	{
 		mesh = nullptr;
 		density = 0.0f;
-		structural = 0.0f;
+		streching = 0.0f;
+		sewing = 0.0f;
 		bending = 0.0f;
 		damping = 0.0f;
 		thickness = 0.0f;
@@ -70,12 +71,15 @@ struct b3ClothDef
 	// Cloth density in kg/m^2
 	float32 density;
 
-	// Structural stiffness
-	float32 structural;
+	// Streching stiffness
+	float32 streching;
 
 	// Bending stiffness
 	float32 bending;
 
+	// Sewing stiffness
+	float32 sewing;
+	
 	// Damping stiffness
 	float32 damping;
 
@@ -152,6 +156,8 @@ public:
 private:
 	friend class b3Particle;
 	friend class b3ClothTriangle;
+	friend class b3StrechForce;
+	friend class b3SpringForce;
 	friend class b3ClothContactManager;
 
 	// Compute mass of each particle.

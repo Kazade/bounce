@@ -90,11 +90,10 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterati
 
 		forceSolver.Solve(dt, gravity);
 	}
-
+	
 	// Copy particle state to state buffer
 	b3Vec3* positions = (b3Vec3*)m_allocator->Allocate(m_particleCount * sizeof(b3Vec3));
 	b3Vec3* velocities = (b3Vec3*)m_allocator->Allocate(m_particleCount * sizeof(b3Vec3));
-
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
 		positions[i] = m_particles[i]->m_position;
@@ -147,8 +146,8 @@ void b3ClothSolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterati
 			positions[i] += h * velocities[i];
 		}
 
-		// Solve position constraints
 		{
+			// Solve position constraints
 			bool positionSolved = false;
 			for (u32 i = 0; i < positionIterations; ++i)
 			{

@@ -29,6 +29,7 @@ class b3Particle;
 // Force types
 enum b3ForceType
 {
+	e_strechForce,
 	e_springForce,
 };
 

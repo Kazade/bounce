@@ -42,6 +42,7 @@ public:
 private:
 	friend class b3Cloth;
 	friend class b3Particle;
+	friend class b3StrechForce;
 	friend class b3ClothContactManager;
 	friend class b3ParticleTriangleContact;
 	friend class b3ClothSolver;
@@ -70,6 +71,14 @@ private:
 
 	// Broadphase ID
 	u32 m_broadPhaseId;
+
+	// Alpha
+	float32 m_alpha;
+
+	// Strech matrix
+	float32 m_du1, m_dv1;
+	float32 m_du2, m_dv2;
+	float32 m_inv_det;
 };
 
 inline u32 b3ClothTriangle::GetTriangle() const

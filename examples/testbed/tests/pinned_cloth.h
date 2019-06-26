@@ -28,8 +28,7 @@ public:
 		b3ClothDef def;
 		def.mesh = &m_clothMesh;
 		def.density = 0.2f;
-		def.structural = 100000.0f;
-		def.damping = 0.0f;
+		def.streching = 100000.0f;
 
 		m_cloth = new b3Cloth(def);
 
