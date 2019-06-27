@@ -261,7 +261,7 @@ void b3ClothForceSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// b = h * (f0 + h * dfdx * v0 + dfdx * y) 
 	
 	// A
-	b3SparseMat33 A = M - h * dfdv - h * h * dfdx;
+	b3SparseMat33 A = M - h * dfdv - (h * h) * dfdx;
 
 	// View for A
 	b3SparseMat33View viewA(A);
