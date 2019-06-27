@@ -65,6 +65,7 @@ public:
 		def.mesh = &m_clothMesh;
 		def.density = 0.2f;
 		def.streching = 10000.0f;
+		def.shearing = 5000.0f;
 		def.damping = 100.0f;
 
 		m_cloth = new b3Cloth(def);
