@@ -126,6 +126,7 @@ Below are the external dependencies for testbed. If you don't care about testbed
 
 * Cloth
 * Vertex contact, friction
+* Strech, shear, spring force types
 * Linear time solver
 * Unconditional simulation stability
 * Ray-casting 
