@@ -116,7 +116,7 @@ void b3StrechForce::Apply(const b3ClothForceSolverData* data)
 	m_f2.SetZero();
 	m_f3.SetZero();
 
-	if (len_wu > m_bu)
+	if (len_wu > 0.0f)
 	{
 		float32 inv_len_wu = 1.0f / len_wu;
 		b3Vec3 n_wu = inv_len_wu * wu;
@@ -130,44 +130,47 @@ void b3StrechForce::Apply(const b3ClothForceSolverData* data)
 
 		if (m_ks > 0.0f)
 		{
-			float32 Cu = alpha * (len_wu - m_bu);
-
-			// Force
-			b3Vec3 fs[3];
-			for (u32 i = 0; i < 3; ++i)
+			if (len_wu > m_bu)
 			{
-				fs[i] = -m_ks * Cu * dCudx[i];
-			}
+				float32 Cu = alpha * (len_wu - m_bu);
 
-			m_f1 += fs[0];
-			m_f2 += fs[1];
-			m_f3 += fs[2];
-
-			// Jacobian
-			b3Mat33 J[3][3];
-			for (u32 i = 0; i < 3; ++i)
-			{
-				for (u32 j = 0; j < 3; ++j)
+				// Force
+				b3Vec3 fs[3];
+				for (u32 i = 0; i < 3; ++i)
 				{
-					b3Mat33 d2Cuxij = (alpha * inv_len_wu * dwudx[i] * dwudx[j]) * (I - b3Outer(n_wu, n_wu));
-
-					b3Mat33 Jij = -m_ks * (b3Outer(dCudx[i], dCudx[j]) + Cu * d2Cuxij);
-
-					J[i][j] = Jij;
+					fs[i] = -m_ks * Cu * dCudx[i];
 				}
+
+				m_f1 += fs[0];
+				m_f2 += fs[1];
+				m_f3 += fs[2];
+
+				// Jacobian
+				b3Mat33 J[3][3];
+				for (u32 i = 0; i < 3; ++i)
+				{
+					for (u32 j = 0; j < 3; ++j)
+					{
+						b3Mat33 d2Cuxij = (alpha * inv_len_wu * dwudx[i] * dwudx[j]) * (I - b3Outer(n_wu, n_wu));
+
+						b3Mat33 Jij = -m_ks * (b3Outer(dCudx[i], dCudx[j]) + Cu * d2Cuxij);
+
+						J[i][j] = Jij;
+					}
+				}
+
+				dfdx(i1, i1) += J[0][0];
+				dfdx(i1, i2) += J[0][1];
+				dfdx(i1, i3) += J[0][2];
+
+				//dfdx(i2, i1) += J[1][0];
+				dfdx(i2, i2) += J[1][1];
+				dfdx(i2, i3) += J[1][2];
+
+				//dfdx(i3, i1) += J[2][0];
+				//dfdx(i3, i2) += J[2][1];
+				dfdx(i3, i3) += J[2][2];
 			}
-
-			dfdx(i1, i1) += J[0][0];
-			dfdx(i1, i2) += J[0][1];
-			dfdx(i1, i3) += J[0][2];
-
-			//dfdx(i2, i1) += J[1][0];
-			dfdx(i2, i2) += J[1][1];
-			dfdx(i2, i3) += J[1][2];
-
-			//dfdx(i3, i1) += J[2][0];
-			//dfdx(i3, i2) += J[2][1];
-			dfdx(i3, i3) += J[2][2];
 		}
 
 		if (m_kd > 0.0f)
@@ -216,7 +219,7 @@ void b3StrechForce::Apply(const b3ClothForceSolverData* data)
 		}
 	}
 
-	if (len_wv > m_bv)
+	if (len_wv > 0.0f)
 	{
 		float32 inv_len_wv = 1.0f / len_wv;
 		b3Vec3 n_wv = inv_len_wv * wv;
@@ -230,50 +233,53 @@ void b3StrechForce::Apply(const b3ClothForceSolverData* data)
 
 		if (m_ks > 0.0f)
 		{
-			float32 Cv = alpha * (len_wv - m_bv);
-
-			// Force
-			b3Vec3 fs[3];
-			for (u32 i = 0; i < 3; ++i)
+			if (len_wv > m_bv)
 			{
-				fs[i] = -m_ks * Cv * dCvdx[i];
-			}
+				float32 Cv = alpha * (len_wv - m_bv);
 
-			m_f1 += fs[0];
-			m_f2 += fs[1];
-			m_f3 += fs[2];
-
-			// Jacobian
-			b3Mat33 J[3][3];
-			for (u32 i = 0; i < 3; ++i)
-			{
-				for (u32 j = 0; j < 3; ++j)
+				// Force
+				b3Vec3 fs[3];
+				for (u32 i = 0; i < 3; ++i)
 				{
-					b3Mat33 d2Cvxij = (alpha * inv_len_wv * dwvdx[i] * dwvdx[j]) * (I - b3Outer(n_wv, n_wv));
-
-					b3Mat33 Jij = -m_ks * (b3Outer(dCvdx[i], dCvdx[j]) + Cv * d2Cvxij);
-
-					J[i][j] = Jij;
+					fs[i] = -m_ks * Cv * dCvdx[i];
 				}
+
+				m_f1 += fs[0];
+				m_f2 += fs[1];
+				m_f3 += fs[2];
+
+				// Jacobian
+				b3Mat33 J[3][3];
+				for (u32 i = 0; i < 3; ++i)
+				{
+					for (u32 j = 0; j < 3; ++j)
+					{
+						b3Mat33 d2Cvxij = (alpha * inv_len_wv * dwvdx[i] * dwvdx[j]) * (I - b3Outer(n_wv, n_wv));
+
+						b3Mat33 Jij = -m_ks * (b3Outer(dCvdx[i], dCvdx[j]) + Cv * d2Cvxij);
+
+						J[i][j] = Jij;
+					}
+				}
+
+				dfdx(i1, i1) += J[0][0];
+				dfdx(i1, i2) += J[0][1];
+				dfdx(i1, i3) += J[0][2];
+
+				//dfdx(i2, i1) += J[1][0];
+				dfdx(i2, i2) += J[1][1];
+				dfdx(i2, i3) += J[1][2];
+
+				//dfdx(i3, i1) += J[2][0];
+				//dfdx(i3, i2) += J[2][1];
+				dfdx(i3, i3) += J[2][2];
 			}
-
-			dfdx(i1, i1) += J[0][0];
-			dfdx(i1, i2) += J[0][1];
-			dfdx(i1, i3) += J[0][2];
-
-			//dfdx(i2, i1) += J[1][0];
-			dfdx(i2, i2) += J[1][1];
-			dfdx(i2, i3) += J[1][2];
-
-			//dfdx(i3, i1) += J[2][0];
-			//dfdx(i3, i2) += J[2][1];
-			dfdx(i3, i3) += J[2][2];
 		}
 
 		if (m_kd > 0.0f)
-		{			
+		{
 			b3Vec3 vs[3] = { v1, v2, v3 };
-			
+
 			float32 dCvdt = 0.0f;
 			for (u32 i = 0; i < 3; ++i)
 			{
