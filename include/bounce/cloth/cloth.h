@@ -58,8 +58,9 @@ struct b3ClothDef
 		mesh = nullptr;
 		density = 0.0f;
 		streching = 0.0f;
-		sewing = 0.0f;
+		shearing = 0.0f;
 		bending = 0.0f;
+		sewing = 0.0f;
 		damping = 0.0f;
 		thickness = 0.0f;
 		friction = 0.2f;
@@ -74,6 +75,9 @@ struct b3ClothDef
 	// Streching stiffness
 	float32 streching;
 
+	// Shearing stiffness
+	float32 shearing;
+	
 	// Bending stiffness
 	float32 bending;
 
@@ -156,6 +160,7 @@ public:
 private:
 	friend class b3Particle;
 	friend class b3ClothTriangle;
+	friend class b3ShearForce;
 	friend class b3StrechForce;
 	friend class b3SpringForce;
 	friend class b3ClothContactManager;

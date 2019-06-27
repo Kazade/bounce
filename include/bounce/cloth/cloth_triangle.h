@@ -42,6 +42,7 @@ public:
 private:
 	friend class b3Cloth;
 	friend class b3Particle;
+	friend class b3ShearForce;
 	friend class b3StrechForce;
 	friend class b3ClothContactManager;
 	friend class b3ParticleTriangleContact;

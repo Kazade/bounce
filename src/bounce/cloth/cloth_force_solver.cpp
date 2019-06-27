@@ -21,8 +21,8 @@
 #include <bounce/cloth/force.h>
 #include <bounce/sparse/dense_vec3.h>
 #include <bounce/sparse/diag_mat33.h>
-#include <bounce/sparse/sparse_sym_mat33.h>
-#include <bounce/sparse/sparse_sym_mat33_view.h>
+#include <bounce/sparse/sparse_mat33.h>
+#include <bounce/sparse/sparse_mat33_view.h>
 #include <bounce/common/memory/stack_allocator.h>
 
 // Here, we solve Ax = b using the Modified Preconditioned Conjugate Gradient (MPCG) algorithm.
@@ -128,7 +128,7 @@ void b3ClothForceSolver::ApplyConstraints()
 
 // Solve Ax = b
 static void b3SolveMPCG(b3DenseVec3& x,
-	const b3SparseSymMat33View& A, const b3DenseVec3& b,
+	const b3SparseMat33View& A, const b3DenseVec3& b,
 	const b3DiagMat33& S, const b3DenseVec3& z,
 	const b3DenseVec3& y, const b3DiagMat33& I, u32 maxIterations = 20)
 {
@@ -214,9 +214,9 @@ void b3ClothForceSolver::Solve(float32 dt, const b3Vec3& gravity)
 	b3DenseVec3 sy(m_particleCount);
 	b3DenseVec3 sz(m_particleCount);
 	b3DenseVec3 sx0(m_particleCount);
-	b3SparseSymMat33 M(m_particleCount);
-	b3SparseSymMat33 dfdx(m_particleCount);
-	b3SparseSymMat33 dfdv(m_particleCount);
+	b3SparseMat33 M(m_particleCount);
+	b3SparseMat33 dfdx(m_particleCount);
+	b3SparseMat33 dfdv(m_particleCount);
 	b3DiagMat33 S(m_particleCount);
 	b3DiagMat33 I(m_particleCount);
 	I.SetIdentity();
@@ -261,10 +261,10 @@ void b3ClothForceSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// b = h * (f0 + h * dfdx * v0 + dfdx * y) 
 	
 	// A
-	b3SparseSymMat33 A = M - h * dfdv - h * h * dfdx;
+	b3SparseMat33 A = M - h * dfdv - h * h * dfdx;
 
 	// View for A
-	b3SparseSymMat33View viewA(A);
+	b3SparseMat33View viewA(A);
 
 	// b
 	b3DenseVec3 b = h * (sf + h * (dfdx * sv) + dfdx * sy);

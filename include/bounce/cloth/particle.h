@@ -112,15 +112,16 @@ public:
 private:
 	friend class b3List2<b3Particle>;
 	friend class b3Cloth;
-	friend class b3ClothTriangle;
+	friend class b3ClothContactManager;
 	friend class b3ClothSolver;
 	friend class b3ClothForceSolver;
-	friend class b3ClothContactManager;
+	friend class b3ClothTriangle;
 	friend class b3ParticleBodyContact;
 	friend class b3ParticleTriangleContact;
 	friend class b3ClothContactSolver;
 	friend class b3Force;
 	friend class b3StrechForce;
+	friend class b3ShearForce;
 	friend class b3SpringForce;
 
 	b3Particle(const b3ParticleDef& def, b3Cloth* cloth);

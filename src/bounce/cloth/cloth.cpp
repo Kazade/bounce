@@ -21,8 +21,9 @@
 #include <bounce/cloth/particle.h>
 #include <bounce/cloth/cloth_triangle.h>
 #include <bounce/cloth/force.h>
-#include <bounce/cloth/spring_force.h>
 #include <bounce/cloth/strech_force.h>
+#include <bounce/cloth/shear_force.h>
+#include <bounce/cloth/spring_force.h>
 #include <bounce/cloth/cloth_solver.h>
 #include <bounce/common/draw.h>
 
@@ -199,7 +200,20 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 		sfdef.bu = 1.0f;
 		sfdef.bv = 1.0f;
 
-		CreateForce(sfdef);
+		if (def.streching > 0.0f)
+		{
+			CreateForce(sfdef);
+		}
+
+		b3ShearForceDef shdef;
+		shdef.triangle = triangle;
+		shdef.shearing = def.shearing;
+		shdef.damping = def.damping;
+
+		if (def.shearing > 0.0f)
+		{
+			CreateForce(shdef);
+		}
 	}
 
 	// Initialize forces

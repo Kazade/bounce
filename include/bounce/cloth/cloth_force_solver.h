@@ -29,8 +29,8 @@ class b3Force;
 
 struct b3DenseVec3;
 struct b3DiagMat33;
-struct b3SparseSymMat33;
-struct b3SparseSymMat33View;
+struct b3SparseMat33;
+struct b3SparseMat33View;
 
 struct b3ClothForceSolverDef
 {
@@ -47,8 +47,8 @@ struct b3ClothForceSolverData
 	b3DenseVec3* v;
 	b3DenseVec3* f;
 	b3DenseVec3* y;
-	b3SparseSymMat33* dfdx;
-	b3SparseSymMat33* dfdv;
+	b3SparseMat33* dfdx;
+	b3SparseMat33* dfdv;
 	b3DiagMat33* S;
 	b3DenseVec3* z;
 };

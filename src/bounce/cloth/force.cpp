@@ -18,6 +18,7 @@
 
 #include <bounce/cloth/force.h>
 #include <bounce/cloth/strech_force.h>
+#include <bounce/cloth/shear_force.h>
 #include <bounce/cloth/spring_force.h>
 
 b3Force* b3Force::Create(const b3ForceDef* def)
@@ -29,6 +30,12 @@ b3Force* b3Force::Create(const b3ForceDef* def)
 	{
 		void* block = b3Alloc(sizeof(b3StrechForce));
 		force = new (block) b3StrechForce((b3StrechForceDef*)def);
+		break;
+	}
+	case e_shearForce:
+	{
+		void* block = b3Alloc(sizeof(b3ShearForce));
+		force = new (block) b3ShearForce((b3ShearForceDef*)def);
 		break;
 	}
 	case e_springForce:
@@ -57,6 +64,13 @@ void b3Force::Destroy(b3Force* force)
 	{
 		b3StrechForce* o = (b3StrechForce*)force;
 		o->~b3StrechForce();
+		b3Free(force);
+		break;
+	}
+	case e_shearForce:
+	{
+		b3ShearForce* o = (b3ShearForce*)force;
+		o->~b3ShearForce();
 		b3Free(force);
 		break;
 	}

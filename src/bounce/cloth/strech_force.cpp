@@ -23,7 +23,7 @@
 #include <bounce/cloth/cloth_mesh.h>
 #include <bounce/cloth/cloth_force_solver.h>
 #include <bounce/sparse/dense_vec3.h>
-#include <bounce/sparse/sparse_sym_mat33.h>
+#include <bounce/sparse/sparse_mat33.h>
 
 b3StrechForce::b3StrechForce(const b3StrechForceDef* def)
 {
@@ -80,8 +80,8 @@ void b3StrechForce::Apply(const b3ClothForceSolverData* data)
 	b3DenseVec3& x = *data->x;
 	b3DenseVec3& v = *data->v;
 	b3DenseVec3& f = *data->f;
-	b3SparseSymMat33& dfdx = *data->dfdx;
-	b3SparseSymMat33& dfdv = *data->dfdv;
+	b3SparseMat33& dfdx = *data->dfdx;
+	b3SparseMat33& dfdv = *data->dfdv;
 
 	b3Vec3 x1 = x[i1];
 	b3Vec3 x2 = x[i2];
@@ -163,12 +163,12 @@ void b3StrechForce::Apply(const b3ClothForceSolverData* data)
 				dfdx(i1, i2) += J[0][1];
 				dfdx(i1, i3) += J[0][2];
 
-				//dfdx(i2, i1) += J[1][0];
+				dfdx(i2, i1) += J[1][0];
 				dfdx(i2, i2) += J[1][1];
 				dfdx(i2, i3) += J[1][2];
 
-				//dfdx(i3, i1) += J[2][0];
-				//dfdx(i3, i2) += J[2][1];
+				dfdx(i3, i1) += J[2][0];
+				dfdx(i3, i2) += J[2][1];
 				dfdx(i3, i3) += J[2][2];
 			}
 		}
@@ -209,12 +209,12 @@ void b3StrechForce::Apply(const b3ClothForceSolverData* data)
 			dfdv(i1, i2) += J[0][1];
 			dfdv(i1, i3) += J[0][2];
 
-			//dfdv(i2, i1) += J[1][0];
+			dfdv(i2, i1) += J[1][0];
 			dfdv(i2, i2) += J[1][1];
 			dfdv(i2, i3) += J[1][2];
 
-			//dfdv(i3, i1) += J[2][0];
-			//dfdv(i3, i2) += J[2][1];
+			dfdv(i3, i1) += J[2][0];
+			dfdv(i3, i2) += J[2][1];
 			dfdv(i3, i3) += J[2][2];
 		}
 	}
@@ -266,12 +266,12 @@ void b3StrechForce::Apply(const b3ClothForceSolverData* data)
 				dfdx(i1, i2) += J[0][1];
 				dfdx(i1, i3) += J[0][2];
 
-				//dfdx(i2, i1) += J[1][0];
+				dfdx(i2, i1) += J[1][0];
 				dfdx(i2, i2) += J[1][1];
 				dfdx(i2, i3) += J[1][2];
 
-				//dfdx(i3, i1) += J[2][0];
-				//dfdx(i3, i2) += J[2][1];
+				dfdx(i3, i1) += J[2][0];
+				dfdx(i3, i2) += J[2][1];
 				dfdx(i3, i3) += J[2][2];
 			}
 		}
@@ -313,12 +313,12 @@ void b3StrechForce::Apply(const b3ClothForceSolverData* data)
 			dfdv(i1, i2) += J[0][1];
 			dfdv(i1, i3) += J[0][2];
 
-			//dfdv(i2, i1) += J[1][0];
+			dfdv(i2, i1) += J[1][0];
 			dfdv(i2, i2) += J[1][1];
 			dfdv(i2, i3) += J[1][2];
 
-			//dfdv(i3, i1) += J[2][0];
-			//dfdv(i3, i2) += J[2][1];
+			dfdv(i3, i1) += J[2][0];
+			dfdv(i3, i2) += J[2][1];
 			dfdv(i3, i3) += J[2][2];
 		}
 	}
