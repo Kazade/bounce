@@ -139,9 +139,9 @@ void b3ShearForce::Apply(const b3ClothForceSolverData* data)
 		{
 			for (u32 j = 0; j < 3; ++j)
 			{
-				b3Mat33 d2Cxij = alpha * (dwudx[i] * dwvdx[j] + dwudx[j] * dwvdx[i]) * I;
-
-				b3Mat33 Jij = -m_ks * (b3Outer(dCdx[i], dCdx[j]) + C * d2Cxij);
+				//b3Mat33 d2Cxij = alpha * (dwudx[i] * dwvdx[j] + dwudx[j] * dwvdx[i]) * I;
+				//b3Mat33 Jij = -m_ks * (b3Outer(dCdx[i], dCdx[j]) + C * d2Cxij);
+				b3Mat33 Jij = -m_ks * b3Outer(dCdx[i], dCdx[j]);
 
 				J[i][j] = Jij;
 			}
