@@ -135,6 +135,7 @@ Below are the external dependencies for testbed. If you don't care about testbed
 
 * Soft body
 * Vertex contact, friction
+* Elasticity, plasticity
 * Linear time solver
 * Unconditional simulation stability
 * Ray-casting 
