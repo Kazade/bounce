@@ -190,10 +190,8 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 		B3_ASSERT(det != 0.0f);
 		triangle->m_inv_det = 1.0f / det;
 
-		// Triangle area
-		b3Vec3 v1(du1, dv1, 0.0f);
-		b3Vec3 v2(du2, dv2, 0.0f);
-		triangle->m_alpha = 0.5f * b3Length(b3Cross(v1, v2));
+		// Area
+		triangle->m_alpha = 0.5f * A2;
 
 		// Create strech force
 		b3StrechForceDef sfdef;
