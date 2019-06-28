@@ -150,27 +150,30 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 		triangle->m_aabbProxy.owner = triangle;
 		triangle->m_broadPhaseId = m_contactManager.m_broadPhase.CreateProxy(aabb, &triangle->m_aabbProxy);
 
-		// uv coordinates for triangle
-		
+		b3Vec3 AB = B - A;
+		b3Vec3 AC = C - A;
+
 		// v1
 		b3Vec2 uv1;
 		uv1.SetZero();
 
 		// v2
-		b3Vec3 AB = B - A;
-		
 		b3Vec2 uv2;
 		uv2.x = b3Length(AB);
 		uv2.y = 0.0f;
 
 		// v3
-		b3Vec3 n_AB = b3Normalize(AB);
-		b3Vec3 AC = C - A;
-		float32 len_AC = b3Length(AC);
+		B3_ASSERT(uv2.x > 0.0f);
+		b3Vec3 n_AB = AB / uv2.x;
+
+		// A  = b * h / 2
+		// h = (A * 2) / b
+		float32 A2 = b3Length(b3Cross(AB, AC));
+		B3_ASSERT(A2 > 0.0f);
 
 		b3Vec2 uv3;
 		uv3.x = b3Dot(n_AB, AC);
-		uv3.y = b3Sqrt(len_AC * len_AC - uv3.x * uv3.x);
+		uv3.y = A2 / uv2.x;
 
 		// Strech matrix
 		float32 du1 = uv2.x - uv1.x;
