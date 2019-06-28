@@ -172,7 +172,7 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 		B3_ASSERT(A2 > 0.0f);
 
 		b3Vec2 uv3;
-		uv3.x = b3Dot(n_AB, AC);
+		uv3.x = b3Dot(AC, n_AB);
 		uv3.y = A2 / uv2.x;
 
 		// Strech matrix
