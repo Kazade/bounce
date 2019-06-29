@@ -153,33 +153,31 @@ b3Cloth::b3Cloth(const b3ClothDef& def) :
 		b3Vec3 AB = B - A;
 		b3Vec3 AC = C - A;
 
-		// v1
-		b3Vec2 uv1;
-		uv1.SetZero();
+		// uv1
+		float32 u1 = 0.0f;
+		float32 v1 = 0.0f;
 
-		// v2
-		b3Vec2 uv2;
-		uv2.x = b3Length(AB);
-		uv2.y = 0.0f;
+		// uv2
+		float32 u2 = b3Length(AB);
+		float32 v2 = 0.0f;
 
-		// v3
-		B3_ASSERT(uv2.x > 0.0f);
-		b3Vec3 n_AB = AB / uv2.x;
+		// uv3
+		B3_ASSERT(u2 > 0.0f);
+		b3Vec3 n_AB = AB / u2;
 
 		// A  = b * h / 2
 		// h = (A * 2) / b
 		float32 A2 = b3Length(b3Cross(AB, AC));
 		B3_ASSERT(A2 > 0.0f);
 
-		b3Vec2 uv3;
-		uv3.x = b3Dot(AC, n_AB);
-		uv3.y = A2 / uv2.x;
+		float32 u3 = b3Dot(AC, n_AB);
+		float32 v3 = A2 / u2;
 
 		// Strech matrix
-		float32 du1 = uv2.x - uv1.x;
-		float32 dv1 = uv2.y - uv1.y;
-		float32 du2 = uv3.x - uv1.x;
-		float32 dv2 = uv3.y - uv1.y;
+		float32 du1 = u2 - u1;
+		float32 dv1 = v2 - v1;
+		float32 du2 = u3 - u1;
+		float32 dv2 = v3 - v1;
 		
 		triangle->m_du1 = du1;
 		triangle->m_dv1 = dv1;
