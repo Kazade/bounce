@@ -18,7 +18,7 @@
 
 #include <bounce/cloth/cloth_force_solver.h>
 #include <bounce/cloth/particle.h>
-#include <bounce/cloth/force.h>
+#include <bounce/cloth/forces/force.h>
 #include <bounce/sparse/dense_vec3.h>
 #include <bounce/sparse/diag_mat33.h>
 #include <bounce/sparse/sparse_mat33.h>

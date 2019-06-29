@@ -19,7 +19,7 @@
 #ifndef B3_SPRING_FORCE_H
 #define B3_SPRING_FORCE_H
 
-#include <bounce/cloth/force.h>
+#include <bounce/cloth/forces/force.h>
 
 struct b3SpringForceDef : public b3ForceDef
 {

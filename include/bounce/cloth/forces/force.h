@@ -32,6 +32,7 @@ enum b3ForceType
 	e_strechForce,
 	e_shearForce,
 	e_springForce,
+	e_mouseForce,
 };
 
 struct b3ForceDef

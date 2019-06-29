@@ -163,6 +163,7 @@ private:
 	friend class b3ShearForce;
 	friend class b3StrechForce;
 	friend class b3SpringForce;
+	friend class b3MouseForce;
 	friend class b3ClothContactManager;
 
 	// Compute mass of each particle.

@@ -23,7 +23,8 @@
 #include <bounce/cloth/cloth.h>
 #include <bounce/cloth/cloth_mesh.h>
 #include <bounce/cloth/particle.h>
-#include <bounce/cloth/spring_force.h>
+#include <bounce/cloth/cloth_triangle.h>
+#include <bounce/cloth/forces/mouse_force.h>
 
 // A cloth triangle dragger.
 class b3ClothDragger
@@ -32,10 +33,18 @@ public:
 	b3ClothDragger(b3Ray3* ray, b3Cloth* cloth);
 	~b3ClothDragger();
 
-	void SetSpring(bool bit);
+	void SetStaticDrag(bool bit);
 
-	bool GetSpring() const;
+	bool GetStaticDrag() const;
 
+	void SetMouseStiffness(float32 k);
+
+	float32 GetMouseStiffness();
+
+	void SetMouseDamping(float32 k);
+
+	float32 GetMouseDamping();
+	
 	bool IsDragging() const;
 
 	bool StartDragging();
@@ -53,22 +62,42 @@ private:
 
 	b3Cloth* m_cloth;
 	const b3ClothMesh* m_mesh;
+	u32 m_triangleIndex;
 	b3ClothMeshTriangle* m_triangle;
 	float32 m_u, m_v;
 
-	bool m_spring;
-
+	float32 m_km;
+	float32 m_kd;
 	b3Particle* m_particle;
-	b3SpringForce* m_s1;
-	b3SpringForce* m_s2;
-	b3SpringForce* m_s3;
+	b3MouseForce* m_mf;
 
+	bool m_staticDrag;
 	b3ParticleType m_t1, m_t2, m_t3;
 };
 
-inline bool b3ClothDragger::GetSpring() const
+inline bool b3ClothDragger::GetStaticDrag() const
 {
-	return m_spring;
+	return m_staticDrag;
+}
+
+inline void b3ClothDragger::SetMouseStiffness(float32 k)
+{
+	m_km = k;
+}
+
+inline float32 b3ClothDragger::GetMouseStiffness()
+{
+	return m_km;
+}
+
+inline void b3ClothDragger::SetMouseDamping(float32 k)
+{
+	m_kd = k;
+}
+
+inline float32 b3ClothDragger::GetMouseDamping()
+{
+	return m_kd;
 }
 
 inline bool b3ClothDragger::IsDragging() const

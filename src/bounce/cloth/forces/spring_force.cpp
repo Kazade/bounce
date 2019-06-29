@@ -16,7 +16,7 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/cloth/spring_force.h>
+#include <bounce/cloth/forces/spring_force.h>
 #include <bounce/cloth/particle.h>
 #include <bounce/cloth/cloth_force_solver.h>
 #include <bounce/sparse/dense_vec3.h>

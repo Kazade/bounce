@@ -20,10 +20,9 @@
 #include <bounce/cloth/cloth_mesh.h>
 #include <bounce/cloth/particle.h>
 #include <bounce/cloth/cloth_triangle.h>
-#include <bounce/cloth/force.h>
-#include <bounce/cloth/strech_force.h>
-#include <bounce/cloth/shear_force.h>
-#include <bounce/cloth/spring_force.h>
+#include <bounce/cloth/forces/strech_force.h>
+#include <bounce/cloth/forces/shear_force.h>
+#include <bounce/cloth/forces/spring_force.h>
 #include <bounce/cloth/cloth_solver.h>
 #include <bounce/common/draw.h>
 

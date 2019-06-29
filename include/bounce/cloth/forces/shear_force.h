@@ -16,59 +16,53 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_STRECH_FORCE_H
-#define B3_STRECH_FORCE_H
+#ifndef B3_SHEAR_FORCE_H
+#define B3_SHEAR_FORCE_H
 
-#include <bounce/cloth/force.h>
+#include <bounce/cloth/forces/force.h>
 
 class b3ClothTriangle;
 
-struct b3StrechForceDef : public b3ForceDef
+struct b3ShearForceDef : public b3ForceDef
 {
-	b3StrechForceDef()
+	b3ShearForceDef()
 	{
-		type = e_strechForce;
+		type = e_shearForce;
 	}
 
 	// Triangle
 	b3ClothTriangle* triangle;
 
-	// Streching stiffness
-	float32 streching;
+	// Shearing stiffness
+	float32 shearing;
 
 	// Damping stiffness
 	float32 damping;
-	
-	// Desired strechiness in u direction
-	float32 bu;
-
-	// Desired strechiness in v direction
-	float32 bv;
 };
 
-// Strech force acting on a cloth triangle.
-class b3StrechForce : public b3Force
+// Shear force acting on a cloth triangle.
+class b3ShearForce : public b3Force
 {
 public:
 	bool HasParticle(const b3Particle* particle) const;
 
 	b3ClothTriangle* GetTriangle() const;
 
-	float32 GetStrechingStiffness() const;
+	float32 GetShearingStiffness() const;
 
 	float32 GetDampingStiffness() const;
-	
+
 	b3Vec3 GetActionForce1() const;
 
 	b3Vec3 GetActionForce2() const;
-	
+
 	b3Vec3 GetActionForce3() const;
 private:
 	friend class b3Force;
 	friend class b3Cloth;
 
-	b3StrechForce(const b3StrechForceDef* def);
-	~b3StrechForce();
+	b3ShearForce(const b3ShearForceDef* def);
+	~b3ShearForce();
 
 	void Apply(const b3ClothForceSolverData* data);
 
@@ -77,48 +71,42 @@ private:
 	// Triangle
 	b3ClothTriangle* m_triangle;
 
-	// Streching stiffness
+	// Shearing stiffness
 	float32 m_ks;
 
 	// Damping stiffness
 	float32 m_kd;
-	
-	// bu
-	float32 m_bu;
-
-	// bv
-	float32 m_bv;
 
 	// Action forces
 	b3Vec3 m_f1, m_f2, m_f3;
 };
 
-inline b3ClothTriangle* b3StrechForce::GetTriangle() const
+inline b3ClothTriangle* b3ShearForce::GetTriangle() const
 {
 	return m_triangle;
 }
 
-inline float32 b3StrechForce::GetStrechingStiffness() const
+inline float32 b3ShearForce::GetShearingStiffness() const
 {
 	return m_ks;
 }
 
-inline float32 b3StrechForce::GetDampingStiffness() const
+inline float32 b3ShearForce::GetDampingStiffness() const
 {
 	return m_kd;
 }
 
-inline b3Vec3 b3StrechForce::GetActionForce1() const
+inline b3Vec3 b3ShearForce::GetActionForce1() const
 {
 	return m_f1;
 }
 
-inline b3Vec3 b3StrechForce::GetActionForce2() const
+inline b3Vec3 b3ShearForce::GetActionForce2() const
 {
 	return m_f2;
 }
 
-inline b3Vec3 b3StrechForce::GetActionForce3() const
+inline b3Vec3 b3ShearForce::GetActionForce3() const
 {
 	return m_f3;
 }

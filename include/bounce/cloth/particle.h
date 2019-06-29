@@ -123,6 +123,7 @@ private:
 	friend class b3StrechForce;
 	friend class b3ShearForce;
 	friend class b3SpringForce;
+	friend class b3MouseForce;
 
 	b3Particle(const b3ParticleDef& def, b3Cloth* cloth);
 	~b3Particle();

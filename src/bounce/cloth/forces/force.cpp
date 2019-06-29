@@ -16,10 +16,11 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/cloth/force.h>
-#include <bounce/cloth/strech_force.h>
-#include <bounce/cloth/shear_force.h>
-#include <bounce/cloth/spring_force.h>
+#include <bounce/cloth/forces/force.h>
+#include <bounce/cloth/forces/strech_force.h>
+#include <bounce/cloth/forces/shear_force.h>
+#include <bounce/cloth/forces/spring_force.h>
+#include <bounce/cloth/forces/mouse_force.h>
 
 b3Force* b3Force::Create(const b3ForceDef* def)
 {
@@ -42,6 +43,12 @@ b3Force* b3Force::Create(const b3ForceDef* def)
 	{
 		void* block = b3Alloc(sizeof(b3SpringForce));
 		force = new (block) b3SpringForce((b3SpringForceDef*)def);
+		break;
+	}
+	case e_mouseForce:
+	{
+		void* block = b3Alloc(sizeof(b3MouseForce));
+		force = new (block) b3MouseForce((b3MouseForceDef*)def);
 		break;
 	}
 	default:
@@ -78,6 +85,13 @@ void b3Force::Destroy(b3Force* force)
 	{
 		b3SpringForce* o = (b3SpringForce*)force;
 		o->~b3SpringForce();
+		b3Free(force);
+		break;
+	}
+	case e_mouseForce:
+	{
+		b3MouseForce* o = (b3MouseForce*)force;
+		o->~b3MouseForce();
 		b3Free(force);
 		break;
 	}

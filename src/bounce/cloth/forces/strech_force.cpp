@@ -16,7 +16,7 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/cloth/strech_force.h>
+#include <bounce/cloth/forces/strech_force.h>
 #include <bounce/cloth/cloth_triangle.h>
 #include <bounce/cloth/particle.h>
 #include <bounce/cloth/cloth.h>

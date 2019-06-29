@@ -20,10 +20,12 @@
 
 b3ClothDragger::b3ClothDragger(b3Ray3* ray, b3Cloth* cloth)
 {
-	m_spring = false;
+	m_staticDrag = true;
 	m_ray = ray;
 	m_cloth = cloth;
 	m_triangle = nullptr;
+	m_km = 10000.0f;
+	m_kd = 0.0f;
 }
 
 b3ClothDragger::~b3ClothDragger()
@@ -42,7 +44,8 @@ bool b3ClothDragger::StartDragging()
 	}
 
 	m_mesh = m_cloth->GetMesh();
-	m_triangle = m_mesh->triangles + rayOut.triangle;
+	m_triangleIndex = rayOut.triangle;
+	m_triangle = m_mesh->triangles + m_triangleIndex;
 	m_x = rayOut.fraction;
 
 	b3Particle* p1 = m_cloth->GetParticle(m_triangle->v1);
@@ -68,42 +71,7 @@ bool b3ClothDragger::StartDragging()
 		m_u = m_v = 0.0f;
 	}
 
-	if (m_spring)
-	{
-		b3ParticleDef pd;
-		pd.type = e_staticParticle;
-		pd.position = B;
-
-		m_particle = m_cloth->CreateParticle(pd);
-
-		{
-			b3SpringForceDef sfd;
-			sfd.p1 = m_particle;
-			sfd.p2 = p1;
-			sfd.restLength = 0.0f;
-			sfd.structural = 10000.0f;
-			m_s1 = (b3SpringForce*)m_cloth->CreateForce(sfd);
-		}
-
-		{
-			b3SpringForceDef sfd;
-			sfd.p1 = m_particle;
-			sfd.p2 = p2;
-			sfd.restLength = 0.0f;
-			sfd.structural = 10000.0f;
-			m_s2 = (b3SpringForce*)m_cloth->CreateForce(sfd);
-		}
-
-		{
-			b3SpringForceDef sfd;
-			sfd.p1 = m_particle;
-			sfd.p2 = p3;
-			sfd.restLength = 0.0f;
-			sfd.structural = 10000.0f;
-			m_s3 = (b3SpringForce*)m_cloth->CreateForce(sfd);
-		}
-	}
-	else
+	if (m_staticDrag)
 	{
 		m_t1 = p1->GetType();
 		p1->SetType(e_staticParticle);
@@ -113,6 +81,27 @@ bool b3ClothDragger::StartDragging()
 
 		m_t3 = p3->GetType();
 		p3->SetType(e_staticParticle);
+	}
+	else
+	{
+		b3ParticleDef pd;
+		pd.type = e_staticParticle;
+		pd.position = GetPointA();
+
+		m_particle = m_cloth->CreateParticle(pd);
+
+		b3ClothTriangle* triangle = m_cloth->GetTriangle(m_triangleIndex);
+
+		b3MouseForceDef def;
+		def.particle = m_particle;
+		def.triangle = triangle;
+		def.w2 = m_u;
+		def.w3 = m_v;
+		def.w4 = (1.0f - m_u - m_v);
+		def.mouse = m_km;
+		def.damping = m_kd;
+
+		m_mf = (b3MouseForce*)m_cloth->CreateForce(def);
 	}
 
 	return true;
@@ -127,11 +116,7 @@ void b3ClothDragger::Drag()
 
 	b3Vec3 dx = B - A;
 
-	if (m_spring)
-	{
-		m_particle->SetPosition(B);
-	}
-	else
+	if (m_staticDrag)
 	{
 		b3Particle* p1 = m_cloth->GetParticle(m_triangle->v1);
 		p1->ApplyTranslation(dx);
@@ -142,11 +127,15 @@ void b3ClothDragger::Drag()
 		b3Particle* p3 = m_cloth->GetParticle(m_triangle->v3);
 		p3->ApplyTranslation(dx);
 	}
+	else
+	{
+		m_particle->SetPosition(B);
+	}
 }
 
-void b3ClothDragger::SetSpring(bool bit)
+void b3ClothDragger::SetStaticDrag(bool bit)
 {
-	if (bit == m_spring)
+	if (bit == m_staticDrag)
 	{
 		return;
 	}
@@ -156,25 +145,23 @@ void b3ClothDragger::SetSpring(bool bit)
 		StopDragging();
 	}
 
-	m_spring = bit;
+	m_staticDrag = bit;
 }
 
 void b3ClothDragger::StopDragging()
 {
 	B3_ASSERT(IsDragging() == true);
 
-	if (m_spring)
-	{
-		m_cloth->DestroyForce(m_s1);
-		m_cloth->DestroyForce(m_s2);
-		m_cloth->DestroyForce(m_s3);
-		m_cloth->DestroyParticle(m_particle);
-	}
-	else
+	if (m_staticDrag)
 	{
 		m_cloth->GetParticle(m_triangle->v1)->SetType(m_t1);
 		m_cloth->GetParticle(m_triangle->v2)->SetType(m_t2);
 		m_cloth->GetParticle(m_triangle->v3)->SetType(m_t3);
+	}
+	else
+	{
+		m_cloth->DestroyForce(m_mf);
+		m_cloth->DestroyParticle(m_particle);
 	}
 
 	m_triangle = nullptr;
