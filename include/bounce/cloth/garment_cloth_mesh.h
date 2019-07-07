@@ -23,7 +23,8 @@
 
 struct b3GarmentMesh;
 
-// Convenience structure.
+// This mesh structure represents a cloth mesh that can be set from 2D a garment mesh.
+// The mesh is set in the xy plane (z = 0).
 struct b3GarmentClothMesh : public b3ClothMesh
 {
 	b3GarmentClothMesh();
