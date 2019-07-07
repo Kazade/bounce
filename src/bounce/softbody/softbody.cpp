@@ -450,11 +450,6 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 
 	m_mesh = def.mesh;
 	m_density = def.density;
-	m_E = def.E;
-	m_nu = def.nu;
-	m_c_yield = def.c_yield;
-	m_c_creep = def.c_creep;
-	m_c_max = def.c_max;
 	m_gravity.SetZero();
 	m_world = nullptr;
 	m_contactManager.m_body = this;
@@ -495,6 +490,12 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 	{
 		b3SoftBodyMeshTetrahedron* mt = m->tetrahedrons + ei;
 		b3SoftBodyElement* e = m_elements + ei;
+		
+		e->E = def.E;
+		e->nu = def.nu;
+		e->c_yield = def.c_yield;
+		e->c_creep = def.c_creep;
+		e->c_max = def.c_max;
 
 		u32 v1 = mt->v1;
 		u32 v2 = mt->v2;
@@ -520,7 +521,7 @@ b3SoftBody::b3SoftBody(const b3SoftBodyDef& def)
 
 		// 6 x 6
 		float32 D[36];
-		b3ComputeD(D, m_E, m_nu);
+		b3ComputeD(D, e->E, e->nu);
 
 		// 6 x 12
 		float32* B = e->B;
@@ -656,6 +657,12 @@ b3SoftBodyNode* b3SoftBody::GetVertexNode(u32 i)
 {
 	B3_ASSERT(i < m_mesh->vertexCount);
 	return m_nodes + i;
+}
+
+b3SoftBodyElement* b3SoftBody::GetTetrahedronElement(u32 i)
+{
+	B3_ASSERT(i < m_mesh->tetrahedronCount);
+	return m_elements + i;
 }
 
 float32 b3SoftBody::GetEnergy() const

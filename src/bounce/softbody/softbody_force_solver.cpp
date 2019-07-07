@@ -345,9 +345,9 @@ void b3SoftBodyForceSolver::Solve(float32 dt, const b3Vec3& gravity)
 		}
 
 		float32 len_epsilon_elastic = b3Length(epsilon_elastic, 6);
-		if (len_epsilon_elastic > m_body->m_c_yield)
+		if (len_epsilon_elastic > e->c_yield)
 		{
-			float32 amount = h * b3Min(m_body->m_c_creep, inv_h);
+			float32 amount = h * b3Min(e->c_creep, inv_h);
 			for (u32 i = 0; i < 6; ++i)
 			{
 				epsilon_plastic[i] += amount * epsilon_elastic[i];
@@ -355,9 +355,9 @@ void b3SoftBodyForceSolver::Solve(float32 dt, const b3Vec3& gravity)
 		}
 
 		float32 len_epsilon_plastic = b3Length(epsilon_plastic, 6);
-		if (len_epsilon_plastic > m_body->m_c_max)
+		if (len_epsilon_plastic > e->c_max)
 		{
-			float32 scale = m_body->m_c_max / len_epsilon_plastic;
+			float32 scale = e->c_max / len_epsilon_plastic;
 			for (u32 i = 0; i < 6; ++i)
 			{
 				epsilon_plastic[i] *= scale;

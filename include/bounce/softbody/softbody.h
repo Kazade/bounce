@@ -43,6 +43,13 @@ struct b3SoftBodyRayCastSingleOutput
 // Soft body tetrahedron element
 struct b3SoftBodyElement
 {
+	float32 E;
+	float32 nu;
+
+	float32 c_yield;
+	float32 c_creep;
+	float32 c_max;
+
 	b3Mat33 K[16]; // 12 x 12
 	b3Mat33 invE;
 	b3Quat q;
@@ -60,6 +67,7 @@ struct b3SoftBodyTriangle
 
 // Soft body definition
 // This requires defining a soft body mesh which is typically bound to a render mesh
+// and some uniform material parameters.
 struct b3SoftBodyDef
 {
 	b3SoftBodyDef()
@@ -130,6 +138,9 @@ public:
 	// Return the node associated with the given vertex.
 	b3SoftBodyNode* GetVertexNode(u32 i);
 
+	// Return the element associated with the given tetrahedron.
+	b3SoftBodyElement* GetTetrahedronElement(u32 i);
+
 	// Return the kinetic (or dynamic) energy in this system.
 	float32 GetEnergy() const;
 
@@ -161,21 +172,6 @@ private:
 
 	// Soft body density
 	float32 m_density;
-
-	// Material Young's modulus
-	float32 m_E;
-
-	// Material poisson ratio
-	float32 m_nu;
-
-	// Material yield
-	float32 m_c_yield;
-
-	// Material creep rate
-	float32 m_c_creep;
-
-	// Material maximum plastic strain
-	float32 m_c_max;
 
 	// Soft body nodes
 	b3SoftBodyNode* m_nodes;
