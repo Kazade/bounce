@@ -65,6 +65,7 @@
 
 #include <bounce/cloth/cloth_mesh.h>
 #include <bounce/cloth/grid_cloth_mesh.h>
+#include <bounce/cloth/garment_cloth_mesh.h>
 #include <bounce/cloth/cloth.h>
 #include <bounce/cloth/particle.h>
 #include <bounce/cloth/cloth_triangle.h>

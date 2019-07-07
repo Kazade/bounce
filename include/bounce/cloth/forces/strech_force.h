@@ -83,10 +83,10 @@ private:
 	// Damping stiffness
 	float32 m_kd;
 	
-	// bu
+	// Desired strechiness in u direction
 	float32 m_bu;
 
-	// bv
+	// Desired strechiness in v direction
 	float32 m_bv;
 
 	// Action forces

@@ -16,7 +16,7 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <bounce/cloth/cloth_mesh.h>
+#include <bounce/cloth/garment_cloth_mesh.h>
 #include <bounce/cloth/garment/garment.h>
 #include <bounce/cloth/garment/garment_mesh.h>
 #include <bounce/cloth/garment/sewing_pattern.h>

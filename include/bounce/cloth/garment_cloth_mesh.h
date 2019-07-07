@@ -16,40 +16,21 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef B3_CLOTH_MESH_H
-#define B3_CLOTH_MESH_H
+#ifndef B3_GARMENT_CLOTH_MESH_H
+#define B3_GARMENT_CLOTH_MESH_H
 
-#include <bounce/common/math/vec3.h>
+#include <bounce/cloth/cloth_mesh.h>
 
-struct b3ClothMeshTriangle
+struct b3GarmentMesh;
+
+// Convenience structure.
+struct b3GarmentClothMesh : public b3ClothMesh
 {
-	u32 v1, v2, v3;
-};
+	b3GarmentClothMesh();
+	~b3GarmentClothMesh();
 
-struct b3ClothMeshMesh
-{
-	u32 vertexCount;
-	u32 startVertex;
-	u32 triangleCount;
-	u32 startTriangle;
-};
-
-struct b3ClothMeshSewingLine
-{
-	u32 s1, s2;
-	u32 v1, v2;
-};
-
-struct b3ClothMesh
-{
-	u32 vertexCount;
-	b3Vec3* vertices;
-	u32 triangleCount;
-	b3ClothMeshTriangle* triangles;
-	u32 meshCount;
-	b3ClothMeshMesh* meshes;
-	u32 sewingLineCount;
-	b3ClothMeshSewingLine* sewingLines;
+	// Set this mesh from a 2D garment mesh.
+	void Set(const b3GarmentMesh* garment);
 };
 
 #endif
