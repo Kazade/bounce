@@ -145,31 +145,31 @@ void b3StrechForce::Apply(const b3ClothForceSolverData* data)
 				m_f2 += fs[1];
 				m_f3 += fs[2];
 
-				// Jacobian
-				b3Mat33 J[3][3];
+				// Force derivative
+				b3Mat33 K[3][3];
 				for (u32 i = 0; i < 3; ++i)
 				{
 					for (u32 j = 0; j < 3; ++j)
 					{
 						b3Mat33 d2Cuxij = (alpha * inv_len_wu * dwudx[i] * dwudx[j]) * (I - b3Outer(n_wu, n_wu));
 
-						b3Mat33 Jij = -m_ks * (b3Outer(dCudx[i], dCudx[j]) + Cu * d2Cuxij);
+						b3Mat33 Kij = -m_ks * (b3Outer(dCudx[i], dCudx[j]) + Cu * d2Cuxij);
 
-						J[i][j] = Jij;
+						K[i][j] = Kij;
 					}
 				}
 
-				dfdx(i1, i1) += J[0][0];
-				dfdx(i1, i2) += J[0][1];
-				dfdx(i1, i3) += J[0][2];
+				dfdx(i1, i1) += K[0][0];
+				dfdx(i1, i2) += K[0][1];
+				dfdx(i1, i3) += K[0][2];
 
-				dfdx(i2, i1) += J[1][0];
-				dfdx(i2, i2) += J[1][1];
-				dfdx(i2, i3) += J[1][2];
+				dfdx(i2, i1) += K[1][0];
+				dfdx(i2, i2) += K[1][1];
+				dfdx(i2, i3) += K[1][2];
 
-				dfdx(i3, i1) += J[2][0];
-				dfdx(i3, i2) += J[2][1];
-				dfdx(i3, i3) += J[2][2];
+				dfdx(i3, i1) += K[2][0];
+				dfdx(i3, i2) += K[2][1];
+				dfdx(i3, i3) += K[2][2];
 			}
 		}
 
@@ -193,29 +193,29 @@ void b3StrechForce::Apply(const b3ClothForceSolverData* data)
 			m_f2 += fs[1];
 			m_f3 += fs[2];
 
-			// Jacobian
-			b3Mat33 J[3][3];
+			// Force derivative
+			b3Mat33 K[3][3];
 			for (u32 i = 0; i < 3; ++i)
 			{
 				for (u32 j = 0; j < 3; ++j)
 				{
-					b3Mat33 Jij = -m_kd * b3Outer(dCudx[i], dCudx[j]);
+					b3Mat33 Kij = -m_kd * b3Outer(dCudx[i], dCudx[j]);
 
-					J[i][j] = Jij;
+					K[i][j] = Kij;
 				}
 			}
 
-			dfdv(i1, i1) += J[0][0];
-			dfdv(i1, i2) += J[0][1];
-			dfdv(i1, i3) += J[0][2];
+			dfdv(i1, i1) += K[0][0];
+			dfdv(i1, i2) += K[0][1];
+			dfdv(i1, i3) += K[0][2];
 
-			dfdv(i2, i1) += J[1][0];
-			dfdv(i2, i2) += J[1][1];
-			dfdv(i2, i3) += J[1][2];
+			dfdv(i2, i1) += K[1][0];
+			dfdv(i2, i2) += K[1][1];
+			dfdv(i2, i3) += K[1][2];
 
-			dfdv(i3, i1) += J[2][0];
-			dfdv(i3, i2) += J[2][1];
-			dfdv(i3, i3) += J[2][2];
+			dfdv(i3, i1) += K[2][0];
+			dfdv(i3, i2) += K[2][1];
+			dfdv(i3, i3) += K[2][2];
 		}
 	}
 
@@ -248,31 +248,31 @@ void b3StrechForce::Apply(const b3ClothForceSolverData* data)
 				m_f2 += fs[1];
 				m_f3 += fs[2];
 
-				// Jacobian
-				b3Mat33 J[3][3];
+				// Force derivative
+				b3Mat33 K[3][3];
 				for (u32 i = 0; i < 3; ++i)
 				{
 					for (u32 j = 0; j < 3; ++j)
 					{
 						b3Mat33 d2Cvxij = (alpha * inv_len_wv * dwvdx[i] * dwvdx[j]) * (I - b3Outer(n_wv, n_wv));
 
-						b3Mat33 Jij = -m_ks * (b3Outer(dCvdx[i], dCvdx[j]) + Cv * d2Cvxij);
+						b3Mat33 Kij = -m_ks * (b3Outer(dCvdx[i], dCvdx[j]) + Cv * d2Cvxij);
 
-						J[i][j] = Jij;
+						K[i][j] = Kij;
 					}
 				}
 
-				dfdx(i1, i1) += J[0][0];
-				dfdx(i1, i2) += J[0][1];
-				dfdx(i1, i3) += J[0][2];
+				dfdx(i1, i1) += K[0][0];
+				dfdx(i1, i2) += K[0][1];
+				dfdx(i1, i3) += K[0][2];
 
-				dfdx(i2, i1) += J[1][0];
-				dfdx(i2, i2) += J[1][1];
-				dfdx(i2, i3) += J[1][2];
+				dfdx(i2, i1) += K[1][0];
+				dfdx(i2, i2) += K[1][1];
+				dfdx(i2, i3) += K[1][2];
 
-				dfdx(i3, i1) += J[2][0];
-				dfdx(i3, i2) += J[2][1];
-				dfdx(i3, i3) += J[2][2];
+				dfdx(i3, i1) += K[2][0];
+				dfdx(i3, i2) += K[2][1];
+				dfdx(i3, i3) += K[2][2];
 			}
 		}
 
@@ -297,29 +297,29 @@ void b3StrechForce::Apply(const b3ClothForceSolverData* data)
 			m_f2 += fs[1];
 			m_f3 += fs[2];
 
-			// Jacobian
-			b3Mat33 J[3][3];
+			// Force derivative
+			b3Mat33 K[3][3];
 			for (u32 i = 0; i < 3; ++i)
 			{
 				for (u32 j = 0; j < 3; ++j)
 				{
-					b3Mat33 Jij = -m_kd * b3Outer(dCvdx[i], dCvdx[j]);
+					b3Mat33 Kij = -m_kd * b3Outer(dCvdx[i], dCvdx[j]);
 
-					J[i][j] = Jij;
+					K[i][j] = Kij;
 				}
 			}
 
-			dfdv(i1, i1) += J[0][0];
-			dfdv(i1, i2) += J[0][1];
-			dfdv(i1, i3) += J[0][2];
+			dfdv(i1, i1) += K[0][0];
+			dfdv(i1, i2) += K[0][1];
+			dfdv(i1, i3) += K[0][2];
 
-			dfdv(i2, i1) += J[1][0];
-			dfdv(i2, i2) += J[1][1];
-			dfdv(i2, i3) += J[1][2];
+			dfdv(i2, i1) += K[1][0];
+			dfdv(i2, i2) += K[1][1];
+			dfdv(i2, i3) += K[1][2];
 
-			dfdv(i3, i1) += J[2][0];
-			dfdv(i3, i2) += J[2][1];
-			dfdv(i3, i3) += J[2][2];
+			dfdv(i3, i1) += K[2][0];
+			dfdv(i3, i2) += K[2][1];
+			dfdv(i3, i3) += K[2][2];
 		}
 	}
 

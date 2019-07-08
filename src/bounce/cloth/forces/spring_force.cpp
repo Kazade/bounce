@@ -79,40 +79,40 @@ void b3SpringForce::Apply(const b3ClothForceSolverData* data)
 
 		if (L > m_L0)
 		{
-			// Apply tension
-			b3Vec3 n = dx / L;
-
-			m_f += -m_ks * (L - m_L0) * n;
-
 			// Jacobian
-			b3Mat33 Jx11 = -m_ks * (b3Outer(dx, dx) + (1.0f - m_L0 / L) * (I - b3Outer(dx, dx)));
-			b3Mat33 Jx12 = -Jx11;
-			b3Mat33 Jx21 = Jx12;
-			b3Mat33 Jx22 = Jx11;
+			b3Vec3 dCdx = dx / L;
 
-			dfdx(i1, i1) += Jx11;
-			dfdx(i1, i2) += Jx12;
-			dfdx(i2, i1) += Jx21;
-			dfdx(i2, i2) += Jx22;
+			m_f += -m_ks * (L - m_L0) * dCdx;
+
+			// Force derivative
+			b3Mat33 K11 = -m_ks * (b3Outer(dx, dx) + (1.0f - m_L0 / L) * (I - b3Outer(dx, dx)));
+			b3Mat33 K12 = -K11;
+			b3Mat33 K21 = K12;
+			b3Mat33 K22 = K11;
+
+			dfdx(i1, i1) += K11;
+			dfdx(i1, i2) += K12;
+			dfdx(i2, i1) += K21;
+			dfdx(i2, i2) += K22;
 		}
 	}
 
 	if (m_kd > 0.0f)
 	{
-		// Apply damping
+		// C * J
 		b3Vec3 dv = v1 - v2;
 
 		m_f += -m_kd * dv;
 		
-		b3Mat33 Jv11 = -m_kd * I;
-		b3Mat33 Jv12 = -Jv11;
-		b3Mat33 Jv21 = Jv12;
-		b3Mat33 Jv22 = Jv11;
+		b3Mat33 K11 = -m_kd * I;
+		b3Mat33 K12 = -K11;
+		b3Mat33 K21 = K12;
+		b3Mat33 K22 = K11;
 
-		dfdv(i1, i1) += Jv11;
-		dfdv(i1, i2) += Jv12;
-		dfdv(i2, i1) += Jv21;
-		dfdv(i2, i2) += Jv22;
+		dfdv(i1, i1) += K11;
+		dfdv(i1, i2) += K12;
+		dfdv(i2, i1) += K21;
+		dfdv(i2, i2) += K22;
 	}
 
 	f[i1] += m_f;
