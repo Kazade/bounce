@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -55,31 +55,25 @@ static inline b3Color Color(float32 x, float32 a, float32 b)
 	return c;
 }
 
-class TensionMapping : public ClothTest
+class TensionMapping : public Test
 {
 public:
-	TensionMapping() : m_rectangleGarment(5.0f, 5.0f)
+	TensionMapping()
 	{
-		// Generate 2D mesh
-		m_rectangleGarmentMesh.Set(&m_rectangleGarment, 1.0f);
-
-		// Create 3D mesh
-		m_rectangleClothMesh.Set(&m_rectangleGarmentMesh);
-		
-		//  
-		b3Mat33 dq = b3Mat33RotationX(0.5f * B3_PI);
-		for (u32 i = 0; i < m_rectangleClothMesh.vertexCount; ++i)
-		{
-			m_rectangleClothMesh.vertices[i] = dq * m_rectangleClothMesh.vertices[i];
-		}
-
+		// Create cloth
 		b3ClothDef def;
-		def.mesh = &m_rectangleClothMesh;
+		def.mesh = &m_clothMesh;
 		def.density = 0.2f;
-		def.structural = 10000.0f;
+		def.streching = 10000.0f;
+		def.shearing = 5000.0f;
+		def.damping = 100.0f;
 
-		m_cloth = m_world.CreateCloth(def);
+		m_cloth = new b3Cloth(def);
 
+		m_cloth->SetGravity(b3Vec3(0.0f, -9.8f, 0.0f));
+		m_cloth->SetWorld(&m_world);
+
+		// Freeze some particles
 		b3AABB3 aabb;
 		aabb.m_lower.Set(-5.0f, -1.0f, -6.0f);
 		aabb.m_upper.Set(5.0f, 1.0f, -4.0f);
@@ -91,11 +85,21 @@ public:
 				p->SetType(e_staticParticle);
 			}
 		}
+
+		m_clothDragger = new b3ClothDragger(&m_ray, m_cloth);
+	}
+
+	~TensionMapping()
+	{
+		delete m_clothDragger;
+		delete m_cloth;
 	}
 
 	void Step()
 	{
 		Test::Step();
+
+		m_cloth->Step(g_testSettings->inv_hertz, g_testSettings->velocityIterations, g_testSettings->positionIterations);
 
 		const b3ClothMesh* mesh = m_cloth->GetMesh();
 
@@ -108,29 +112,45 @@ public:
 
 		for (b3Force* f = m_cloth->GetForceList().m_head; f; f = f->GetNext())
 		{
-			if (f->GetType() == e_springForce)
+			if (f->GetType() == e_strechForce)
 			{
-				b3SpringForce* s = (b3SpringForce*)f;
+				b3StrechForce* s = (b3StrechForce*)f;
+				
+				b3ClothTriangle* triangle = s->GetTriangle();
+				u32 triangleIndex = triangle->GetTriangle();
+				b3ClothMeshTriangle* mesh_triangle = m_clothMesh.triangles + triangleIndex;
+				
+				u32 v1 = mesh_triangle->v1;
+				u32 v2 = mesh_triangle->v2;
+				u32 v3 = mesh_triangle->v3;
 
-				u32 v1 = s->GetParticle1()->GetVertex();
-				u32 v2 = s->GetParticle2()->GetVertex();
+				b3Vec3 f1 = s->GetActionForce1();
+				b3Vec3 f2 = s->GetActionForce2();
+				b3Vec3 f3 = s->GetActionForce3();
 
-				tension[v1] += s->GetActionForce();
-				tension[v2] -= s->GetActionForce();
+				tension[v1] += f1;
+				tension[v2] += f2;
+				tension[v3] += f3;
 			}
 		}
 
-		for (u32 i = 0; i < m_rectangleClothMesh.triangleCount; ++i)
+		for (u32 i = 0; i < mesh->triangleCount; ++i)
 		{
-			b3ClothMeshTriangle* t = m_rectangleClothMesh.triangles + i;
+			b3ClothMeshTriangle* t = mesh->triangles + i;
 
-			b3Vec3 v1 = m_cloth->GetVertexParticle(t->v1)->GetPosition();
-			b3Vec3 v2 = m_cloth->GetVertexParticle(t->v2)->GetPosition();
-			b3Vec3 v3 = m_cloth->GetVertexParticle(t->v3)->GetPosition();
+			b3Vec3 v1 = m_cloth->GetParticle(t->v1)->GetPosition();
+			b3Vec3 v2 = m_cloth->GetParticle(t->v2)->GetPosition();
+			b3Vec3 v3 = m_cloth->GetParticle(t->v3)->GetPosition();
+			
+			g_draw->DrawTriangle(v1, v2, v3, b3Color_black);
 
-			b3Draw_draw->DrawSegment(v1, v2, b3Color_black);
-			b3Draw_draw->DrawSegment(v2, v3, b3Color_black);
-			b3Draw_draw->DrawSegment(v3, v1, b3Color_black);
+			b3Vec3 c = (v1 + v2 + v3) / 3.0f;
+
+			float32 s = 0.9f;
+
+			v1 = s * (v1 - c) + c;
+			v2 = s * (v2 - c) + c;
+			v3 = s * (v3 - c) + c;
 
 			b3Vec3 f1 = tension[t->v1];
 			float32 L1 = b3Length(f1);
@@ -143,7 +163,7 @@ public:
 
 			float32 L = (L1 + L2 + L3) / 3.0f;
 
-			const float32 kMaxT = 100000.0f;
+			const float32 kMaxT = 10000.0f;
 			b3Color color = Color(L, 0.0f, kMaxT);
 			
 			b3Vec3 n1 = b3Cross(v2 - v1, v3 - v1);
@@ -151,19 +171,56 @@ public:
 			g_draw->DrawSolidTriangle(n1, v1, v2, v3, color);
 
 			b3Vec3 n2 = -n1;
-			g_draw->DrawSolidTriangle(n2, v1, v3, v2, color);
+			g_draw->DrawSolidTriangle(n2, v3, v2, v1, color);
 		}
 
-		if (m_clothDragger.IsDragging() == true)
+		if (m_clothDragger->IsDragging())
 		{
-			g_draw->DrawSegment(m_clothDragger.GetPointA(), m_clothDragger.GetPointB(), b3Color_white);
+			b3Vec3 pA = m_clothDragger->GetPointA();
+			b3Vec3 pB = m_clothDragger->GetPointB();
+
+			g_draw->DrawPoint(pA, 2.0f, b3Color_green);
+
+			g_draw->DrawPoint(pB, 2.0f, b3Color_green);
+
+			g_draw->DrawSegment(pA, pB, b3Color_white);
 		}
 
 		extern u32 b3_clothSolverIterations;
-		g_draw->DrawString(b3Color_white, "Iterations = %u", b3_clothSolverIterations);
+		g_draw->DrawString(b3Color_white, "Iterations = %d", b3_clothSolverIterations);
 
 		float32 E = m_cloth->GetEnergy();
 		g_draw->DrawString(b3Color_white, "E = %f", E);
+	}
+
+	void MouseMove(const b3Ray3& pw)
+	{
+		Test::MouseMove(pw);
+
+		if (m_clothDragger->IsDragging() == true)
+		{
+			m_clothDragger->Drag();
+		}
+	}
+
+	void MouseLeftDown(const b3Ray3& pw)
+	{
+		Test::MouseLeftDown(pw);
+
+		if (m_clothDragger->IsDragging() == false)
+		{
+			m_clothDragger->StartDragging();
+		}
+	}
+
+	void MouseLeftUp(const b3Ray3& pw)
+	{
+		Test::MouseLeftUp(pw);
+
+		if (m_clothDragger->IsDragging() == true)
+		{
+			m_clothDragger->StopDragging();
+		}
 	}
 
 	static Test* Create()
@@ -171,9 +228,9 @@ public:
 		return new TensionMapping();
 	}
 
-	b3RectangleGarment m_rectangleGarment;
-	b3GarmentMesh m_rectangleGarmentMesh;
-	b3GarmentClothMesh m_rectangleClothMesh;
+	b3GridClothMesh<10, 10> m_clothMesh;
+	b3Cloth* m_cloth;
+	b3ClothDragger* m_clothDragger; 
 };
 
 #endif

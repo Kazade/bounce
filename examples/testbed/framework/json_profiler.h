@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -26,7 +26,7 @@
 
 using namespace rapidjson;
 
-// The following profiler listener is notified by a profiler when events are initiated 
+// The following profiler is notified when events are initiated 
 // or terminated.
 // When it receives the notification it immediately saves its data into a .json file format.
 // The .json file can be read and interpreted by the Google Chrome Tracing.
@@ -43,13 +43,15 @@ public:
 
 	void EndEvents();
 
-	void BeginEvent(i32 tid, i32 pid, const char* name, float64 time);
+	void BeginEvent(const char* name, float64 time);
 
-	void EndEvent(i32 tid, i32 pid, const char* name, float64 time);
+	void EndEvent(const char* name, float64 time);
 private:
-	FILE * m_file;
+	FILE* m_file;
 	FileWriteStream* m_stream;
 	Writer<FileWriteStream>* m_writer;
 };
+
+extern JsonProfiler* g_jsonProfiler;
 
 #endif

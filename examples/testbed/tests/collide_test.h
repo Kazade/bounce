@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -50,13 +50,13 @@ public:
 			g_draw->DrawSegment(pw, pw + wm.points[i].normal, b3Color_white);
 		}
 
-		m_world.DrawShape(m_xfA, m_shapeA);
-		m_world.DrawShape(m_xfB, m_shapeB);
+		m_world.DrawShape(m_xfA, m_shapeA, b3Color_black);
+		m_world.DrawShape(m_xfB, m_shapeB, b3Color_black);
 
 		g_draw->Flush();
 
-		g_draw->DrawSolidShape(m_shapeA, b3Color(1.0f, 1.0f, 1.0f, 0.25f), m_xfA);
-		g_draw->DrawSolidShape(m_shapeB, b3Color(1.0f, 1.0f, 1.0f, 0.25f), m_xfB);
+		m_world.DrawSolidShape(m_xfA, m_shapeA, b3Color(1.0f, 1.0f, 1.0f, 0.25f));
+		m_world.DrawSolidShape(m_xfB, m_shapeB, b3Color(1.0f, 1.0f, 1.0f, 0.25f));
 
 		g_draw->DrawString(b3Color_white, "Left/Right/Up/Down Arrow - Translate shape");
 		g_draw->DrawString(b3Color_white, "X/Y/Z - Rotate shape");

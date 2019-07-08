@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -22,7 +22,6 @@
 #include <bounce/common/math/math.h>
 
 class b3Shape;
-class b3Cloth;
 class b3Contact;
 
 class b3QueryListener 
@@ -47,12 +46,6 @@ public:
 	// the intersection point on the shape, the surface normal associated with the point, and the 
 	// intersection fraction for the ray.
 	virtual float32 ReportShape(b3Shape* shape, const b3Vec3& point, const b3Vec3& normal, float32 fraction) = 0;
-
-	// Report that a cloth was hit by the ray to this contact listener.
-	// The reported information are the shape hit by the ray,
-	// the intersection point on the cloth, the surface normal associated with the point, the 
-	// intersection fraction for the ray, and the triangle.
-	virtual float32 ReportCloth(b3Cloth* cloth, const b3Vec3& point, const b3Vec3& normal, float32 fraction, u32 triangle) = 0;
 };
 
 class b3ContactListener 

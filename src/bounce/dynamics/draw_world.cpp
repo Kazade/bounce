@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -51,7 +51,7 @@ void b3World::Draw() const
 			const b3Transform& xf = b->GetTransform();
 			for (b3Shape* s = b->m_shapeList.m_head; s; s = s->m_next)
 			{
-				DrawShape(xf, s);
+				DrawShape(xf, s, b3Color_black);
 			}
 		}
 	}
@@ -142,16 +142,15 @@ void b3World::Draw() const
 	}
 }
 
-void b3World::DrawShape(const b3Transform& xf, const b3Shape* shape) const
+void b3World::DrawShape(const b3Transform& xf, const b3Shape* shape, const b3Color& color) const
 {
-	b3Color wireColor(0.0f, 0.0f, 0.0f);
 	switch (shape->GetType())
 	{
 	case e_sphereShape:
 	{
 		const b3SphereShape* sphere = (b3SphereShape*)shape;
 		b3Vec3 p = xf * sphere->m_center;
-		b3Draw_draw->DrawPoint(p, 4.0f, wireColor);
+		b3Draw_draw->DrawPoint(p, 4.0f, color);
 		break;
 	}
 	case e_capsuleShape:
@@ -159,9 +158,9 @@ void b3World::DrawShape(const b3Transform& xf, const b3Shape* shape) const
 		const b3CapsuleShape* capsule = (b3CapsuleShape*)shape;
 		b3Vec3 p1 = xf * capsule->m_centers[0];
 		b3Vec3 p2 = xf * capsule->m_centers[1];
-		b3Draw_draw->DrawPoint(p1, 4.0f, wireColor);
-		b3Draw_draw->DrawPoint(p2, 4.0f, wireColor);
-		b3Draw_draw->DrawSegment(p1, p2, wireColor);
+		b3Draw_draw->DrawPoint(p1, 4.0f, color);
+		b3Draw_draw->DrawPoint(p2, 4.0f, color);
+		b3Draw_draw->DrawSegment(p1, p2, color);
 		break;
 	}
 	case e_hullShape:
@@ -176,7 +175,7 @@ void b3World::DrawShape(const b3Transform& xf, const b3Shape* shape) const
 			b3Vec3 p1 = xf * hull->vertices[edge->origin];
 			b3Vec3 p2 = xf * hull->vertices[twin->origin];
 
-			b3Draw_draw->DrawSegment(p1, p2, wireColor);
+			b3Draw_draw->DrawSegment(p1, p2, color);
 		}
 		break;
 	}
@@ -192,8 +191,126 @@ void b3World::DrawShape(const b3Transform& xf, const b3Shape* shape) const
 			b3Vec3 p2 = xf * mesh->vertices[t->v2];
 			b3Vec3 p3 = xf * mesh->vertices[t->v3];
 
-			b3Draw_draw->DrawTriangle(p1, p2, p3, wireColor);
+			b3Draw_draw->DrawTriangle(p1, p2, p3, color);
 		}
+		break;
+	}
+	default:
+	{
+		break;
+	}
+	};
+}
+
+void b3World::DrawSolid() const
+{
+	for (b3Body* b = m_bodyList.m_head; b; b = b->GetNext())
+	{
+		b3Color c;
+		if (b->IsAwake() == false)
+		{
+			c = b3Color(0.5f, 0.25f, 0.25f, 1.0f);
+		}
+		else if (b->GetType() == e_staticBody)
+		{
+			c = b3Color(0.5f, 0.5f, 0.5f, 1.0f);
+		}
+		else if (b->GetType() == e_dynamicBody)
+		{
+			c = b3Color(1.0f, 0.5f, 0.5f, 1.0f);
+		}
+		else
+		{
+			c = b3Color(0.5f, 0.5f, 1.0f, 1.0f);
+		}
+
+		b3Transform xf = b->GetTransform();
+		for (b3Shape* s = b->GetShapeList().m_head; s; s = s->GetNext())
+		{
+			DrawSolidShape(xf, s, c);
+		}
+	}
+}
+
+void b3World::DrawSolidShape(const b3Transform& xf, const b3Shape* shape, const b3Color& color) const
+{
+	switch (shape->GetType())
+	{
+	case e_sphereShape:
+	{
+		const b3SphereShape* sphere = (b3SphereShape*)shape;
+
+		b3Vec3 center = xf * sphere->m_center;
+		
+		b3Draw_draw->DrawSolidSphere(center, sphere->m_radius, xf.rotation, color);
+
+		break;
+	}
+	case e_capsuleShape:
+	{
+		const b3CapsuleShape* capsule = (b3CapsuleShape*)shape;
+
+		b3Vec3 c1 = xf * capsule->m_centers[0];
+		b3Vec3 c2 = xf * capsule->m_centers[1];
+
+		b3Draw_draw->DrawSolidCapsule(c1, c2, capsule->m_radius, xf.rotation, color);
+
+		break;
+	}
+	case e_hullShape:
+	{
+		const b3HullShape* hullShape = (b3HullShape*)shape;
+
+		const b3Hull* hull = hullShape->m_hull;
+
+		for (u32 i = 0; i < hull->faceCount; ++i)
+		{
+			const b3Face* face = hull->GetFace(i);
+			const b3HalfEdge* begin = hull->GetEdge(face->edge);
+
+			b3Vec3 n = xf.rotation * hull->planes[i].normal;
+
+			const b3HalfEdge* edge = hull->GetEdge(begin->next);
+			do
+			{
+				u32 i1 = begin->origin;
+				u32 i2 = edge->origin;
+				const b3HalfEdge* next = hull->GetEdge(edge->next);
+				u32 i3 = next->origin;
+
+				b3Vec3 p1 = xf * hull->vertices[i1];
+				b3Vec3 p2 = xf * hull->vertices[i2];
+				b3Vec3 p3 = xf * hull->vertices[i3];
+
+				b3Draw_draw->DrawSolidTriangle(n, p1, p2, p3, color);
+
+				edge = next;
+			} while (hull->GetEdge(edge->next) != begin);
+		}
+
+		break;
+	}
+	case e_meshShape:
+	{
+		const b3MeshShape* meshShape = (b3MeshShape*)shape;
+
+		const b3Mesh* mesh = meshShape->m_mesh;
+		for (u32 i = 0; i < mesh->triangleCount; ++i)
+		{
+			const b3Triangle* t = mesh->triangles + i;
+
+			b3Vec3 p1 = xf * mesh->vertices[t->v1];
+			b3Vec3 p2 = xf * mesh->vertices[t->v2];
+			b3Vec3 p3 = xf * mesh->vertices[t->v3];
+
+			b3Vec3 n1 = b3Cross(p2 - p1, p3 - p1);
+			n1.Normalize();
+			b3Draw_draw->DrawSolidTriangle(n1, p1, p2, p3, color);
+
+			b3Vec3 n2 = -n1;
+			b3Draw_draw->DrawSolidTriangle(n2, p3, p2, p1, color);
+		}
+
 		break;
 	}
 	default:

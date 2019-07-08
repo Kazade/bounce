@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -112,7 +112,7 @@ C' = P_lim * (P_hinge * q') - target_speed
 
 */
 
-static B3_FORCE_INLINE b3Mat44 iQ_mat(const b3Quat& q)
+static B3_FORCE_INLINE b3Mat44 b3Mat44_Quat(const b3Quat& q)
 {
 	b3Mat44 Q;
 	Q.x = b3Vec4(q.w, q.x, q.y, q.z);
@@ -122,7 +122,7 @@ static B3_FORCE_INLINE b3Mat44 iQ_mat(const b3Quat& q)
 	return Q;
 }
 
-static B3_FORCE_INLINE b3Mat44 iP_mat(const b3Quat& q)
+static B3_FORCE_INLINE b3Mat44 b3Mat44_Projection(const b3Quat& q)
 {
 	b3Mat44 P;
 	P.x = b3Vec4(q.w, q.x, q.y, q.z);
@@ -132,7 +132,7 @@ static B3_FORCE_INLINE b3Mat44 iP_mat(const b3Quat& q)
 	return P;
 }
 
-static B3_FORCE_INLINE b3Mat34 P_mat()
+static B3_FORCE_INLINE b3Mat34 b3Mat34_Projection()
 {
 	b3Mat34 P;
 	P.x = b3Vec3(0.0f, 0.0f, 0.0f);
@@ -142,7 +142,7 @@ static B3_FORCE_INLINE b3Mat34 P_mat()
 	return P;
 }
 
-static B3_FORCE_INLINE b3Mat24 P_hinge_mat()
+static B3_FORCE_INLINE b3Mat24 b3Mat24_Hinge_Projection()
 {
 	b3Mat24 P;
 	P.x = b3Vec2(0.0f, 0.0f);
@@ -152,21 +152,19 @@ static B3_FORCE_INLINE b3Mat24 P_hinge_mat()
 	return P;
 }
 
-// 1x4 
-static B3_FORCE_INLINE b3Vec4 P_hinge_limit_mat(const b3Quat& q)
+static B3_FORCE_INLINE b3Vec4 b3Mat14_Hinge_Limit_Projection(const b3Quat& q)
 {
 	return b3Vec4(-q.z, 0.0f, 0.0f, q.w);
 }
 
-// 4x1 
-static B3_FORCE_INLINE b3Vec4 q_to_v(const b3Quat& q)
+static B3_FORCE_INLINE b3Vec4 b3Vec4_Quat(const b3Quat& q)
 {
 	return b3Vec4(q.w, q.x, q.y, q.z);
 }
 
-static const b3Mat34 P = P_mat();
-static const b3Mat43 PT = b3Transpose(P);
-static const b3Mat24 P_hinge = P_hinge_mat();
+static const b3Mat34 b3Mat34_P = b3Mat34_Projection();
+static const b3Mat43 b3Mat43_PT = b3Transpose(b3Mat34_P);
+static const b3Mat24 b3Mat24_P_Hinge = b3Mat24_Hinge_Projection();
 
 void b3RevoluteJointDef::Initialize(b3Body* bA, b3Body* bB,
 	const b3Vec3& axis, const b3Vec3& anchor,
@@ -263,13 +261,14 @@ void b3RevoluteJoint::InitializeConstraints(const b3SolverData* data)
 	// Add motor constraint.
 	if (m_enableMotor || m_enableLimit)
 	{
-		b3Vec4 P_hinge_limit = P_hinge_limit_mat(q);
+		b3Mat43 PT = b3Mat43_PT;
+		b3Vec4 P_limit = b3Mat14_Hinge_Limit_Projection(q);
 
-		b3Mat44 G1 = -0.5f * iQ_mat(b3Conjugate(fA)) * iP_mat(fB);
-		b3Mat44 G2 = 0.5f * iQ_mat(b3Conjugate(fA)) * iP_mat(fB);
+		b3Mat44 G1 = -0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
+		b3Mat44 G2 =  0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
 
-		b3Vec3 J1 = P_hinge_limit * G1 * PT;
-		b3Vec3 J2 = P_hinge_limit * G2 * PT;
+		b3Vec3 J1 = P_limit * G1 * PT;
+		b3Vec3 J2 = P_limit * G2 * PT;
 		
 		b3Vec3 J1T = J1;
 		b3Vec3 J2T = J2;
@@ -338,8 +337,11 @@ void b3RevoluteJoint::InitializeConstraints(const b3SolverData* data)
 
 	// Add hinge constraints.
 	{
-		b3Mat44 G1 = -0.5f * iQ_mat(b3Conjugate(fA)) * iP_mat(fB);
-		b3Mat44 G2 = 0.5f * iQ_mat(b3Conjugate(fA)) * iP_mat(fB);
+		b3Mat43 PT = b3Mat43_PT;
+		b3Mat24 P_hinge = b3Mat24_P_Hinge;
+
+		b3Mat44 G1 = -0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
+		b3Mat44 G2 =  0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
 
 		b3Mat23 J1 = P_hinge * G1 * PT;
 		b3Mat23 J2 = P_hinge * G2 * PT;
@@ -518,13 +520,14 @@ bool b3RevoluteJoint::SolvePositionConstraints(const b3SolverData* data)
 		b3Quat fB = qB * m_localRotationB;
 		b3Quat q = b3Conjugate(m_referenceRotation) * b3Conjugate(fA) * fB;
 
-		b3Vec4 P_hinge_limit = P_hinge_limit_mat(q);
+		b3Mat43 PT = b3Mat43_PT;
+		b3Vec4 P_limit = b3Mat14_Hinge_Limit_Projection(q);
+		
+		b3Mat44 G1 = -0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
+		b3Mat44 G2 =  0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
 
-		b3Mat44 G1 = -0.5f * iQ_mat(b3Conjugate(fA)) * iP_mat(fB);
-		b3Mat44 G2 =  0.5f * iQ_mat(b3Conjugate(fA)) * iP_mat(fB);
-
-		b3Vec3 J1 = P_hinge_limit * G1 * PT;
-		b3Vec3 J2 = P_hinge_limit * G2 * PT;
+		b3Vec3 J1 = P_limit * G1 * PT;
+		b3Vec3 J2 = P_limit * G2 * PT;
 
 		b3Vec3 J1T = J1;
 		b3Vec3 J2T = J2;
@@ -617,13 +620,16 @@ bool b3RevoluteJoint::SolvePositionConstraints(const b3SolverData* data)
 		b3Quat fB = qB * m_localRotationB;
 		b3Quat q = b3Conjugate(m_referenceRotation) * b3Conjugate(fA) * fB;
 
-		b3Vec2 C = P_hinge * q_to_v(q);
+		b3Mat43 PT = b3Mat43_PT;
+		b3Mat24 P_hinge = b3Mat24_P_Hinge;
+
+		b3Vec2 C = P_hinge * b3Vec4_Quat(q);
 		
 		angularError += b3Length(C);
 		
 		// Compute effective mass
-		b3Mat44 G1 = -0.5f * iQ_mat(b3Conjugate(fA)) * iP_mat(fB);
-		b3Mat44 G2 = 0.5f * iQ_mat(b3Conjugate(fA)) * iP_mat(fB);
+		b3Mat44 G1 = -0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
+		b3Mat44 G2 =  0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
 
 		b3Mat23 J1 = P_hinge * G1 * PT;
 		b3Mat23 J2 = P_hinge * G2 * PT;

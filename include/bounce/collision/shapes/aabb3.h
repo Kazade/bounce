@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -37,8 +37,8 @@ struct b3AABB3
 		return support;
 	}
 
-	// Compute this AABB from a list of points.
-	void Compute(const b3Vec3* points, u32 count)
+	// Set this AABB from a list of points.
+	void Set(const b3Vec3* points, u32 count)
 	{
 		m_lower = m_upper = points[0];
 		for (u32 i = 1; i < count; ++i)
@@ -48,8 +48,8 @@ struct b3AABB3
 		}
 	}
 
-	// Compute this AABB from a list of points and a transform.
-	void Compute(const b3Vec3* points, u32 count, const b3Transform& xf)
+	// Set this AABB from a list of points and a transform.
+	void Set(const b3Vec3* points, u32 count, const b3Transform& xf)
 	{
 		m_lower = m_upper = b3Mul(xf, points[0]);
 		for (u32 i = 1; i < count; ++i)
@@ -58,6 +58,27 @@ struct b3AABB3
 			m_lower = b3Min(m_lower, v);
 			m_upper = b3Max(m_upper, v);
 		}
+	}
+
+	// Set this AABB from a triangle.
+	void Set(const b3Vec3& v1, const b3Vec3& v2, const b3Vec3& v3)
+	{
+		m_lower = b3Min(v1, b3Min(v2, v3));
+		m_upper = b3Max(v1, b3Max(v2, v3));
+	}
+
+	// Set this AABB from a center point and a radius vector.
+	void Set(const b3Vec3& center, const b3Vec3& r)
+	{
+		m_lower = center - r;
+		m_upper = center + r;
+	}
+
+	// Set this AABB from a center point and a radius value.
+	void Set(const b3Vec3& center, float32 radius)
+	{
+		b3Vec3 r(radius, radius, radius);	
+		Set(center, r);
 	}
 
 	// Extend this AABB by a scalar.
@@ -146,40 +167,70 @@ struct b3AABB3
 	}
 
 	// Test if a ray intersects this AABB.
-	// Output the minimum and maximum intersection fractions to derive the minimum and maximum intersection points.
-	bool TestRay(const b3Vec3& p1, const b3Vec3& p2, float32& min_t, float32& max_t) const 
+	bool TestRay(float32& minFraction, const b3Vec3& p1, const b3Vec3& p2, float32 maxFraction) const
 	{
 		b3Vec3 d = p2 - p1;
-		float32 t = d.Normalize();
-		B3_ASSERT(t > B3_EPSILON);
-
-		b3Vec3 inv_d;
-		inv_d.x = 1.0f / d.x;
-		inv_d.y = 1.0f / d.y;
-		inv_d.z = 1.0f / d.z;
-
-		b3Vec3 t1;
-		t1.x = (m_lower.x - p1.x) * inv_d.x;
-		t1.y = (m_lower.y - p1.y) * inv_d.y;
-		t1.z = (m_lower.z - p1.z) * inv_d.z;
-
-		b3Vec3 t2;
-		t2.x = (m_upper.x - p1.x) * inv_d.x;
-		t2.y = (m_upper.y - p1.y) * inv_d.y;
-		t2.z = (m_upper.z - p1.z) * inv_d.z;
-
+		
+		float32 lower = 0.0f;
+		float32 upper = maxFraction;
+		
 		for (u32 i = 0; i < 3; ++i)
 		{
-			min_t = b3Max(min_t, b3Min(t1[i], t2[i]));
-			max_t = b3Min(max_t, b3Max(t1[i], t2[i]));
+			float32 numerators[2], denominators[2];
+
+			numerators[0] = p1[i] - m_lower[i];
+			numerators[1] = m_upper[i] - p1[i];
+
+			denominators[0] = -d[i];
+			denominators[1] = d[i];
+			
+			for (u32 j = 0; j < 2; ++j)
+			{
+				float32 numerator = numerators[j];
+				float32 denominator = denominators[j];
+				
+				if (denominator == 0.0f)
+				{
+					// s is parallel to this half-space.
+					if (numerator < 0.0f)
+					{
+						// s is outside of this half-space.
+						// dot(n, p1) and dot(n, p2) < 0.
+						return false;
+					}
+				}
+				else
+				{
+					if (denominator < 0.0f)
+					{
+						// s enters this half-space.
+						if (numerator < lower * denominator)
+						{
+							// Increase lower.
+							lower = numerator / denominator;
+						}
+					}
+					else
+					{
+						// s exits the half-space.	
+						if (numerator < upper * denominator)
+						{
+							// Decrease upper.
+							upper = numerator / denominator;
+						}
+					}
+					// Exit if intersection becomes empty.
+					if (upper < lower)
+					{
+						return false;
+					}
+				}
+			}
 		}
 
-		if (min_t >= 0.0f && min_t >= max_t && max_t <= t)
-		{
-			return true;
-		}
-
-		return false;
+		B3_ASSERT(lower >= 0.0f && lower <= maxFraction);
+		minFraction = lower;
+		return true;
 	}
 };
 

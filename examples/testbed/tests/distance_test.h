@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -68,8 +68,8 @@ public:
 		g_draw->DrawTransform(m_xfA);
 		g_draw->DrawTransform(m_xfB);
 		
-		m_world.DrawShape(m_xfA, &m_shapeA);
-		m_world.DrawShape(m_xfB, &m_shapeB);
+		m_world.DrawShape(m_xfA, &m_shapeA, b3Color_black);
+		m_world.DrawShape(m_xfB, &m_shapeB, b3Color_black);
 
 		g_draw->DrawString(b3Color_white, "Left/Right/Up/Down Arrow - Translate shape");
 		g_draw->DrawString(b3Color_white, "X/Y/Z - Rotate shape");

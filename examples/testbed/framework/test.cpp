@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -18,32 +18,27 @@
 
 #include <testbed/framework/test.h>
 #include <testbed/framework/profiler.h>
-#include <imgui/imgui.h>
+#include <testbed/framework/profiler_st.h>
 
 extern u32 b3_allocCalls, b3_maxAllocCalls;
 extern u32 b3_convexCalls, b3_convexCacheHits;
 extern u32 b3_gjkCalls, b3_gjkIters, b3_gjkMaxIters;
 extern bool b3_convexCache;
 
-static bool push_ok = false;
-
 void b3BeginProfileScope(const char* name)
 {
-	push_ok = g_profiler->PushEvent(name);
+	g_profiler->BeginScope(name);
+	g_profilerSt->BeginScope(name);
 }
 
 void b3EndProfileScope()
 {
-	if (push_ok)
-	{
-		g_profiler->PopEvent();
-		push_ok = false;
-	}
+	g_profiler->EndScope();
+	g_profilerSt->EndScope();
 }
 
 Test::Test() : 
-	m_bodyDragger(&m_ray, &m_world),
-	m_clothDragger(&m_ray, &m_world)
+	m_bodyDragger(&m_ray, &m_world)
 {
 	b3Draw_draw = g_draw;
 	b3_convexCache = g_testSettings->convexCache;
@@ -93,7 +88,7 @@ void Test::Step()
 
 	if (g_settings->drawTriangles)
 	{
-		g_draw->DrawSolidShapes(m_world);
+		m_world.DrawSolid();
 	}
 
 	if (g_settings->drawStats)
@@ -121,11 +116,6 @@ void Test::Step()
 		g_draw->DrawString(b3Color_white, "Convex Cache Hits %d (%f)", b3_convexCacheHits, convexCacheHitRatio);
 		g_draw->DrawString(b3Color_white, "Frame Allocations %d (%d)", b3_allocCalls, b3_maxAllocCalls);
 	}
-
-	if (m_clothDragger.IsDragging() == true)
-	{
-		g_draw->DrawSegment(m_clothDragger.GetPointA(), m_clothDragger.GetPointB(), b3Color_white);
-	}
 }
 
 void Test::MouseMove(const b3Ray3& pw)
@@ -135,11 +125,6 @@ void Test::MouseMove(const b3Ray3& pw)
 	if (m_bodyDragger.IsDragging() == true)
 	{
 		m_bodyDragger.Drag();
-	}
-	
-	if (m_clothDragger.IsDragging() == true)
-	{
-		m_clothDragger.Drag();
 	}
 }
 
@@ -152,14 +137,6 @@ void Test::MouseLeftDown(const b3Ray3& pw)
 			BeginDragging();
 		}
 	}
-
-	if (m_clothDragger.IsDragging() == false)
-	{
-		if (m_clothDragger.StartDragging() == true)
-		{
-			BeginDragging();
-		}
-	}
 }
 
 void Test::MouseLeftUp(const b3Ray3& pw)
@@ -167,13 +144,6 @@ void Test::MouseLeftUp(const b3Ray3& pw)
 	if (m_bodyDragger.IsDragging() == true)
 	{
 		m_bodyDragger.StopDragging();
-
-		EndDragging();
-	}
-	
-	if (m_clothDragger.IsDragging() == true)
-	{
-		m_clothDragger.StopDragging();
 
 		EndDragging();
 	}

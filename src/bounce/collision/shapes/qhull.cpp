@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -18,6 +18,9 @@
 
 #include <bounce/collision/shapes/qhull.h>
 #include <bounce/quickhull/qh_hull.h>
+
+#include <bounce/meshgen/sphere_mesh.h>
+#include <bounce/meshgen/cylinder_mesh.h>
 
 template <class T>
 struct b3UniqueStackArray
@@ -335,8 +338,12 @@ void b3QHull::Set(u32 vtxStride, const void* vtxBase, u32 vtxCount, bool simplif
 		++iface;
 	}
 
+	vertices = hullVertices.Begin();
 	vertexCount = hullVertices.Count();
+	edges = hullEdges.Begin();
 	edgeCount = hullEdges.Count();
+	faces = hullFaces.Begin();
+	planes = hullPlanes.Begin();
 	faceCount = hullFaces.Count();
 
 	// Validate
@@ -348,35 +355,17 @@ void b3QHull::Set(u32 vtxStride, const void* vtxBase, u32 vtxCount, bool simplif
 
 void b3QHull::SetAsSphere(float32 radius)
 {
-	enum
+	B3_ASSERT(radius > 0.0f);
+	
+	smMesh mesh;
+	smCreateMesh(mesh, 2);
+	
+	for (u32 i = 0; i < mesh.vertexCount; ++i)
 	{
-		e_rings = 8,
-		e_sectors = 8,
-		e_vertexCount = e_rings * e_sectors
-	};
-
-	float32 R = 1.0f / float32(e_rings - 1);
-	float32 S = 1.0f / float32(e_sectors - 1);
-
-	b3Vec3 vs[e_vertexCount];
-
-	u32 vc = 0;
-	for (u32 r = 0; r < e_rings; r++)
-	{
-		for (u32 s = 0; s < e_sectors; s++)
-		{
-			float32 y = sin(-0.5f * B3_PI + B3_PI * r * R);
-			float32 x = cos(2.0f * B3_PI * s * S) * sin(B3_PI * r * R);
-			float32 z = sin(2.0f * B3_PI * s * S) * sin(B3_PI * r * R);
-
-			vs[vc].Set(x, y, z);
-			vs[vc] *= radius;
-			++vc;
-		}
+		mesh.vertices[i] *= radius;
 	}
 
-	// Set
-	Set(sizeof(b3Vec3), vs, e_vertexCount, false);
+	Set(sizeof(b3Vec3), mesh.vertices, mesh.vertexCount, false);
 }
 
 void b3QHull::SetAsCylinder(float32 radius, float32 ey)
@@ -384,51 +373,19 @@ void b3QHull::SetAsCylinder(float32 radius, float32 ey)
 	B3_ASSERT(radius > 0.0f);
 	B3_ASSERT(ey > 0.0f);
 
-	const u32 kEdgeCount = 20;
-	const u32 kVertexCount = 4 * kEdgeCount;
-	b3Vec3 vs[kVertexCount];
+	float32 height = 2.0f * ey;
 
-	u32 count = 0;
+	cymMesh mesh;
+	cymCreateMesh(mesh, 20);
 
-	float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
-	b3Quat q = b3QuatRotationY(kAngleInc);
-
+	for (u32 i = 0; i < mesh.vertexCount; ++i)
 	{
-		b3Vec3 center(0.0f, -ey, 0.0f);
-		b3Vec3 n1(1.0f, 0.0f, 0.0f);
-		b3Vec3 v1 = center + radius * n1;
-		for (u32 i = 0; i < kEdgeCount; ++i)
-		{
-			b3Vec3 n2 = b3Mul(q, n1);
-			b3Vec3 v2 = center + radius * n2;
-
-			vs[count++] = v1;
-			vs[count++] = v2;
-
-			n1 = n2;
-			v1 = v2;
-		}
+		mesh.vertices[i].x *= radius;
+		mesh.vertices[i].y *= height;
+		mesh.vertices[i].z *= radius;
 	}
 
-	{
-		b3Vec3 center(0.0f, ey, 0.0f);
-		b3Vec3 n1(1.0f, 0.0f, 0.0f);
-		b3Vec3 v1 = center + radius * n1;
-		for (u32 i = 0; i < kEdgeCount; ++i)
-		{
-			b3Vec3 n2 = b3Mul(q, n1);
-			b3Vec3 v2 = center + radius * n2;
-
-			vs[count++] = v1;
-			vs[count++] = v2;
-
-			n1 = n2;
-			v1 = v2;
-		}
-	}
-
-	// Set
-	Set(sizeof(b3Vec3), vs, count, false);
+	Set(sizeof(b3Vec3), mesh.vertices, mesh.vertexCount, false);
 }
 
 void b3QHull::SetAsCone(float32 radius, float32 ey)

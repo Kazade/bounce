@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -32,13 +32,13 @@ struct b3QHull : public b3Hull
 
 	b3QHull()
 	{
-		vertices = hullVertices.Begin();
+		vertices = nullptr;
 		vertexCount = 0;
-		edges = hullEdges.Begin();
+		edges = nullptr;
 		edgeCount = 0;
-		faces = hullFaces.Begin();
+		faces = nullptr;
 		faceCount = 0;
-		planes = hullPlanes.Begin();
+		planes = nullptr;
 		centroid.SetZero();
 	}
 

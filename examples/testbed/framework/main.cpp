@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -31,7 +31,7 @@
 #include <testbed/framework/view_model.h>
 
 //
-static GLFWwindow* g_window;
+GLFWwindow* g_window;
 
 //
 static Model* g_model;
@@ -100,13 +100,17 @@ static void Run()
 	int w, h;
 	glfwGetWindowSize(g_window, &w, &h);
 	g_view->Event_SetWindowSize(u32(w), u32(h));
-	
+
 	while (glfwWindowShouldClose(g_window) == 0)
 	{
 		g_profiler->Begin();
-
-		g_profiler->PushEvent("Frame");
 		
+		g_profilerSt->Begin();
+
+		g_profiler->BeginScope("Frame");
+
+		g_profilerSt->BeginScope("Frame");
+
 		g_view->BeginInterface();
 
 		if (g_model->IsPaused())
@@ -118,25 +122,33 @@ static void Run()
 			g_draw->DrawString(b3Color_white, "*PLAYING*");
 		}
 
-		if (g_settings->drawProfile)
-		{
-			const b3Array<ProfilerRecord>& records = g_profilerRecorder->GetRecords();
-			for (u32 i = 0; i < records.Count(); ++i)
-			{
-				const ProfilerRecord& r = records[i];
-				g_draw->DrawString(b3Color_white, "%s %.4f (%.4f) [ms]", r.name, r.elapsed, r.maxElapsed);
-			}
-		}
-
 		g_view->Interface();
 
 		g_model->Update();
 
-		g_view->EndInterface();
-
-		g_profiler->PopEvent();
+		g_profilerSt->EndScope();
 		
-		g_profiler->End(g_profilerListener);
+		g_profiler->EndScope();
+		
+		if (g_settings->drawProfileTree)
+		{
+			g_view->InterfaceProfileTree();
+		}
+
+		if (g_settings->drawProfileTreeStats)
+		{
+			g_view->InterfaceProfileTreeStats();
+		}
+
+		g_profilerSt->End();
+
+#if PROFILE_JSON == 1
+		g_model->UpdateJson();
+#endif
+
+		g_profiler->End();
+		
+		g_view->EndInterface();
 
 		glfwSwapBuffers(g_window);
 		glfwPollEvents();

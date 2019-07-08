@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -20,6 +20,7 @@
 #include <testbed/tests/convex_hull.h>
 #include <testbed/tests/cluster.h>
 #include <testbed/tests/distance_test.h>
+#include <testbed/tests/shape_cast.h>
 #include <testbed/tests/collide_test.h>
 #include <testbed/tests/capsule_collision.h>
 #include <testbed/tests/hull_collision.h>
@@ -53,28 +54,27 @@
 #include <testbed/tests/pyramids.h>
 #include <testbed/tests/ray_cast.h>
 #include <testbed/tests/sensor_test.h>
-#include <testbed/tests/point_click.h>
 #include <testbed/tests/body_types.h>
 #include <testbed/tests/varying_friction.h>
 #include <testbed/tests/varying_restitution.h>
 #include <testbed/tests/tumbler.h>
 #include <testbed/tests/multiple_pendulum.h>
-#include <testbed/tests/cloth_test.h>
 #include <testbed/tests/table_cloth.h>
 #include <testbed/tests/pinned_cloth.h>
-#include <testbed/tests/shirt.h>
 #include <testbed/tests/particle_types.h>
 #include <testbed/tests/tension_mapping.h>
-#include <testbed/tests/self_collision.h>
-#include <testbed/tests/single_pendulum.h>
+#include <testbed/tests/cloth_self_collision.h>
 #include <testbed/tests/rope_test.h>
-#include <testbed/tests/mass_spring.h>
+#include <testbed/tests/beam.h>
+#include <testbed/tests/pinned_softbody.h>
+#include <testbed/tests/smash_softbody.h>
 
 TestEntry g_tests[] =
 {
 	{ "Convex Hull", &ConvexHull::Create },
 	{ "Cluster", &Cluster::Create },
 	{ "Distance", &Distance::Create },
+	{ "Shape Cast", &ShapeCast::Create },
 	{ "Capsule Collision", &CapsuleCollision::Create },
 	{ "Hull Collision", &HullCollision::Create },
 	{ "Deep Capsule", &DeepCapsule::Create },
@@ -106,7 +106,6 @@ TestEntry g_tests[] =
 	{ "Box Pyramid Rows", &Pyramids::Create },
 	{ "Ray Cast", &RayCast::Create },
 	{ "Sensor Test", &SensorTest::Create },
-	{ "Point & Click", &PointClick::Create },
 	{ "Body Types", &BodyTypes::Create },
 	{ "Varying Friction", &VaryingFriction::Create },
 	{ "Varying Restitution", &VaryingRestitution::Create },
@@ -115,12 +114,12 @@ TestEntry g_tests[] =
 	{ "Multiple Pendulum", &MultiplePendulum::Create },
 	{ "Table Cloth", &TableCloth::Create },
 	{ "Pinned Cloth", &PinnedCloth::Create },
-	{ "Shirt", &Shirt::Create },
 	{ "Particle Types", &ParticleTypes::Create },
 	{ "Tension Mapping", &TensionMapping::Create },
-	{ "Self-Collision", &SelfCollision::Create },
-	{ "Mass-Spring System", &MassSpring::Create },
-	{ "Single Pendulum", &SinglePendulum::Create },
+	{ "Cloth Self-Collision", &ClothSelfCollision::Create },
+	{ "Beam", &Beam::Create },
+	{ "Pinned Soft Body", &PinnedSoftBody::Create },
+	{ "Smash Soft Body", &SmashSoftBody::Create },
 	{ "Rope", &Rope::Create },
 	{ NULL, NULL }
 };

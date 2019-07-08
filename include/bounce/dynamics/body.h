@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -293,9 +293,7 @@ private:
 	friend class b3MeshContact;
 	friend class b3ContactManager;
 	friend class b3ContactSolver;
-	friend class b3ClothSolver;
-	friend class b3ClothContactSolver;
-
+	
 	friend class b3Joint;
 	friend class b3JointManager;
 	friend class b3JointSolver;
@@ -307,6 +305,13 @@ private:
 	friend class b3ConeJoint;
 
 	friend class b3List2<b3Body>;
+
+	friend class b3ClothSolver;
+	friend class b3ClothContactSolver;
+
+	friend class b3SoftBody;
+	friend class b3SoftBodySolver;
+	friend class b3SoftBodyContactSolver;
 
 	enum b3BodyFlags 
 	{

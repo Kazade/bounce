@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -48,6 +48,12 @@ struct b3Mat33
 		return (&x.x)[i + 3 * j];
 	}
 
+	// Write an indexed element from this matrix.
+	float32& operator()(u32 i, u32 j) 
+	{
+		return (&x.x)[i + 3 * j];
+	}
+	
 	// Add a matrix to this matrix.
 	void operator+=(const b3Mat33& B)
 	{
@@ -227,22 +233,20 @@ inline b3Mat33 b3Outer(const b3Vec3& a, const b3Vec3& b)
 
 // Compute an orthogonal basis given one of its vectors.
 // The vector must be normalized.
-inline b3Mat33 b3Basis(const b3Vec3& a)
+inline void b3ComputeBasis(const b3Vec3& a, b3Vec3& b, b3Vec3& c)
 {
-	// Box2D
-	b3Mat33 A;
+	// https://box2d.org/2014/02/computing-a-basis/
 	if (b3Abs(a.x) >= float32(0.57735027))
 	{
-		A.y.Set(a.y, -a.x, 0.0f);
+		b.Set(a.y, -a.x, 0.0f);
 	}
 	else
 	{
-		A.y.Set(0.0f, a.z, -a.y);
+		b.Set(0.0f, a.z, -a.y);
 	}
-	A.x = a;
-	A.y = b3Normalize(A.y);
-	A.z = b3Cross(a, A.y);
-	return A;
+	
+	b.Normalize();
+	c = b3Cross(a, b);
 }
 
 // Rotation about the x-axis.

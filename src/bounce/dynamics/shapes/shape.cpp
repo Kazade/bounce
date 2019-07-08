@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -63,6 +63,11 @@ void b3Shape::DestroyContacts()
 		ce = ce->m_next;
 		world->m_contactMan.Destroy(tmp->contact);
 	}
+}
+
+const b3AABB3& b3Shape::GetAABB() const
+{
+	return m_body->GetWorld()->m_contactMan.m_broadPhase.GetAABB(m_broadPhaseID);
 }
 
 void b3Shape::Dump(u32 bodyIndex) const

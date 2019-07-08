@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -32,7 +32,8 @@ struct Settings
 		drawLines = true;
 		drawTriangles = true;
 		drawGrid = true;
-		drawProfile = false;
+		drawProfileTree = false;
+		drawProfileTreeStats = false;
 		drawStats = false;
 	}
 
@@ -42,7 +43,8 @@ struct Settings
 	bool drawLines;
 	bool drawTriangles;
 	bool drawGrid;
-	bool drawProfile;
+	bool drawProfileTree;
+	bool drawProfileTreeStats;
 	bool drawStats;
 };
 

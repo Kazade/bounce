@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -29,7 +29,7 @@ u32 b3_gjkCalls = 0, b3_gjkIters = 0, b3_gjkMaxIters = 0;
 // Convert a point Q from Cartesian coordinates to Barycentric coordinates (u, v) 
 // with respect to a segment AB.
 // The last output value is the divisor.
-static B3_FORCE_INLINE void b3Barycentric(float32 out[3], 
+static B3_FORCE_INLINE void b3Barycentric(float32 out[3],
 	const b3Vec3& A, const b3Vec3& B,
 	const b3Vec3& Q)
 {
@@ -38,7 +38,7 @@ static B3_FORCE_INLINE void b3Barycentric(float32 out[3],
 	b3Vec3 QB = B - Q;
 
 	//float32 divisor = b3Dot(AB, AB);
-	
+
 	out[0] = b3Dot(QB, AB);
 	out[1] = -b3Dot(QA, AB);
 	out[2] = out[0] + out[1];
@@ -63,7 +63,7 @@ static B3_FORCE_INLINE void b3Barycentric(float32 out[4],
 	b3Vec3 QA_x_QB = b3Cross(QA, QB);
 
 	b3Vec3 AB_x_AC = b3Cross(AB, AC);
-	
+
 	//float32 divisor = b3Dot(AB_x_AC, AB_x_AC);
 
 	out[0] = b3Dot(QB_x_QC, AB_x_AC);
@@ -248,7 +248,7 @@ void b3Simplex::Solve3(const b3Vec3& Q)
 	b3Barycentric(wAB, A.point, B.point, Q);
 	b3Barycentric(wBC, B.point, C.point, Q);
 	b3Barycentric(wCA, C.point, A.point, Q);
-	
+
 	// R A
 	if (wAB[1] <= 0.0f && wCA[0] <= 0.0f)
 	{
@@ -279,7 +279,7 @@ void b3Simplex::Solve3(const b3Vec3& Q)
 	// Test edge regions		
 	float32 wABC[4];
 	b3Barycentric(wABC, A.point, B.point, C.point, Q);
-	
+
 	// This is used to help testing if the face degenerates 
 	// into an edge.
 	float32 area = wABC[3];
@@ -361,7 +361,7 @@ void b3Simplex::Solve4(const b3Vec3& Q)
 	b3Barycentric(wAD, A.point, D.point, Q);
 	b3Barycentric(wCD, C.point, D.point, Q);
 	b3Barycentric(wDB, D.point, B.point, Q);
-	
+
 	// R A
 	if (wAB[1] <= 0.0f && wAC[1] <= 0.0f && wAD[1] <= 0.0f)
 	{
@@ -848,4 +848,268 @@ b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1,
 	b3SimplexCache cache;
 	cache.count = 0;
 	return b3GJK(xf1, proxy1, xf2, proxy2, false, &cache);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Brian Mirtich  
+// "Conservative Advancement" 
+bool b3GJKShapeCast(b3GJKShapeCastOutput* output,
+	const b3Transform& xf1, const b3GJKProxy& proxy1,
+	const b3Transform& xf2, const b3GJKProxy& proxy2, const b3Vec3& translation2)
+{
+	float32 r1 = proxy1.radius;
+	float32 r2 = proxy2.radius;
+	float32 radius = r1 + r2;
+
+	float32 bound = b3Length(translation2);
+	B3_ASSERT(bound > 0.0f);
+
+	float32 t = 0.0f;
+	b3SimplexCache cache;
+	cache.count = 0;
+	b3GJKOutput gjkOut = b3GJK(xf1, proxy1, xf2, proxy2, false, &cache);
+	float32 d = gjkOut.distance;
+
+	if (d == 0.0f)
+	{
+		// Overlap
+		output->iterations = 0;
+		return false;
+	}
+
+	const float32 tolerance = 0.25f * B3_LINEAR_SLOP;
+
+	b3Vec3 n = gjkOut.point2 - gjkOut.point1;
+	n /= d;
+
+	if (d < radius + tolerance)
+	{
+		// Touch
+		output->t = t;
+		output->point = gjkOut.point1 + r1 * n;
+		output->normal = n;
+		output->iterations = 0;
+		return true;
+	}
+
+	u32 iter = 0;
+	for (;;)
+	{
+		++iter;
+
+		B3_ASSERT(d >= radius);
+		float32 dt = (d - radius) / bound;
+		t += dt;
+
+		if (t >= 1.0f)
+		{
+			// No overlap
+			output->iterations = iter;
+			return false;
+		}
+		
+		b3Transform txf1 = xf1;
+		
+		b3Transform txf2;
+		txf2.rotation = xf2.rotation;
+		txf2.position = (1.0f - t) * xf2.position + t * (xf2.position + translation2);
+
+		gjkOut = b3GJK(txf1, proxy1, txf2, proxy2, false, &cache);
+		d = gjkOut.distance;
+
+		if (d == 0.0f)
+		{
+			break;
+		}
+
+		n = gjkOut.point2 - gjkOut.point1;
+		n /= d;
+
+		if (d < radius + tolerance)
+		{
+			break;
+		}
+	}
+	
+	if (d > 0.0f)
+	{
+		n = gjkOut.point2 - gjkOut.point1;
+		n /= d;
+	}
+
+	output->t = t;
+	output->point = gjkOut.point1 + r1 * n;
+	output->normal = n;
+	output->iterations = iter;
+	return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Gino van der Bergen
+// "Smooth Mesh Contacts with GJK"
+// Game Physics Pearls 2010, page 99
+bool b3GJKShapeCastCSO(b3GJKShapeCastOutput* output,
+	const b3Transform& xf1, const b3GJKProxy& proxy1,
+	const b3Transform& xf2, const b3GJKProxy& proxy2, const b3Vec3& translation2)
+{
+	float32 r1 = proxy1.radius;
+	float32 r2 = proxy2.radius;
+	float32 radius = r1 + r2;
+
+	b3Vec3 r = translation2;
+
+	float32 t = 0.0f;
+	b3Vec3 n = b3Vec3_zero;
+
+	u32 index1 = proxy1.GetSupportIndex(b3MulT(xf1.rotation, -r));
+	u32 index2 = proxy2.GetSupportIndex(b3MulT(xf2.rotation, r));
+	b3Vec3 w1 = xf1 * proxy1.GetVertex(index1);
+	b3Vec3 w2 = xf2 * proxy2.GetVertex(index2);
+	b3Vec3 v = w1 - w2;
+
+	b3Simplex simplex;
+	simplex.m_count = 0;
+
+	b3SimplexVertex* vertices = simplex.m_vertices;
+
+	u32 save1[4], save2[4];
+	u32 saveCount = 0;
+
+	const u32 kMaxIters = 20;
+	const float32 kTolerance = 10.0f * B3_EPSILON;
+
+	float32 maxTolerance = 1.0f;
+
+	u32 iter = 0;
+	while (iter < kMaxIters && b3Abs(b3LengthSquared(v) - radius * radius) > kTolerance * maxTolerance)
+	{
+		// Support in direction -v
+		index1 = proxy1.GetSupportIndex(b3MulT(xf1.rotation, -v));
+		index2 = proxy2.GetSupportIndex(b3MulT(xf2.rotation, v));
+		w1 = xf1 * proxy1.GetVertex(index1);
+		w2 = xf2 * proxy2.GetVertex(index2);
+		b3Vec3 p = w1 - w2;
+
+		// Support plane on boundary of CSO is (-v, p)
+		// -v is normal at p
+		float32 vp = b3Dot(v, p);
+		float32 vr = b3Dot(v, r);
+
+		if (vp - radius > t * vr)
+		{
+			if (vr > 0.0f)
+			{
+				t = (vp - radius) / vr;
+
+				if (t > 1.0f)
+				{
+					output->iterations = iter;
+					return false;
+				}
+
+				n = -v;
+
+				// Flush the simplex
+				simplex.m_count = 0;
+				saveCount = 0;
+			}
+			else
+			{
+				output->iterations = iter;
+				return false;
+			}
+		}
+
+		// Unite p - s to simplex
+		b3Vec3 s = t * r;
+
+		b3SimplexVertex* vertex = vertices + simplex.m_count;
+		vertex->index1 = index1;
+		vertex->point1 = w1;
+		vertex->index2 = index2;
+		vertex->point2 = w2;
+		vertex->point = p - s;
+
+		// If we found a duplicate support point we must exit to avoid cycling.
+		bool duplicate = false;
+		for (u32 i = 0; i < saveCount; ++i)
+		{
+			if (vertex->index1 == save1[i] && vertex->index2 == save2[i])
+			{
+				duplicate = true;
+				break;
+			}
+		}
+
+		if (duplicate)
+		{
+			break;
+		}
+
+		++simplex.m_count;
+
+		// Compute tolerance
+		maxTolerance = -B3_EPSILON;
+		for (u32 i = 0; i < simplex.m_count; ++i)
+		{
+			maxTolerance = b3Max(maxTolerance, b3LengthSquared(vertices[i].point));
+		}
+
+		// Copy simplex so we can identify duplicates.
+		saveCount = simplex.m_count;
+		for (u32 i = 0; i < saveCount; ++i)
+		{
+			save1[i] = vertices[i].index1;
+			save2[i] = vertices[i].index2;
+		}
+
+		// Sub-solve
+		const b3Vec3 origin = b3Vec3_zero;
+
+		switch (simplex.m_count)
+		{
+		case 1:
+			break;
+		case 2:
+			simplex.Solve2(origin);
+			break;
+		case 3:
+			simplex.Solve3(origin);
+			break;
+		case 4:
+			simplex.Solve4(origin);
+			break;
+		default:
+			B3_ASSERT(false);
+			break;
+		}
+
+		if (simplex.m_count == 4)
+		{
+			break;
+		}
+
+		v = simplex.GetClosestPoint();
+
+		++iter;
+	}
+
+	// Prepare output.
+	b3Vec3 point1, point2;
+	simplex.GetClosestPoints(&point1, &point2);
+
+	if (b3LengthSquared(v) > B3_EPSILON * B3_EPSILON)
+	{
+		n = -v;
+	}
+
+	n.Normalize();
+
+	output->t = t;
+	output->point = point1 + r1 * n;
+	output->normal = n;
+	output->iterations = iter;
+	return true;
 }

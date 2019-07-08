@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -54,7 +54,7 @@ void b3BuildEdgeContact(b3Manifold& manifold,
 	// Compute the closest points on the two lines.
 	float32 b = b3Dot(N1, N2);
 	float32 den = 1.0f - b * b;
-	if (den <= 0.0f)
+	if (den == 0.0f)
 	{
 		return;
 	}

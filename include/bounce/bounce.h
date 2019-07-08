@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -56,23 +56,32 @@
 #include <bounce/dynamics/contacts/convex_contact.h>
 #include <bounce/dynamics/contacts/mesh_contact.h>
 
-#include <bounce/dynamics/rope/rope.h>
-
-#include <bounce/garment/sewing_pattern.h>
-#include <bounce/garment/garment.h>
-#include <bounce/garment/garment_mesh.h>
-
-#include <bounce/dynamics/cloth/cloth_mesh.h>
-#include <bounce/dynamics/cloth/cloth.h>
-#include <bounce/dynamics/cloth/particle.h>
-#include <bounce/dynamics/cloth/spring_force.h>
-
 #include <bounce/dynamics/body.h>
 
 #include <bounce/dynamics/world.h>
 #include <bounce/dynamics/world_listeners.h>
 
-#include <bounce/controllers/cloth_dragger.h>
-#include <bounce/controllers/body_dragger.h>
+#include <bounce/rope/rope.h>
+
+#include <bounce/cloth/cloth_mesh.h>
+#include <bounce/cloth/grid_cloth_mesh.h>
+#include <bounce/cloth/garment_cloth_mesh.h>
+#include <bounce/cloth/cloth.h>
+#include <bounce/cloth/particle.h>
+#include <bounce/cloth/cloth_triangle.h>
+
+#include <bounce/cloth/forces/strech_force.h>
+#include <bounce/cloth/forces/shear_force.h>
+#include <bounce/cloth/forces/spring_force.h>
+#include <bounce/cloth/forces/mouse_force.h>
+
+#include <bounce/cloth/garment/sewing_pattern.h>
+#include <bounce/cloth/garment/garment.h>
+#include <bounce/cloth/garment/garment_mesh.h>
+
+#include <bounce/softbody/softbody_mesh.h>
+#include <bounce/softbody/block_softbody_mesh.h>
+#include <bounce/softbody/softbody.h>
+#include <bounce/softbody/softbody_node.h>
 
 #endif

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -19,73 +19,92 @@
 #include <testbed/framework/profiler.h>
 
 Profiler* g_profiler = nullptr;
-ProfilerListener* g_profilerListener = nullptr;
 
-Profiler::Profiler()
+Profiler::Profiler() : m_pool(sizeof(ProfilerNode))
 {
+	m_root = nullptr;
 	m_top = nullptr;
 }
 
 Profiler::~Profiler()
 {
+	assert(m_root == nullptr);
+	assert(m_top == nullptr);
 }
 
-bool Profiler::PushEvent(const char* name)
+ProfilerNode* Profiler::CreateNode()
+{
+	void* block = m_pool.Allocate();
+	ProfilerNode* n = new (block) ProfilerNode();
+	return n;
+}
+
+void Profiler::DestroyNode(ProfilerNode* node)
+{
+	node->~ProfilerNode();
+	m_pool.Free(node);
+}
+
+void Profiler::BeginScope(const char* name)
 {
 	m_time.Update();
 
-	ProfilerEvent e;
-	e.tid = -1;
-	e.pid = -1;
-	e.t0 = m_time.GetCurrentMilis();
-	e.t1 = 0.0;
-	e.name = name;
-	e.parent = m_top;
+	ProfilerNode* n = CreateNode();
+	n->name = name;
+	n->t0 = m_time.GetCurrentMilis();
+	n->t1 = 0.0;
+	n->parent = m_top;
 
-	ProfilerEvent* back = m_events.Push(e);
-	if (back)
+	if (m_root == nullptr)
 	{
-		m_top = back;
+		m_root = n;
+		m_top = n;
+		return;
 	}
 
-	return back != NULL;
+	if (m_top)
+	{
+		m_top->children.PushBack(n);
+	}
+
+	m_top = n;
 }
 
-void Profiler::PopEvent()
+void Profiler::EndScope()
 {
-	B3_ASSERT(m_top);
-	B3_ASSERT(m_top->t1 == 0.0);
-
 	m_time.Update();
+	
+	assert(m_top != nullptr);
 	m_top->t1 = m_time.GetCurrentMilis();
-	B3_ASSERT(m_top->t1 != 0.0);
+	assert(m_top->t1 > m_top->t0);
+
 	m_top = m_top->parent;
 }
 
 void Profiler::Begin()
 {
 	// If this assert is hit then it means Profiler::End hasn't been called.
-	B3_ASSERT(m_events.IsEmpty());
+	assert(m_root == nullptr);
+	assert(m_top == nullptr);
 }
 
-void Profiler::End(ProfilerListener* listener)
+void Profiler::RecurseDestroyNode(ProfilerNode* node)
 {
-	listener->BeginEvents();
-
-	while (m_events.IsEmpty() == false)
+	for (u32 i = 0; i < node->children.Count(); ++i)
 	{
-		const ProfilerEvent& e = m_events.Front();
-
-		m_events.Pop();
-
-		listener->BeginEvent(e.tid, e.pid, e.name, e.t0);
-
-		listener->EndEvent(e.tid, e.pid, e.name, e.t1);
-	
-		listener->Duration(e.name, e.t1 - e.t0);
+		RecurseDestroyNode(node->children[i]);
 	}
 
-	B3_ASSERT(m_events.IsEmpty());
+	DestroyNode(node);
+}
 
-	listener->EndEvents();
+void Profiler::End()
+{
+	assert(m_top == nullptr);
+
+	if (m_root)
+	{
+		RecurseDestroyNode(m_root);
+		m_root = nullptr;
+	}
 }

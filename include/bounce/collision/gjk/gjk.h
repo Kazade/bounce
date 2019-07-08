@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -113,5 +113,19 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache);
 b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1,
 	const b3Transform& xf2, const b3GJKProxy& proxy2,
 	bool applyRadius, b3SimplexCache* cache);
+
+// The output of the GJK-based shape cast algorithm.
+struct b3GJKShapeCastOutput
+{
+	float32 t; // time of impact
+	b3Vec3 point; // contact point at t
+	b3Vec3 normal; // contact normal at t
+	u32 iterations; // number of iterations 
+};
+
+// Find the time of impact between two proxies given the relative target translation vector.
+bool b3GJKShapeCast(b3GJKShapeCastOutput* output,
+	const b3Transform& xf1, const b3GJKProxy& proxy1,
+	const b3Transform& xf2, const b3GJKProxy& proxy2, const b3Vec3& translation2);
 
 #endif

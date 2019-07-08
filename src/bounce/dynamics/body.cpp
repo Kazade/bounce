@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -457,7 +457,7 @@ void b3Body::SetType(b3BodyType type)
 	b3BroadPhase* phase = &m_world->m_contactMan.m_broadPhase;
 	for (b3Shape* s = m_shapeList.m_head; s; s = s->m_next)
 	{
-		phase->BufferMove(s->m_broadPhaseID);
+		phase->TouchProxy(s->m_broadPhaseID);
 	}
 }
 

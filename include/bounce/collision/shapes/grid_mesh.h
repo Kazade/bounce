@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -22,6 +22,7 @@
 #include <bounce/collision/shapes/mesh.h>
 
 // A (H + 1) x (W + 1) grid mesh stored in row-major order.
+// v(i, j) = i * (W + 1) + j
 template<u32 H = 1, u32 W = 1>
 struct b3GridMesh : public b3Mesh
 {
@@ -32,61 +33,53 @@ struct b3GridMesh : public b3Mesh
 	// with the world x-z axes.
 	b3GridMesh()
 	{
-		u32 h = H + 1;
-		u32 w = W + 1;
-
-		b3Vec3 t;
-		t.x = -0.5f * float32(w) + 0.5f;
-		t.y = 0.0f;
-		t.z = -0.5f * float32(h) + 0.5f;
-
-		for (u32 i = 0; i < h; ++i)
+		vertexCount = 0;
+		for (u32 i = 0; i <= H; ++i)
 		{
-			for (u32 j = 0; j < w; ++j)
+			for (u32 j = 0; j <= W; ++j)
 			{
-				u32 v1 = i * w + j;
-
-				b3Vec3 v;
-				v.x = float32(j);
-				v.y = 0.0f;
-				v.z = float32(i);
-
-				v += t;
-
-				gridVertices[v1] = v;
+				gridVertices[vertexCount++].Set(float32(j), 0.0f, float32(i));
 			}
 		}
 
-		u32 triangleIndex = 0;
-		for (u32 i = 0; i < h - 1; ++i)
+		B3_ASSERT(vertexCount == (H + 1) * (W + 1));
+
+		b3Vec3 translation;
+		translation.x = -0.5f * float32(W);
+		translation.y = 0.0f;
+		translation.z = -0.5f * float32(H);
+
+		for (u32 i = 0; i < vertexCount; ++i)
 		{
-			for (u32 j = 0; j < w - 1; ++j)
+			gridVertices[i] += translation;
+		}
+
+		triangleCount = 0;
+		for (u32 i = 0; i < H; ++i)
+		{
+			for (u32 j = 0; j < W; ++j)
 			{
-				u32 v1 = i * w + j;
-				u32 v2 = (i + 1) * w + j;
-				u32 v3 = (i + 1) * w + (j + 1);
-				u32 v4 = i * w + (j + 1);
+				u32 v1 = i * (W + 1) + j;
+				u32 v2 = (i + 1) * (W + 1) + j;
+				u32 v3 = (i + 1) * (W + 1) + (j + 1);
+				u32 v4 = i * (W + 1) + (j + 1);
 
-				b3Triangle* t1 = gridTriangles + triangleIndex;
-				++triangleIndex;
-
+				b3Triangle* t1 = gridTriangles + triangleCount++;
 				t1->v1 = v3;
 				t1->v2 = v2;
 				t1->v3 = v1;
 
-				b3Triangle* t2 = gridTriangles + triangleIndex;
-				++triangleIndex;
-
+				b3Triangle* t2 = gridTriangles + triangleCount++;
 				t2->v1 = v1;
 				t2->v2 = v4;
 				t2->v3 = v3;
 			}
 		}
 
+		B3_ASSERT(triangleCount == 2 * H * W);
+
 		vertices = gridVertices;
-		vertexCount = (H + 1) * (W + 1);
 		triangles = gridTriangles;
-		triangleCount = 2 * H * W;
 	}
 };
 

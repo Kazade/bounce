@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -20,28 +20,21 @@
 #define PROFILER_H
 
 #include <bounce/common/math/math.h>
-#include <bounce/common/time.h>
-#include <bounce/common/template/queue.h>
+#include <bounce/common/memory/block_pool.h>
 #include <bounce/common/template/array.h>
+#include <bounce/common/time.h>
 
-// This defines the maximum number of profiler events that can be 
-// queued per frame until the function Profiler::Flush is called.
-#define MAX_PROFILER_EVENTS 256
-
-class ProfilerListener;
-
-// A time-stamped profiler event.
-struct ProfilerEvent
+// Profiler node
+struct ProfilerNode
 {
-	i32 tid;
-	i32 pid;
 	const char* name;
 	float64 t0;
 	float64 t1;
-	ProfilerEvent* parent;
+	ProfilerNode* parent;
+	b3StackArray<ProfilerNode*, 32> children;
 };
 
-// A single-threaded event-based profiler.
+// A single-threaded profiler.
 class Profiler
 {
 public:
@@ -53,67 +46,28 @@ public:
 	void Begin();
 
 	// Must be called after profiling.
-	// The function will report all events in this profiler 
-	// to the given event listener in the correct calling order.
-	// This function also flushes the profiler.
-	void End(ProfilerListener* listener);
+	void End();
 
-	// Add a profiler event to the queue.
-	// Return true if the even has been added to the event queue 
-	// or false if the queue is full.
-	// You can control the maximum number of profiler events using 
-	// MAX_PROFILER_EVENTS.
-	bool PushEvent(const char* name);
+	// Begin a new scope.
+	void BeginScope(const char* name);
 	
-	// Remove the top profiler event.
-	void PopEvent();
+	// End the top scope.
+	void EndScope();
+
+	// Get the root profiler node.
+	ProfilerNode* GetRoot() { return m_root; }
 private:
-	b3Time m_time;
-	b3BoundedQueue<ProfilerEvent, MAX_PROFILER_EVENTS> m_events;
-	ProfilerEvent* m_top;
+	ProfilerNode* CreateNode();
+	void DestroyNode(ProfilerNode* node);
+	
+	void RecurseDestroyNode(ProfilerNode* node);
+
+	b3BlockPool m_pool; // pool of nodes
+	b3Time m_time; // timer
+	ProfilerNode* m_root; // tree root node
+	ProfilerNode* m_top; // top node
 };
 
 extern Profiler* g_profiler;
-
-// Any implementation of this interface passed to Profiler::End will listen to profile events.
-class ProfilerListener
-{
-public:
-	virtual ~ProfilerListener() { }
-
-	// This function is called when profiling has began.
-	virtual void BeginEvents() { }
-
-	// This function is called when profiling has ended.
-	virtual void EndEvents() { }
-	
-	// This function is called when a profiler event begins.
-	virtual void BeginEvent(i32 tid, i32 pid, const char* name, float64 time) 
-	{
-		B3_NOT_USED(tid);
-		B3_NOT_USED(pid);
-		B3_NOT_USED(name);
-		B3_NOT_USED(time);
-	}
-
-	// This function is called when a profiler event ends.
-	virtual void EndEvent(i32 tid, i32 pid, const char* name, float64 time)
-	{
-		B3_NOT_USED(tid);
-		B3_NOT_USED(pid);
-		B3_NOT_USED(name);
-		B3_NOT_USED(time);
-	}
-
-	// This function is called when a profiler event ends.
-	// However it supplies the duration of the last begin and end events.
-	virtual void Duration(const char* name, float64 duration)
-	{
-		B3_NOT_USED(name);
-		B3_NOT_USED(duration);
-	}
-};
-
-extern ProfilerListener* g_profilerListener;
 
 #endif

@@ -1,6 +1,6 @@
 ## Bounce
 
-**Welcome! Bounce is a 3D physics engine.**
+**Welcome! Bounce is a 3D physics engine for games.**
 
 Feel free to ask questions, give feedback and suggestions using the issue tracker. 
 
@@ -20,7 +20,7 @@ Bounce uses [premake](https://premake.github.io/) for generating project files i
 * Say { premake5 vs2017 } on a command line. 
 * Open build/vs2017/bounce.sln.
 * Set testbed as the startup project.
-* In the testbed debugging properties, set the Working Directory to ..\..\examples\testbed.
+* In the testbed debugging properties, set the Working Directory to ..\\..\examples\testbed.
 * Press F5 to run.
 
 ### Linux
@@ -104,7 +104,6 @@ Below are the external dependencies for testbed. If you don't care about testbed
 ### Dynamics
 
 * Rigid bodies
-* Cloth
 * Contact, friction, restitution
 * Mouse, spring, sphere, cone, revolute joint types
 * Quaternion constraints
@@ -117,6 +116,29 @@ Below are the external dependencies for testbed. If you don't care about testbed
 * Contact clustering, reduction, and persistence
 * Contact callbacks: begin, pre-solve, post-solve
 * Ray-casting and volume queries
+
+### Rope
+
+* Rope 
+* Linear time solver
+
+### Cloth
+
+* Cloth
+* Vertex contact, friction
+* Strech, shear, spring, mouse force types
+* Linear time solver
+* Unconditional simulation stability
+* Ray-casting 
+
+### Soft Body
+
+* Soft body
+* Vertex contact, friction
+* Elasticity, plasticity
+* Linear time solver
+* Unconditional simulation stability
+* Ray-casting 
 
 ### Testbed
 	

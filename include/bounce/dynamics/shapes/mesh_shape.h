@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -40,6 +40,8 @@ public:
 	bool TestSphere(const b3Sphere& sphere, const b3Transform& xf) const;
 
 	bool TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere, const b3Transform& xf) const;
+	
+	bool TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere, const b3Transform& xf, u32 childIndex) const;
 	
 	bool RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf) const;
 

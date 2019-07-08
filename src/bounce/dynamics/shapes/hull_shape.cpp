@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -17,8 +17,10 @@
 */
 
 #include <bounce/dynamics/shapes/hull_shape.h>
-#include <bounce/collision/shapes/hull.h>
 #include <bounce/dynamics/time_step.h>
+#include <bounce/dynamics/contacts/collide/collide.h>
+#include <bounce/collision/shapes/hull.h>
+#include <bounce/collision/gjk/gjk.h>
 
 b3HullShape::b3HullShape()
 {
@@ -159,7 +161,7 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 
 void b3HullShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const
 {
-	aabb->Compute(m_hull->vertices, m_hull->vertexCount, xf);
+	aabb->Set(m_hull->vertices, m_hull->vertexCount, xf);
 	aabb->Extend(m_radius);
 }
 
@@ -184,10 +186,45 @@ bool b3HullShape::TestSphere(const b3Sphere& sphere, const b3Transform& xf) cons
 
 bool b3HullShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere, const b3Transform& xf) const
 {
-	// Perform computations in the local space of the first hull.
-	b3Vec3 support = b3MulT(xf, sphere.vertex);
-	float32 radius = m_radius + sphere.radius;
+	b3Transform xf1 = xf;
+	b3Transform xf2 = b3Transform_identity;
+
+	b3ShapeGJKProxy proxy1(this, 0);
 	
+	b3GJKProxy proxy2;
+	proxy2.vertexCount = 1;
+	proxy2.vertexBuffer[0] = sphere.vertex;
+	proxy2.vertices = proxy2.vertexBuffer;
+	proxy2.radius = sphere.radius;
+
+	b3GJKOutput gjk = b3GJK(xf1, proxy1, xf2, proxy2);
+
+	float32 r1 = proxy1.radius;
+	float32 r2 = proxy2.radius;
+
+	float32 totalRadius = r1 + r2;
+
+	if (gjk.distance > totalRadius)
+	{
+		return false;
+	}
+
+	if (gjk.distance > 0.0f)
+	{
+		b3Vec3 c1 = gjk.point1;
+		b3Vec3 c2 = gjk.point2;
+		b3Vec3 n = (c2 - c1) / gjk.distance;
+
+		output->point = c1;
+		output->normal = n;
+		output->separation = gjk.distance - totalRadius;
+
+		return true;
+	}
+
+	// Perform computations in the local space of the first hull.
+	b3Vec3 support = b3MulT(xf1, sphere.vertex);
+
 	u32 maxIndex = ~0;
 	float32 maxSeparation = -B3_MAX_FLOAT;
 
@@ -196,7 +233,7 @@ bool b3HullShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere,
 		b3Plane plane = m_hull->GetPlane(i);
 		float32 separation = b3Distance(support, plane);
 
-		if (separation > radius)
+		if (separation > totalRadius)
 		{
 			return false;
 		}
@@ -208,17 +245,14 @@ bool b3HullShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere,
 		}
 	}
 
-	if (maxIndex != ~0)
-	{
-		b3Plane plane = b3Mul(xf, m_hull->GetPlane(maxIndex));
-		output->point = b3ClosestPointOnPlane(sphere.vertex, plane);
-		output->separation = maxSeparation - radius;
-		output->normal = plane.normal;
-		return true;
-	}
+	B3_ASSERT(maxIndex != ~0);
+
+	b3Plane plane = b3Mul(xf1, m_hull->GetPlane(maxIndex));
 	
-	B3_ASSERT(false);
-	return false;
+	output->point = b3ClosestPointOnPlane(sphere.vertex, plane);
+	output->separation = maxSeparation - totalRadius;
+	output->normal = plane.normal;
+	return true;
 }
 
 bool b3HullShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf) const

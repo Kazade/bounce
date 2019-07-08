@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -20,7 +20,15 @@
 #define MODEL_H
 
 #include <testbed/framework/draw.h>
-#include <testbed/framework/testbed_listener.h>
+#include <testbed/framework/profiler.h>
+#include <testbed/framework/profiler_st.h>
+
+// Set to 1 to write profile events into a .json file. Set to 0 otherwise.
+#define PROFILE_JSON 0
+
+#if (PROFILE_JSON == 1)
+#include <testbed/framework/json_profiler.h>
+#endif
 
 class Test;
 
@@ -53,7 +61,11 @@ public:
 	void Command_ZoomCamera(float32 d);
 
 	void Update();
-	
+
+#if (PROFILE_JSON == 1)
+	void UpdateJson();
+#endif
+
 	bool IsPaused() const { return m_pause; }
 private:
 	friend class ViewModel;
@@ -63,7 +75,12 @@ private:
 	Draw m_draw;
 	Camera m_camera;
 	Profiler m_profiler;
-	TestbedListener m_profilerListener;
+	ProfilerSt m_profilerSt;
+
+#if (PROFILE_JSON == 1)
+	JsonProfiler m_jsonProfiler;
+#endif
+
 	Test* m_test;
 	bool m_setTest;
 	bool m_pause;

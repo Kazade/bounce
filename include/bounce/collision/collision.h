@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -36,5 +36,9 @@ struct b3RayCastOutput
 	float32 fraction; // time of intersection on ray-segment
 	b3Vec3 normal; // surface normal of intersection
 };
+
+// Perform a ray-cast on a triangle.
+bool b3RayCast(b3RayCastOutput* output, const b3RayCastInput* input,
+	const b3Vec3& v1, const b3Vec3& v2, const b3Vec3& v3);
 
 #endif

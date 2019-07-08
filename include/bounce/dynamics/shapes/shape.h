@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -140,6 +140,9 @@ public:
 	// Set the user data associated with this shape.
 	void SetUserData(void* data);
 
+	// Get broadphase AABB
+	const b3AABB3& GetAABB() const;
+
 	// Dump this shape to the log file.
 	void Dump(u32 bodyIndex) const;
 
@@ -153,6 +156,7 @@ protected:
 	friend class b3Body;
 	friend class b3Contact;
 	friend class b3ContactManager;
+	friend class b3MeshShape;
 	friend class b3MeshContact;
 	friend class b3ContactSolver;
 	friend class b3List1<b3Shape>;

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -26,8 +26,11 @@ Model::Model()
 	g_draw = &m_draw;
 	g_camera = &m_camera;
 	g_profiler = &m_profiler;
-	g_profilerRecorder = &m_profilerListener.m_recorderProfiler;
-	g_profilerListener = &m_profilerListener;
+	g_profilerSt = &m_profilerSt;
+	
+#if (PROFILE_JSON == 1)
+	g_jsonProfiler = &m_jsonProfiler;
+#endif
 
 	m_test = nullptr;
 
@@ -53,8 +56,11 @@ Model::~Model()
 	g_draw = nullptr;
 	g_camera = nullptr;
 	g_profiler = nullptr;
-	g_profilerRecorder = nullptr;
-	g_profilerListener = nullptr;
+	g_profilerSt = nullptr;
+
+#if (PROFILE_JSON == 1)
+	g_jsonProfiler = nullptr;
+#endif
 
 	delete m_test;
 }
@@ -224,3 +230,33 @@ void Model::Update()
 
 	m_draw.Flush();
 }
+
+#if (PROFILE_JSON == 1)
+
+static inline void RecurseEvents(ProfilerNode* node)
+{
+	g_jsonProfiler->BeginEvent(node->name, node->t0);
+	
+	g_jsonProfiler->EndEvent(node->name, node->t1);
+
+	for (u32 i = 0; i < node->children.Count(); ++i)
+	{
+		RecurseEvents(node->children[i]);
+	}
+}
+
+void Model::UpdateJson()
+{
+	m_jsonProfiler.BeginEvents();
+
+	ProfilerNode* root = m_profiler.GetRoot();
+
+	if (root)
+	{
+		RecurseEvents(root);
+	}
+
+	m_jsonProfiler.EndEvents();
+}
+
+#endif

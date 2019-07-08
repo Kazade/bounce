@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -24,6 +24,8 @@ class MeshContactTest : public Test
 public:
 	MeshContactTest()
 	{
+		m_gridMesh.BuildTree();
+
 		// Transform grid into a terrain
 		for (u32 i = 0; i < m_terrainMesh.vertexCount; ++i)
 		{
@@ -37,7 +39,7 @@ public:
 			m_ground = m_world.CreateBody(bd);
 
 			b3MeshShape ms;
-			ms.m_mesh = &m_groundMesh;
+			ms.m_mesh = &m_gridMesh;
 
 			b3ShapeDef sd;
 			sd.shape = &ms;
@@ -138,7 +140,7 @@ public:
 			if (key == GLFW_KEY_G)
 			{
 				b3MeshShape ms;
-				ms.m_mesh = &m_groundMesh;
+				ms.m_mesh = &m_gridMesh;
 
 				b3ShapeDef sd;
 				sd.shape = &ms;
@@ -176,7 +178,8 @@ public:
 	}
 
 	b3GridMesh<25, 25> m_terrainMesh;
-	
+	b3GridMesh<25, 25> m_gridMesh;
+
 	b3Body* m_ground;
 	b3Body* m_body;
 };

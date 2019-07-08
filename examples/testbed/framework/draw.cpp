@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -251,24 +251,9 @@ void Draw::DrawSolidPolygon(const b3Vec3& normal, const b3Vec3* vertices, u32 co
 
 void Draw::DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
 {
-	// Build a tangent vector to normal.
-	b3Vec3 u = b3Cross(normal, b3Vec3(1.0f, 0.0f, 0.0f));
-	b3Vec3 v = b3Cross(normal, b3Vec3(0.0f, 1.0f, 0.0f));
+	b3Vec3 n1, n3;
+	b3ComputeBasis(normal, n1, n3);
 
-	// Handle edge cases (zero cross product).
-	b3Vec3 n1;
-	if (b3LengthSquared(u) > b3LengthSquared(v))
-	{
-		n1 = u;
-	}
-	else
-	{
-		n1 = v;
-	}
-
-	n1.Normalize();
-
-	// Build a quaternion to rotate the tangent about the normal.
 	u32 kEdgeCount = 20;
 	float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
 	b3Quat q(normal, kAngleInc);
@@ -292,24 +277,9 @@ void Draw::DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, float32 r
 	b3Color fillColor(color.r, color.g, color.b, color.a);
 	b3Color frameColor(0.5f * color.r, 0.5f * color.g, 0.5f * color.b, 1.0f);
 
-	// Build a tangent vector to normal.
-	b3Vec3 u = b3Cross(normal, b3Vec3(1.0f, 0.0f, 0.0f));
-	b3Vec3 v = b3Cross(normal, b3Vec3(0.0f, 1.0f, 0.0f));
+	b3Vec3 n1, n3;
+	b3ComputeBasis(normal, n1, n3);
 
-	// Handle edge cases (zero cross product).
-	b3Vec3 n1;
-	if (b3LengthSquared(u) > b3LengthSquared(v))
-	{
-		n1 = u;
-	}
-	else
-	{
-		n1 = v;
-	}
-
-	n1.Normalize();
-
-	// Build a quaternion to rotate the tangent about the normal.
 	const u32 kEdgeCount = 20;
 	const float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
 	b3Quat q(normal, kAngleInc);
@@ -332,16 +302,16 @@ void Draw::DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, float32 r
 void Draw::DrawSphere(const b3Vec3& center, float32 radius, const b3Color& color)
 {
 	b3Transform xf;
-	xf.SetIdentity();
+	xf.rotation.SetIdentity();
 	xf.position = center;
 
 	m_wire->DrawSphere(radius, color, xf);
 }
 
-void Draw::DrawSolidSphere(const b3Vec3& center, float32 radius, const b3Color& color)
+void Draw::DrawSolidSphere(const b3Vec3& center, float32 radius, const b3Mat33& rotation, const b3Color& color)
 {
 	b3Transform xf;
-	xf.SetIdentity();
+	xf.rotation = rotation;
 	xf.position = center;
 
 	m_solid->DrawSphere(radius, color, xf);
@@ -352,10 +322,10 @@ void Draw::DrawCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const
 	float32 height = b3Length(c1 - c2);
 
 	{
-		b3Transform xfc;
-		xfc.rotation.SetIdentity();
-		xfc.position = c1;
-		m_wire->DrawSphere(radius, color, xfc);
+		b3Transform xf;
+		xf.rotation.SetIdentity();
+		xf.position = c1;
+		m_wire->DrawSphere(radius, color, xf);
 	}
 
 	if (height > 0.0f)
@@ -363,23 +333,23 @@ void Draw::DrawCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const
 		DrawSegment(c1, c2, color);
 
 		{
-			b3Transform xfc;
-			xfc.rotation.SetIdentity();
-			xfc.position = c2;
-			m_wire->DrawSphere(radius, color, xfc);
+			b3Transform xf;
+			xf.rotation.SetIdentity();
+			xf.position = c2;
+			m_wire->DrawSphere(radius, color, xf);
 		}
 	}
 }
 
-void Draw::DrawSolidCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const b3Color& c)
+void Draw::DrawSolidCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const b3Mat33& rotation, const b3Color& c)
 {
 	float32 height = b3Length(c1 - c2);
 
 	{
-		b3Transform xfc;
-		xfc.rotation.SetIdentity();
-		xfc.position = c1;
-		m_solid->DrawSphere(radius, c, xfc);
+		b3Transform xf;
+		xf.rotation = rotation;
+		xf.position = c1;
+		m_solid->DrawSphere(radius, c, xf);
 	}
 
 	if (height > 0.0f)
@@ -387,21 +357,20 @@ void Draw::DrawSolidCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, 
 		{
 			b3Mat33 R;
 			R.y = (1.0f / height) * (c1 - c2);
-			R.z = b3Perp(R.y);
-			R.x = b3Cross(R.y, R.z);
+			b3ComputeBasis(R.y, R.z, R.x);
 
-			b3Transform xfc;
-			xfc.position = 0.5f * (c1 + c2);
-			xfc.rotation = R;
+			b3Transform xf;
+			xf.position = 0.5f * (c1 + c2);
+			xf.rotation = R;
 
-			m_solid->DrawCylinder(radius, height, c, xfc);
+			m_solid->DrawCylinder(radius, height, c, xf);
 		}
 
 		{
-			b3Transform xfc;
-			xfc.rotation.SetIdentity();
-			xfc.position = c2;
-			m_solid->DrawSphere(radius, c, xfc);
+			b3Transform xf;
+			xf.rotation = rotation;
+			xf.position = c2;
+			m_solid->DrawSphere(radius, c, xf);
 		}
 	}
 }
@@ -410,10 +379,6 @@ void Draw::DrawTransform(const b3Transform& xf)
 {
 	float32 lenght = 1.0f;
 
-	b3Color red(1.0f, 0.0f, 0.0f, 1.0f);
-	b3Color green(0.0f, 1.0f, 0.0f, 1.0f);
-	b3Color blue(0.0f, 0.0f, 1.0f, 1.0f);
-
 	b3Vec3 position = xf.position;
 	b3Mat33 rotation = xf.rotation;
 
@@ -421,9 +386,9 @@ void Draw::DrawTransform(const b3Transform& xf)
 	b3Vec3 B = position + lenght * rotation.y;
 	b3Vec3 C = position + lenght * rotation.z;
 
-	DrawSegment(position, A, red);
-	DrawSegment(position, B, green);
-	DrawSegment(position, C, blue);
+	DrawSegment(position, A, b3Color_red);
+	DrawSegment(position, B, b3Color_green);
+	DrawSegment(position, C, b3Color_blue);
 }
 
 void Draw::DrawAABB(const b3AABB3& aabb, const b3Color& color)
@@ -460,6 +425,54 @@ void Draw::DrawAABB(const b3AABB3& aabb, const b3Color& color)
 	DrawSegment(vs[1], vs[7], color);
 }
 
+void Draw::DrawPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
+{
+	b3Vec3 n1, n2;
+	b3ComputeBasis(normal, n1, n2);
+
+	float32 scale = 2.0f * radius;
+	
+	// v1__v4
+	// |    |
+	// v2__v3
+	b3Vec3 v1 = center - scale * n1 - scale * n2;
+	b3Vec3 v2 = center + scale * n1 - scale * n2;
+	b3Vec3 v3 = center + scale * n1 + scale * n2;
+	b3Vec3 v4 = center - scale * n1 + scale * n2;
+
+	DrawSegment(v1, v2, color);
+	DrawSegment(v2, v3, color);
+	DrawSegment(v3, v4, color);
+	DrawSegment(v4, v1, color);
+	
+	DrawSegment(center, center + normal, color);
+}
+
+void Draw::DrawSolidPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
+{
+	b3Color frameColor(0.5f * color.r, 0.5f * color.g, 0.5f * color.b, 1.0f);
+
+	b3Vec3 n1, n2;
+	b3ComputeBasis(normal, n1, n2);
+
+	float32 scale = 2.0f * radius;
+
+	b3Vec3 v1 = center - scale * n1 - scale * n2;
+	b3Vec3 v2 = center + scale * n1 - scale * n2;
+	b3Vec3 v3 = center + scale * n1 + scale * n2;
+	b3Vec3 v4 = center - scale * n1 + scale * n2;
+	
+	DrawSegment(v1, v2, frameColor);
+	DrawSegment(v2, v3, frameColor);
+	DrawSegment(v3, v4, frameColor);
+	DrawSegment(v4, v1, frameColor);
+
+	DrawSegment(center, center + normal, frameColor);
+
+	DrawSolidTriangle(normal, v1, v2, v3, color);
+	DrawSolidTriangle(normal, v3, v4, v1, color);
+}
+
 void Draw::DrawString(const b3Color& color, const b3Vec2& ps, const char* text, ...)
 {
 	va_list args;
@@ -480,13 +493,17 @@ void Draw::DrawString(const b3Color& color, const b3Vec3& pw, const char* text, 
 
 	va_list args;
 	va_start(args, text);
+	
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 	ImGui::SetNextWindowBgAlpha(0.0f);
 	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width, g_camera->m_height));
+	ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f));
 	ImGui::Begin("Superlay", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
 	ImGui::SetCursorPos(ImVec2(ps.x, ps.y));
 	ImGui::TextColoredV(ImVec4(color.r, color.g, color.b, color.a), text, args);
 	ImGui::End();
+	ImGui::PopStyleVar();
+	
 	va_end(args);
 }
 
@@ -495,179 +512,16 @@ void Draw::DrawString(const b3Color& color, const char* text, ...)
 	va_list args;
 	va_start(args, text);
 
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f); 
 	ImGui::SetNextWindowBgAlpha(0.0f);
 	ImGui::SetNextWindowPos(ImVec2(0.0f, 40.0f));
-	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width, g_camera->m_height));
+	ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f));
 	ImGui::Begin("Overlay", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
 	ImGui::TextColoredV(ImVec4(color.r, color.g, color.b, color.a), text, args);
 	ImGui::End();
-
+	ImGui::PopStyleVar();
+	
 	va_end(args);
-}
-
-void Draw::DrawSolidSphere(const b3SphereShape* s, const b3Color& c, const b3Transform& xf)
-{
-	b3Transform xfc;
-	xfc.rotation = xf.rotation;
-	xfc.position = xf * s->m_center;
-	m_solid->DrawSphere(s->m_radius, c, xfc);
-}
-
-void Draw::DrawSolidCapsule(const b3CapsuleShape* s, const b3Color& c, const b3Transform& xf)
-{
-	b3Vec3 c1 = s->m_centers[0];
-	b3Vec3 c2 = s->m_centers[1];
-	float32 height = b3Length(c1 - c2);
-	float32 radius = s->m_radius;
-
-	{
-		b3Transform xfc;
-		xfc.rotation = xf.rotation;
-		xfc.position = xf * c1;
-		m_solid->DrawSphere(radius, c, xfc);
-	}
-
-	if (height > 0.0f)
-	{
-		{
-			b3Mat33 R;
-			R.y = (1.0f / height) * (c1 - c2);
-			R.z = b3Perp(R.y);
-			R.x = b3Cross(R.y, R.z);
-
-			b3Transform xfc;
-			xfc.position = xf * (0.5f * (c1 + c2));
-			xfc.rotation = xf.rotation * R;
-
-			m_solid->DrawCylinder(radius, height, c, xfc);
-		}
-
-		{
-			b3Transform xfc;
-			xfc.rotation = xf.rotation;
-			xfc.position = xf * c2;
-			m_solid->DrawSphere(radius, c, xfc);
-		}
-	}
-}
-
-void Draw::DrawSolidHull(const b3HullShape* s, const b3Color& c, const b3Transform& xf)
-{
-	const b3Hull* hull = s->m_hull;
-
-	for (u32 i = 0; i < hull->faceCount; ++i)
-	{
-		const b3Face* face = hull->GetFace(i);
-		const b3HalfEdge* begin = hull->GetEdge(face->edge);
-
-		b3Vec3 n = xf.rotation * hull->planes[i].normal;
-
-		const b3HalfEdge* edge = hull->GetEdge(begin->next);
-		do
-		{
-			u32 i1 = begin->origin;
-			u32 i2 = edge->origin;
-			const b3HalfEdge* next = hull->GetEdge(edge->next);
-			u32 i3 = next->origin;
-
-			b3Vec3 p1 = xf * hull->vertices[i1];
-			b3Vec3 p2 = xf * hull->vertices[i2];
-			b3Vec3 p3 = xf * hull->vertices[i3];
-
-			m_triangles->Vertex(p1, c, n);
-			m_triangles->Vertex(p2, c, n);
-			m_triangles->Vertex(p3, c, n);
-
-			edge = next;
-		} while (hull->GetEdge(edge->next) != begin);
-	}
-}
-
-void Draw::DrawSolidMesh(const b3MeshShape* s, const b3Color& c, const b3Transform& xf)
-{
-	const b3Mesh* mesh = s->m_mesh;
-	for (u32 i = 0; i < mesh->triangleCount; ++i)
-	{
-		const b3Triangle* t = mesh->triangles + i;
-
-		b3Vec3 p1 = xf * mesh->vertices[t->v1];
-		b3Vec3 p2 = xf * mesh->vertices[t->v2];
-		b3Vec3 p3 = xf * mesh->vertices[t->v3];
-
-		b3Vec3 n1 = b3Cross(p2 - p1, p3 - p1);
-		n1.Normalize();
-
-		m_triangles->Vertex(p1, c, n1);
-		m_triangles->Vertex(p2, c, n1);
-		m_triangles->Vertex(p3, c, n1);
-
-		b3Vec3 n2 = -n1;
-
-		m_triangles->Vertex(p1, c, n2);
-		m_triangles->Vertex(p3, c, n2);
-		m_triangles->Vertex(p2, c, n2);
-	}
-}
-
-void Draw::DrawSolidShape(const b3Shape* s, const b3Color& c, const b3Transform& xf)
-{
-	switch (s->GetType())
-	{
-	case e_sphereShape:
-	{
-		DrawSolidSphere((b3SphereShape*)s, c, xf);
-		break;
-	}
-	case e_capsuleShape:
-	{
-		DrawSolidCapsule((b3CapsuleShape*)s, c, xf);
-		break;
-	}
-	case e_hullShape:
-	{
-		DrawSolidHull((b3HullShape*)s, c, xf);
-		break;
-	}
-	case e_meshShape:
-	{
-		DrawSolidMesh((b3MeshShape*)s, c, xf);
-		break;
-	}
-	default:
-	{
-		break;
-	}
-	}
-}
-
-void Draw::DrawSolidShapes(const b3World& world)
-{
-	for (b3Body* b = world.GetBodyList().m_head; b; b = b->GetNext())
-	{
-		b3Color c;
-		if (b->IsAwake() == false)
-		{
-			c = b3Color(0.5f, 0.25f, 0.25f, 1.0f);
-		}
-		else if (b->GetType() == e_staticBody)
-		{
-			c = b3Color(0.5f, 0.5f, 0.5f, 1.0f);
-		}
-		else if (b->GetType() == e_dynamicBody)
-		{
-			c = b3Color(1.0f, 0.5f, 0.5f, 1.0f);
-		}
-		else
-		{
-			c = b3Color(0.5f, 0.5f, 1.0f, 1.0f);
-		}
-
-		b3Transform xf = b->GetTransform();
-		for (b3Shape* s = b->GetShapeList().m_head; s; s = s->GetNext())
-		{
-			DrawSolidShape(s, c, xf);
-		}
-	}
 }
 
 void Draw::Flush()

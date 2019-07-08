@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -93,6 +93,9 @@ public:
 	{
 		B3_ASSERT(m_count > 0);
 		--m_count;
+		
+		T* e = m_elements + m_count;
+		e->~T();
 	}
 
 	const T& Back() const
