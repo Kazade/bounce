@@ -43,13 +43,10 @@ b3ClothForceSolver::b3ClothForceSolver(const b3ClothForceSolverDef& def)
 
 	m_forceCount = def.forceCount;
 	m_forces = def.forces;
-
-	m_constraints = (b3AccelerationConstraint*)m_allocator->Allocate(m_particleCount * sizeof(b3AccelerationConstraint));
 }
 
 b3ClothForceSolver::~b3ClothForceSolver()
 {
-	m_allocator->Free(m_constraints);
 }
 
 void b3ClothForceSolver::ApplyForces()
@@ -57,72 +54,6 @@ void b3ClothForceSolver::ApplyForces()
 	for (u32 i = 0; i < m_forceCount; ++i)
 	{
 		m_forces[i]->Apply(&m_solverData);
-	}
-}
-
-void b3AccelerationConstraint::Apply(const b3ClothForceSolverData* data)
-{
-	b3DiagMat33& sS = *data->S;
-	b3DenseVec3& sz = *data->z;
-
-	sz[i1] = z;
-
-	b3Mat33 I; I.SetIdentity();
-
-	switch (ndof)
-	{
-	case 3:
-	{
-		sS[i1] = I;
-		break;
-	}
-	case 2:
-	{
-		sS[i1] = I - b3Outer(p, p);
-		break;
-	}
-	case 1:
-	{
-		sS[i1] = I - b3Outer(p, p) - b3Outer(q, q);
-		break;
-	}
-	case 0:
-	{
-		sS[i1].SetZero();
-		break;
-	}
-	default:
-	{
-		B3_ASSERT(false);
-		break;
-	}
-	}
-}
-
-void b3ClothForceSolver::ApplyConstraints()
-{
-	for (u32 i = 0; i < m_particleCount; ++i)
-	{
-		b3Particle* p = m_particles[i];
-		b3AccelerationConstraint* c = m_constraints + i;
-
-		c->i1 = i;
-
-		if (p->m_type != e_dynamicParticle)
-		{
-			c->ndof = 0;
-			c->z.SetZero();
-		}
-		else
-		{
-			c->ndof = 3;
-			c->z.SetZero();
-		}
-	}
-
-	for (u32 i = 0; i < m_particleCount; ++i)
-	{
-		m_constraints[i].Apply(&m_solverData);
 	}
 }
 
@@ -239,11 +170,17 @@ void b3ClothForceSolver::Solve(float32 dt, const b3Vec3& gravity)
 		sx[i] = p->m_position;
 		sv[i] = p->m_velocity;
 		sf[i] = p->m_force;
+		sz[i].SetZero();
 
 		if (p->m_type == e_dynamicParticle)
 		{
 			// Apply weight
 			sf[i] += p->m_mass * gravity;
+			S[i].SetIdentity();
+		}
+		else
+		{
+			S[i].SetZero();
 		}
 
 		sy[i] = p->m_translation;
@@ -252,9 +189,6 @@ void b3ClothForceSolver::Solve(float32 dt, const b3Vec3& gravity)
 
 	// Apply internal forces
 	ApplyForces();
-
-	// Apply constraints
-	ApplyConstraints();
 
 	// Solve Ax = b, where
 	// A = M - h * dfdv - h * h * dfdx

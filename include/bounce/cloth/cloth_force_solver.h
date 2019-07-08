@@ -53,15 +53,6 @@ struct b3ClothForceSolverData
 	b3DenseVec3* z;
 };
 
-struct b3AccelerationConstraint
-{
-	u32 i1;
-	u32 ndof;
-	b3Vec3 p, q, z;
-
-	void Apply(const b3ClothForceSolverData* data);
-};
-
 class b3ClothForceSolver
 {
 public:
@@ -71,7 +62,6 @@ public:
 	void Solve(float32 dt, const b3Vec3& gravity);
 private:
 	void ApplyForces();
-	void ApplyConstraints();
 
 	b3StackAllocator* m_allocator;
 
@@ -80,8 +70,6 @@ private:
 
 	u32 m_forceCount;
 	b3Force** m_forces;
-
-	b3AccelerationConstraint* m_constraints;
 
 	b3ClothForceSolverData m_solverData;
 };
