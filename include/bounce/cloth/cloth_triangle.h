@@ -20,6 +20,7 @@
 #define B3_CLOTH_TRIANGLE_H
 
 #include <bounce/cloth/cloth_collision.h>
+#include "bounce/cloth/cloth.h"
 
 // A cloth triangle
 class b3ClothTriangle
