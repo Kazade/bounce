@@ -23,7 +23,8 @@ b3MeshShape::b3MeshShape()
 {
 	m_type = e_meshShape;
 	m_radius = B3_HULL_RADIUS;
-	m_mesh = NULL;
+	m_mesh = nullptr;
+	m_scale.Set(scalar(1), scalar(1), scalar(1));
 }
 
 b3MeshShape::~b3MeshShape() 
@@ -34,42 +35,34 @@ void b3MeshShape::Swap(const b3MeshShape& other)
 {
 	m_radius = other.m_radius;
 	m_mesh = other.m_mesh;
+	m_scale = other.m_scale;
 }
 
-void b3MeshShape::ComputeMass(b3MassData* massData, float32 density) const 
+void b3MeshShape::ComputeMass(b3MassData* massData, scalar density) const 
 {
-	B3_NOT_USED(density);
-	u32 n = m_mesh->vertexCount;
-	b3Vec3 c(0.0f, 0.0f, 0.0f);
-	for (u32 i = 0; i < n; ++i)
-	{
-		c += m_mesh->vertices[i];
-	}
-	if (n > 0)
-	{
-		c = 1.0f / float32(n) * c;
-	}	
-	massData->center = c;
-	massData->mass = 0.0f;
+	B3_NOT_USED(density);	
+	massData->center.SetZero();
+	massData->mass = scalar(0);
 	massData->I.SetZero();
 }
 
-void b3MeshShape::ComputeAABB(b3AABB3* output, const b3Transform& xf) const 
+void b3MeshShape::ComputeAABB(b3AABB* output, const b3Transform& xf) const 
 {
-	output->Set(m_mesh->vertices, m_mesh->vertexCount, xf);
-	output->Extend(m_radius);
+	b3AABB aabb;
+	aabb.Set(m_mesh->vertices, m_mesh->vertexCount, m_scale, xf);
+	aabb.Extend(m_radius);
+
+	*output = aabb;
 }
 
-void b3MeshShape::ComputeAABB(b3AABB3* output, const b3Transform& xf, u32 index) const
+void b3MeshShape::ComputeAABB(b3AABB* output, const b3Transform& xf, u32 index) const
 {
 	B3_ASSERT(index < m_mesh->triangleCount);
-	const b3Triangle* triangle = m_mesh->triangles + index;
-	b3Vec3 v1 = b3Mul(xf, m_mesh->vertices[triangle->v1]);
-	b3Vec3 v2 = b3Mul(xf, m_mesh->vertices[triangle->v2]);
-	b3Vec3 v3 = b3Mul(xf, m_mesh->vertices[triangle->v3]);
-
-	output->m_lower = b3Min(b3Min(v1, v2), v3);
-	output->m_upper = b3Max(b3Max(v1, v2), v3);
+	const b3MeshTriangle* triangle = m_mesh->triangles + index;
+	b3Vec3 v1 = b3Mul(xf, b3MulCW(m_scale, m_mesh->vertices[triangle->v1]));
+	b3Vec3 v2 = b3Mul(xf, b3MulCW(m_scale, m_mesh->vertices[triangle->v2]));
+	b3Vec3 v3 = b3Mul(xf, b3MulCW(m_scale, m_mesh->vertices[triangle->v3]));
+	output->SetTriangle(v1, v2, v3);
 	output->Extend(m_radius);
 }
 
@@ -100,11 +93,11 @@ bool b3MeshShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere,
 bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf, u32 index) const
 {
 	B3_ASSERT(index < m_mesh->triangleCount);
-	b3Triangle* triangle = m_mesh->triangles + index;
+	b3MeshTriangle* triangle = m_mesh->triangles + index;
 	
-	b3Vec3 v1 = m_mesh->vertices[triangle->v1];
-	b3Vec3 v2 = m_mesh->vertices[triangle->v2];
-	b3Vec3 v3 = m_mesh->vertices[triangle->v3];
+	b3Vec3 v1 = b3MulCW(m_scale, m_mesh->vertices[triangle->v1]);
+	b3Vec3 v2 = b3MulCW(m_scale, m_mesh->vertices[triangle->v2]);
+	b3Vec3 v3 = b3MulCW(m_scale, m_mesh->vertices[triangle->v3]);
 
 	// Put the ray into the mesh's frame of reference.
 	b3Vec3 p1 = b3MulT(xf, input.p1);
@@ -119,7 +112,7 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 	if (b3RayCast(&subOutput, &subInput, v1, v2, v3))
 	{
 		output->fraction = subOutput.fraction;
-		output->normal = xf.rotation * subOutput.normal;
+		output->normal = b3Mul(xf.rotation, subOutput.normal);
 		return true;
 	}
 
@@ -128,7 +121,7 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 
 struct b3MeshShapeRayCastCallback
 {
-	float32 Report(const b3RayCastInput& subInput, u32 proxyId)
+	scalar Report(const b3RayCastInput& subInput, u32 proxyId)
 	{
 		B3_NOT_USED(subInput);
 
@@ -145,7 +138,7 @@ struct b3MeshShapeRayCastCallback
 			}
 		}
 		
-		return 1.0f;
+		return scalar(1);
 	}
 
 	b3RayCastInput input;
@@ -163,13 +156,22 @@ bool b3MeshShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 	callback.mesh = this;
 	callback.xf = xf;
 	callback.hit = false;
-	callback.output.fraction = B3_MAX_FLOAT;
+	callback.output.fraction = B3_MAX_SCALAR;
 	
-	b3RayCastInput subInput;
-	subInput.p1 = b3MulT(xf, input.p1);
-	subInput.p2 = b3MulT(xf, input.p2);
-	subInput.maxFraction = input.maxFraction;
-	m_mesh->tree.RayCast(&callback, subInput);
+	B3_ASSERT(m_scale.x != scalar(0));
+	B3_ASSERT(m_scale.y != scalar(0));
+	B3_ASSERT(m_scale.z != scalar(0));
+
+	b3Vec3 inv_scale;
+	inv_scale.x = scalar(1) / m_scale.x;
+	inv_scale.y = scalar(1) / m_scale.y;
+	inv_scale.z = scalar(1) / m_scale.z;
+
+	b3RayCastInput treeInput;
+	treeInput.p1 = b3MulCW(inv_scale, b3MulT(xf, input.p1));
+	treeInput.p2 = b3MulCW(inv_scale, b3MulT(xf, input.p2));
+	treeInput.maxFraction = input.maxFraction;
+	m_mesh->tree.RayCast(&callback, treeInput);
 
 	output->fraction = callback.output.fraction;
 	output->normal = callback.output.normal;

@@ -32,8 +32,8 @@ public:
 		b3Body* body = m_world.CreateBody(bd);
 
 		b3CapsuleShape shape;
-		shape.m_centers[0].Set(0.0f, 0.0f, -1.0f);
-		shape.m_centers[1].Set(0.0f, 0.0f, 1.0f);
+		shape.m_vertex1.Set(0.0f, 0.0f, -1.0f);
+		shape.m_vertex2.Set(0.0f, 0.0f, 1.0f);
 		shape.m_radius = 1.0f;
 
 		b3ShapeDef sdef;

@@ -40,8 +40,8 @@ struct b3SolverData
 	b3Position* positions;
 	b3Velocity* velocities;
 	b3Mat33* invInertias;
-	float32 dt;
-	float32 invdt;
+	scalar dt;
+	scalar invdt;
 };
 
 enum b3LimitState
@@ -57,9 +57,9 @@ enum b3LimitState
 // The result equals to transpose( skew(v) ) * skew(v) or diagonal(v^2) - outer(v, v)
 inline b3Mat33 b3Steiner(const b3Vec3& v)
 {
-	float32 xx = v.x * v.x;
-	float32 yy = v.y * v.y;
-	float32 zz = v.z * v.z;
+	scalar xx = v.x * v.x;
+	scalar yy = v.y * v.y;
+	scalar zz = v.z * v.z;
 
 	b3Mat33 S;
 	
@@ -95,7 +95,7 @@ inline b3Mat33 b3RotateToFrame(const b3Mat33& inertia, const b3Mat33& rotation)
 // of the body frame relative to the inertial frame.
 inline b3Mat33 b3RotateToFrame(const b3Mat33& inertia, const b3Quat& rotation)
 {
-	b3Mat33 R = b3QuatMat33(rotation);
+	b3Mat33 R = rotation.GetXYZAxes();
 	
 	return R * inertia * b3Transpose(R);
 }
@@ -104,19 +104,53 @@ inline b3Mat33 b3RotateToFrame(const b3Mat33& inertia, const b3Quat& rotation)
 // the angular velocity of the rotating frame represented by the orientation.
 inline b3Quat b3Derivative(const b3Quat& orientation, const b3Vec3& velocity)
 {
-	b3Quat xf(0.5f * velocity.x, 0.5f * velocity.y, 0.5f * velocity.z, 0.0f);
-	return xf * orientation;
+	b3Quat w(velocity.x, velocity.y, velocity.z, scalar(0));
+	return scalar(0.5) * w * orientation;
 }
 
 // Integrate an orientation over a time step given
 // the current orientation, angular velocity of the rotating frame
 // represented by the orientation, and the time step dt.
-inline b3Quat b3Integrate(const b3Quat& orientation, const b3Vec3& velocity, float32 dt)
+inline b3Quat b3Integrate(const b3Quat& orientation, const b3Vec3& omega, scalar dt)
 {
-	// Integrate from [t0, t0 + h] using the explicit Euler method
-	b3Quat qdot = b3Derivative(orientation, velocity);
-	b3Quat integral = dt * qdot;
-	return orientation + integral;
+	// "Practical Parameterization of Rotations Using the Exponential Map", Grassia
+	scalar h = dt;
+
+	scalar x = b3Length(omega);
+
+	const scalar kTol = scalar(10.0e-4);
+
+	b3Vec3 qv;
+	if (scalar(0.5) * h * x < kTol)
+	{
+		// Use first three terms of Taylor expansion of sin(h * x / 2)
+		
+		// f'(0) / 1! * x = h / 2 * x
+		// f''(0) / 2! * x^2 = 0 * 2 / x ^ 2 = 0
+		// f'''(0) / 3! * x^3 = -x^3 * h^3 / 48
+
+		// Sum up, divide by x, and simplify (expand)
+		// s = h / 2 - (h * h * h) * x * x / 48
+		const scalar kInv48 = scalar(1) / scalar(48);
+		
+		scalar s = scalar(0.5) * h - kInv48 * (h * h * h) * x * x;
+
+		qv = s * omega;
+	}
+	else
+	{
+		scalar s = sin(scalar(0.5) * h * x) / x;
+
+		qv = s * omega;
+	}
+
+	b3Quat q;
+	q.v = qv;
+	q.s = cos(scalar(0.5) * h * x);
+
+	b3Quat q1 = q * orientation;
+	q1.Normalize();
+	return q1;
 }
 
 #endif

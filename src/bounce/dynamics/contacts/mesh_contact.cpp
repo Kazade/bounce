@@ -20,14 +20,27 @@
 #include <bounce/dynamics/contacts/contact_cluster.h>
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/shapes/mesh_shape.h>
+#include <bounce/dynamics/shapes/triangle_shape.h>
 #include <bounce/dynamics/world.h>
 #include <bounce/dynamics/body.h>
-#include <bounce/dynamics/shapes/hull_shape.h>
 #include <bounce/collision/shapes/mesh.h>
-#include <bounce/collision/shapes/triangle_hull.h>
 #include <bounce/common/memory/stack_allocator.h>
+#include <bounce/common/memory/block_pool.h>
 
-b3MeshContact::b3MeshContact(b3Shape* shapeA, b3Shape* shapeB)
+b3Contact* b3MeshContact::Create(b3Shape* shapeA, b3Shape* shapeB, b3BlockPool* allocator)
+{
+	void* mem = allocator->Allocate();
+	return new (mem) b3MeshContact(shapeA, shapeB);
+}
+
+void b3MeshContact::Destroy(b3Contact* contact, b3BlockPool* allocator)
+{
+	b3MeshContact* c = (b3MeshContact*)contact;
+	c->~b3MeshContact();
+	allocator->Free(c);
+}
+
+b3MeshContact::b3MeshContact(b3Shape* shapeA, b3Shape* shapeB) : b3Contact(shapeA, shapeB)
 {
 	m_type = e_meshContact;
 
@@ -38,15 +51,31 @@ b3MeshContact::b3MeshContact(b3Shape* shapeA, b3Shape* shapeB)
 	b3Transform xfA = shapeA->GetBody()->GetTransform();
 	b3Transform xfB = shapeB->GetBody()->GetTransform();
 
-	b3Transform xf = b3MulT(xfB, xfA);
-	
-	// The fat aabb relative to shape B's frame.
-	b3AABB3 fatAABB;
-	shapeA->ComputeAABB(&fatAABB, xf);
+	b3Transform xf = b3MulT(xfA, xfB);
+
+	// The aabb B relative to the mesh frame.
+	b3AABB fatAABB;
+	shapeB->ComputeAABB(&fatAABB, xf);
+
+	B3_ASSERT(shapeA->m_type == e_meshShape);
+
+	b3MeshShape* meshShapeA = (b3MeshShape*)shapeA;
+
+	B3_ASSERT(meshShapeA->m_scale.x != scalar(0));
+	B3_ASSERT(meshShapeA->m_scale.y != scalar(0));
+	B3_ASSERT(meshShapeA->m_scale.z != scalar(0));
+
+	b3Vec3 inv_scale;
+	inv_scale.x = scalar(1) / meshShapeA->m_scale.x;
+	inv_scale.y = scalar(1) / meshShapeA->m_scale.y;
+	inv_scale.z = scalar(1) / meshShapeA->m_scale.z;
+
+	fatAABB = b3ScaleAABB(fatAABB, inv_scale);
+
 	fatAABB.Extend(B3_AABB_EXTENSION);
 
-	m_aabbA = fatAABB;
-	m_aabbMoved = true;
+	m_aabbB = fatAABB;
+	m_aabbBMoved = true;
 
 	// Pre-allocate some indices
 	m_triangleCapacity = 16;
@@ -69,29 +98,42 @@ void b3MeshContact::SynchronizeShapes()
 	b3Body* bodyB = shapeB->GetBody();
 	b3Transform xfB = bodyB->GetTransform();
 
-	b3Sweep* sweepA = &bodyA->m_sweep;
-	b3Transform xfA0;
-	xfA0.position = sweepA->worldCenter0;
-	xfA0.rotation = b3QuatMat33(sweepA->orientation0);
-		
-	// Calculate the displacement of body A using its position at the last 
-	// time step and the current position.
-	b3Vec3 displacement = xfA.position - xfA0.position;
+	b3Sweep* sweepB = &bodyB->m_sweep;
+	b3Transform xfB0;
+	xfB0.translation = sweepB->worldCenter0;
+	xfB0.rotation = sweepB->orientation0;
 
-	// Compute the AABB in the reference frame of shape B.
-	b3Transform xf = b3MulT(xfB, xfA);
-	
-	b3AABB3 aabb;
-	shapeA->ComputeAABB(&aabb, xf);
+	// Calculate the displacement of body B using its position at the last 
+	// time step and the current position.
+	b3Vec3 displacement = xfB.translation - xfB0.translation;
+
+	// Compute the AABB B in the reference frame of the mesh.
+	b3Transform xf = b3MulT(xfA, xfB);
+
+	b3AABB aabbB;
+	shapeB->ComputeAABB(&aabbB, xf);
+
+	b3MeshShape* meshShapeA = (b3MeshShape*)shapeA;
+
+	B3_ASSERT(meshShapeA->m_scale.x != scalar(0));
+	B3_ASSERT(meshShapeA->m_scale.y != scalar(0));
+	B3_ASSERT(meshShapeA->m_scale.z != scalar(0));
+
+	b3Vec3 inv_scale;
+	inv_scale.x = scalar(1) / meshShapeA->m_scale.x;
+	inv_scale.y = scalar(1) / meshShapeA->m_scale.y;
+	inv_scale.z = scalar(1) / meshShapeA->m_scale.z;
+
+	aabbB = b3ScaleAABB(aabbB, inv_scale);
 
 	// Update the AABB with the new (transformed) AABB and buffer move.
-	m_aabbMoved = MoveAABB(aabb, displacement);
+	m_aabbBMoved = MoveAABB(aabbB, displacement);
 }
 
-bool b3MeshContact::MoveAABB(const b3AABB3& aabb, const b3Vec3& displacement)
+bool b3MeshContact::MoveAABB(const b3AABB& aabb, const b3Vec3& displacement)
 {
 	// Do nothing if the new AABB is contained in the old AABB.
-	if (m_aabbA.Contains(aabb))
+	if (m_aabbB.Contains(aabb))
 	{
 		// Do nothing if the new AABB is contained in the old AABB.
 		return false;
@@ -100,38 +142,38 @@ bool b3MeshContact::MoveAABB(const b3AABB3& aabb, const b3Vec3& displacement)
 	// Update the AABB with a fat and motion predicted AABB.
 
 	// Extend the new (original) AABB.
-	b3AABB3 fatAABB = aabb;
+	b3AABB fatAABB = aabb;
 	fatAABB.Extend(B3_AABB_EXTENSION);
 
-	if (displacement.x < 0.0f)
+	if (displacement.x < scalar(0))
 	{
-		fatAABB.m_lower.x += B3_AABB_MULTIPLIER * displacement.x;
+		fatAABB.lowerBound.x += B3_AABB_MULTIPLIER * displacement.x;
 	}
 	else
 	{
-		fatAABB.m_upper.x += B3_AABB_MULTIPLIER * displacement.x;
+		fatAABB.upperBound.x += B3_AABB_MULTIPLIER * displacement.x;
 	}
 
-	if (displacement.y < 0.0f)
+	if (displacement.y < scalar(0))
 	{
-		fatAABB.m_lower.y += B3_AABB_MULTIPLIER * displacement.y;
+		fatAABB.lowerBound.y += B3_AABB_MULTIPLIER * displacement.y;
 	}
 	else
 	{
-		fatAABB.m_upper.y += B3_AABB_MULTIPLIER * displacement.y;
+		fatAABB.upperBound.y += B3_AABB_MULTIPLIER * displacement.y;
 	}
 
-	if (displacement.z < 0.0f)
+	if (displacement.z < scalar(0))
 	{
-		fatAABB.m_lower.z += B3_AABB_MULTIPLIER * displacement.z;
+		fatAABB.lowerBound.z += B3_AABB_MULTIPLIER * displacement.z;
 	}
 	else
 	{
-		fatAABB.m_upper.z += B3_AABB_MULTIPLIER * displacement.z;
+		fatAABB.upperBound.z += B3_AABB_MULTIPLIER * displacement.z;
 	}
 
 	// Update proxy with the extented AABB.
-	m_aabbA = fatAABB;
+	m_aabbB = fatAABB;
 
 	// Notify the proxy has moved.
 	return true;
@@ -141,7 +183,7 @@ void b3MeshContact::FindNewPairs()
 {
 	// Reuse the overlapping buffer if the AABB didn't move
 	// significantly.
-	if (m_aabbMoved == false)
+	if (m_aabbBMoved == false)
 	{
 		return;
 	}
@@ -149,21 +191,21 @@ void b3MeshContact::FindNewPairs()
 	// Clear the index cache.
 	m_triangleCount = 0;
 
-	const b3MeshShape* meshShapeB = (b3MeshShape*)GetShapeB();
-	const b3Mesh* meshB = meshShapeB->m_mesh;
-	const b3StaticTree* tree = &meshB->tree;
+	const b3MeshShape* meshShapeA = (b3MeshShape*)GetShapeA();
+	const b3Mesh* meshA = meshShapeA->m_mesh;
+	const b3StaticTree* treeA = &meshA->tree;
 
 	// Query and update the overlapping buffer.
-	tree->QueryAABB(this, m_aabbA);
+	treeA->QueryAABB(this, m_aabbB);
 }
 
 bool b3MeshContact::Report(u32 proxyId)
 {
-	b3MeshShape* meshShapeB = (b3MeshShape*)GetShapeB();
-	const b3Mesh* meshB = meshShapeB->m_mesh;
-	const b3StaticTree* treeB = &meshB->tree;
+	b3MeshShape* meshShapeA = (b3MeshShape*)GetShapeA();
+	const b3Mesh* meshA = meshShapeA->m_mesh;
+	const b3StaticTree* treeA = &meshA->tree;
 
-	u32 triangleIndex = treeB->GetUserData(proxyId);
+	u32 triangleIndex = treeA->GetUserData(proxyId);
 
 	// Add the triangle to the overlapping buffer.
 	if (m_triangleCount == m_triangleCapacity)
@@ -175,13 +217,13 @@ bool b3MeshContact::Report(u32 proxyId)
 		b3Free(oldElements);
 	}
 
-	B3_ASSERT(m_triangleCount  < m_triangleCapacity);
+	B3_ASSERT(m_triangleCount < m_triangleCapacity);
 
 	b3TriangleCache* cache = m_triangles + m_triangleCount;
 	cache->index = triangleIndex;
 	cache->cache.simplexCache.count = 0;
 	cache->cache.featureCache.m_featurePair.state = b3SATCacheType::e_empty;
-	
+
 	++m_triangleCount;
 
 	// Keep looking for triangles.
@@ -193,7 +235,6 @@ bool b3MeshContact::TestOverlap()
 	b3Shape* shapeA = GetShapeA();
 	b3Body* bodyA = shapeA->GetBody();
 	b3Transform xfA = bodyA->GetTransform();
-	u32 indexA = 0;
 
 	b3Shape* shapeB = GetShapeB();
 	b3Body* bodyB = shapeB->GetBody();
@@ -203,8 +244,8 @@ bool b3MeshContact::TestOverlap()
 	for (u32 i = 0; i < m_triangleCount; ++i)
 	{
 		b3TriangleCache* cache = m_triangles + i;
-		u32 indexB = cache->index;
-		bool overlap = b3TestOverlap(xfA, indexA, shapeA, xfB, indexB, shapeB, &cache->cache);
+		u32 indexA = cache->index;
+		bool overlap = b3TestOverlap(xfA, indexA, shapeA, xfB, 0, shapeB, &cache->cache);
 		if (overlap == true)
 		{
 			return true;
@@ -219,12 +260,12 @@ void b3MeshContact::Collide()
 	B3_ASSERT(m_manifoldCount == 0);
 
 	b3Shape* shapeA = GetShapeA();
+	b3MeshShape* meshShapeA = (b3MeshShape*)shapeA;
 	b3Body* bodyA = shapeA->GetBody();
 	b3Transform xfA = bodyA->GetTransform();
 
 	b3Shape* shapeB = GetShapeB();
 	b3Body* bodyB = shapeB->GetBody();
-	b3MeshShape* meshShapeB = (b3MeshShape*)shapeB;
 	b3Transform xfB = bodyB->GetTransform();
 
 	b3World* world = bodyA->GetWorld();
@@ -234,42 +275,65 @@ void b3MeshContact::Collide()
 	b3Manifold* tempManifolds = (b3Manifold*)allocator->Allocate(m_triangleCount * sizeof(b3Manifold));
 	u32 tempCount = 0;
 
-	const b3Mesh* meshB = meshShapeB->m_mesh;
+	const b3Mesh* meshA = meshShapeA->m_mesh;
 	for (u32 i = 0; i < m_triangleCount; ++i)
 	{
 		b3TriangleCache* triangleCache = m_triangles + i;
 		u32 triangleIndex = triangleCache->index;
-		b3Triangle* triangle = meshB->triangles + triangleIndex;
+		b3MeshTriangle* triangle = meshA->triangles + triangleIndex;
+		b3MeshTriangleWings* triangleWings = meshA->triangleWings + triangleIndex;
 
-		b3Vec3 v1 = meshB->vertices[triangle->v1];
-		b3Vec3 v2 = meshB->vertices[triangle->v2];
-		b3Vec3 v3 = meshB->vertices[triangle->v3];
+		u32 u1 = triangleWings->u1;
+		u32 u2 = triangleWings->u2;
+		u32 u3 = triangleWings->u3;
 
-		b3TriangleHull hullB(v1, v2, v3);
+		b3Vec3 A = b3MulCW(meshShapeA->m_scale, meshA->vertices[triangle->v1]);
+		b3Vec3 B = b3MulCW(meshShapeA->m_scale, meshA->vertices[triangle->v2]);
+		b3Vec3 C = b3MulCW(meshShapeA->m_scale, meshA->vertices[triangle->v3]);
 
-		b3HullShape hullShapeB;
-		hullShapeB.m_body = bodyB;
-		hullShapeB.m_hull = &hullB;
-		hullShapeB.m_radius = B3_HULL_RADIUS;
-				
+		b3TriangleShape triangleShapeA;
+		triangleShapeA.m_body = bodyA;
+		triangleShapeA.m_vertex1 = A;
+		triangleShapeA.m_vertex2 = B;
+		triangleShapeA.m_vertex3 = C;
+		triangleShapeA.m_radius = B3_HULL_RADIUS;
+
+		if (u1 != B3_NULL_VERTEX)
+		{
+			triangleShapeA.m_hasE1Vertex = true;
+			triangleShapeA.m_e1Vertex = b3MulCW(meshShapeA->m_scale, meshA->vertices[u1]);
+		}
+
+		if (u2 != B3_NULL_VERTEX)
+		{
+			triangleShapeA.m_hasE2Vertex = true;
+			triangleShapeA.m_e2Vertex = b3MulCW(meshShapeA->m_scale, meshA->vertices[u2]);
+		}
+		
+		if (u3 != B3_NULL_VERTEX)
+		{
+			triangleShapeA.m_hasE3Vertex = true;
+			triangleShapeA.m_e3Vertex = b3MulCW(meshShapeA->m_scale, meshA->vertices[u3]);
+		}
+
 		b3Manifold* manifold = tempManifolds + tempCount;
 		manifold->Initialize();
-		
-		b3CollideShapeAndShape(*manifold, xfA, shapeA, xfB, &hullShapeB, &triangleCache->cache);
-		
+
+		b3CollideShapeAndShape(*manifold, xfA, &triangleShapeA, xfB, shapeB, &triangleCache->cache);
+
 		for (u32 j = 0; j < manifold->pointCount; ++j)
 		{
 			manifold->points[j].key.triangleKey = triangleIndex;
 		}
-		
+
 		++tempCount;
 	}
 
 	// Send contact manifolds for clustering. This is an important optimization.
 	B3_ASSERT(m_manifoldCount == 0);
-	
+
 	b3ClusterSolver clusterSolver;
-	clusterSolver.Run(m_stackManifolds, m_manifoldCount, tempManifolds, tempCount, xfA, shapeA->m_radius, xfB, B3_HULL_RADIUS);
-	
+	clusterSolver.Run(m_stackManifolds, m_manifoldCount, tempManifolds, tempCount, xfA, B3_HULL_RADIUS, xfB, shapeB->m_radius);
+
 	allocator->Free(tempManifolds);
 }

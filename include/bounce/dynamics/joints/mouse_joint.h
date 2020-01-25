@@ -29,15 +29,27 @@ struct b3MouseJointDef : public b3JointDef
 	{
 		type = e_mouseJoint;
 		target.SetZero();
-		maxForce = 0.0f;
+		maxForce = scalar(0);
+		frequencyHz = scalar(6);
+		dampingRatio = scalar(0.8);
 	}
 	
 	// The initial world target point. Initially is assumed 
-	// to be coincident to the body anchor (satisfied constraint).
+	// to be coincident to the body anchor.
 	b3Vec3 target;
 	
-	// Maximum joint reaction force in newtons.
-	float32 maxForce; 
+	// Maximum joint reaction force in N.
+	// Typically this is defined proportional to the body weight 
+	// (k * m * g)
+	scalar maxForce; 
+
+	// The mass-spring-damper frequency in Hz
+	scalar frequencyHz;
+
+	// The damping ration in the interval [0, 1]
+	// 0 = undamped spring
+	// 1 = critical damping
+	scalar dampingRatio;
 };
 
 // A mouse joint is used to make a local point on a body 
@@ -56,6 +68,30 @@ public:
 	
 	// Set the world target point.
 	void SetTarget(const b3Vec3& target);
+	
+	// Get the damper frequency in Hz.
+	scalar GetFrequency() const
+	{
+		return m_frequencyHz;
+	}
+
+	// Set the damper frequency in Hz.
+	void SetFrequency(scalar frequency)
+	{
+		m_frequencyHz = frequency;
+	}
+
+	// Get the damping ratio.
+	scalar GetDampingRatio() const
+	{
+		return m_dampingRatio;
+	}
+
+	// Set the damping ratio.
+	void SetDampingRatio(scalar ratio)
+	{
+		m_dampingRatio = ratio;
+	}
 
 	// Draw this joint.
 	void Draw() const;
@@ -74,17 +110,21 @@ private:
 	// Solver shared
 	b3Vec3 m_worldTargetA;
 	b3Vec3 m_localAnchorB;
-	float32 m_maxForce;
+	scalar m_maxForce;
+	scalar m_frequencyHz;
+	scalar m_dampingRatio;
+
+	b3Mat33 m_gamma;
+	b3Vec3 m_bias;
 
 	// Solver temp
 	u32 m_indexB;
-	float32 m_mB;
+	scalar m_mB;
 	b3Mat33 m_iB;
 	b3Vec3 m_localCenterB;
 	b3Mat33 m_mass;
 	b3Vec3 m_rB;
 	b3Vec3 m_impulse;
-	b3Vec3 m_C;
 };
 
 #endif

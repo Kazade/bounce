@@ -19,23 +19,37 @@
 #ifndef B3_MESH_H
 #define B3_MESH_H
 
+#include <bounce/common/geometry.h>
 #include <bounce/collision/trees/static_tree.h>
 
-struct b3Triangle
+#define B3_NULL_VERTEX B3_MAX_U32
+
+// Mesh triangle.
+struct b3MeshTriangle
 {
-	// Test if this triangle contains a given vertex.
-	bool TestVertex(u32 v) const
-	{
-		return v == v1 || v == v2 || v == v3;
-	}
+	// Write an indexed vertex to this triangle.
+	u32& GetVertex(u32 i) { return (&v1)[i]; }
 
-	// Test if this triangle contains two vertices.
-	bool TestEdge(u32 _v1, u32 _v2) const
-	{
-		return TestVertex(_v1) && TestVertex(_v2);
-	}
+	// Read an indexed vertex from this triangle.
+	u32 GetVertex(u32 i) const { return (&v1)[i]; }
 
+	// The triangle vertices in the mesh.
 	u32 v1, v2, v3;
+};
+
+// Mesh triangle adjacency.
+// This is used for smooth edge collision.
+struct b3MeshTriangleWings
+{
+	// Write an indexed edge wing vertex to this triangle.
+	u32& GetVertex(u32 i) { return (&u1)[i]; }
+
+	// Read an indexed edge wing vertex from this triangle.
+	u32 GetVertex(u32 i) const { return (&u1)[i]; }
+
+	// The wing vertex of each edge in this triangle.
+	// An edge is a boundary if its wing vertex is set to B3_NULL_VERTEX.
+	u32 u1, u2, u3;
 };
 
 struct b3Mesh 
@@ -43,16 +57,34 @@ struct b3Mesh
 	u32 vertexCount;
 	b3Vec3* vertices;
 	u32 triangleCount;
-	b3Triangle* triangles;
+	b3MeshTriangle* triangles;
+	b3MeshTriangleWings* triangleWings;
+
 	b3StaticTree tree;
 
+	b3Mesh();
+	~b3Mesh();
+
+	// Build the static AABB tree. 
+	void BuildTree();
+
+	// Build mesh adjacency.
+	// This won't work properly if there are non-manifold edges.
+	void BuildAdjacency();
+
 	const b3Vec3& GetVertex(u32 index) const;
-	const b3Triangle& GetTriangle(u32 index) const;
+	const b3MeshTriangle* GetTriangle(u32 index) const;
+	const b3MeshTriangleWings* GetTriangleWings(u32 index) const;
+	b3AABB GetTriangleAABB(u32 index) const;
+	
 	u32 GetSize() const;
 
-	b3AABB3 GetTriangleAABB(u32 index) const;
+	void Scale(const b3Vec3& scale);
+	void Rotate(const b3Quat& rotation);
+	void Translate(const b3Vec3& translation);
 
-	void BuildTree();
+	// Scale -> Rotate -> Translate
+	void Transform(const b3Transform& xf, const b3Vec3& scale);
 };
 
 inline const b3Vec3& b3Mesh::GetVertex(u32 index) const
@@ -60,9 +92,24 @@ inline const b3Vec3& b3Mesh::GetVertex(u32 index) const
 	return vertices[index];
 }
 
-inline const b3Triangle& b3Mesh::GetTriangle(u32 index) const
+inline const b3MeshTriangle* b3Mesh::GetTriangle(u32 index) const
 {
-	return triangles[index];
+	return triangles + index;
+}
+
+inline const b3MeshTriangleWings* b3Mesh::GetTriangleWings(u32 index) const
+{
+	return triangleWings + index;
+}
+
+inline b3AABB b3Mesh::GetTriangleAABB(u32 index) const
+{
+	const b3MeshTriangle* triangle = triangles + index;
+
+	b3AABB aabb;
+	aabb.SetTriangle(vertices[triangle->v1], vertices[triangle->v2], vertices[triangle->v3]);
+
+	return aabb;
 }
 
 inline u32 b3Mesh::GetSize() const
@@ -70,32 +117,10 @@ inline u32 b3Mesh::GetSize() const
 	u32 size = 0;
 	size += sizeof(b3Mesh);
 	size += sizeof(b3Vec3) * vertexCount;
-	size += sizeof(b3Triangle) * triangleCount;
+	size += sizeof(b3MeshTriangle) * triangleCount;
+	size += sizeof(b3MeshTriangleWings) * triangleCount;
 	size += tree.GetSize();
 	return size;
-}
-
-inline b3AABB3 b3Mesh::GetTriangleAABB(u32 index) const
-{
-	const b3Triangle* triangle = triangles + index;
-
-	b3AABB3 aabb;
-	aabb.Set(vertices[triangle->v1], vertices[triangle->v2], vertices[triangle->v3]);
-
-	return aabb;
-}
-
-inline void b3Mesh::BuildTree()
-{
-	b3AABB3* aabbs = (b3AABB3*)b3Alloc(triangleCount * sizeof(b3AABB3));
-	for (u32 i = 0; i < triangleCount; ++i)
-	{
-		aabbs[i] = GetTriangleAABB(i);
-	}
-
-	tree.Build(aabbs, triangleCount);
-
-	b3Free(aabbs);
 }
 
 #endif

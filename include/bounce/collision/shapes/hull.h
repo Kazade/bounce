@@ -31,6 +31,7 @@ struct b3HalfEdge
 	u32 origin;
 	u32 twin;
 	u32 face;
+	u32 prev;
 	u32 next;
 };
 
@@ -61,6 +62,15 @@ struct b3Hull
 	void Validate() const;
 	void Validate(const b3Face* face) const;
 	void Validate(const b3HalfEdge* edge) const;
+
+	void Dump() const;
+
+	void Scale(const b3Vec3& scale);
+	void Rotate(const b3Quat& rotation);
+	void Translate(const b3Vec3& translation);
+
+	// Scale -> Rotate -> Translate
+	void Transform(const b3Transform& xf, const b3Vec3& scale);
 };
 
 #include <bounce/collision/shapes/hull.inl>

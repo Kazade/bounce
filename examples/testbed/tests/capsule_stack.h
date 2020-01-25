@@ -24,104 +24,110 @@ class CapsuleStack : public Test
 public:
 	enum
 	{
-		e_rowCount = 1,
-		e_columnCount = 5,
-		e_depthCount = 1
+		e_h = 5,
+		e_w = 1,
+		e_d = 1
 	};
 
 	CapsuleStack()
 	{
 		{
-			b3BodyDef bd;
-			bd.type = b3BodyType::e_staticBody;
-			
-			b3Body* body = m_world.CreateBody(bd);
+			b3BodyDef bdef;
+			b3Body* body = m_world.CreateBody(bdef);
 
 			b3HullShape hs;
 			hs.m_hull = &m_groundHull;
 
-			b3ShapeDef sd;
-			sd.shape = &hs;
-			
-			body->CreateShape(sd);
+			b3ShapeDef sdef;
+			sdef.shape = &hs;
+			sdef.friction = 1.0f;
+
+			body->CreateShape(sdef);
 		}
-		
-		float32 height = 3.0f;
-		float32 radius = 1.0f;
-		float32 separation = 0.0f;
+
+		scalar rx = 1.0f;
+		scalar r = 1.0f;
 
 		b3CapsuleShape capsule;
-		capsule.m_centers[0].Set(0.0f, -0.5f * height, 0.0f);
-		capsule.m_centers[1].Set(0.0f, 0.5f * height, 0.0f);
-		capsule.m_radius = radius;
+		capsule.m_vertex1.Set(-rx, 0.0f, 0.0f);
+		capsule.m_vertex2.Set(rx, 0.0f, 0.0f);
+		capsule.m_radius = r;
 
-		b3ShapeDef sdef;
-		sdef.shape = &capsule;
-		sdef.density = 0.1f;
-		sdef.friction = 0.4f;
+		b3Vec3 e;
+		e.x = rx + r;
+		e.y = r;
+		e.z = r;
 
-		const u32 c = e_rowCount * e_columnCount * e_depthCount;
-		b3Body* bs[c];
-		u32 n = 0;
+		b3Vec3 separation;
+		separation.x = 1.0f;
+		separation.y = 1.0f;
+		separation.z = 1.0f;
 
-		b3AABB3 aabb;
-		aabb.m_lower.Set(0.0f, 0.0f, 0.0f);
-		aabb.m_upper.Set(0.0f, 0.0f, 0.0f);
+		b3Vec3 scale;
+		scale.x = 2.0f * e.x + separation.x;
+		scale.y = 2.0f * e.y + separation.y;
+		scale.z = 2.0f * e.z + separation.z;
 
-		for (u32 i = 0; i < e_rowCount; ++i)
+		b3Vec3 size;
+		size.x = 2.0f * e.x + scale.x * scalar(e_w - 1);
+		size.y = 2.0f * e.y + scale.y * scalar(e_h - 1);
+		size.z = 2.0f * e.z + scale.z * scalar(e_d - 1);
+
+		b3Vec3 translation;
+		translation.x = e.x - 0.5f * size.x;
+		translation.y = e.y - 0.5f * size.y;
+		translation.z = e.z - 0.5f * size.z;
+
+		translation.y += 9.0f;
+
+		for (u32 i = 0; i < e_h; ++i)
 		{
-			for (u32 j = 0; j < e_columnCount; ++j)
+			for (u32 j = 0; j < e_w; ++j)
 			{
-				for (u32 k = 0; k < e_depthCount; ++k)
+				for (u32 k = 0; k < e_d; ++k)
 				{
 					b3BodyDef bdef;
-					bdef.type = b3BodyType::e_dynamicBody;
-					
-					bdef.position.x = (2.0f + separation) * float32(i) * (0.5f * height + radius);
-					bdef.position.y = 2.0f + (2.0f + separation) * float32(j) * radius;
-					bdef.position.z = (2.0f + separation) * float32(k) * radius;
-					
-					bdef.orientation = b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.5f * B3_PI);
-					
+					bdef.type = e_dynamicBody;
+
+					bdef.position.Set(scalar(j), scalar(i), scalar(k));
+
+					bdef.position.x *= scale.x;
+					bdef.position.y *= scale.y;
+					bdef.position.z *= scale.z;
+
+					bdef.position += translation;
+
 					b3Body* body = m_world.CreateBody(bdef);
-					bs[n++] = body;
 
-					b3Shape* shape = body->CreateShape(sdef);
+					b3ShapeDef sdef;
+					sdef.density = 0.1f;
+					sdef.friction = 0.3f;
+					sdef.shape = &capsule;
 
-					b3AABB3 aabb2;
-					shape->ComputeAABB(&aabb2, body->GetTransform());
+					body->CreateShape(sdef);
 
-					aabb = b3Combine(aabb, aabb2);
+					u32 bodyIndex = GetBodyIndex(i, j, k);
+
+					m_bodies[bodyIndex] = body;
 				}
 			}
 		}
+	}
 
-		b3Vec3 center = aabb.Centroid();
-		
-		for (u32 i = 0; i < n; ++i)
-		{
-			b3Body* b = bs[i];
-			const b3Vec3& p = b->GetSweep().worldCenter;
-			const b3Quat& q = b->GetSweep().orientation;
-
-			// centralize
-			b3Vec3 position = p - center;
-			
-			// move up
-			position.y += 5.0f + 0.5f * aabb.Height() + radius;
-
-			// maintain orientation
-			b3Vec3 axis;
-			float32 angle;
-			q.GetAxisAngle(&axis, &angle);
-			b->SetTransform(position, axis, angle);
-		}
+	u32 GetBodyIndex(u32 i, u32 j, u32 k)
+	{
+		B3_ASSERT(i < e_h);
+		B3_ASSERT(j < e_w);
+		B3_ASSERT(k < e_d);
+		return k + e_d * (j + e_w * i);
 	}
 
 	static Test* Create()
 	{
 		return new CapsuleStack();
 	}
+
+	b3Body* m_bodies[e_h * e_w * e_d];
 };
 
 #endif

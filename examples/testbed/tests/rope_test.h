@@ -30,7 +30,7 @@ public:
 	Rope()
 	{
 		b3Vec3 vs[e_count];
-		float32 ms[e_count];
+		scalar ms[e_count];
 		
 		vs[0].Set(0.0f, 0.0f, 0.0f);
 		ms[0] = 0.0f;
@@ -38,7 +38,7 @@ public:
 		for (u32 i = 1; i < e_count; ++i)
 		{
 			ms[i] = 1.0f;
-			vs[i].Set(float32(i), 0.0f, 0.0f);
+			vs[i].Set(scalar(i), 0.0f, 0.0f);
 		}
 
 		b3RopeDef rd;

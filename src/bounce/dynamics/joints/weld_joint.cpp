@@ -20,80 +20,11 @@
 #include <bounce/dynamics/body.h>
 #include <bounce/common/draw.h>
 
-/*
-P = [0 1 0 0]
-	[0 0 1 0]
-	[0 0 0 1]
-
-q = conj(q1) * q2
-
-C = P * q
-C' = P * q'
-
-q' = 
-conj(q1)' * q2 + conj(q1) * q2' =
-conj(q2') * q2 + conj(q1) * q2'
-
-J1 = -0.5 * Q(conj(q1)) * P(q2)
-J2 =  0.5 * Q(conj(q1)) * P(q2)
-
-J1 = P * J1 * P^T
-J2 = P * J2 * P^T
-*/
-
-static B3_FORCE_INLINE b3Mat44 b3Mat44_Quat(const b3Quat& q)
-{
-	b3Mat44 Q;
-	Q.x = b3Vec4(q.w, q.x, q.y, q.z);
-	Q.y = b3Vec4(-q.x, q.w, q.z, -q.y);
-	Q.z = b3Vec4(-q.y, -q.z, q.w, q.x);
-	Q.w = b3Vec4(-q.z, q.y, -q.x, q.w);
-	return Q;
-}
-
-static B3_FORCE_INLINE b3Mat44 b3Mat44_Projection(const b3Quat& q)
-{
-	b3Mat44 P;
-	P.x = b3Vec4(q.w, q.x, q.y, q.z);
-	P.y = b3Vec4(-q.x, q.w, -q.z, q.y);
-	P.z = b3Vec4(-q.y, q.z, q.w, -q.x);
-	P.w = b3Vec4(-q.z, -q.y, q.x, q.w);
-	return P;
-}
-
-static B3_FORCE_INLINE b3Mat34 b3Mat34_Projection()
-{
-	b3Mat34 P;
-	P.x = b3Vec3(0.0f, 0.0f, 0.0f);
-	P.y = b3Vec3(1.0f, 0.0f, 0.0f);
-	P.z = b3Vec3(0.0f, 1.0f, 0.0f);
-	P.w = b3Vec3(0.0f, 0.0f, 1.0f);
-	return P;
-}
-
-static B3_FORCE_INLINE b3Mat34 b3Mat34_Weld_Projection()
-{
-	b3Mat34 P;
-	P.x = b3Vec3(0.0f, 0.0f, 0.0f);
-	P.y = b3Vec3(1.0f, 0.0f, 0.0f);
-	P.z = b3Vec3(0.0f, 1.0f, 0.0f);
-	P.w = b3Vec3(0.0f, 0.0f, 1.0f);
-	return P;
-}
-
-static B3_FORCE_INLINE b3Vec4 b3Vec4_Quat(const b3Quat& q)
-{
-	return b3Vec4(q.w, q.x, q.y, q.z);
-}
-
-static const b3Mat34 b3Mat34_P = b3Mat34_Projection();
-static const b3Mat43 b3Mat43_PT = b3Transpose(b3Mat34_P);
-static const b3Mat34 b3Mat34_Weld_P = b3Mat34_Weld_Projection();
-
 void b3WeldJointDef::Initialize(b3Body* bA, b3Body* bB, const b3Vec3& anchor)
 {
 	bodyA = bA;
 	bodyB = bB;
+	
 	localAnchorA = bodyA->GetLocalPoint(anchor);
 	localAnchorB = bodyB->GetLocalPoint(anchor);
 
@@ -109,8 +40,48 @@ b3WeldJoint::b3WeldJoint(const b3WeldJointDef* def)
 	m_localAnchorA = def->localAnchorA;
 	m_localAnchorB = def->localAnchorB;
 	m_referenceRotation = def->referenceRotation;
-	m_impulse.SetZero();
-	m_axisImpulse.SetZero();
+	m_frequencyHz = def->frequencyHz;
+	m_dampingRatio = def->dampingRatio;
+
+	m_linearImpulse.SetZero();
+	m_angularImpulse.SetZero();
+}
+
+void b3WeldJoint::SetAnchor(const b3Vec3& anchor)
+{
+	const b3Body* bodyA = GetBodyA();
+	const b3Body* bodyB = GetBodyB();
+
+	m_localAnchorA = bodyA->GetLocalPoint(anchor);
+	m_localAnchorB = bodyB->GetLocalPoint(anchor);
+
+	b3Quat qA = bodyA->GetOrientation();
+	b3Quat qB = bodyB->GetOrientation();
+
+	m_referenceRotation = b3Conjugate(qA) * qB;
+}
+
+void b3WeldJoint::SetReferenceRotation(const b3Quat& referenceRotation)
+{
+	m_referenceRotation = referenceRotation;
+}
+
+static B3_FORCE_INLINE void b3ComputeSoftConstraintCoefficients(scalar& gamma, scalar& bias, 
+	scalar frequencyHz, scalar dampingRatio, scalar m, scalar C, scalar h)
+{
+	// Frequency
+	scalar omega = scalar(2) * B3_PI * frequencyHz;
+
+	// Spring stiffness
+	scalar k = omega * omega * m;
+
+	// Damping coefficient
+	scalar d = scalar(2) * dampingRatio * omega * m;
+
+	// Magic formulas
+	gamma = h * (d + h * k);
+	gamma = gamma != scalar(0) ? scalar(1) / gamma : scalar(0);
+	bias = gamma * h * k * C;
 }
 
 void b3WeldJoint::InitializeConstraints(const b3SolverData* data)
@@ -122,10 +93,12 @@ void b3WeldJoint::InitializeConstraints(const b3SolverData* data)
 	m_indexB = m_bodyB->m_islandID;
 	m_mA = m_bodyA->m_invMass;
 	m_mB = m_bodyB->m_invMass;
-	m_iA = m_bodyA->m_worldInvI;
-	m_iB = m_bodyB->m_worldInvI;
+	m_iA = data->invInertias[m_indexA];
+	m_iB = data->invInertias[m_indexB];
 	m_localCenterA = m_bodyA->m_sweep.localCenter;
 	m_localCenterB = m_bodyB->m_sweep.localCenter;
+	m_localInvIA = m_bodyA->m_invI;
+	m_localInvIB = m_bodyB->m_invI;
 
 	b3Quat qA = data->positions[m_indexA].q;
 	b3Quat qB = data->positions[m_indexB].q;
@@ -141,19 +114,47 @@ void b3WeldJoint::InitializeConstraints(const b3SolverData* data)
 		b3Mat33 RBT = b3Transpose(RB);
 		b3Mat33 M = b3Diagonal(m_mA + m_mB);
 
-		m_mass = M + RA * m_iA * RAT + RB * m_iB * RBT;
+		m_linearMass = M + RA * m_iA * RAT + RB * m_iB * RBT;
 	}
 
+	if (m_frequencyHz > scalar(0))
 	{
-		b3Quat dq = b3Conjugate(m_referenceRotation) * b3Conjugate(qA) * qB;
+		b3Mat33 invM = m_iA + m_iB;
+		b3Mat33 m = b3Inverse(invM);
 
-		m_J1 = -0.5f * b3Mat34_Weld_P * b3Mat44_Quat(b3Conjugate(qA)) * b3Mat44_Projection(qB) * b3Mat43_PT;
-		m_J2 =  0.5f * b3Mat34_Weld_P * b3Mat44_Quat(b3Conjugate(qA)) * b3Mat44_Projection(qB) * b3Mat43_PT;
+		b3Quat q1 = b3Conjugate(qA) * qB;
+		b3Quat q2 = m_referenceRotation;
+		
+		scalar sign = b3Sign(b3Dot(q1, q2));
 
-		m_J1T = b3Transpose(m_J1);
-		m_J2T = b3Transpose(m_J2);
+		q1 = sign * q1;
 
-		m_K = m_J1 * m_iA * m_J1T + m_J2 * m_iB * m_J2T;
+		// Apply finite difference
+		b3Quat q = scalar(2) * (q2 - q1) * b3Conjugate(q1);
+
+		// Convert the relative angular error to world's frame
+		// Negate so we solve impulse = -m^1 * (Cdot - bias)
+		b3Vec3 C = b3Mul(qA, -q.v);
+
+		scalar h = data->dt;
+
+		b3Vec3 gamma, bias;
+		
+		b3ComputeSoftConstraintCoefficients(gamma.x, bias.x, m_frequencyHz, m_dampingRatio, m.x.x, C.x, h);
+		b3ComputeSoftConstraintCoefficients(gamma.y, bias.y, m_frequencyHz, m_dampingRatio, m.y.y, C.y, h);
+		b3ComputeSoftConstraintCoefficients(gamma.z, bias.z, m_frequencyHz, m_dampingRatio, m.z.z, C.z, h);
+
+		m_gamma = b3Diagonal(gamma.x, gamma.y, gamma.z);
+		m_bias = bias;
+
+		invM += m_gamma;
+		m_angularMass = b3Inverse(invM);
+	}
+	else
+	{
+		m_gamma.SetZero();
+		m_bias.SetZero();
+		m_angularMass = b3Inverse(m_iA + m_iB);
 	}
 }
 
@@ -165,19 +166,16 @@ void b3WeldJoint::WarmStart(const b3SolverData* data)
 	b3Vec3 wB = data->velocities[m_indexB].w;
 
 	{
-		vA -= m_mA * m_impulse;
-		wA -= m_iA * b3Cross(m_rA, m_impulse);
+		vA -= m_mA * m_linearImpulse;
+		wA -= m_iA * b3Cross(m_rA, m_linearImpulse);
 
-		vB += m_mB * m_impulse;
-		wB += m_iB * b3Cross(m_rB, m_impulse);
+		vB += m_mB * m_linearImpulse;
+		wB += m_iB * b3Cross(m_rB, m_linearImpulse);
 	}
 
 	{
-		b3Vec3 P1 = m_J1T * m_axisImpulse;
-		b3Vec3 P2 = m_J2T * m_axisImpulse;
-
-		wA += m_iA * P1;
-		wB += m_iB * P2;
+		wA -= m_iA * m_angularImpulse;
+		wB += m_iB * m_angularImpulse;
 	}
 
 	data->velocities[m_indexA].v = vA;
@@ -198,9 +196,9 @@ void b3WeldJoint::SolveVelocityConstraints(const b3SolverData* data)
 
 	{
 		b3Vec3 Cdot = vB + b3Cross(wB, m_rB) - vA - b3Cross(wA, m_rA);
-		b3Vec3 impulse = m_mass.Solve(-Cdot);
+		b3Vec3 impulse = m_linearMass.Solve(-Cdot);
 
-		m_impulse += impulse;
+		m_linearImpulse += impulse;
 
 		vA -= m_mA * impulse;
 		wA -= m_iA * b3Cross(m_rA, impulse);
@@ -210,16 +208,12 @@ void b3WeldJoint::SolveVelocityConstraints(const b3SolverData* data)
 	}
 
 	{
-		b3Vec3 Cdot = m_J1 * wA + m_J2 * wB;
-		b3Vec3 impulse = m_K.Solve(-Cdot);
-		
-		m_axisImpulse += impulse;
+		b3Vec3 Cdot = wB - wA;
+		b3Vec3 impulse = -m_angularMass * (Cdot + m_bias + m_gamma * m_angularImpulse);
+		m_angularImpulse += impulse;
 
-		b3Vec3 P1 = m_J1T * impulse;
-		b3Vec3 P2 = m_J2T * impulse;
-
-		wA += m_iA * P1;
-		wB += m_iB * P2;
+		wA -= m_iA * impulse;
+		wB += m_iB * impulse;
 	}
 
 	data->velocities[m_indexA].v = vA;
@@ -234,8 +228,10 @@ bool b3WeldJoint::SolvePositionConstraints(const b3SolverData* data)
 	b3Quat qA = data->positions[m_indexA].q;
 	b3Vec3 xB = data->positions[m_indexB].x;
 	b3Quat qB = data->positions[m_indexB].q;
+	b3Mat33 iA = data->invInertias[m_indexA];
+	b3Mat33 iB = data->invInertias[m_indexB];
 
-	float32 linearError = 0.0f;
+	scalar linearError = scalar(0);
 
 	{
 		// Compute effective mass
@@ -248,55 +244,71 @@ bool b3WeldJoint::SolvePositionConstraints(const b3SolverData* data)
 		b3Mat33 RB = b3Skew(rB);
 		b3Mat33 RBT = b3Transpose(RB);
 
-		b3Mat33 mass = M + RA * m_iA * RAT + RB * m_iB * RBT;
+		b3Mat33 mass = M + RA * iA * RAT + RB * iB * RBT;
 
 		b3Vec3 C = xB + rB - xA - rA;
 		b3Vec3 impulse = mass.Solve(-C);
 
 		xA -= m_mA * impulse;
-		qA -= b3Derivative(qA, b3Mul(m_iA, b3Cross(rA, impulse)));
+		qA -= b3Derivative(qA, b3Mul(iA, b3Cross(rA, impulse)));
 		qA.Normalize();
+		iA = b3RotateToFrame(m_localInvIA, qA);
 
 		xB += m_mB * impulse;
-		qB += b3Derivative(qB, b3Mul(m_iB, b3Cross(rB, impulse)));
+		qB += b3Derivative(qB, b3Mul(iB, b3Cross(rB, impulse)));
 		qB.Normalize();
+		iB = b3RotateToFrame(m_localInvIB, qB);
 
 		linearError += b3Length(C);
 	}
 
-	float32 angularError = 0.0f;
+	scalar angularError = scalar(0);
 
+	if (m_frequencyHz == scalar(0))
 	{	
-		b3Quat dq = b3Conjugate(m_referenceRotation) * b3Conjugate(qA) * qB;
-		b3Vec4 dq_v = b3Vec4_Quat(dq);
+		b3Quat q1 = b3Conjugate(qA) * qB;
+		b3Quat q2 = m_referenceRotation;
 
-		b3Vec3 C = b3Mat34_P * dq_v;
+		if (b3Dot(q1, q2) < scalar(0))
+		{
+			q1 = -q1;
+		}
 
-		angularError += b3Length(C);
+		// d * q1 = q2
+		// d = q2 * q1^-1
+		b3Quat d = q2 * b3Conjugate(q1);
+		
+		// Exact local errors
+		b3Vec3 v;
+		v.x = scalar(2) * atan2(d.v.x, d.s);
+		v.y = scalar(2) * atan2(d.v.y, d.s);
+		v.z = scalar(2) * atan2(d.v.z, d.s);
 
-		b3Mat33 J1 = -0.5f * b3Mat34_Weld_P * b3Mat44_Quat(b3Conjugate(qA)) * b3Mat44_Projection(qB) * b3Mat43_PT;
-		b3Mat33 J2 =  0.5f * b3Mat34_Weld_P * b3Mat44_Quat(b3Conjugate(qA)) * b3Mat44_Projection(qB) * b3Mat43_PT;
+		angularError += b3Length(v);
 
-		b3Mat33 J1T = b3Transpose(J1);
-		b3Mat33 J2T = b3Transpose(J2);
+		// Convert the local angular error to world's frame
+		// Negate the local error.
+		b3Vec3 C = b3Mul(qA, -v);
 
-		b3Mat33 mass = J1 * m_iA * J1T + J2 * m_iB * J2T;
+		b3Mat33 mass = iA + iB;
+		
 		b3Vec3 impulse = mass.Solve(-C);
 
-		b3Vec3 P1 = J1T * impulse;
-		b3Vec3 P2 = J2T * impulse;
-
-		qA += b3Derivative(qA, m_iA * P1);
+		qA -= b3Derivative(qA, iA * impulse);
 		qA.Normalize();
+		iA = b3RotateToFrame(m_localInvIA, qA);
 
-		qB += b3Derivative(qB, m_iB * P2);
+		qB += b3Derivative(qB, iB * impulse);
 		qB.Normalize();
+		iB = b3RotateToFrame(m_localInvIB, qB);
 	}
 
 	data->positions[m_indexA].x = xA;
 	data->positions[m_indexA].q = qA;
 	data->positions[m_indexB].x = xB;
 	data->positions[m_indexB].q = qB;
+	data->invInertias[m_indexA] = iA;
+	data->invInertias[m_indexB] = iB;
 
 	return linearError <= B3_LINEAR_SLOP && angularError <= B3_ANGULAR_SLOP;
 }
@@ -314,10 +326,10 @@ b3Vec3 b3WeldJoint::GetAnchorB() const
 void b3WeldJoint::Draw() const
 {
 	b3Vec3 a = GetAnchorA();
-	b3Draw_draw->DrawPoint(a, 4.0f, b3Color_red);
+	b3Draw_draw->DrawPoint(a, scalar(4), b3Color_red);
 	
 	b3Vec3 b = GetAnchorB();
-	b3Draw_draw->DrawPoint(b, 4.0f, b3Color_green);
+	b3Draw_draw->DrawPoint(b, scalar(4), b3Color_green);
 	
 	b3Draw_draw->DrawSegment(a, b, b3Color_yellow);
 }

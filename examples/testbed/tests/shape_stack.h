@@ -26,7 +26,6 @@ public:
 	{
 		{
 			b3BodyDef bd;
-			bd.orientation.Set(b3Vec3(0.0f, 1.0f, 0.0f), 0.18f * B3_PI);
 			b3Body* ground = m_world.CreateBody(bd);
 
 			b3MeshShape ms;
@@ -39,7 +38,7 @@ public:
 		}
 
 
-		for (float32 y = 2.5f; y < 20.0f; y += 2.5f)
+		for (scalar y = 2.5f; y < 20.0f; y += 2.5f)
 		{
 			b3BodyDef bd;
 			bd.type = b3BodyType::e_dynamicBody;
@@ -59,18 +58,18 @@ public:
 			body->CreateShape(sdef);
 		}
 
-		for (float32 y = 2.5f; y < 20.0f; y += 2.5f)
+		for (scalar y = 2.5f; y < 20.0f; y += 2.5f)
 		{
 			b3BodyDef bd;
 			bd.type = b3BodyType::e_dynamicBody;
 			bd.position.Set(0.0f, y, 0.0f);
-			bd.orientation = b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.5f * B3_PI);
+			bd.orientation = b3QuatRotationZ(0.5f * B3_PI);
 
 			b3Body* body = m_world.CreateBody(bd);
 
 			b3CapsuleShape capsule;
-			capsule.m_centers[0].Set(0.0f, -1.0f, 0.0f);
-			capsule.m_centers[1].Set(0.0f, 1.0f, 0.0f);
+			capsule.m_vertex1.Set(0.0f, -1.0f, 0.0f);
+			capsule.m_vertex2.Set(0.0f, 1.0f, 0.0f);
 			capsule.m_radius = 1.0f;
 
 			b3ShapeDef sd;
@@ -81,7 +80,7 @@ public:
 			body->CreateShape(sd);
 		}
 		
-		for (float32 y = 2.5f; y < 20.0f; y += 2.5f)
+		for (scalar y = 2.5f; y < 20.0f; y += 2.5f)
 		{
 			b3BodyDef bd;
 			bd.type = b3BodyType::e_dynamicBody;

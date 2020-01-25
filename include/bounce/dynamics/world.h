@@ -30,17 +30,35 @@
 struct b3BodyDef;
 
 class b3Body;
+
 class b3QueryListener;
+class b3QueryFilter;
+
 class b3RayCastListener;
+class b3RayCastFilter;
+
+class b3ConvexCastListener;
+class b3ConvexCastFilter;
+
 class b3ContactListener;
 class b3ContactFilter;
 
+// Output of b3World::RayCastSingle
 struct b3RayCastSingleOutput
 {
 	b3Shape* shape; // shape
 	b3Vec3 point; // intersection point on surface
 	b3Vec3 normal; // surface normal of intersection
-	float32 fraction; // time of intersection on segment
+	scalar fraction; // time of intersection on segment
+};
+
+// Output of b3World::ConvexCastSingle
+struct b3ConvexCastSingleOutput
+{
+	b3Shape* shape; // shape
+	b3Vec3 point; // intersection point on surface
+	b3Vec3 normal; // surface normal of intersection
+	scalar fraction; // time of intersection on displacement
 };
 
 // Use a physics world to create/destroy rigid bodies, execute ray cast and volume queries.
@@ -69,6 +87,9 @@ public:
 	// The acceleration has units of m/s^2.
 	void SetGravity(const b3Vec3& gravity);
 
+	// Get the acceleration due to gravity force in m/s^2.
+	const b3Vec3& GetGravity() const;
+
 	// Create a new rigid body.
 	b3Body* CreateBody(const b3BodyDef& def);
 	
@@ -84,28 +105,50 @@ public:
 	// Simulate a physics step.
 	// The function parameters are the ammount of time to simulate, 
 	// and the number of constraint solver iterations.
-	void Step(float32 dt, u32 velocityIterations, u32 positionIterations);
+	void Step(scalar dt, u32 velocityIterations, u32 positionIterations);
 
 	// Perform a ray cast with the world.
 	// The given ray cast listener will be notified when a ray intersects a shape 
 	// in the world. 
+	// You can control on which shapes the ray-cast is performed using
+	// a ray-cast filter.
 	// The ray cast output is the intercepted shape, the intersection 
 	// point in world space, the face normal on the shape associated with the point, 
 	// and the intersection fraction.
-	void RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const;
+	void RayCast(b3RayCastListener* listener, b3RayCastFilter* filter, const b3Vec3& p1, const b3Vec3& p2) const;
 
 	// Perform a ray cast with the world.
 	// If the ray doesn't intersect with a shape in the world then return false.
+	// You can control on which shapes the ray-cast is performed using
+	// a ray-cast filter.
 	// The ray cast output is the intercepted shape, the intersection 
 	// point in world space, the face normal on the shape associated with the point, 
 	// and the intersection fraction.
-	bool RayCastSingle(b3RayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const;
+	bool RayCastSingle(b3RayCastSingleOutput* output, b3RayCastFilter* filter, const b3Vec3& p1, const b3Vec3& p2) const;
+
+	// Perform a convex cast with the world. This only works for given convex shapes.
+	// You must supply a listener, filter, the shape and the displacement of the shape.
+	// The shape must belong to this world.
+	// The given convex cast listener will be notified when a convex intersects a shape 
+	// in the world. 
+	// You can control on which shapes the convex-cast is performed using
+	// a filter.
+	void ConvexCast(b3ConvexCastListener* listener, b3ConvexCastFilter* filter, const b3Shape* shape, const b3Vec3& displacement) const;
+
+	// Perform a convex cast with the world. This only works for given convex shapes.
+	// You must supply a filter, the shape and the displacement of the shape.
+	// The shape must belong to this world.
+	// If the convex doesn't intersect with any shape in the world then return false.
+	// You can control on which shapes the convex-cast is performed using
+	// the given filter.
+	bool ConvexCastSingle(b3ConvexCastSingleOutput* output, b3ConvexCastFilter* filter, const b3Shape* shape, const b3Vec3& displacement) const;
 
 	// Perform a AABB query with the world.
 	// The query listener will be notified when two shape AABBs are overlapping.
+	// You can control which shapes are reported using a query filter.
 	// If the listener returns false then the query is stopped immediately.
 	// Otherwise, it continues searching for new overlapping shape AABBs.
-	void QueryAABB(b3QueryListener* listener, const b3AABB3& aabb) const;
+	void QueryAABB(b3QueryListener* listener, b3QueryFilter* filter, const b3AABB& aabb) const;
 
 	// Get the list of bodies in this world.
 	const b3List2<b3Body>& GetBodyList() const;
@@ -144,7 +187,7 @@ private:
 	friend class b3MeshContact;
 	friend class b3Joint;
 
-	void Solve(float32 dt, u32 velocityIterations, u32 positionIterations);
+	void Solve(scalar dt, u32 velocityIterations, u32 positionIterations);
 
 	bool m_sleeping;
 	bool m_warmStarting;
@@ -179,6 +222,11 @@ inline void b3World::SetContactFilter(b3ContactFilter* filter)
 inline void b3World::SetGravity(const b3Vec3& gravity)
 {
 	m_gravity = gravity;
+}
+
+inline const b3Vec3& b3World::GetGravity() const
+{
+	return m_gravity;
 }
 
 inline void b3World::SetWarmStart(bool flag)

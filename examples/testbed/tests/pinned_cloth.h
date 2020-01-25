@@ -22,6 +22,12 @@
 class PinnedCloth : public Test
 {
 public:
+	enum
+	{
+		e_w = 10,
+		e_h = 10
+	};
+
 	PinnedCloth()
 	{
 		// Create cloth
@@ -33,30 +39,24 @@ public:
 		m_cloth = new b3Cloth(def);
 
 		m_cloth->SetGravity(b3Vec3(0.0f, -9.8f, 0.0f));
-		m_cloth->SetWorld(&m_world);
 
 		// Freeze some particles
-		b3AABB3 aabb1;
-		aabb1.m_lower.Set(-5.0f, -1.0f, -6.0f);
-		aabb1.m_upper.Set(5.0f, 1.0f, -4.0f);
-
-		b3AABB3 aabb2;
-		aabb2.m_lower.Set(-5.0f, -1.0f, 4.0f);
-		aabb2.m_upper.Set(5.0f, 1.0f, 6.0f);
-
-		for (b3Particle* p = m_cloth->GetParticleList().m_head; p; p = p->GetNext())
+		for (u32 j = 0; j < e_w + 1; ++j)
 		{
-			if (aabb1.Contains(p->GetPosition()))
-			{
-				p->SetType(e_staticParticle);
-			}
+			u32 v = m_clothMesh.GetVertex(0, j);
 
-			if (aabb2.Contains(p->GetPosition()))
-			{
-				p->SetType(e_staticParticle);
-			}
+			b3ClothParticle* p = m_cloth->GetParticle(v);
+			p->SetType(e_staticClothParticle);
 		}
-		
+
+		for (u32 j = 0; j < e_w + 1; ++j)
+		{
+			u32 v = m_clothMesh.GetVertex(e_h, j);
+
+			b3ClothParticle* p = m_cloth->GetParticle(v);
+			p->SetType(e_staticClothParticle);
+		}
+
 		m_clothDragger = new b3ClothDragger(&m_ray, m_cloth);
 	}
 
@@ -79,9 +79,9 @@ public:
 			b3Vec3 pA = m_clothDragger->GetPointA();
 			b3Vec3 pB = m_clothDragger->GetPointB();
 
-			g_draw->DrawPoint(pA, 2.0f, b3Color_green);
+			g_draw->DrawPoint(pA, 4.0f, b3Color_green);
 
-			g_draw->DrawPoint(pB, 2.0f, b3Color_green);
+			g_draw->DrawPoint(pB, 4.0f, b3Color_green);
 
 			g_draw->DrawSegment(pA, pB, b3Color_white);
 		}
@@ -89,7 +89,7 @@ public:
 		extern u32 b3_clothSolverIterations;
 		g_draw->DrawString(b3Color_white, "Iterations = %d", b3_clothSolverIterations);
 
-		float32 E = m_cloth->GetEnergy();
+		scalar E = m_cloth->GetEnergy();
 		g_draw->DrawString(b3Color_white, "E = %f", E);
 	}
 
@@ -128,7 +128,7 @@ public:
 		return new PinnedCloth();
 	}
 
-	b3GridClothMesh<10, 10> m_clothMesh;
+	b3GridClothMesh<e_w, e_h> m_clothMesh;
 	b3Cloth* m_cloth;
 	b3ClothDragger* m_clothDragger;
 };

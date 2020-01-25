@@ -22,7 +22,7 @@
 b3SphereShape::b3SphereShape() 
 {
 	m_type = e_sphereShape;
-	m_radius = 0.0f;
+	m_radius = scalar(0);
 	m_center.SetZero();
 }
 
@@ -36,56 +36,59 @@ void b3SphereShape::Swap(const b3SphereShape& other)
 	m_radius = other.m_radius;
 }
 
-void b3SphereShape::ComputeMass(b3MassData* massData, float32 density) const 
+void b3SphereShape::ComputeMass(b3MassData* massData, scalar density) const 
 {
-	float32 volume = (4.0f / 3.0f) * B3_PI * m_radius * m_radius * m_radius;
-	float32 mass = density * volume;
+	scalar volume = (scalar(4) / scalar(3)) * B3_PI * m_radius * m_radius * m_radius;
+	scalar mass = density * volume;
 	
 	// Inertia about the local shape center of mass 
 	// Then shift to the local body origin
-	float32 I = mass * (0.4f * m_radius * m_radius + b3Dot(m_center, m_center));
+	scalar I = mass * (scalar(0.4) * m_radius * m_radius + b3Dot(m_center, m_center));
 	
 	massData->center = m_center;
 	massData->mass = mass;
 	massData->I = b3Diagonal(I);
 }
 
-void b3SphereShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const 
+void b3SphereShape::ComputeAABB(b3AABB* aabb, const b3Transform& xf) const 
 {
 	b3Vec3 center = b3Mul(xf, m_center);
 	b3Vec3 r(m_radius, m_radius, m_radius);
-	aabb->m_lower = center - r;
-	aabb->m_upper = center + r;
+	aabb->lowerBound = center - r;
+	aabb->upperBound = center + r;
 }
 
 bool b3SphereShape::TestSphere(const b3Sphere& sphere, const b3Transform& xf) const
 {
 	b3Vec3 center = b3Mul(xf, m_center);
-	float32 radius = m_radius + sphere.radius;
-	float32 rr = radius * radius;
+	scalar radius = m_radius + sphere.radius;
+	scalar rr = radius * radius;
 	b3Vec3 d = sphere.vertex - center;
-	float32 dd = b3Dot(d, d);
+	scalar dd = b3Dot(d, d);
 	return dd <= rr;
 }
 
 bool b3SphereShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere, const b3Transform& xf) const
 {
 	b3Vec3 center = b3Mul(xf, m_center);
-	float32 radius = m_radius + sphere.radius;
-	float32 rr = radius * radius;
+	scalar radius = m_radius + sphere.radius;
+	scalar rr = radius * radius;
 	b3Vec3 d = sphere.vertex - center;
-	float32 dd = b3Dot(d, d);
+	scalar dd = b3Dot(d, d);
 	
 	if (dd <= rr)
 	{
-		float32 d_len = b3Sqrt(dd);
+		scalar distance = b3Sqrt(dd);
 
 		output->point = center;
-		output->separation = d_len - radius;
-		output->normal.Set(0.0f, 1.0, 0.0f);
-		if (d_len > B3_EPSILON)
+		
+		if (distance > B3_EPSILON)
 		{
-			output->normal = d / d_len;
+			output->normal = d / distance;
+		}
+		else
+		{
+			output->normal.Set(0, 1, 0);
 		}
 
 		return true;
@@ -104,7 +107,7 @@ bool b3SphereShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input
 	// m = p1 - c
 	// d = p2 - p1
 	b3Vec3 d = input.p2 - input.p1;
-	float32 a = b3Dot(d, d);
+	scalar a = b3Dot(d, d);
 	
 	// Check for short segment.
 	if (a < B3_EPSILON * B3_EPSILON)
@@ -119,14 +122,14 @@ bool b3SphereShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input
 	// c = dot(m, m) - r^2
 	// t = -b +/- sqrt(b * b - a * c) / a
 	b3Vec3 m = input.p1 - b3Mul(xf, m_center);
-	float32 b = b3Dot(m, d);
-	float32 c = b3Dot(m, m) - m_radius * m_radius;
+	scalar b = b3Dot(m, d);
+	scalar c = b3Dot(m, m) - m_radius * m_radius;
 	
-	float32 disc = b * b - a * c;
+	scalar disc = b * b - a * c;
 
 	// Check for negative discriminant.
 	// Does the ray misses the sphere completely?
-	if (disc < 0.0f)
+	if (disc < scalar(0))
 	{
 		return false;
 	}
@@ -134,10 +137,10 @@ bool b3SphereShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input
 	// Find the minimum time of impact of the line with the sphere.
 	// t_min = -b - sqrt(disc)
 	// t_max = -b + sqrt(disc) 
-	float32 t = -b - b3Sqrt(disc);
+	scalar t = -b - b3Sqrt(disc);
 	
 	// Is the intersection point on the segment?
-	if (t > 0.0f && t <= input.maxFraction * a) 
+	if (t > scalar(0) && t <= input.maxFraction * a) 
 	{
 		// Finish solution.
 		t /= a;

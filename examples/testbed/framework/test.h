@@ -24,15 +24,16 @@
 
 #include <testbed/framework/body_dragger.h>
 #include <testbed/framework/cloth_dragger.h>
+#include <testbed/framework/softbody_dragger.h>
 
 #include <testbed/framework/draw.h>
 #include <testbed/framework/view_model.h>
 
-inline float32 RandomFloat(float32 a, float32 b)
+inline float RandomFloat(scalar a, scalar b)
 {
-	float32 x = float32(rand()) / float32(RAND_MAX);
-	float32 diff = b - a;
-	float32 r = x * diff;
+	float x = float(rand()) / float(RAND_MAX);
+	float diff = b - a;
+	float r = x * diff;
 	return a + r;
 }
 

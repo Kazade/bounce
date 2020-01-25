@@ -26,8 +26,8 @@
 class b3ConvexContact : public b3Contact 
 {
 public:
-private:
-	friend class b3ContactManager;
+	static b3Contact* Create(b3Shape* shapeA, b3Shape* shapeB, b3BlockPool* allocator);
+	static void Destroy(b3Contact* contact, b3BlockPool* allocator);
 
 	b3ConvexContact(b3Shape* shapeA, b3Shape* shapeB);
 	~b3ConvexContact() { }

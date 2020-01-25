@@ -39,30 +39,10 @@ public:
 			{
 				static b3BoxHull box;
 
-				b3Transform m;
-				m.position.Set(0.0f, -45.0f, 0.0f);
-				m.rotation = b3Diagonal(50.0f, 1.0f, 200.0f);
-
-				box.SetTransform(m);
-
-				b3HullShape hs;
-				hs.m_hull = &box;
-
-				b3ShapeDef sd;
-				sd.density = 5.0f;
-				sd.shape = &hs;
-
-				rotor->CreateShape(sd);
-			}
-
-			{
-				static b3BoxHull box;
-
-				b3Transform m;
-				m.position.Set(0.0f, 50.0f, 0.0f);
-				m.rotation = b3Diagonal(50.0f, 1.0f, 200.0f);
-
-				box.SetTransform(m);
+				box.SetExtents(50.0f, 1.0f, 200.0f);
+				
+				b3Vec3 translation(0.0f, -45.0f, 0.0f);
+				box.Translate(translation);
 
 				b3HullShape hs;
 				hs.m_hull = &box;
@@ -77,30 +57,10 @@ public:
 			{
 				static b3BoxHull box;
 
-				b3Transform m;
-				m.position.Set(0.0f, 5.0f, -200.0f);
-				m.rotation = b3Diagonal(50.0f, 50.0f, 1.0f);
-
-				box.SetTransform(m);
-
-				b3HullShape hs;
-				hs.m_hull = &box;
-
-				b3ShapeDef sd;
-				sd.density = 5.0f;
-				sd.shape = &hs;
-
-				rotor->CreateShape(sd);
-			}
-
-			{
-				static b3BoxHull box;
-
-				b3Transform m;
-				m.position.Set(0.0f, 5.0f, 200.0f);
-				m.rotation = b3Diagonal(50.0f, 50.0f, 1.0f);
-
-				box.SetTransform(m);
+				box.SetExtents(50.0f, 1.0f, 200.0f);
+				
+				b3Vec3 translation(0.0f, 50.0f, 0.0f);
+				box.Translate(translation);
 
 				b3HullShape hs;
 				hs.m_hull = &box;
@@ -115,11 +75,10 @@ public:
 			{
 				static b3BoxHull box;
 
-				b3Transform m;
-				m.position.Set(-50.0f, 5.0f, 0.0f);
-				m.rotation = b3Diagonal(1.0f, 50.0f, 200.0f);
-
-				box.SetTransform(m);
+				box.SetExtents(50.0f, 50.0f, 1.0f);
+				
+				b3Vec3 translation(0.0f, 5.0f, -200.0f);
+				box.Translate(translation);
 
 				b3HullShape hs;
 				hs.m_hull = &box;
@@ -134,11 +93,47 @@ public:
 			{
 				static b3BoxHull box;
 
-				b3Transform m;
-				m.position.Set(50.0f, 5.0f, 0.0f);
-				m.rotation = b3Diagonal(1.0f, 50.0f, 200.0f);
+				box.SetExtents(50.0f, 50.0f, 1.0f);
+				
+				b3Vec3 translation(0.0f, 5.0f, 200.0f);
+				box.Translate(translation);
 
-				box.SetTransform(m);
+				b3HullShape hs;
+				hs.m_hull = &box;
+
+				b3ShapeDef sd;
+				sd.density = 5.0f;
+				sd.shape = &hs;
+
+				rotor->CreateShape(sd);
+			}
+
+			{
+				static b3BoxHull box;
+
+				box.SetExtents(1.0f, 50.0f, 200.0f);
+				
+				b3Vec3 translation(-50.0f, 5.0f, 0.0f);
+				box.Translate(translation);
+
+				b3HullShape hs;
+				hs.m_hull = &box;
+
+				b3ShapeDef sd;
+				sd.density = 5.0f;
+				sd.shape = &hs;
+
+				rotor->CreateShape(sd);
+			}
+
+			{
+				static b3BoxHull box;
+
+				box.SetExtents(1.0f, 50.0f, 200.0f);
+				
+				b3Vec3 translation(50.0f, 5.0f, 0.0f);
+
+				box.Translate(translation);
 
 				b3HullShape hs;
 				hs.m_hull = &box;
@@ -161,8 +156,8 @@ public:
 			}
 		}
 
-		m_coneHull.SetAsCone();
-		m_cylinderHull.SetAsCylinder();
+		m_coneHull.SetExtents(1.0f, 1.0f);
+		m_cylinderHull.SetExtents(1.0f, 1.0f);
 
 		m_count = 0;
 	}
@@ -204,8 +199,8 @@ public:
 				b3Body* body = m_world.CreateBody(bdef);
 
 				b3CapsuleShape capsule;
-				capsule.m_centers[0].Set(0.0f, 0.0f, -1.0f);
-				capsule.m_centers[1].Set(0.0f, 0.0f, 1.0f);
+				capsule.m_vertex1.Set(0.0f, 0.0f, -1.0f);
+				capsule.m_vertex2.Set(0.0f, 0.0f, 1.0f);
 				capsule.m_radius = 1.0f;
 
 				b3ShapeDef sdef;
@@ -279,8 +274,8 @@ public:
 	}
 
 	u32 m_count;
-	b3QHull m_coneHull;
-	b3QHull m_cylinderHull;
+	b3ConeHull m_coneHull;
+	b3CylinderHull m_cylinderHull;
 };
 
 #endif

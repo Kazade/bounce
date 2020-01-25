@@ -22,6 +22,7 @@
 #include <bounce/common/math/mat33.h>
 
 class b3StackAllocator;
+class b3ContactListener;
 class b3Contact;
 class b3Joint;
 class b3Body;
@@ -29,10 +30,12 @@ struct b3Velocity;
 struct b3Position;
 struct b3Profile;
 
+struct b3ContactVelocityConstraint;
+
 class b3Island 
 {
 public :
-	b3Island(b3StackAllocator* stack, u32 bodyCapacity, u32 contactCapacity, u32 jointCapacity);
+	b3Island(b3StackAllocator* stack, u32 bodyCapacity, u32 contactCapacity, u32 jointCapacity, b3ContactListener* listener);
 	~b3Island();
 
 	void Clear();
@@ -41,7 +44,7 @@ public :
 	void Add(b3Contact* contact);
 	void Add(b3Joint* joint);
 	
-	void Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, u32 positionIterations, u32 flags);
+	void Solve(const b3Vec3& gravity, scalar dt, u32 velocityIterations, u32 positionIterations, u32 flags);
 private :
 	enum b3IslandFlags
 	{
@@ -51,8 +54,11 @@ private :
 
 	friend class b3World;
 
+	void Report();
+
 	b3StackAllocator* m_allocator;
-	
+	b3ContactListener* m_listener;
+
 	b3Body** m_bodies;
 	u32 m_bodyCapacity;
 	u32 m_bodyCount;

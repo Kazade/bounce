@@ -57,7 +57,7 @@ struct b3GarmentMesh
 	b3GarmentMesh();
 	~b3GarmentMesh();
 
-	void Set(b3Garment* garment, float32 desiredArea);
+	void Set(b3Garment* garment, scalar desiredArea);
 };
 
 #endif

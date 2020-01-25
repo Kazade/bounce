@@ -19,14 +19,18 @@
 #include <testbed/framework/view.h>
 #include <testbed/framework/view_model.h>
 #include <testbed/framework/test.h>
-#include <testbed/framework/profiler.h>
-#include <testbed/framework/profiler_st.h>
+#include <bounce/common/profiler.h>
+
+extern b3Profiler* g_profiler;
 
 #include <imgui/imgui.h>
+
+#include <imgui/imgui_impl_glfw.h>
+
 #if defined (U_OPENGL_2)
-#include <imgui/imgui_impl_glfw_gl2.h>
+#include <imgui/imgui_impl_opengl2.h>
 #elif defined (U_OPENGL_4)
-#include <imgui/imgui_impl_glfw_gl3.h>
+#include <imgui/imgui_impl_opengl3.h>
 #else
 #endif
 
@@ -39,16 +43,15 @@ static inline bool GetTestName(void* userData, int idx, const char** name)
 	return true;
 }
 
-static inline bool ImGui_GLFW_GL_Init(GLFWwindow* w, bool install_callbacks)
+static inline bool ImGui_OpenGL_Init()
 {
-
 #if defined(U_OPENGL_2)
 
-	return ImGui_ImplGlfwGL2_Init(w, install_callbacks);
+	return ImGui_ImplOpenGL2_Init();
 
 #elif defined(U_OPENGL_4)
 
-	return ImGui_ImplGlfwGL3_Init(w, install_callbacks);
+	return ImGui_ImplOpenGL3_Init();
 
 #else
 
@@ -56,16 +59,16 @@ static inline bool ImGui_GLFW_GL_Init(GLFWwindow* w, bool install_callbacks)
 	return false;
 }
 
-static inline void ImGui_GLFW_GL_Shutdown()
+static inline void ImGui_OpenGL_Shutdown()
 {
 
 #if defined(U_OPENGL_2)
 
-	ImGui_ImplGlfwGL2_Shutdown();
+	ImGui_ImplOpenGL2_Shutdown();
 
 #elif defined(U_OPENGL_4)
 
-	ImGui_ImplGlfwGL3_Shutdown();
+	ImGui_ImplOpenGL3_Shutdown();
 
 #else
 
@@ -75,16 +78,16 @@ static inline void ImGui_GLFW_GL_Shutdown()
 
 }
 
-static inline void ImGui_GLFW_GL_NewFrame()
+static inline void ImGui_OpenGL_NewFrame()
 {
 
 #if defined(U_OPENGL_2)
 
-	ImGui_ImplGlfwGL2_NewFrame();
+	ImGui_ImplOpenGL2_NewFrame();
 
 #elif defined(U_OPENGL_4)
 
-	ImGui_ImplGlfwGL3_NewFrame();
+	ImGui_ImplOpenGL3_NewFrame();
 
 #else
 
@@ -94,16 +97,16 @@ static inline void ImGui_GLFW_GL_NewFrame()
 
 }
 
-static inline void ImGui_GLFW_GL_RenderDrawData(ImDrawData* draw_data)
+static inline void ImGui_OpenGL_RenderDrawData(ImDrawData* draw_data)
 {
 
 #if defined(U_OPENGL_2)
 
-	ImGui_ImplGlfwGL2_RenderDrawData(draw_data);
+	ImGui_ImplOpenGL2_RenderDrawData(draw_data);
 
 #elif defined(U_OPENGL_4)
 
-	ImGui_ImplGlfwGL3_RenderDrawData(draw_data);
+	ImGui_ImplOpenGL3_RenderDrawData(draw_data);
 
 #else
 
@@ -124,9 +127,9 @@ View::View(GLFWwindow* window)
 	ImGuiIO& io = ImGui::GetIO();
 
 	io.IniFilename = NULL;
-	io.Fonts[0].AddFontDefault();
 
-	ImGui_GLFW_GL_Init(m_window, false);
+	ImGui_ImplGlfw_InitForOpenGL(m_window, false);
+	ImGui_OpenGL_Init();
 
 	ImGui::StyleColorsDark();
 
@@ -136,7 +139,8 @@ View::View(GLFWwindow* window)
 View::~View()
 {
 	// Destroy UI
-	ImGui_GLFW_GL_Shutdown();
+	ImGui_OpenGL_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
 
 	ImGui::DestroyContext();
 }
@@ -145,7 +149,7 @@ b3Vec2 View::GetCursorPosition() const
 {
 	double x, y;
 	glfwGetCursorPos(m_window, &x, &y);
-	return b3Vec2(float32(x), float32(y));
+	return b3Vec2(scalar(x), scalar(y));
 }
 
 void View::Event_SetWindowSize(int w, int h)
@@ -186,7 +190,9 @@ void View::Event_Scroll(float dx, float dy)
 
 void View::BeginInterface()
 {
-	ImGui_GLFW_GL_NewFrame();
+	ImGui_OpenGL_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 }
@@ -219,9 +225,8 @@ void View::Interface()
 
 		if (ImGui::BeginMenu("View"))
 		{
-			ImGui::MenuItem("Profile Tree", "", &settings.drawProfileTree);
-			ImGui::MenuItem("Profile Tree Statistics", "", &settings.drawProfileTreeStats);
 			ImGui::MenuItem("Statistics", "", &settings.drawStats);
+			ImGui::MenuItem("Profiler", "", &settings.drawProfiler);
 
 			ImGui::Separator();
 
@@ -403,54 +408,7 @@ void View::Interface()
 	ImGui::End();
 }
 
-static void TreeNode(ProfilerNode* node, u32& index)
-{
-	ImGui::PushID(index);
-	++index;
-
-	if (ImGui::TreeNode(node->name))
-	{
-		float64 elapsedTime = node->t1 - node->t0;
-		ImGui::Text("%.4f [ms]", elapsedTime);
-
-		for (u32 i = 0; i < node->children.Count(); ++i)
-		{
-			TreeNode(node->children[i], index);
-		}
-		ImGui::TreePop();
-	}	
-	
-	ImGui::PopID();
-}
-
-void View::InterfaceProfileTree()
-{
-	ImGui::Begin("Overlay", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
-	ImVec2 ws = ImGui::GetWindowSize();
-	ImVec2 wp = ImGui::GetWindowPos();
-	ImGui::End();
-
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-	
-	ImGui::SetNextWindowBgAlpha(0.0f);
-	ImGui::SetNextWindowPos(ImVec2(0.0f, wp.y + ws.y));
-	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width - 250.0f, 0.0f));
-
-	ImGui::Begin("Profile Tree", NULL, ImGuiWindowFlags_AlwaysAutoResize);
-
-	ProfilerNode* root = g_profiler->GetRoot();
-	if (root)
-	{
-		u32 index = 0;
-		TreeNode(root, index);
-	}
-	
-	ImGui::End();
-	
-	ImGui::PopStyleVar();
-}
-
-static void TreeNode(ProfilerStNode* node, u32& index)
+static void TreeNode(b3ProfilerNode* node, u32& index)
 {
 	ImGui::PushID(index);
 	++index;
@@ -459,9 +417,11 @@ static void TreeNode(ProfilerStNode* node, u32& index)
 	{
 		ImGui::Text("%.4f (min = %.4f) (max = %.4f) (calls = %d) [ms]", node->elapsed, node->stat->minElapsed, node->stat->maxElapsed, node->callCount);
 
-		for (u32 i = 0; i < node->children.Count(); ++i)
+		b3ProfilerNode* n = node->head;
+		while(n)
 		{
-			TreeNode(node->children[i], index);
+			TreeNode(n, index);
+			n = n->next;
 		}
 		ImGui::TreePop();
 	}
@@ -469,7 +429,7 @@ static void TreeNode(ProfilerStNode* node, u32& index)
 	ImGui::PopID();
 }
 
-void View::InterfaceProfileTreeStats()
+void View::InterfaceProfiler()
 {
 	ImGui::Begin("Overlay", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollbar);
 	ImVec2 wp = ImGui::GetWindowPos();
@@ -478,25 +438,15 @@ void View::InterfaceProfileTreeStats()
 
 	wp.y = wp.y + ws.y;
 
-	if (g_settings->drawProfileTree)
-	{
-		ImGui::Begin("Profile Tree", NULL, ImGuiWindowFlags_AlwaysAutoResize);
-		ImVec2 ptwp = ImGui::GetWindowPos();
-		ImVec2 ptws = ImGui::GetWindowSize();
-		ImGui::End();
-
-		wp.y = ptwp.y + ptws.y;
-	}
-
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
 	ImGui::SetNextWindowBgAlpha(0.0f);
 	ImGui::SetNextWindowPos(ImVec2(0.0f, wp.y));
 	ImGui::SetNextWindowSize(ImVec2(g_camera->m_width - 250.0f, 0.0f));
 
-	ImGui::Begin("Profile Tree Statistics", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+	ImGui::Begin("Profiler", NULL, ImGuiWindowFlags_AlwaysAutoResize);
 
-	ProfilerStNode* root = g_profilerSt->GetRoot();
+	b3ProfilerNode* root = g_profiler->GetRoot();
 	if (root)
 	{
 		u32 index = 0;
@@ -514,5 +464,5 @@ void View::EndInterface()
 
 	ImGui::Render();
 
-	ImGui_GLFW_GL_RenderDrawData(ImGui::GetDrawData());
+	ImGui_OpenGL_RenderDrawData(ImGui::GetDrawData());
 }

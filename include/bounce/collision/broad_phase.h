@@ -41,7 +41,7 @@ public:
 	~b3BroadPhase();
 
 	// Create a proxy and return a index to it.
-	u32 CreateProxy(const b3AABB3& aabb, void* userData);
+	u32 CreateProxy(const b3AABB& aabb, void* userData);
 	
 	// Destroy a given proxy and remove it from the broadphase.
 	void DestroyProxy(u32 proxyId);
@@ -49,13 +49,13 @@ public:
 	// Update an existing proxy AABB with a given AABB and a displacement.
 	// displacement = dt * velocity
 	// Return true if the proxy has moved.
-	bool MoveProxy(u32 proxyId, const b3AABB3& aabb, const b3Vec3& displacement);
+	bool MoveProxy(u32 proxyId, const b3AABB& aabb, const b3Vec3& displacement);
 
 	// Force move the proxy
 	void TouchProxy(u32 proxyId);
 
 	// Get the AABB of a given proxy.
-	const b3AABB3& GetAABB(u32 proxyId) const;
+	const b3AABB& GetAABB(u32 proxyId) const;
 
 	// Get the user data attached to a proxy.
 	void* GetUserData(u32 proxyId) const;
@@ -68,7 +68,7 @@ public:
 	
 	// Notify the client callback the AABBs that are overlapping with the passed AABB.
 	template<class T>
-	void QueryAABB(T* callback, const b3AABB3& aabb) const;
+	void QueryAABB(T* callback, const b3AABB& aabb) const;
 	
 	// Notify the client callback the AABBs that are overlapping the 
 	// passed ray.
@@ -114,7 +114,7 @@ private :
 	u32 m_pairCount;
 };
 
-inline const b3AABB3& b3BroadPhase::GetAABB(u32 proxyId) const 
+inline const b3AABB& b3BroadPhase::GetAABB(u32 proxyId) const 
 {
 	return m_tree.GetAABB(proxyId);
 }
@@ -130,7 +130,7 @@ inline u32 b3BroadPhase::GetProxyCount() const
 }
 
 template<class T>
-inline void b3BroadPhase::QueryAABB(T* callback, const b3AABB3& aabb) const 
+inline void b3BroadPhase::QueryAABB(T* callback, const b3AABB& aabb) const 
 {
 	return m_tree.QueryAABB(callback, aabb);
 }
@@ -174,7 +174,7 @@ inline void b3BroadPhase::FindPairs(T* callback)
 			continue;
 		}
 
-		const b3AABB3& aabb = m_tree.GetAABB(m_queryProxyId);
+		const b3AABB& aabb = m_tree.GetAABB(m_queryProxyId);
 		m_tree.QueryAABB(this, aabb);
 	}
 

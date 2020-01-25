@@ -50,17 +50,17 @@ Camera::Camera()
 
 b3Mat44 Camera::BuildProjectionMatrix() const
 {
-	float32 w = m_width, h = m_height;
+	scalar w = m_width, h = m_height;
 	
-	float32 t = tan(0.5f * m_fovy);
-	float32 ratio = w / h;
-	float32 sx = 1.0f / (ratio * t);
-	float32 sy = 1.0f / t;
+	scalar t = tan(0.5f * m_fovy);
+	scalar ratio = w / h;
+	scalar sx = 1.0f / (ratio * t);
+	scalar sy = 1.0f / t;
 	
-	float32 inv_range = 1.0f / (m_zNear - m_zFar);
-	float32 sz = inv_range * (m_zNear + m_zFar);
+	scalar inv_range = 1.0f / (m_zNear - m_zFar);
+	scalar sz = inv_range * (m_zNear + m_zFar);
 	
-	float32 tz = inv_range * m_zNear * m_zFar;
+	scalar tz = inv_range * m_zNear * m_zFar;
 
 	b3Mat44 m;
 	m.x = b3Vec4(sx, 0.0f, 0.0f, 0.0f);
@@ -73,8 +73,8 @@ b3Mat44 Camera::BuildProjectionMatrix() const
 b3Transform Camera::BuildWorldTransform() const
 {
 	b3Transform xf;
-	xf.rotation = b3QuatMat33(m_q);
-	xf.position = (m_zoom * xf.rotation.z) - m_center;
+	xf.rotation = m_q;
+	xf.translation = (m_zoom * m_q.GetZAxis()) - m_center;
 	return xf;
 }
 
@@ -87,8 +87,8 @@ b3Mat44 Camera::BuildWorldMatrix() const
 b3Transform Camera::BuildViewTransform() const
 {
 	b3Transform xf;
-	xf.rotation = b3QuatMat33(m_q);
-	xf.position = (m_zoom * xf.rotation.z) - m_center;
+	xf.rotation = m_q;
+	xf.translation = (m_zoom * m_q.GetZAxis()) - m_center;
 	return b3Inverse(xf);
 }
 
@@ -100,7 +100,7 @@ b3Mat44 Camera::BuildViewMatrix() const
 
 b3Vec2 Camera::ConvertWorldToScreen(const b3Vec3& pw3) const
 {
-	float32 w = m_width, h = m_height;
+	scalar w = m_width, h = m_height;
 	b3Mat44 P = BuildProjectionMatrix();
 	b3Mat44 V = BuildViewMatrix();
 
@@ -109,11 +109,11 @@ b3Vec2 Camera::ConvertWorldToScreen(const b3Vec3& pw3) const
 	b3Vec4 pp = P * V * pw;
 
 	b3Vec3 pn(pp.x, pp.y, pp.z);
-	float32 inv_w = pp.w != 0.0f ? 1.0f / pp.w : 1.0f;
+	scalar inv_w = pp.w != 0.0f ? 1.0f / pp.w : 1.0f;
 	pn *= inv_w;
 
-	float32 u = 0.5f * (pn.x + 1.0f);
-	float32 v = 0.5f * (pn.y + 1.0f);
+	scalar u = 0.5f * (pn.x + 1.0f);
+	scalar v = 0.5f * (pn.y + 1.0f);
 
 	b3Vec2 ps;
 	ps.x = u * w;
@@ -123,10 +123,10 @@ b3Vec2 Camera::ConvertWorldToScreen(const b3Vec3& pw3) const
 
 b3Ray3 Camera::ConvertScreenToWorld(const b3Vec2& ps) const
 {
-	float32 w = m_width, h = m_height;
+	scalar w = m_width, h = m_height;
 	
-	float32 t = tan(0.5f * m_fovy);
-	float32 ratio = w / h;
+	scalar t = tan(0.5f * m_fovy);
+	scalar ratio = w / h;
 	
 	b3Vec3 vv;
 	vv.x = 2.0f * ratio * ps.x / w - ratio;
@@ -135,12 +135,12 @@ b3Ray3 Camera::ConvertScreenToWorld(const b3Vec2& ps) const
 
 	b3Transform xf = BuildWorldTransform();
 	
-	b3Vec3 vw = xf.rotation * vv;
+	b3Vec3 vw = b3Mul(xf.rotation, vv);
 	vw.Normalize();
 
 	b3Ray3 rw;
 	rw.direction = vw;
-	rw.origin = xf.position;
+	rw.origin = xf.translation;
 	rw.fraction = m_zFar;
 	return rw;
 }
@@ -194,7 +194,7 @@ void Draw::EnableDrawTriangles(bool flag)
 	g_glDrawTriangles = flag;
 }
 
-void Draw::DrawPoint(const b3Vec3& p, float32 size, const b3Color& color)
+void Draw::DrawPoint(const b3Vec3& p, scalar size, const b3Color& color)
 {
 	m_points->Vertex(p, size, color);
 }
@@ -249,14 +249,15 @@ void Draw::DrawSolidPolygon(const b3Vec3& normal, const b3Vec3* vertices, u32 co
 	}
 }
 
-void Draw::DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
+void Draw::DrawCircle(const b3Vec3& normal, const b3Vec3& center, scalar radius, const b3Color& color)
 {
 	b3Vec3 n1, n3;
 	b3ComputeBasis(normal, n1, n3);
 
 	u32 kEdgeCount = 20;
-	float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
-	b3Quat q(normal, kAngleInc);
+	scalar kAngleInc = 2.0f * B3_PI / scalar(kEdgeCount);
+	b3Quat q;
+	q.SetAxisAngle(normal, kAngleInc);
 
 	b3Vec3 p1 = center + radius * n1;
 	for (u32 i = 0; i < kEdgeCount; ++i)
@@ -272,7 +273,7 @@ void Draw::DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius
 	}
 }
 
-void Draw::DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
+void Draw::DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, scalar radius, const b3Color& color)
 {
 	b3Color fillColor(color.r, color.g, color.b, color.a);
 	b3Color frameColor(0.5f * color.r, 0.5f * color.g, 0.5f * color.b, 1.0f);
@@ -281,8 +282,10 @@ void Draw::DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, float32 r
 	b3ComputeBasis(normal, n1, n3);
 
 	const u32 kEdgeCount = 20;
-	const float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
-	b3Quat q(normal, kAngleInc);
+	const scalar kAngleInc = 2.0f * B3_PI / scalar(kEdgeCount);
+	
+	b3Quat q;
+	q.SetAxisAngle(normal, kAngleInc);
 
 	b3Vec3 p1 = center + radius * n1;
 	for (u32 i = 0; i < kEdgeCount; ++i)
@@ -299,32 +302,32 @@ void Draw::DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, float32 r
 	}
 }
 
-void Draw::DrawSphere(const b3Vec3& center, float32 radius, const b3Color& color)
+void Draw::DrawSphere(const b3Vec3& center, scalar radius, const b3Color& color)
 {
 	b3Transform xf;
 	xf.rotation.SetIdentity();
-	xf.position = center;
+	xf.translation = center;
 
 	m_wire->DrawSphere(radius, color, xf);
 }
 
-void Draw::DrawSolidSphere(const b3Vec3& center, float32 radius, const b3Mat33& rotation, const b3Color& color)
+void Draw::DrawSolidSphere(const b3Vec3& center, scalar radius, const b3Quat& rotation, const b3Color& color)
 {
 	b3Transform xf;
 	xf.rotation = rotation;
-	xf.position = center;
+	xf.translation = center;
 
 	m_solid->DrawSphere(radius, color, xf);
 }
 
-void Draw::DrawCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const b3Color& color)
+void Draw::DrawCapsule(const b3Vec3& c1, const b3Vec3& c2, scalar radius, const b3Color& color)
 {
-	float32 height = b3Length(c1 - c2);
+	scalar height = b3Length(c1 - c2);
 
 	{
 		b3Transform xf;
 		xf.rotation.SetIdentity();
-		xf.position = c1;
+		xf.translation = c1;
 		m_wire->DrawSphere(radius, color, xf);
 	}
 
@@ -335,20 +338,20 @@ void Draw::DrawCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const
 		{
 			b3Transform xf;
 			xf.rotation.SetIdentity();
-			xf.position = c2;
+			xf.translation = c2;
 			m_wire->DrawSphere(radius, color, xf);
 		}
 	}
 }
 
-void Draw::DrawSolidCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, const b3Mat33& rotation, const b3Color& c)
+void Draw::DrawSolidCapsule(const b3Vec3& c1, const b3Vec3& c2, scalar radius, const b3Quat& rotation, const b3Color& c)
 {
-	float32 height = b3Length(c1 - c2);
+	scalar height = b3Length(c1 - c2);
 
 	{
 		b3Transform xf;
 		xf.rotation = rotation;
-		xf.position = c1;
+		xf.translation = c1;
 		m_solid->DrawSphere(radius, c, xf);
 	}
 
@@ -359,9 +362,11 @@ void Draw::DrawSolidCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, 
 			R.y = (1.0f / height) * (c1 - c2);
 			b3ComputeBasis(R.y, R.z, R.x);
 
+			b3Quat Q = b3Mat33Quat(R);
+
 			b3Transform xf;
-			xf.position = 0.5f * (c1 + c2);
-			xf.rotation = R;
+			xf.translation = 0.5f * (c1 + c2);
+			xf.rotation = Q;
 
 			m_solid->DrawCylinder(radius, height, c, xf);
 		}
@@ -369,7 +374,7 @@ void Draw::DrawSolidCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, 
 		{
 			b3Transform xf;
 			xf.rotation = rotation;
-			xf.position = c2;
+			xf.translation = c2;
 			m_solid->DrawSphere(radius, c, xf);
 		}
 	}
@@ -377,24 +382,24 @@ void Draw::DrawSolidCapsule(const b3Vec3& c1, const b3Vec3& c2, float32 radius, 
 
 void Draw::DrawTransform(const b3Transform& xf)
 {
-	float32 lenght = 1.0f;
+	scalar lenght = 1.0f;
 
-	b3Vec3 position = xf.position;
-	b3Mat33 rotation = xf.rotation;
+	b3Vec3 translation = xf.translation;
+	b3Mat33 rotation = b3QuatMat33(xf.rotation);
 
-	b3Vec3 A = position + lenght * rotation.x;
-	b3Vec3 B = position + lenght * rotation.y;
-	b3Vec3 C = position + lenght * rotation.z;
+	b3Vec3 A = translation + lenght * rotation.x;
+	b3Vec3 B = translation + lenght * rotation.y;
+	b3Vec3 C = translation + lenght * rotation.z;
 
-	DrawSegment(position, A, b3Color_red);
-	DrawSegment(position, B, b3Color_green);
-	DrawSegment(position, C, b3Color_blue);
+	DrawSegment(translation, A, b3Color_red);
+	DrawSegment(translation, B, b3Color_green);
+	DrawSegment(translation, C, b3Color_blue);
 }
 
-void Draw::DrawAABB(const b3AABB3& aabb, const b3Color& color)
+void Draw::DrawAABB(const b3AABB& aabb, const b3Color& color)
 {
-	b3Vec3 lower = aabb.m_lower;
-	b3Vec3 upper = aabb.m_upper;
+	b3Vec3 lower = aabb.lowerBound;
+	b3Vec3 upper = aabb.upperBound;
 
 	b3Vec3 vs[8];
 
@@ -425,12 +430,12 @@ void Draw::DrawAABB(const b3AABB3& aabb, const b3Color& color)
 	DrawSegment(vs[1], vs[7], color);
 }
 
-void Draw::DrawPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
+void Draw::DrawPlane(const b3Vec3& normal, const b3Vec3& center, scalar radius, const b3Color& color)
 {
 	b3Vec3 n1, n2;
 	b3ComputeBasis(normal, n1, n2);
 
-	float32 scale = 2.0f * radius;
+	scalar scale = 2.0f * radius;
 	
 	// v1__v4
 	// |    |
@@ -448,14 +453,14 @@ void Draw::DrawPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius,
 	DrawSegment(center, center + normal, color);
 }
 
-void Draw::DrawSolidPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color)
+void Draw::DrawSolidPlane(const b3Vec3& normal, const b3Vec3& center, scalar radius, const b3Color& color)
 {
 	b3Color frameColor(0.5f * color.r, 0.5f * color.g, 0.5f * color.b, 1.0f);
 
 	b3Vec3 n1, n2;
 	b3ComputeBasis(normal, n1, n2);
 
-	float32 scale = 2.0f * radius;
+	scalar scale = 2.0f * radius;
 
 	b3Vec3 v1 = center - scale * n1 - scale * n2;
 	b3Vec3 v2 = center + scale * n1 - scale * n2;

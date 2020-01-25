@@ -23,9 +23,9 @@ b3ClothDragger::b3ClothDragger(b3Ray3* ray, b3Cloth* cloth)
 	m_staticDrag = true;
 	m_ray = ray;
 	m_cloth = cloth;
-	m_triangle = nullptr;
-	m_km = 10000.0f;
-	m_kd = 0.0f;
+	m_isDragging = false;
+	m_km = 100000.0f;
+	m_kd = 1000.0f;
 }
 
 b3ClothDragger::~b3ClothDragger()
@@ -43,22 +43,20 @@ bool b3ClothDragger::StartDragging()
 		return false;
 	}
 
-	m_mesh = m_cloth->GetMesh();
-	m_triangleIndex = rayOut.triangle;
-	m_triangle = m_mesh->triangles + m_triangleIndex;
+	m_isDragging = true;
 	m_x = rayOut.fraction;
 
-	b3Particle* p1 = m_cloth->GetParticle(m_triangle->v1);
-	b3Particle* p2 = m_cloth->GetParticle(m_triangle->v2);
-	b3Particle* p3 = m_cloth->GetParticle(m_triangle->v3);
+	m_p1 = rayOut.triangle->GetParticle1();
+	m_p2 = rayOut.triangle->GetParticle2();
+	m_p3 = rayOut.triangle->GetParticle3();
 
-	b3Vec3 v1 = p1->GetPosition();
-	b3Vec3 v2 = p2->GetPosition();
-	b3Vec3 v3 = p3->GetPosition();
+	b3Vec3 v1 = m_p1->GetPosition();
+	b3Vec3 v2 = m_p2->GetPosition();
+	b3Vec3 v3 = m_p3->GetPosition();
 
 	b3Vec3 B = GetPointB();
 
-	float32 wABC[4];
+	scalar wABC[4];
 	b3BarycentricCoordinates(wABC, v1, v2, v3, B);
 
 	if (wABC[3] > B3_EPSILON)
@@ -73,33 +71,34 @@ bool b3ClothDragger::StartDragging()
 
 	if (m_staticDrag)
 	{
-		m_t1 = p1->GetType();
-		p1->SetType(e_staticParticle);
+		m_t1 = m_p1->GetType();
+		m_p1->SetType(e_staticClothParticle);
 
-		m_t2 = p2->GetType();
-		p2->SetType(e_staticParticle);
+		m_t2 = m_p2->GetType();
+		m_p2->SetType(e_staticClothParticle);
 
-		m_t3 = p3->GetType();
-		p3->SetType(e_staticParticle);
+		m_t3 = m_p3->GetType();
+		m_p3->SetType(e_staticClothParticle);
 	}
 	else
 	{
-		b3ParticleDef pd;
-		pd.type = e_staticParticle;
+		b3ClothParticleDef pd;
+		pd.type = e_staticClothParticle;
 		pd.position = GetPointA();
 
 		m_particle = m_cloth->CreateParticle(pd);
 
-		b3ClothTriangle* triangle = m_cloth->GetTriangle(m_triangleIndex);
-
 		b3MouseForceDef def;
-		def.particle = m_particle;
-		def.triangle = triangle;
+		def.p1 = m_particle;
+		def.p2 = m_p1;
+		def.p3 = m_p2;
+		def.p4 = m_p3;
 		def.w2 = m_u;
 		def.w3 = m_v;
-		def.w4 = (1.0f - m_u - m_v);
+		def.w4 = 1.0f - m_u - m_v;
 		def.mouse = m_km;
 		def.damping = m_kd;
+		def.restLength = 0.0f;
 
 		m_mf = (b3MouseForce*)m_cloth->CreateForce(def);
 	}
@@ -111,24 +110,23 @@ void b3ClothDragger::Drag()
 {
 	B3_ASSERT(IsDragging() == true);
 
-	b3Vec3 A = GetPointA();
 	b3Vec3 B = GetPointB();
-
-	b3Vec3 dx = B - A;
 
 	if (m_staticDrag)
 	{
-		b3Particle* p1 = m_cloth->GetParticle(m_triangle->v1);
-		p1->ApplyTranslation(dx);
+		b3Vec3 A = GetPointA();
 
-		b3Particle* p2 = m_cloth->GetParticle(m_triangle->v2);
-		p2->ApplyTranslation(dx);
+		b3Vec3 dx = B - A;
 
-		b3Particle* p3 = m_cloth->GetParticle(m_triangle->v3);
-		p3->ApplyTranslation(dx);
+		m_p1->ApplyTranslation(dx);
+		m_p2->ApplyTranslation(dx);
+		m_p3->ApplyTranslation(dx);
 	}
 	else
 	{
+		//b3Vec3 A = m_particle->GetPosition();
+		//b3Vec3 dx = B - A;		
+		//m_particle->ApplyTranslation(dx);
 		m_particle->SetPosition(B);
 	}
 }
@@ -154,9 +152,9 @@ void b3ClothDragger::StopDragging()
 
 	if (m_staticDrag)
 	{
-		m_cloth->GetParticle(m_triangle->v1)->SetType(m_t1);
-		m_cloth->GetParticle(m_triangle->v2)->SetType(m_t2);
-		m_cloth->GetParticle(m_triangle->v3)->SetType(m_t3);
+		m_p1->SetType(m_t1);
+		m_p2->SetType(m_t2);
+		m_p3->SetType(m_t3);
 	}
 	else
 	{
@@ -164,18 +162,18 @@ void b3ClothDragger::StopDragging()
 		m_cloth->DestroyParticle(m_particle);
 	}
 
-	m_triangle = nullptr;
+	m_isDragging = false;
 }
 
 b3Vec3 b3ClothDragger::GetPointA() const
 {
 	B3_ASSERT(IsDragging() == true);
 
-	b3Vec3 A = m_cloth->GetParticle(m_triangle->v1)->GetPosition();
-	b3Vec3 B = m_cloth->GetParticle(m_triangle->v2)->GetPosition();
-	b3Vec3 C = m_cloth->GetParticle(m_triangle->v3)->GetPosition();
+	b3Vec3 v1 = m_p1->GetPosition() + m_p1->GetTranslation();
+	b3Vec3 v2 = m_p2->GetPosition() + m_p2->GetTranslation();
+	b3Vec3 v3 = m_p3->GetPosition() + m_p3->GetTranslation();
 
-	return m_u * A + m_v * B + (1.0f - m_u - m_v) * C;
+	return m_u * v1 + m_v * v2 + (1.0f - m_u - m_v) * v3;
 }
 
 b3Vec3 b3ClothDragger::GetPointB() const

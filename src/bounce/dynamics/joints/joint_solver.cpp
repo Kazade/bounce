@@ -24,7 +24,7 @@ b3JointSolver::b3JointSolver(const b3JointSolverDef* def)
 	m_count = def->count;
 	m_joints = def->joints;
 	m_solverData.dt = def->dt;
-	m_solverData.invdt = def->dt > 0.0f ? 1.0f / def->dt : 0.0f;
+	m_solverData.invdt = def->dt > scalar(0) ? scalar(1) / def->dt : scalar(0);
 	m_solverData.positions = def->positions;
 	m_solverData.velocities = def->velocities;
 	m_solverData.invInertias = def->invInertias;

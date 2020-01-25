@@ -24,48 +24,48 @@
 #include <bounce/common/math/mat44.h>
 #include <bounce/common/math/transform.h>
 
-const b3Vec2 b3Vec2_zero(0.0f, 0.0f);
-const b3Vec2 b3Vec2_x(1.0f, 0.0f);
-const b3Vec2 b3Vec2_y(0.0f, 1.0f);
+const b3Vec2 b3Vec2_zero(scalar(0), scalar(0));
+const b3Vec2 b3Vec2_x(scalar(1), scalar(0));
+const b3Vec2 b3Vec2_y(scalar(0), scalar(1));
 
-const b3Vec3 b3Vec3_zero(0.0f, 0.0f, 0.0f);
-const b3Vec3 b3Vec3_x(1.0f, 0.0f, 0.0f);
-const b3Vec3 b3Vec3_y(0.0f, 1.0f, 0.0f);
-const b3Vec3 b3Vec3_z(0.0f, 0.0f, 1.0f);
+const b3Vec3 b3Vec3_zero(scalar(0), scalar(0), scalar(0));
+const b3Vec3 b3Vec3_x(scalar(1), scalar(0), scalar(0));
+const b3Vec3 b3Vec3_y(scalar(0), scalar(1), scalar(0));
+const b3Vec3 b3Vec3_z(scalar(0), scalar(0), scalar(1));
 
 const b3Mat22 b3Mat22_zero(
-	b3Vec2(0.0f, 0.0f),
-	b3Vec2(0.0f, 0.0f));
+	b3Vec2(scalar(0), scalar(0)),
+	b3Vec2(scalar(0), scalar(0)));
 
 const b3Mat22 b3Mat22_identity(
-	b3Vec2(1.0f, 0.0f),
-	b3Vec2(0.0f, 1.0f));
+	b3Vec2(scalar(1), scalar(0)),
+	b3Vec2(scalar(0), scalar(1)));
 
 const b3Mat33 b3Mat33_zero(
-	b3Vec3(0.0f, 0.0f, 0.0f),
-	b3Vec3(0.0f, 0.0f, 0.0f),
-	b3Vec3(0.0f, 0.0f, 0.0f));
+	b3Vec3(scalar(0), scalar(0), scalar(0)),
+	b3Vec3(scalar(0), scalar(0), scalar(0)),
+	b3Vec3(scalar(0), scalar(0), scalar(0)));
 
 const b3Mat33 b3Mat33_identity(
-	b3Vec3(1.0f, 0.0f, 0.0f),
-	b3Vec3(0.0f, 1.0f, 0.0f),
-	b3Vec3(0.0f, 0.0f, 1.0f));
+	b3Vec3(scalar(1), scalar(0), scalar(0)),
+	b3Vec3(scalar(0), scalar(1), scalar(0)),
+	b3Vec3(scalar(0), scalar(0), scalar(1)));
 
-const b3Transform b3Transform_identity(b3Mat33_identity, b3Vec3_zero);
+const b3Transform b3Transform_identity(b3Vec3_zero, b3Quat_identity);
 
-const b3Quat b3Quat_identity(0.0f, 0.0f, 0.0f, 1.0f);
+const b3Quat b3Quat_identity(scalar(0), scalar(0), scalar(0), scalar(1));
 
 b3Vec2 b3Mat22::Solve(const b3Vec2& b) const
 {
 	// Cramer's rule
-	float32 a11 = x.x, a12 = y.x;
-	float32	a21 = x.y, a22 = y.y;
+	scalar a11 = x.x, a12 = y.x;
+	scalar a21 = x.y, a22 = y.y;
 
-	float32 det = a11 * a22 - a12 * a21;
+	scalar det = a11 * a22 - a12 * a21;
 
-	if (det != 0.0f)
+	if (det != scalar(0))
 	{
-		det = 1.0f / det;
+		det = scalar(1) / det;
 	}
 
 	b3Vec2 xn;
@@ -76,14 +76,14 @@ b3Vec2 b3Mat22::Solve(const b3Vec2& b) const
 
 b3Mat22 b3Inverse(const b3Mat22& A)
 {
-	float32 a11 = A.x.x, a12 = A.y.x;
-	float32	a21 = A.x.y, a22 = A.y.y;
+	scalar a11 = A.x.x, a12 = A.y.x;
+	scalar a21 = A.x.y, a22 = A.y.y;
 
-	float32 det = a11 * a22 - a12 * a21;
+	scalar det = a11 * a22 - a12 * a21;
 	
-	if (det != 0.0f)
+	if (det != scalar(0))
 	{
-		det = 1.0f / det;
+		det = scalar(1) / det;
 	}
 	
 	b3Mat22 B;
@@ -95,10 +95,10 @@ b3Mat22 b3Inverse(const b3Mat22& A)
 b3Vec3 b3Mat33::Solve(const b3Vec3& b) const
 {
 	// Cramer's rule
-	float32 det = b3Det(x, y, z);
-	if (det != 0.0f)
+	scalar det = b3Det(x, y, z);
+	if (det != scalar(0))
 	{
-		det = 1.0f / det;
+		det = scalar(1) / det;
 	}
 	
 	b3Vec3 xn;
@@ -124,25 +124,25 @@ static B3_FORCE_INLINE b3Mat33 b3Adjucate(const b3Mat33& A)
 b3Mat33 b3Inverse(const b3Mat33& A)
 {
 	// Cofactor method
-	float32 det = b3Det(A.x, A.y, A.z);
-	if (det != 0.0f)
+	scalar det = b3Det(A.x, A.y, A.z);
+	if (det != scalar(0))
 	{
-		det = 1.0f / det;
+		det = scalar(1) / det;
 	}
 	return det * b3Adjucate(A);
 }
 
 b3Mat33 b3SymInverse(const b3Mat33& A)
 {
-	float32 det = b3Det(A.x, A.y, A.z);
-	if (det != 0.0f)
+	scalar det = b3Det(A.x, A.y, A.z);
+	if (det != scalar(0))
 	{
-		det = 1.0f / det;
+		det = scalar(1) / det;
 	}
 
-	float32 a11 = A.x.x, a12 = A.y.x, a13 = A.z.x;
-	float32 a22 = A.y.y, a23 = A.z.y;
-	float32 a33 = A.z.z;
+	scalar a11 = A.x.x, a12 = A.y.x, a13 = A.z.x;
+	scalar a22 = A.y.y, a23 = A.z.y;
+	scalar a33 = A.z.z;
 
 	b3Mat33 M;
 

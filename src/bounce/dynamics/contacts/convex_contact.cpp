@@ -20,10 +20,24 @@
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/body.h>
 #include <bounce/dynamics/world.h>
+#include <bounce/common/memory/block_pool.h>
 
-b3ConvexContact::b3ConvexContact(b3Shape* shapeA, b3Shape* shapeB)
+b3Contact* b3ConvexContact::Create(b3Shape* shapeA, b3Shape* shapeB, b3BlockPool* allocator)
 {
-    B3_NOT_USED(shapeA);
+	void* mem = allocator->Allocate();
+	return new (mem) b3ConvexContact(shapeA, shapeB);
+}
+
+void b3ConvexContact::Destroy(b3Contact* contact, b3BlockPool* allocator)
+{
+	b3ConvexContact* c = (b3ConvexContact*)contact;
+	c->~b3ConvexContact();
+	allocator->Free(c);
+}
+
+b3ConvexContact::b3ConvexContact(b3Shape* shapeA, b3Shape* shapeB) : b3Contact(shapeA, shapeB)
+{
+	B3_NOT_USED(shapeA);
     B3_NOT_USED(shapeB);
 
 	m_type = e_convexContact;

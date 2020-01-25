@@ -24,6 +24,8 @@ b3QSoftBodyMesh::b3QSoftBodyMesh()
 {
 	vertexCount = 0;
 	vertices = nullptr;
+	triangleCount = 0;
+	triangles = nullptr;
 	tetrahedronCount = 0;
 	tetrahedrons = nullptr;
 }
@@ -31,10 +33,11 @@ b3QSoftBodyMesh::b3QSoftBodyMesh()
 b3QSoftBodyMesh::~b3QSoftBodyMesh()
 {
 	b3Free(vertices);
+	b3Free(triangles);
 	b3Free(tetrahedrons);
 }
 
-void b3QSoftBodyMesh::SetAsSphere(float32 radius, u32 subdivisions)
+void b3QSoftBodyMesh::SetAsSphere(scalar radius, u32 subdivisions)
 {
 	smMesh mesh;
 	smCreateMesh(mesh, subdivisions);
@@ -48,6 +51,22 @@ void b3QSoftBodyMesh::SetAsSphere(float32 radius, u32 subdivisions)
 		vertices[1 + i] = mesh.vertices[i];
 	}
 
+	B3_ASSERT(triangleCount == 0);
+	triangleCount = mesh.indexCount / 3;
+	triangles = (b3SoftBodyMeshTriangle*)b3Alloc(triangleCount * sizeof(b3SoftBodyMeshTriangle));
+	for (u32 i = 0; i < mesh.indexCount / 3; ++i)
+	{
+		u32 v1 = mesh.indices[3 * i + 0];
+		u32 v2 = mesh.indices[3 * i + 1];
+		u32 v3 = mesh.indices[3 * i + 2];
+
+		b3SoftBodyMeshTriangle* t = triangles + i;
+
+		t->v1 = 1 + v1;
+		t->v2 = 1 + v2;
+		t->v3 = 1 + v3;
+	}
+
 	B3_ASSERT(tetrahedronCount == 0);
 	tetrahedronCount = mesh.indexCount / 3;
 	tetrahedrons = (b3SoftBodyMeshTetrahedron*)b3Alloc(tetrahedronCount * sizeof(b3SoftBodyMeshTetrahedron));
@@ -59,9 +78,9 @@ void b3QSoftBodyMesh::SetAsSphere(float32 radius, u32 subdivisions)
 
 		b3SoftBodyMeshTetrahedron* t = tetrahedrons + i;
 
-		t->v1 = 1 + v3;
+		t->v1 = 1 + v1;
 		t->v2 = 1 + v2;
-		t->v3 = 1 + v1;
+		t->v3 = 1 + v3;
 		t->v4 = 0;
 	}
 
@@ -71,7 +90,7 @@ void b3QSoftBodyMesh::SetAsSphere(float32 radius, u32 subdivisions)
 	}
 }
 
-void b3QSoftBodyMesh::SetAsCylinder(float32 radius, float32 ey, u32 segments)
+void b3QSoftBodyMesh::SetAsCylinder(scalar radius, scalar ey, u32 segments)
 {
 	cymMesh mesh;
 	cymCreateMesh(mesh, segments);
@@ -85,6 +104,22 @@ void b3QSoftBodyMesh::SetAsCylinder(float32 radius, float32 ey, u32 segments)
 		vertices[1 + i] = mesh.vertices[i];
 	}
 
+	B3_ASSERT(triangleCount == 0);
+	triangleCount = mesh.indexCount / 3;
+	triangles = (b3SoftBodyMeshTriangle*)b3Alloc(triangleCount * sizeof(b3SoftBodyMeshTriangle));
+	for (u32 i = 0; i < mesh.indexCount / 3; ++i)
+	{
+		u32 v1 = mesh.indices[3 * i + 0];
+		u32 v2 = mesh.indices[3 * i + 1];
+		u32 v3 = mesh.indices[3 * i + 2];
+
+		b3SoftBodyMeshTriangle* t = triangles + i;
+
+		t->v1 = 1 + v1;
+		t->v2 = 1 + v2;
+		t->v3 = 1 + v3;
+	}
+	
 	B3_ASSERT(tetrahedronCount == 0);
 	tetrahedronCount = mesh.indexCount / 3;
 	tetrahedrons = (b3SoftBodyMeshTetrahedron*)b3Alloc(tetrahedronCount * sizeof(b3SoftBodyMeshTetrahedron));
@@ -96,13 +131,13 @@ void b3QSoftBodyMesh::SetAsCylinder(float32 radius, float32 ey, u32 segments)
 
 		b3SoftBodyMeshTetrahedron* t = tetrahedrons + i;
 
-		t->v1 = 1 + v3;
+		t->v1 = 1 + v1;
 		t->v2 = 1 + v2;
-		t->v3 = 1 + v1;
+		t->v3 = 1 + v3;
 		t->v4 = 0;
 	}
 
-	float32 height = 2.0f * ey;
+	scalar height = scalar(2) * ey;
 
 	for (u32 i = 0; i < vertexCount; ++i)
 	{

@@ -38,9 +38,9 @@ public:
 	{
 		for (u32 i = 0; i < e_count; ++i)
 		{
-			float32 x = 3.0f * RandomFloat(-1.0f, 1.0f);
-			float32 y = 3.0f * RandomFloat(-1.0f, 1.0f);
-			float32 z = 3.0f * RandomFloat(-1.0f, 1.0f);
+			scalar x = 3.0f * RandomFloat(-1.0f, 1.0f);
+			scalar y = 3.0f * RandomFloat(-1.0f, 1.0f);
+			scalar z = 3.0f * RandomFloat(-1.0f, 1.0f);
 
 			b3Vec3 p(x, y, z);
 			m_points[i] = p;
@@ -48,9 +48,9 @@ public:
 
 		for (u32 i = 0; i < B3_MAX_MANIFOLDS; ++i)
 		{
-			float32 r = RandomFloat(0.0f, 1.0f);
-			float32 g = RandomFloat(0.0f, 1.0f);
-			float32 b = RandomFloat(0.0f, 1.0f);
+			scalar r = RandomFloat(0.0f, 1.0f);
+			scalar g = RandomFloat(0.0f, 1.0f);
+			scalar b = RandomFloat(0.0f, 1.0f);
 
 			b3Color c(r, g, b);
 			m_colors[i] = c;

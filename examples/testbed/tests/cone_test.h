@@ -42,8 +42,8 @@ public:
 			head = m_world.CreateBody(bd);
 
 			b3CapsuleShape cs;
-			cs.m_centers[0].Set(0.0f, 0.15f, 0.0f);
-			cs.m_centers[1].Set(0.0f, -0.15f, 0.0f);
+			cs.m_vertex1.Set(0.0f, 0.15f, 0.0f);
+			cs.m_vertex2.Set(0.0f, -0.15f, 0.0f);
 			cs.m_radius = 0.5f;
 
 			b3ShapeDef sd;
@@ -55,19 +55,22 @@ public:
 		{
 			b3Vec3 anchor(0.0f, 0.0f, 0.0f);
 			b3Vec3 axis(0.0f, 1.0f, 0.0f);
-			float32 coneAngle = 0.5f * B3_PI;
+			scalar coneAngle = 0.5f * B3_PI;
 
 			b3ConeJointDef cd;
 			cd.Initialize(ref, head, axis, anchor, coneAngle);
-			cd.enableLimit = true;
+			cd.enableConeLimit = true;
 			
+			cd.enableTwistLimit = true;
+			cd.lowerAngle = 0.0f;
+			cd.upperAngle = B3_PI;
+
 			b3ConeJoint* cj = (b3ConeJoint*)m_world.CreateJoint(cd);
 		}
 		
 		// Invalidate the orientation
-		b3Vec3 axis(1.0f, 0.0f, 0.0f);
-		float32 angle = B3_PI;
-		head->SetTransform(head->GetPosition(), axis, angle);
+		b3Quat q = b3QuatRotationX(B3_PI);
+		head->SetTransform(head->GetPosition(), q);
 	}
 
 	static Test* Create()

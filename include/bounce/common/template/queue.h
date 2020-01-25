@@ -44,7 +44,7 @@ public:
 	{
 		if ((m_count + 1) == N)
 		{
-			return NULL;
+			return nullptr;
 		}
 
 		B3_ASSERT(m_back < N);

@@ -17,23 +17,82 @@
 */
 
 #include <bounce/cloth/forces/shear_force.h>
-#include <bounce/cloth/cloth_triangle.h>
-#include <bounce/cloth/particle.h>
-#include <bounce/cloth/cloth.h>
-#include <bounce/cloth/cloth_mesh.h>
+#include <bounce/cloth/cloth_particle.h>
 #include <bounce/cloth/cloth_force_solver.h>
 #include <bounce/sparse/dense_vec3.h>
 #include <bounce/sparse/sparse_mat33.h>
 
+void b3ShearForceDef::Initialize(const b3Vec3& p1, const b3Vec3& p2, const b3Vec3& p3)
+{
+	b3Vec3 A = p1, B = p2, C = p3;
+
+	b3Vec3 AB = B - A;
+	b3Vec3 AC = C - A;
+
+	// (u, v) 1
+	u1 = scalar(0);
+	v1 = scalar(0);
+
+	// (u, v) 2
+	u2 = b3Length(AB);
+	v2 = scalar(0);
+
+	// (u, v) 3
+	B3_ASSERT(u2 > scalar(0));
+	b3Vec3 n_AB = AB / u2;
+
+	// a  = b * h / 2
+	// h = (a * 2) / b
+	scalar a2 = b3Length(b3Cross(AB, AC));
+	B3_ASSERT(a2 > scalar(0));
+
+	u3 = b3Dot(AC, n_AB);
+	v3 = a2 / u2;
+	
+	alpha = scalar(0.5) * a2;
+}
+
 b3ShearForce::b3ShearForce(const b3ShearForceDef* def)
 {
 	m_type = e_shearForce;
-	m_triangle = def->triangle;
+	m_p1 = def->p1;
+	m_p2 = def->p2;
+	m_p3 = def->p3;
 	m_ks = def->shearing;
 	m_kd = def->damping;
 	m_f1.SetZero();
 	m_f2.SetZero();
 	m_f3.SetZero();
+	m_alpha = def->alpha;
+
+	scalar u1 = def->u1, v1 = def->v1;
+	scalar u2 = def->u2, v2 = def->v2;
+	scalar u3 = def->u3, v3 = def->v3;
+
+	// (u, v) matrix
+	scalar du1 = u2 - u1;
+	scalar dv1 = v2 - v1;
+	scalar du2 = u3 - u1;
+	scalar dv2 = v3 - v1;
+
+	m_du1 = du1;
+	m_dv1 = dv1;
+	m_du2 = du2;
+	m_dv2 = dv2;
+
+	scalar det = du1 * dv2 - du2 * dv1;
+	B3_ASSERT(det != scalar(0));
+	m_inv_det = scalar(1) / det;
+
+	scalar inv_det = m_inv_det;
+
+	m_dwudx.x = inv_det * (dv1 - dv2);
+	m_dwudx.y = inv_det * dv2;
+	m_dwudx.z = -inv_det * dv1;
+
+	m_dwvdx.x = inv_det * (du2 - du1);
+	m_dwvdx.y = -inv_det * du2;
+	m_dwvdx.z = inv_det * du1;
 }
 
 b3ShearForce::~b3ShearForce()
@@ -41,39 +100,25 @@ b3ShearForce::~b3ShearForce()
 
 }
 
-bool b3ShearForce::HasParticle(const b3Particle* particle) const
+bool b3ShearForce::HasParticle(const b3ClothParticle* particle) const
 {
-	b3Cloth* cloth = m_triangle->m_cloth;
-	u32 triangleIndex = m_triangle->m_triangle;
-	b3ClothMeshTriangle* triangle = cloth->m_mesh->triangles + triangleIndex;
-
-	b3Particle* p1 = cloth->m_particles[triangle->v1];
-	b3Particle* p2 = cloth->m_particles[triangle->v2];
-	b3Particle* p3 = cloth->m_particles[triangle->v3];
-
-	return p1 == particle || p2 == particle || p3 == particle;
+	return m_p1 == particle || m_p2 == particle || m_p3 == particle;
 }
 
 void b3ShearForce::Apply(const b3ClothForceSolverData* data)
 {
-	b3Cloth* cloth = m_triangle->m_cloth;
-	u32 triangleIndex = m_triangle->m_triangle;
-	b3ClothMeshTriangle* triangle = cloth->m_mesh->triangles + triangleIndex;
+	scalar alpha = m_alpha;
+	scalar du1 = m_du1;
+	scalar dv1 = m_dv1;
+	scalar du2 = m_du2;
+	scalar dv2 = m_dv2;
+	scalar inv_det = m_inv_det;
+	b3Vec3 dwudx = m_dwudx;
+	b3Vec3 dwvdx = m_dwvdx;
 
-	float32 alpha = m_triangle->m_alpha;
-	float32 du1 = m_triangle->m_du1;
-	float32 dv1 = m_triangle->m_dv1;
-	float32 du2 = m_triangle->m_du2;
-	float32 dv2 = m_triangle->m_dv2;
-	float32 inv_det = m_triangle->m_inv_det;
-
-	b3Particle* p1 = cloth->m_particles[triangle->v1];
-	b3Particle* p2 = cloth->m_particles[triangle->v2];
-	b3Particle* p3 = cloth->m_particles[triangle->v3];
-
-	u32 i1 = p1->m_solverId;
-	u32 i2 = p2->m_solverId;
-	u32 i3 = p3->m_solverId;
+	u32 i1 = m_p1->m_solverId;
+	u32 i2 = m_p2->m_solverId;
+	u32 i3 = m_p3->m_solverId;
 
 	b3DenseVec3& x = *data->x;
 	b3DenseVec3& v = *data->v;
@@ -97,16 +142,6 @@ void b3ShearForce::Apply(const b3ClothForceSolverData* data)
 	b3Vec3 wu = inv_det * (dv2 * dx1 - dv1 * dx2);
 	b3Vec3 wv = inv_det * (-du2 * dx1 + du1 * dx2);
 
-	b3Vec3 dwudx;
-	dwudx[0] = inv_det * (dv1 - dv2);
-	dwudx[1] = inv_det * dv2;
-	dwudx[2] = -inv_det * dv1;
-
-	b3Vec3 dwvdx;
-	dwvdx[0] = inv_det * (du2 - du1);
-	dwvdx[1] = -inv_det * du2;
-	dwvdx[2] = inv_det * du1;
-
 	m_f1.SetZero();
 	m_f2.SetZero();
 	m_f3.SetZero();
@@ -118,9 +153,9 @@ void b3ShearForce::Apply(const b3ClothForceSolverData* data)
 		dCdx[i] = alpha * (dwudx[i] * wv + dwvdx[i] * wu);
 	}
 
-	if (m_ks > 0.0f)
+	if (m_ks > scalar(0))
 	{
-		float32 C = alpha * b3Dot(wu, wv);
+		scalar C = alpha * b3Dot(wu, wv);
 
 		// Force
 		b3Vec3 fs[3];
@@ -139,10 +174,9 @@ void b3ShearForce::Apply(const b3ClothForceSolverData* data)
 		{
 			for (u32 j = 0; j < 3; ++j)
 			{
-				//b3Mat33 d2Cxij = alpha * (dwudx[i] * dwvdx[j] + dwudx[j] * dwvdx[i]) * I;
-				//b3Mat33 Kij = -m_ks * (b3Outer(dCdx[i], dCdx[j]) + C * d2Cxij);
-				b3Mat33 Kij = -m_ks * b3Outer(dCdx[i], dCdx[j]);
-
+				b3Mat33 d2Cxij = alpha * (dwudx[i] * dwvdx[j] + dwudx[j] * dwvdx[i]) * I;
+				b3Mat33 Kij = -m_ks * (b3Outer(dCdx[i], dCdx[j]) + C * d2Cxij);
+				
 				K[i][j] = Kij;
 			}
 		}
@@ -160,11 +194,11 @@ void b3ShearForce::Apply(const b3ClothForceSolverData* data)
 		dfdx(i3, i3) += K[2][2];
 	}
 
-	if (m_kd > 0.0f)
+	if (m_kd > scalar(0))
 	{
 		b3Vec3 vs[3] = { v1, v2, v3 };
 
-		float32 dCdt = 0.0f;
+		scalar dCdt = scalar(0);
 		for (u32 i = 0; i < 3; ++i) 
 		{
 			dCdt += b3Dot(dCdx[i], vs[i]);

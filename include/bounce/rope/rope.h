@@ -28,19 +28,19 @@ struct b3RopeDef
 {
 	b3RopeDef()
 	{
-		vertices = NULL;
-		masses = NULL;
+		vertices = nullptr;
+		masses = nullptr;
 		count = 0;
 		gravity.SetZero();
-		linearDamping = 0.6f;
-		angularDamping = 0.6f;
+		linearDamping = scalar(0.6);
+		angularDamping = scalar(0.6);
 	}
 
 	//
 	b3Vec3* vertices;
 
 	//
-	float32* masses;
+	scalar* masses;
 
 	//
 	u32 count;
@@ -49,10 +49,10 @@ struct b3RopeDef
 	b3Vec3 gravity;
 
 	//
-	float32 linearDamping;
+	scalar linearDamping;
 
 	//
-	float32 angularDamping;
+	scalar angularDamping;
 };
 
 //
@@ -81,13 +81,13 @@ public:
 	}
 
 	//
-	void Step(float32 dt);
+	void Step(scalar dt);
 
 	//
 	void Draw() const;
 private:
 	//
-	float32 m_kd1, m_kd2;
+	scalar m_kd1, m_kd2;
 
 	//
 	b3Vec3 m_gravity;

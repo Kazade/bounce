@@ -5,7 +5,7 @@
 template<class T>
 inline void qhList<T>::PushFront(T* link)
 {
-	link->prev = NULL;
+	link->prev = nullptr;
 	link->next = head;
 	if (head)
 	{
@@ -33,8 +33,8 @@ inline T* qhList<T>::Remove(T* link)
 		head = link->next;
 	}
 
-	link->prev = NULL;
-	link->next = NULL;
+	link->prev = nullptr;
+	link->next = nullptr;
 
 	--count;
 	return next;

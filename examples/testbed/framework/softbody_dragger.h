@@ -44,18 +44,18 @@ public:
 	b3Vec3 GetPointB() const;
 private:
 	b3Ray3* m_ray;
-	float32 m_x;
-
 	b3SoftBody* m_body;
-	const b3SoftBodyMesh* m_mesh;
-	const b3SoftBodyMeshTetrahedron* m_tetrahedron;
-	u32 m_v1, m_v2, m_v3, m_v4;
-	float32 m_tu, m_tv, m_tw, m_tx;
+
+	bool m_isDragging;
+	scalar m_x;
+	scalar m_tu, m_tv, m_tw;
+	b3SoftBodyNode * m_n1, * m_n2, * m_n3;
+	b3SoftBodyNodeType m_t1, m_t2, m_t3;
 };
 
 inline bool b3SoftBodyDragger::IsDragging() const
 {
-	return m_tetrahedron != nullptr;
+	return m_isDragging;
 }
 
 #endif

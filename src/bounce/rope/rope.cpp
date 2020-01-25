@@ -38,8 +38,8 @@ struct b3RopeBody
 		b3Quat E = b3Conjugate(m_p);
 
 		b3Transform X;
-		X.rotation = b3QuatMat33(E);
-		X.position.SetZero();
+		X.rotation = E;
+		X.translation.SetZero();
 		return X;
 	}
 
@@ -48,7 +48,7 @@ struct b3RopeBody
 	// Body
 
 	//
-	float32 m_m, m_I;
+	scalar m_m, m_I;
 
 	// Joint
 
@@ -109,9 +109,9 @@ struct b3RopeBody
 b3Rope::b3Rope()
 {
 	m_gravity.SetZero();
-	m_kd1 = 0.0f;
-	m_kd2 = 0.0f;
-	m_links = NULL;
+	m_kd1 = scalar(0);
+	m_kd2 = scalar(0);
+	m_links = nullptr;
 	m_count = 0;
 }
 
@@ -134,11 +134,11 @@ void b3Rope::Initialize(const b3RopeDef& def)
 	{
 		b3RopeBody* b = m_links + i;
 		
-		float32 m = def.masses[i];
+		scalar m = def.masses[i];
 		
 		// Simplify r = 1
 		b->m_m = m;
-		b->m_I = m * 0.4f;
+		b->m_I = m * scalar(0.4);
 	}
 
 	m_v.SetZero();
@@ -146,8 +146,8 @@ void b3Rope::Initialize(const b3RopeDef& def)
 	m_w.SetZero();
 	m_q.SetIdentity();
 
-	m_links->m_X.rotation = b3QuatMat33(m_q);
-	m_links->m_X.position = m_p;
+	m_links->m_X.rotation = m_q;
+	m_links->m_X.translation = m_p;
 
 	for (u32 i = 1; i < m_count; ++i)
 	{
@@ -157,18 +157,18 @@ void b3Rope::Initialize(const b3RopeDef& def)
 		b3Vec3 p0 = def.vertices[i - 1];
 
 		b->m_X.rotation.SetIdentity();
-		b->m_X.position = p;
+		b->m_X.translation = p;
 
 		// Set the joint anchor to the parent body position to simulate a rope.
 		b3Transform X_J;
 		X_J.rotation.SetIdentity();
-		X_J.position = p0;
+		X_J.translation = p0;
 
 		b->m_X_i_J = b3MulT(X_J, b0->m_X);
 		
 		b->m_X_J_j = b3MulT(b->m_X, X_J);
 
-		b3Vec3 d = -b->m_X_J_j.position;
+		b3Vec3 d = -b->m_X_J_j.translation;
 
 		b3Vec3 w1(b3Vec3_x);
 		b3Vec3 v1 = b3Cross(w1, d);
@@ -193,7 +193,7 @@ void b3Rope::Initialize(const b3RopeDef& def)
 	}
 }
 
-void b3Rope::Step(float32 h)
+void b3Rope::Step(scalar h)
 {
 	if (m_count == 0)
 	{
@@ -208,10 +208,10 @@ void b3Rope::Step(float32 h)
 		b->m_invX = b3Inverse(b->m_X);
 
 		// Convert global velocity to local velocity.
-		b->m_sv.w = b->m_invX.rotation * m_w;
-		b->m_sv.v = b->m_invX.rotation * m_v;
+		b->m_sv.w = b3Mul(b->m_invX.rotation, m_w);
+		b->m_sv.v = b3Mul(b->m_invX.rotation, m_v);
 
-		if (b->m_m == 0.0f)
+		if (b->m_m == scalar(0))
 		{
 			b->m_I_A.SetZero();
 			b->m_F_A.SetZero();
@@ -225,7 +225,7 @@ void b3Rope::Step(float32 h)
 
 			// Convert global force to local force.
 			b3ForceVec F;
-			F.n = b->m_invX.rotation * m_gravity;
+			F.n = b3Mul(b->m_invX.rotation, m_gravity);
 			F.f.SetZero();
 			
 			// Damping force
@@ -252,8 +252,8 @@ void b3Rope::Step(float32 h)
 		// Flip the translation because r should be the vector 
 		// from the center of mass of the parent link to the 
 		// center of mass of this link in this link's frame.
-		link->m_X_i_j.E = X_i_j.rotation;
-		link->m_X_i_j.r = -X_i_j.position;
+		link->m_X_i_j.E = b3QuatMat33(X_i_j.rotation);
+		link->m_X_i_j.r = -X_i_j.translation;
 
 		b3MotionVec joint_v = link->v_J();
 		
@@ -277,7 +277,7 @@ void b3Rope::Step(float32 h)
 
 		// Convert global force to local force.
 		b3ForceVec F;
-		F.n = link->m_invX.rotation * m_gravity;
+		F.n = b3Mul(link->m_invX.rotation, m_gravity);
 		F.f.SetZero();
 				
 		link->m_I_A.SetLocalInertia(link->m_m, I);
@@ -360,7 +360,7 @@ void b3Rope::Step(float32 h)
 	{
 		b3RopeBody* body = m_links;
 
-		if (body->m_m == 0.0f)
+		if (body->m_m == scalar(0))
 		{
 			body->m_sa.SetZero();
 		}
@@ -369,8 +369,8 @@ void b3Rope::Step(float32 h)
 			// a = I^-1 * F 
 			if (m_count == 1)
 			{
-				float32 inv_m = body->m_m > 0.0f ? 1.0f / body->m_m : 0.0f;
-				float32 invI = body->m_I > 0.0f ? 1.0f / body->m_I : 0.0f;
+				scalar inv_m = body->m_m > scalar(0) ? scalar(1) / body->m_m : scalar(0);
+				scalar invI = body->m_I > scalar(0) ? scalar(1) / body->m_I : scalar(0);
 
 				body->m_sa.w = -invI * body->m_F_A.f;
 				body->m_sa.v = -inv_m * body->m_F_A.n;
@@ -409,7 +409,7 @@ void b3Rope::Step(float32 h)
 	}
 	
 	// Integrate
-	float32 max_w = 8.0f * 2.0f * B3_PI;
+	scalar max_w = scalar(8) * scalar(2) * B3_PI;
 	b3Vec3 min(-max_w, -max_w, -max_w);
 	b3Vec3 max(max_w, max_w, max_w);
 
@@ -427,8 +427,8 @@ void b3Rope::Step(float32 h)
 		// Integrate velocity		
 		m_p += h * m_v;
 
-		b3Quat q_w(m_w.x, m_w.y, m_w.z, 0.0f);
-		b3Quat q_dot = 0.5f * q_w * m_q;
+		b3Quat q_w(m_w.x, m_w.y, m_w.z, scalar(0));
+		b3Quat q_dot = scalar(0.5) * q_w * m_q;
 		m_q += h * q_dot;
 		m_q.Normalize();
 	}
@@ -444,16 +444,16 @@ void b3Rope::Step(float32 h)
 		link->m_v = b3Clamp(link->m_v, min, max);
 
 		// Integrate velocity		
-		b3Quat q_w(link->m_v.x, link->m_v.y, link->m_v.z, 0.0f);
-		b3Quat q_dot = 0.5f * link->m_p * q_w;
+		b3Quat q_w(link->m_v.x, link->m_v.y, link->m_v.z, scalar(0));
+		b3Quat q_dot = scalar(0.5) * link->m_p * q_w;
 
 		link->m_p += h * q_dot;
 		link->m_p.Normalize();
 	}
 
 	// Propagate down transforms
-	m_links->m_X.rotation = b3QuatMat33(m_q);
-	m_links->m_X.position = m_p;
+	m_links->m_X.rotation = m_q;
+	m_links->m_X.translation = m_p;
 	m_links->m_invX = b3Inverse(m_links->m_X);
 
 	for (u32 j = 1; j < m_count; ++j)
@@ -480,7 +480,7 @@ void b3Rope::Draw() const
 		b3RopeBody* b = m_links;
 		
 		b3Draw_draw->DrawTransform(b->m_X);
-		b3Draw_draw->DrawSolidSphere(b->m_X.position, 0.2f, b->m_X.rotation, b3Color_green);
+		b3Draw_draw->DrawSolidSphere(b->m_X.translation, scalar(0.2), b->m_X.rotation, b3Color_green);
 	}
 
 	for (u32 i = 1; i < m_count; ++i)
@@ -492,12 +492,12 @@ void b3Rope::Draw() const
 		b3Transform X_J0 = b->m_X * b->m_X_J_j;
 		
 		b3Draw_draw->DrawTransform(X_J);
-		b3Draw_draw->DrawPoint(X_J.position, 5.0f, b3Color_red);
+		b3Draw_draw->DrawPoint(X_J.translation, scalar(5), b3Color_red);
 
 		b3Draw_draw->DrawTransform(X_J0);
-		b3Draw_draw->DrawPoint(X_J0.position, 5.0f, b3Color_red);
+		b3Draw_draw->DrawPoint(X_J0.translation, scalar(5), b3Color_red);
 
 		b3Draw_draw->DrawTransform(b->m_X);
-		b3Draw_draw->DrawSolidSphere(b->m_X.position, 0.2f, b->m_X.rotation, b3Color_green);
+		b3Draw_draw->DrawSolidSphere(b->m_X.translation, scalar(0.2), b->m_X.rotation, b3Color_green);
 	}
 }

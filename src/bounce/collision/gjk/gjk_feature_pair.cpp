@@ -202,6 +202,29 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache)
 			return pair;
 		}
 
+		if (uniqueCount1 == 3 && uniqueCount2 == 3)
+		{
+			// FF
+			b3GJKFeaturePair pair;
+			pair.count1 = 3;
+			pair.count2 = 3;
+			pair.index1[0] = cache.index1[0];
+			pair.index1[1] = cache.index1[1];
+			pair.index1[2] = cache.index1[2];
+			pair.index2[0] = cache.index2[0];
+			pair.index2[1] = cache.index2[1];
+			pair.index2[2] = cache.index2[2];
+
+			B3_ASSERT(pair.index1[0] != pair.index1[1]);
+			B3_ASSERT(pair.index1[1] != pair.index1[2]);
+			B3_ASSERT(pair.index1[2] != pair.index1[0]);
+
+			B3_ASSERT(pair.index2[0] != pair.index2[1]);
+			B3_ASSERT(pair.index2[1] != pair.index2[2]);
+			B3_ASSERT(pair.index2[2] != pair.index2[0]);
+			return pair;
+		}
+
 		B3_ASSERT(false);
 	}
 

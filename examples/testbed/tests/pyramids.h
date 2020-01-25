@@ -48,15 +48,15 @@ public:
 
 		// shift to ground center
 		b3Vec3 translation;
-		translation.x = -0.5f * float32(e_count - 1) * 4.0f * boxSize.x;
+		translation.x = -0.5f * scalar(e_count - 1) * 4.0f * boxSize.x;
 		translation.y = 1.5f * boxSize.y;
-		translation.z = -0.5f * float32(e_depthCount) * boxSize.z;
+		translation.z = -0.5f * scalar(e_depthCount) * boxSize.z;
 		
 		for (u32 i = 0; i < e_count; ++i)
 		{
 			// reset 
 			translation.y = 1.5f * boxSize.y;
-			translation.z = -0.5f * float32(e_depthCount) * boxSize.z;
+			translation.z = -0.5f * scalar(e_depthCount) * boxSize.z;
 
 			for (u32 j = 0; j < e_depthCount; ++j)
 			{
@@ -66,7 +66,7 @@ public:
 					bd.type = e_dynamicBody;
 					bd.position.x = 0.0f;
 					bd.position.y = 0.0f;
-					bd.position.z = 1.05f * float32(k) * boxSize.z;
+					bd.position.z = 1.05f * scalar(k) * boxSize.z;
 					bd.position += translation;
 
 					b3Body* body = m_world.CreateBody(bd);

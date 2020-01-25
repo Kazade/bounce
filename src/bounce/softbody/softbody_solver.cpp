@@ -17,51 +17,62 @@
 */
 
 #include <bounce/softbody/softbody_solver.h>
-#include <bounce/softbody/softbody_mesh.h>
-#include <bounce/softbody/softbody_node.h>
 #include <bounce/softbody/softbody.h>
+#include <bounce/softbody/softbody_node.h>
+#include <bounce/softbody/softbody_mesh.h>
 #include <bounce/softbody/softbody_force_solver.h>
 #include <bounce/softbody/contacts/softbody_contact_solver.h>
-#include <bounce/dynamics/body.h>
-#include <bounce/dynamics/shapes/shape.h>
+#include <bounce/softbody/joints/softbody_anchor.h>
 
 b3SoftBodySolver::b3SoftBodySolver(const b3SoftBodySolverDef& def)
 {
 	m_body = def.body;
-	m_allocator = &m_body->m_stackAllocator;
+	m_stack = &m_body->m_stackAllocator;
 	m_mesh = m_body->m_mesh;
 	m_nodes = m_body->m_nodes;
 	m_elements = m_body->m_elements;
-	m_bodyContactCapacity = m_body->m_contactManager.m_nodeBodyContactList.m_count;
-	m_bodyContactCount = 0;
-	m_bodyContacts = (b3NodeBodyContact**)m_allocator->Allocate(m_bodyContactCapacity * sizeof(b3NodeBodyContact*));
+	
+	m_shapeContactCapacity = m_body->m_contactManager.m_sphereAndShapeContactList.m_count;
+	m_shapeContactCount = 0;
+	m_shapeContacts = (b3SoftBodySphereAndShapeContact**)m_stack->Allocate(m_shapeContactCapacity * sizeof(b3SoftBodySphereAndShapeContact*));
+	
+	m_anchorCapacity = m_body->m_anchorList.m_count;
+	m_anchorCount = 0;
+	m_anchors = (b3SoftBodyAnchor**)m_stack->Allocate(m_anchorCapacity * sizeof(b3SoftBodyAnchor*));
 }
 
 b3SoftBodySolver::~b3SoftBodySolver()
 {
-	m_allocator->Free(m_bodyContacts);
+	m_stack->Free(m_anchors);
+	m_stack->Free(m_shapeContacts);
 }
 
-void b3SoftBodySolver::Add(b3NodeBodyContact* c)
+void b3SoftBodySolver::Add(b3SoftBodySphereAndShapeContact* c)
 {
-	m_bodyContacts[m_bodyContactCount++] = c;
+	m_shapeContacts[m_shapeContactCount++] = c;
 }
 
-void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations)
+void b3SoftBodySolver::Add(b3SoftBodyAnchor* a)
+{
+	m_anchors[m_anchorCount++] = a;
+}
+
+void b3SoftBodySolver::Solve(const b3SoftBodyTimeStep& step, const b3Vec3& gravity)
 {
 	{
 		// Solve internal dynamics
 		b3SoftBodyForceSolverDef forceSolverDef;
+		forceSolverDef.step = step;
 		forceSolverDef.body = m_body;
 
 		b3SoftBodyForceSolver forceSolver(forceSolverDef);
 
-		forceSolver.Solve(dt, gravity);
+		forceSolver.Solve(gravity);
 	}
 
 	// Copy node state to state buffer
-	b3Vec3* positions = (b3Vec3*)m_allocator->Allocate(m_mesh->vertexCount * sizeof(b3Vec3));
-	b3Vec3* velocities = (b3Vec3*)m_allocator->Allocate(m_mesh->vertexCount * sizeof(b3Vec3));
+	b3Vec3* positions = (b3Vec3*)m_stack->Allocate(m_mesh->vertexCount * sizeof(b3Vec3));
+	b3Vec3* velocities = (b3Vec3*)m_stack->Allocate(m_mesh->vertexCount * sizeof(b3Vec3));
 
 	for (u32 i = 0; i < m_mesh->vertexCount; ++i)
 	{
@@ -69,32 +80,53 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 		velocities[i] = m_nodes[i].m_velocity;
 	}
 
+	b3SoftBodySolverData solverData;
+	solverData.step = step;
+	solverData.positions = positions;
+	solverData.velocities = velocities;
+
 	{
 		// Solve constraints
 		b3SoftBodyContactSolverDef contactSolverDef;
-		contactSolverDef.allocator = m_allocator;
+		contactSolverDef.step = step;
+		contactSolverDef.allocator = m_stack;
 		contactSolverDef.positions = positions;
 		contactSolverDef.velocities = velocities;
-		contactSolverDef.bodyContactCount = m_bodyContactCount;
-		contactSolverDef.bodyContacts = m_bodyContacts;
+		contactSolverDef.shapeContactCount = m_shapeContactCount;
+		contactSolverDef.shapeContacts = m_shapeContacts;
 
 		b3SoftBodyContactSolver contactSolver(contactSolverDef);
 
 		{
 			// Inititalize constraints
-			contactSolver.InitializeBodyContactConstraints();
+			contactSolver.InitializeShapeContactConstraints();
+
+			for (u32 i = 0; i < m_anchorCount; ++i)
+			{
+				m_anchors[i]->InitializeConstraints(&solverData);
+			}
 		}
 
 		{
 			// Warm-start velocity constraint solver
 			contactSolver.WarmStart();
+			
+			for (u32 i = 0; i < m_anchorCount; ++i)
+			{
+				m_anchors[i]->WarmStart(&solverData);
+			}
 		}
 
 		{
 			// Solve velocity constraints
-			for (u32 i = 0; i < velocityIterations; ++i)
+			for (u32 i = 0; i < step.velocityIterations; ++i)
 			{
-				contactSolver.SolveBodyContactVelocityConstraints();
+				contactSolver.SolveShapeContactVelocityConstraints();
+				
+				for (u32 j = 0; j < m_anchorCount; ++j)
+				{
+					m_anchors[j]->SolveVelocityConstraints(&solverData);
+				}
 			}
 		}
 
@@ -104,7 +136,7 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 		}
 
 		// Integrate velocities
-		float32 h = dt;
+		scalar h = step.dt;
 		for (u32 i = 0; i < m_mesh->vertexCount; ++i)
 		{
 			positions[i] += h * velocities[i];
@@ -113,33 +145,24 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 		// Solve position constraints
 		{
 			bool positionSolved = false;
-			for (u32 i = 0; i < positionIterations; ++i)
+			for (u32 i = 0; i < step.positionIterations; ++i)
 			{
-				bool bodyContactsSolved = contactSolver.SolveBodyContactPositionConstraints();
-
-				if (bodyContactsSolved)
+				bool bodyContactsSolved = contactSolver.SolveShapeContactPositionConstraints();
+				
+				bool anchorsSolved = false;
+				for (u32 j = 0; j < m_anchorCount; ++j)
 				{
-					positionSolved = true;
+					bool anchorSolved = m_anchors[j]->SolvePositionConstraints(&solverData);
+					anchorsSolved = anchorsSolved && anchorSolved;
+				}
+
+				positionSolved = bodyContactsSolved && anchorsSolved;
+
+				if (positionSolved)
+				{
 					break;
 				}
 			}
-		}
-
-		// Synchronize bodies
-		for (u32 i = 0; i < m_bodyContactCount; ++i)
-		{
-			b3Body* body = m_bodyContacts[i]->m_s2->GetBody();
-
-			if (body->GetType() == e_staticBody)
-			{
-				continue;
-			}
-
-			body->SynchronizeTransform();
-
-			body->m_worldInvI = b3RotateToFrame(body->m_invI, body->m_xf.rotation);
-
-			body->SynchronizeShapes();
 		}
 	}
 
@@ -150,6 +173,6 @@ void b3SoftBodySolver::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIter
 		m_nodes[i].m_velocity = velocities[i];
 	}
 
-	m_allocator->Free(velocities);
-	m_allocator->Free(positions);
+	m_stack->Free(velocities);
+	m_stack->Free(positions);
 }

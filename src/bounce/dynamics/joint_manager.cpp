@@ -33,7 +33,7 @@ b3Joint* b3JointManager::Create(const b3JointDef* def)
 	B3_ASSERT(bodyA != bodyB);
 	if (bodyA == bodyB)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	// Allocate the new joint.

@@ -134,7 +134,7 @@ struct b3Mat43
 };
 
 // a * 3x4 = 3x4
-inline b3Mat34 operator*(float32 s, const b3Mat34& A)
+inline b3Mat34 operator*(scalar s, const b3Mat34& A)
 {
 	return b3Mat34(s * A.x, s * A.y, s * A.z, s * A.w);
 }
@@ -152,7 +152,7 @@ inline b3Vec3 operator*(const b3Mat34& A, const b3Vec4& v)
 }
 
 // 1x3 * 3x1 = 1x1
-inline float32 operator*(const b3Vec3& A, const b3Vec3& B)
+inline scalar operator*(const b3Vec3& A, const b3Vec3& B)
 {
 	return A.x * B.x + A.y * B.y + A.z * B.z;
 }
@@ -181,13 +181,13 @@ inline b3Vec3 operator*(const b3Mat32& A, const b3Vec2& B)
 	return B.x * A.x + B.y * A.y;
 }
 
-// 2x3 * 2x1 = 2x1
+// 2x3 * 3x1 = 2x1
 inline b3Vec2 operator*(const b3Mat23& A, const b3Vec3& B)
 {
 	return B.x * A.x + B.y * A.y + B.z * A.z;
 }
 
-// 2x3 * 2x2 = 2x2
+// 2x3 * 3x2 = 2x2
 inline b3Mat22 operator*(const b3Mat23& A, const b3Mat32& B)
 {
 	return b3Mat22(A * B.x, A * B.y);
@@ -223,7 +223,7 @@ inline b3Mat23 operator*(const b3Mat24& A, const b3Mat43& B)
 	return b3Mat23(A * B.x, A * B.y, A * B.z);
 }
 
-// 2x4 * 2x4 = 2x4
+// 2x4 * 4x4 = 2x4
 inline b3Mat24 operator*(const b3Mat24& A, const b3Mat44& B)
 {
 	return b3Mat24(A * B.x, A * B.y, A * B.z, A * B.w);

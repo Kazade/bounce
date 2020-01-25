@@ -24,15 +24,11 @@ class Distance : public Test
 public:
 	Distance()
 	{	
-		m_xfA.SetIdentity();
-		m_xfA.position.Set(-5.0f, 0.0f, 0.0f);
+		m_xfA.translation.Set(-5.0f, 0.0f, 0.0f);
 		m_xfA.rotation.SetIdentity();
-		m_shapeA.m_centers[0].Set(0.0f, -2.0f, 0.0f);
-		m_shapeA.m_centers[1].Set(0.0f, 2.0f, 0.0f);
-		m_shapeA.m_radius = 1.0f;
+		m_shapeA.m_hull = &b3BoxHull_identity;
 
-		m_xfB.SetIdentity();
-		m_xfB.position.Set(5.0f, 0.0f, 0.0f);
+		m_xfB.translation.Set(5.0f, 0.0f, 0.0f);
 		m_xfB.rotation.SetIdentity();
 		m_shapeB.m_hull = &b3BoxHull_identity;
 
@@ -79,46 +75,43 @@ public:
 	{
 		if (key == GLFW_KEY_LEFT)
 		{
-			m_xfB.position.x -= 0.05f;
+			m_xfB.translation.x -= 0.05f;
 		}
 		
 		if (key == GLFW_KEY_RIGHT)
 		{
-			m_xfB.position.x += 0.05f;
+			m_xfB.translation.x += 0.05f;
 		}
 		
 		if (key == GLFW_KEY_UP)
 		{
-			m_xfB.position.y += 0.05f;
+			m_xfB.translation.y += 0.05f;
 		}
 
 		if (key == GLFW_KEY_DOWN)
 		{
-			m_xfB.position.y -= 0.05f;
+			m_xfB.translation.y -= 0.05f;
 		}
 
 		if (key == GLFW_KEY_X)
 		{
-			b3Quat qx(b3Vec3(1.0f, 0.0f, 0.0f), 0.05f * B3_PI);
-			b3Mat33 xfx = b3QuatMat33(qx);
+			b3Quat qx = b3QuatRotationX(0.05f * B3_PI);
 
-			m_xfB.rotation = m_xfB.rotation * xfx;
+			m_xfB.rotation = m_xfB.rotation * qx;
 		}
 		
 		if (key == GLFW_KEY_Y)
 		{
-			b3Quat qy(b3Vec3(0.0f, 1.0f, 0.0f), 0.05f * B3_PI);
-			b3Mat33 xfy = b3QuatMat33(qy);
+			b3Quat qy = b3QuatRotationY(0.05f * B3_PI);
 
-			m_xfB.rotation = m_xfB.rotation * xfy;
+			m_xfB.rotation = m_xfB.rotation * qy;
 		}
 
 		if (key == GLFW_KEY_Z)
 		{
-			b3Quat qy(b3Vec3(0.0f, 0.0f, 1.0f), 0.05f * B3_PI);
-			b3Mat33 xfz = b3QuatMat33(qy);
+			b3Quat qz = b3QuatRotationZ(0.05f * B3_PI);
 
-			m_xfB.rotation = m_xfB.rotation * xfz;
+			m_xfB.rotation = m_xfB.rotation * qz;
 		}
 	}
 
@@ -127,7 +120,7 @@ public:
 		return new Distance();
 	}
 
-	b3CapsuleShape m_shapeA;
+	b3HullShape m_shapeA;
 	b3Transform m_xfA;
 	b3ShapeGJKProxy m_proxyA;
 

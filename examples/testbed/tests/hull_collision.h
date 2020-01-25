@@ -29,7 +29,7 @@ public:
 
 	HullCollision()
 	{
-		m_xfA.position.Set(0.0f, 1.5f, 0.0f);
+		m_xfA.translation.Set(0.0f, 1.5f, 0.0f);
 		m_xfA.rotation.SetIdentity();
 
 		m_xfB.SetIdentity();
@@ -53,9 +53,9 @@ public:
 	{
 		for (u32 i = 0; i < e_count; ++i)
 		{
-			float32 x = 3.0f * RandomFloat(-1.0f, 1.0f);
-			float32 y = 3.0f * RandomFloat(-1.0f, 1.0f);
-			float32 z = 3.0f * RandomFloat(-1.0f, 1.0f);
+			float x = 3.0f * RandomFloat(-1.0f, 1.0f);
+			float y = 3.0f * RandomFloat(-1.0f, 1.0f);
+			float z = 3.0f * RandomFloat(-1.0f, 1.0f);
 
 			x = b3Clamp(x, -2.5f, 2.5f);
 			y = b3Clamp(y, -2.5f, 2.5f);
@@ -68,9 +68,9 @@ public:
 
 		for (u32 i = 0; i < e_count; ++i)
 		{
-			float32 x = 3.0f * RandomFloat(-1.0f, 1.0f);
-			float32 y = 3.0f * RandomFloat(-1.0f, 1.0f);
-			float32 z = 3.0f * RandomFloat(-1.0f, 1.0f);
+			float x = 3.0f * RandomFloat(-1.0f, 1.0f);
+			float y = 3.0f * RandomFloat(-1.0f, 1.0f);
+			float z = 3.0f * RandomFloat(-1.0f, 1.0f);
 
 			x = b3Clamp(x, -2.5f, 2.5f);
 			y = b3Clamp(y, -2.5f, 2.5f);
@@ -98,7 +98,7 @@ public:
 		sB.m_hull = &hull2;
 		m_shapeB = &sB;
 
-		g_draw->DrawString(b3Color_white, "G - Generate a random convex hull pair");
+		g_draw->DrawString(b3Color_white, "G - Generate random convex hulls");
 		
 		Collide::Step();
 	}

@@ -21,21 +21,27 @@
 #include <bounce/dynamics/island.h>
 #include <bounce/dynamics/world_listeners.h>
 #include <bounce/dynamics/shapes/shape.h>
+#include <bounce/dynamics/shapes/mesh_shape.h>
 #include <bounce/dynamics/contacts/contact.h>
 #include <bounce/dynamics/joints/joint.h>
 #include <bounce/dynamics/time_step.h>
+#include <bounce/dynamics/contacts/collide/collide.h>
+#include <bounce/collision/time_of_impact.h>
+#include <bounce/collision/gjk/gjk.h>
+#include <bounce/collision/gjk/gjk_proxy.h>
+#include <bounce/collision/shapes/mesh.h>
 
 extern u32 b3_allocCalls, b3_maxAllocCalls;
 extern u32 b3_convexCalls, b3_convexCacheHits;
 extern u32 b3_gjkCalls, b3_gjkIters, b3_gjkMaxIters;
 extern bool b3_convexCache;
 
-b3World::b3World() : 
+b3World::b3World() :
 	m_bodyBlocks(sizeof(b3Body))
 {
 	b3_allocCalls = 0;
 	b3_maxAllocCalls = 0;
-	
+
 	b3_gjkCalls = 0;
 	b3_gjkIters = 0;
 
@@ -43,11 +49,11 @@ b3World::b3World() :
 	b3_convexCacheHits = 0;
 
 	b3_convexCache = true;
-	
+
 	m_flags = e_clearForcesFlag;
 	m_sleeping = false;
 	m_warmStarting = true;
-	m_gravity.Set(0.0f, -9.8f, 0.0f);
+	m_gravity.Set(scalar(0), scalar(-9.8), scalar(0));
 }
 
 b3World::~b3World()
@@ -60,7 +66,7 @@ b3World::~b3World()
 		b->DestroyJoints();
 		b = b->m_next;
 	}
-	
+
 	b3_allocCalls = 0;
 	b3_maxAllocCalls = 0;
 
@@ -87,7 +93,7 @@ b3Body* b3World::CreateBody(const b3BodyDef& def)
 {
 	void* mem = m_bodyBlocks.Allocate();
 	b3Body* b = new(mem) b3Body(def, this);
-	m_bodyList.PushFront(b);	
+	m_bodyList.PushFront(b);
 	return b;
 }
 
@@ -96,7 +102,7 @@ void b3World::DestroyBody(b3Body* b)
 	b->DestroyShapes();
 	b->DestroyJoints();
 	b->DestroyContacts();
-	
+
 	m_bodyList.Remove(b);
 	b->~b3Body();
 	m_bodyBlocks.Free(b);
@@ -112,13 +118,13 @@ void b3World::DestroyJoint(b3Joint* j)
 	m_jointMan.Destroy(j);
 }
 
-void b3World::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
+void b3World::Step(scalar dt, u32 velocityIterations, u32 positionIterations)
 {
 	B3_PROFILE("Step");
 
 	// Clear statistics
 	b3_allocCalls = 0;
-	
+
 	b3_convexCalls = 0;
 	b3_convexCacheHits = 0;
 
@@ -137,16 +143,16 @@ void b3World::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 	m_contactMan.UpdateContacts();
 
 	// Integrate velocities, clear forces and torques, solve constraints, integrate positions.
-	if (dt > 0.0f)
+	if (dt > scalar(0))
 	{
 		Solve(dt, velocityIterations, positionIterations);
 	}
 }
 
-void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
+void b3World::Solve(scalar dt, u32 velocityIterations, u32 positionIterations)
 {
 	B3_PROFILE("Solve");
-	
+
 	// Clear all visited flags for the depth first search.
 	for (b3Body* b = m_bodyList.m_head; b; b = b->m_next)
 	{
@@ -170,11 +176,11 @@ void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
 	b3Vec3 externalForce = m_gravity;
 
 	// Create a worst case island.
-	b3Island island(&m_stackAllocator, m_bodyList.m_count, m_contactMan.m_contactList.m_count, m_jointMan.m_jointList.m_count);
+	b3Island island(&m_stackAllocator, m_bodyList.m_count, m_contactMan.m_contactList.m_count, m_jointMan.m_jointList.m_count, m_contactMan.m_contactListener);
 
 	// Build and simulate awake islands.
 	u32 stackSize = m_bodyList.m_count;
-	b3Body** stack = (b3Body**)m_stackAllocator.Allocate(stackSize * sizeof(b3Body*));
+	b3Body** stack = (b3Body * *)m_stackAllocator.Allocate(stackSize * sizeof(b3Body*));
 	for (b3Body* seed = m_bodyList.m_head; seed; seed = seed->m_next)
 	{
 		// The seed must not be on an island.
@@ -184,7 +190,7 @@ void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
 		}
 
 		// Bodies that are sleeping are not solved for performance.
-		if (!(seed->m_flags & b3Body::e_awakeFlag))
+		if (seed->IsAwake() == false)
 		{
 			continue;
 		}
@@ -206,7 +212,7 @@ void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
 			// Add this body to the island.
 			b3Body* b = stack[--stackCount];
 			island.Add(b);
-			
+
 			// This body must be awake.
 			b->m_flags |= b3Body::e_awakeFlag;
 
@@ -235,12 +241,27 @@ void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
 						continue;
 					}
 
+					// The contact must have at least one dynamic body.
+					if (contact->HasDynamicBody() == false)
+					{
+						continue;
+					}
+
 					// A sensor can't respond to contacts. 
 					bool sensorA = contact->GetShapeA()->m_isSensor;
 					bool sensorB = contact->GetShapeB()->m_isSensor;
 					if (sensorA || sensorB)
 					{
 						continue;
+					}
+
+					// Does a contact filter prevent the contact response?
+					if (m_contactMan.m_contactFilter)
+					{
+						if (m_contactMan.m_contactFilter->ShouldRespond(contact->GetShapeA(), contact->GetShapeB()) == false)
+						{
+							continue;
+						}
 					}
 
 					// Add contact to the island and mark it.
@@ -294,7 +315,7 @@ void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
 
 		// Integrate velocities, clear forces and torques, solve constraints, integrate positions.
 		island.Solve(externalForce, dt, velocityIterations, positionIterations, islandFlags);
-		
+
 		// Allow static bodies to participate in other islands.
 		for (u32 i = 0; i < island.m_bodyCount; ++i)
 		{
@@ -338,12 +359,19 @@ void b3World::Solve(float32 dt, u32 velocityIterations, u32 positionIterations)
 
 struct b3ShapeRayCastCallback
 {
-	float32 Report(const b3RayCastInput& input, u32 proxyId)
+	scalar Report(const b3RayCastInput& input, u32 proxyId)
 	{
 		// Get shape associated with the proxy.
 		void* userData = broadPhase->GetUserData(proxyId);
 		b3Shape* shape = (b3Shape*)userData;
-		
+
+		// Does a ray-cast filter prevents the ray-cast?
+		if (filter->ShouldRayCast(shape) == false)
+		{
+			// Continue search from where we stopped.
+			return input.maxFraction;
+		}
+
 		// Calculate transformation from shape local space to world space.
 		b3Transform xf = shape->GetBody()->GetTransform();
 
@@ -352,10 +380,10 @@ struct b3ShapeRayCastCallback
 		if (hit)
 		{
 			// Ray hits shape.
-			float32 fraction = output.fraction;
-			float32 w1 = 1.0f - fraction;
-			float32 w2 = fraction;
-			
+			scalar fraction = output.fraction;
+			scalar w1 = scalar(1) - fraction;
+			scalar w2 = fraction;
+
 			b3Vec3 point = w1 * input.p1 + w2 * input.p2;
 			b3Vec3 normal = output.normal;
 
@@ -368,29 +396,38 @@ struct b3ShapeRayCastCallback
 	}
 
 	b3RayCastListener* listener;
+	b3RayCastFilter* filter;
 	const b3BroadPhase* broadPhase;
 };
 
-void b3World::RayCast(b3RayCastListener* listener, const b3Vec3& p1, const b3Vec3& p2) const
+void b3World::RayCast(b3RayCastListener* listener, b3RayCastFilter* filter, const b3Vec3& p1, const b3Vec3& p2) const
 {
 	b3RayCastInput input;
 	input.p1 = p1;
 	input.p2 = p2;
-	input.maxFraction = 1.0f;
-	
+	input.maxFraction = scalar(1);
+
 	b3ShapeRayCastCallback callback;
 	callback.listener = listener;
+	callback.filter = filter;
 	callback.broadPhase = &m_contactMan.m_broadPhase;
 	m_contactMan.m_broadPhase.RayCast(&callback, input);
 }
 
 struct b3RayCastSingleShapeCallback
 {
-	float32 Report(const b3RayCastInput& input, u32 proxyId)
+	scalar Report(const b3RayCastInput& input, u32 proxyId)
 	{
 		// Get shape associated with the proxy.
 		void* userData = broadPhase->GetUserData(proxyId);
 		b3Shape* shape = (b3Shape*)userData;
+
+		// Does a ray-cast filter prevents the ray-cast?
+		if (filter->ShouldRayCast(shape) == false)
+		{
+			// Continue search from where we stopped.
+			return input.maxFraction;
+		}
 
 		// Get map from shape local space to world space.
 		b3Transform xf = shape->GetBody()->GetTransform();
@@ -412,41 +449,400 @@ struct b3RayCastSingleShapeCallback
 	}
 
 	b3Shape* shape0;
-	b3RayCastOutput output0; 
+	b3RayCastOutput output0;
 	const b3BroadPhase* broadPhase;
+	b3RayCastFilter* filter;
 };
 
-bool b3World::RayCastSingle(b3RayCastSingleOutput* output, const b3Vec3& p1, const b3Vec3& p2) const
+bool b3World::RayCastSingle(b3RayCastSingleOutput* output, b3RayCastFilter* filter, const b3Vec3& p1, const b3Vec3& p2) const
 {
 	b3RayCastInput input;
 	input.p1 = p1;
 	input.p2 = p2;
-	input.maxFraction = 1.0f;
+	input.maxFraction = scalar(1);
 
 	b3RayCastSingleShapeCallback callback;
-	callback.shape0 = NULL;
-	callback.output0.fraction = B3_MAX_FLOAT;
+	callback.shape0 = nullptr;
+	callback.output0.fraction = B3_MAX_SCALAR;
 	callback.broadPhase = &m_contactMan.m_broadPhase;
-	
+	callback.filter = filter;
+
 	// Perform the ray cast.
 	m_contactMan.m_broadPhase.RayCast(&callback, input);
 
 	if (callback.shape0)
 	{
 		// Ray hits closest shape.
-		float32 fraction = callback.output0.fraction;
-		b3Vec3 point = (1.0f - fraction) * input.p1 + fraction * input.p2;
+		scalar fraction = callback.output0.fraction;
+		b3Vec3 point = (scalar(1) - fraction) * input.p1 + fraction * input.p2;
 		b3Vec3 normal = callback.output0.normal;
 
 		output->shape = callback.shape0;
 		output->point = point;
 		output->normal = normal;
 		output->fraction = fraction;
-		
+
 		return true;
 	}
-	
+
 	return false;
+}
+
+struct b3ConvexCastQueryCallback
+{
+	struct MeshCallback
+	{
+		bool Report(u32 proxyId)
+		{
+			u32 triangleIndex = callback->meshShapeB->m_mesh->tree.GetUserData(proxyId);
+
+			b3Body* bodyB = callback->meshShapeB->GetBody();
+			b3Transform xfB = bodyB->GetTransform();
+			b3ShapeGJKProxy proxyB(callback->meshShapeB, triangleIndex);
+
+			b3TOIOutput toi = b3TimeOfImpact(callback->xfA, *callback->proxyA, callback->dA, xfB, proxyB, b3Vec3_zero);
+
+			b3TOIOutput::State state = toi.state;
+			scalar fraction = toi.t;
+
+			if (state == b3TOIOutput::e_touching)
+			{
+				if (fraction > callback->maxFraction)
+				{
+					return true;
+				}
+
+				if (fraction < callback->fraction0)
+				{
+					callback->fraction0 = fraction;
+					callback->shape0 = callback->meshShapeB;
+					callback->childIndex0 = triangleIndex;
+				}
+
+				if (callback->listener)
+				{
+					b3Transform xf;
+					xf.rotation = callback->xfA.rotation;
+					xf.translation = callback->xfA.translation + fraction * callback->dA;
+
+					b3Vec3 point, normal;
+					callback->Evaluate(&point, &normal, xf, *callback->proxyA, xfB, proxyB);
+
+					callback->maxFraction = callback->listener->ReportShape(callback->meshShapeB, point, normal, fraction);
+					if (callback->maxFraction == scalar(0))
+					{
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			return true;
+		}
+
+		b3ConvexCastQueryCallback* callback;
+	};
+
+	bool Report(u32 proxyId)
+	{
+		void* userData = broadPhase->GetUserData(proxyId);
+		b3Shape* shapeB = (b3Shape*)userData;
+
+		if (filter->ShouldConvexCast(shapeB) == false)
+		{
+			return true;
+		}
+
+		if (shapeB->GetType() == e_sdfShape)
+		{
+			return true;
+		}
+
+		b3Body* bodyB = shapeB->GetBody();
+		b3Transform xfB = bodyB->GetTransform();
+
+		if (shapeB->GetType() == e_meshShape)
+		{
+			meshShapeB = (b3MeshShape*)shapeB;
+
+			B3_ASSERT(meshShapeB->m_scale.x != scalar(0));
+			B3_ASSERT(meshShapeB->m_scale.y != scalar(0));
+			B3_ASSERT(meshShapeB->m_scale.z != scalar(0));
+
+			b3Vec3 inv_scale;
+			inv_scale.x = scalar(1) / meshShapeB->m_scale.x;
+			inv_scale.y = scalar(1) / meshShapeB->m_scale.y;
+			inv_scale.z = scalar(1) / meshShapeB->m_scale.z;
+
+			b3Transform xf = b3MulT(xfB, xfA);
+
+			// Compute the aabb in the space of the unscaled tree
+			b3AABB aabb;
+			shapeA->ComputeAABB(&aabb, xf);
+			aabb = b3ScaleAABB(aabb, inv_scale);
+
+			// Compute the displacement in the space of the unscaled tree
+			b3Vec3 displacement = b3MulC(xfB.rotation, dA);
+			displacement = b3MulCW(inv_scale, displacement);
+
+			if (displacement.x < scalar(0))
+			{
+				aabb.lowerBound.x += displacement.x;
+			}
+			else
+			{
+				aabb.upperBound.x += displacement.x;
+			}
+
+			if (displacement.y < scalar(0))
+			{
+				aabb.lowerBound.y += displacement.y;
+			}
+			else
+			{
+				aabb.upperBound.y += displacement.y;
+			}
+
+			if (displacement.z < scalar(0))
+			{
+				aabb.lowerBound.z += displacement.z;
+			}
+			else
+			{
+				aabb.upperBound.z += displacement.z;
+			}
+
+			MeshCallback callback;
+			callback.callback = this;
+
+			meshShapeB->m_mesh->tree.QueryAABB(&callback, aabb);
+
+			if (maxFraction == scalar(0))
+			{
+				return false;
+			}
+
+			return true;
+		}
+
+		b3ShapeGJKProxy proxyB(shapeB, 0);
+
+		b3TOIOutput toi = b3TimeOfImpact(xfA, *proxyA, dA, xfB, proxyB, b3Vec3_zero);
+
+		b3TOIOutput::State state = toi.state;
+		scalar fraction = toi.t;
+
+		if (state == b3TOIOutput::e_touching)
+		{
+			if (fraction > maxFraction)
+			{
+				return true;
+			}
+
+			if (fraction < fraction0)
+			{
+				fraction0 = fraction;
+				shape0 = shapeB;
+				childIndex0 = 0;
+			}
+
+			if (listener)
+			{
+				b3Transform xf;
+				xf.rotation = xfA.rotation;
+				xf.translation = xfA.translation + fraction * dA;
+
+				b3Vec3 point, normal;
+				Evaluate(&point, &normal, xf, *proxyA, xfB, proxyB);
+
+				maxFraction = listener->ReportShape(shapeB, point, normal, fraction);
+				if (maxFraction == scalar(0))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		return true;
+	}
+
+	// Evaluate when touching
+	void Evaluate(b3Vec3* pointB, b3Vec3* normalB, 
+		const b3Transform& xA, const b3GJKProxy& proxyA, const b3Transform& xB, const b3GJKProxy& proxyB) const
+	{
+		b3GJKOutput query = b3GJK(xA, proxyA, xB, proxyB, false);
+
+		b3Vec3 pA = query.point1;
+		b3Vec3 pB = query.point2;
+		
+		b3Vec3 normal = b3Normalize(pA - pB);
+
+		*pointB = pB + proxyB.radius * normal;
+		*normalB = normal;
+	}
+
+	b3Transform xfA;
+	const b3Shape* shapeA;
+	const b3ShapeGJKProxy* proxyA;
+	b3Vec3 dA;
+	scalar maxFraction;
+
+	b3ConvexCastListener* listener;
+	b3ConvexCastFilter* filter;
+	const b3BroadPhase* broadPhase;
+
+	b3MeshShape* meshShapeB;
+
+	b3Shape* shape0;
+	u32 childIndex0;
+	scalar fraction0;
+};
+
+void b3World::ConvexCast(b3ConvexCastListener* listener, b3ConvexCastFilter* filter, 
+	const b3Shape* shape, const b3Vec3& displacement) const
+{
+	B3_ASSERT(shape->m_type != e_meshShape);
+	B3_ASSERT(shape->m_type != e_sdfShape);
+
+	if (shape->m_type == e_meshShape || shape->m_type == e_sdfShape)
+	{
+		return;
+	}
+
+	const b3Body* body = shape->GetBody();
+	b3Transform xf = body->GetTransform();
+	b3ShapeGJKProxy proxyA(shape, 0);
+
+	b3AABB aabb = shape->GetAABB();
+
+	if (displacement.x < scalar(0))
+	{
+		aabb.lowerBound.x += displacement.x;
+	}
+	else
+	{
+		aabb.upperBound.x += displacement.x;
+	}
+
+	if (displacement.y < scalar(0))
+	{
+		aabb.lowerBound.y += displacement.y;
+	}
+	else
+	{
+		aabb.upperBound.y += displacement.y;
+	}
+
+	if (displacement.z < scalar(0))
+	{
+		aabb.lowerBound.z += displacement.z;
+	}
+	else
+	{
+		aabb.upperBound.z += displacement.z;
+	}
+
+	b3ConvexCastQueryCallback callback;
+	callback.listener = listener;
+	callback.filter = filter;
+	callback.proxyA = &proxyA;
+	callback.xfA = xf;
+	callback.shapeA = shape;
+	callback.dA = displacement;
+	callback.maxFraction = scalar(1);
+	callback.shape0 = nullptr;
+	callback.fraction0 = B3_MAX_SCALAR;
+	callback.childIndex0 = B3_MAX_U32;
+	callback.broadPhase = &m_contactMan.m_broadPhase;
+
+	m_contactMan.m_broadPhase.QueryAABB(&callback, aabb);
+}
+
+bool b3World::ConvexCastSingle(b3ConvexCastSingleOutput* output, b3ConvexCastFilter* filter, 
+	const b3Shape* shape, const b3Vec3& displacement) const
+{
+	B3_ASSERT(shape->m_type != e_meshShape);
+	B3_ASSERT(shape->m_type != e_sdfShape);
+
+	if (shape->m_type == e_meshShape || shape->m_type == e_sdfShape)
+	{
+		return false;
+	}
+
+	const b3Body* body = shape->GetBody();
+	b3Transform xf = body->GetTransform();
+	b3ShapeGJKProxy proxyA(shape, 0);
+	
+	b3AABB aabb = shape->GetAABB();
+
+	if (displacement.x < scalar(0))
+	{
+		aabb.lowerBound.x += displacement.x;
+	}
+	else
+	{
+		aabb.upperBound.x += displacement.x;
+	}
+
+	if (displacement.y < scalar(0))
+	{
+		aabb.lowerBound.y += displacement.y;
+	}
+	else
+	{
+		aabb.upperBound.y += displacement.y;
+	}
+
+	if (displacement.z < scalar(0))
+	{
+		aabb.lowerBound.z += displacement.z;
+	}
+	else
+	{
+		aabb.upperBound.z += displacement.z;
+	}
+
+	b3ConvexCastQueryCallback callback;
+	callback.listener = nullptr;
+	callback.filter = filter;
+	callback.proxyA = &proxyA;
+	callback.xfA = xf;
+	callback.shapeA = shape;
+	callback.dA = displacement;
+	callback.maxFraction = scalar(1);
+	callback.shape0 = nullptr;
+	callback.childIndex0 = B3_MAX_U32;
+	callback.fraction0 = B3_MAX_SCALAR;
+	callback.broadPhase = &m_contactMan.m_broadPhase;
+
+	m_contactMan.m_broadPhase.QueryAABB(&callback, aabb);
+
+	if (callback.shape0 == nullptr)
+	{
+		return false;
+	}
+
+	b3ShapeGJKProxy proxyB(callback.shape0, callback.childIndex0);
+
+	b3Body* bodyB = callback.shape0->GetBody();
+	b3Transform xfB = bodyB->GetTransform();
+	
+	b3Transform xft;
+	xft.translation = xf.translation + callback.fraction0 * displacement;
+	xft.rotation = xf.rotation;
+
+	b3Vec3 point, normal;
+	callback.Evaluate(&point, &normal, xft, proxyA, xfB, proxyB);
+
+	output->shape = callback.shape0;
+	output->fraction = callback.fraction0;
+	output->point = point;
+	output->normal = normal;
+
+	return true;
 }
 
 struct b3QueryAABBCallback
@@ -454,17 +850,25 @@ struct b3QueryAABBCallback
 	bool Report(u32 proxyID)
 	{
 		b3Shape* shape = (b3Shape*)broadPhase->GetUserData(proxyID);
-		return listener->ReportShape(shape);
+
+		if (filter->ShouldReport(shape))
+		{
+			return listener->ReportShape(shape);
+		}
+
+		return true;
 	}
 
 	b3QueryListener* listener;
+	b3QueryFilter* filter;
 	const b3BroadPhase* broadPhase;
 };
 
-void b3World::QueryAABB(b3QueryListener* listener, const b3AABB3& aabb) const
+void b3World::QueryAABB(b3QueryListener* listener, b3QueryFilter* filter, const b3AABB& aabb) const
 {
 	b3QueryAABBCallback callback;
 	callback.listener = listener;
+	callback.filter = filter;
 	callback.broadPhase = &m_contactMan.m_broadPhase;
 	m_contactMan.m_broadPhase.QueryAABB(&callback, aabb);
 }

@@ -24,6 +24,7 @@
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/body.h>
 #include <bounce/dynamics/world.h>
+#include <bounce/dynamics/world_listeners.h>
 #include <bounce/dynamics/joints/mouse_joint.h>
 
 // A body shape dragger.
@@ -43,14 +44,14 @@ public:
 
 	b3Ray3* GetRay() const;
 
-	b3Body* GetBody() const;
+	b3Shape* GetShape() const;
 
 	b3Vec3 GetPointA() const;
 
 	b3Vec3 GetPointB() const;
 private:
 	b3Ray3 * m_ray;
-	float32 m_x;
+	scalar m_x;
 
 	b3World* m_world;
 	

@@ -52,15 +52,15 @@ struct b3QHull : public b3Hull
 
 	// Set this hull as a sphere located at the origin
 	// given the radius.
-	void SetAsSphere(float32 radius = 1.0f);
+	void SetAsSphere(scalar radius = 1, u32 subdivisions = 0);
 
 	// Set this hull as a cylinder located at the origin
-	// given the radius and extent along the y axis.
-	void SetAsCylinder(float32 radius = 1.0f, float32 ey = 1.0f);
+	// given the radius, extent along the y axis, and number of segments.
+	void SetAsCylinder(scalar radius = 1, scalar ey = 1, u32 segments = 20);
 
 	// Set this hull as a cone located at the origin 
-	// given the radius and extent along the y axis.
-	void SetAsCone(float32 radius = 1.0f, float32 ey = 1.0f);
+	// given the radius, extent along the y axis, and number of segments.
+	void SetAsCone(scalar radius = 1, scalar ey = 1, u32 segments = 20);
 };
 
 #endif

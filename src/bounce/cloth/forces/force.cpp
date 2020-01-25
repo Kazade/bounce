@@ -17,20 +17,21 @@
 */
 
 #include <bounce/cloth/forces/force.h>
-#include <bounce/cloth/forces/strech_force.h>
+#include <bounce/cloth/forces/stretch_force.h>
 #include <bounce/cloth/forces/shear_force.h>
 #include <bounce/cloth/forces/spring_force.h>
 #include <bounce/cloth/forces/mouse_force.h>
+#include <bounce/cloth/forces/element_force.h>
 
 b3Force* b3Force::Create(const b3ForceDef* def)
 {
-	b3Force* force = NULL;
+	b3Force* force = nullptr;
 	switch (def->type)
 	{
-	case e_strechForce:
+	case e_stretchForce:
 	{
-		void* block = b3Alloc(sizeof(b3StrechForce));
-		force = new (block) b3StrechForce((b3StrechForceDef*)def);
+		void* block = b3Alloc(sizeof(b3StretchForce));
+		force = new (block) b3StretchForce((b3StretchForceDef*)def);
 		break;
 	}
 	case e_shearForce:
@@ -51,6 +52,12 @@ b3Force* b3Force::Create(const b3ForceDef* def)
 		force = new (block) b3MouseForce((b3MouseForceDef*)def);
 		break;
 	}
+	case e_elementForce:
+	{
+		void* block = b3Alloc(sizeof(b3ElementForce));
+		force = new (block) b3ElementForce((b3ElementForceDef*)def);
+		break;
+	}
 	default:
 	{
 		B3_ASSERT(false);
@@ -67,10 +74,10 @@ void b3Force::Destroy(b3Force* force)
 	b3ForceType type = force->GetType();
 	switch (type)
 	{
-	case e_strechForce:
+	case e_stretchForce:
 	{
-		b3StrechForce* o = (b3StrechForce*)force;
-		o->~b3StrechForce();
+		b3StretchForce* o = (b3StretchForce*)force;
+		o->~b3StretchForce();
 		b3Free(force);
 		break;
 	}
@@ -92,6 +99,13 @@ void b3Force::Destroy(b3Force* force)
 	{
 		b3MouseForce* o = (b3MouseForce*)force;
 		o->~b3MouseForce();
+		b3Free(force);
+		break;
+	}
+	case e_elementForce:
+	{
+		b3ElementForce* o = (b3ElementForce*)force;
+		o->~b3ElementForce();
 		b3Free(force);
 		break;
 	}

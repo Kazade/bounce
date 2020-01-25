@@ -178,7 +178,7 @@ struct DrawPoints
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[2]);
 		glVertexAttribPointer(m_sizeAttribute, 1, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
-		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(float32), m_sizes, GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, e_vertexCapacity * sizeof(scalar), m_sizes, GL_DYNAMIC_DRAW);
 
 		AssertGL();
 
@@ -195,7 +195,7 @@ struct DrawPoints
 		glDeleteBuffers(3, m_vboIds);
 	}
 
-	void Vertex(const b3Vec3& v, float32 size, const b3Color& color)
+	void Vertex(const b3Vec3& v, scalar size, const b3Color& color)
 	{
 		if (m_count == e_vertexCapacity)
 		{
@@ -238,7 +238,7 @@ struct DrawPoints
 		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(b3Color), m_colors);
 
 		glBindBuffer(GL_ARRAY_BUFFER, m_vboIds[2]);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(float32), m_sizes);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, m_count * sizeof(scalar), m_sizes);
 
 		glEnable(GL_PROGRAM_POINT_SIZE);
 		glDrawArrays(GL_POINTS, 0, m_count);
@@ -260,7 +260,7 @@ struct DrawPoints
 
 	b3Vec3 m_vertices[e_vertexCapacity];
 	b3Color m_colors[e_vertexCapacity];
-	float32 m_sizes[e_vertexCapacity];
+	scalar m_sizes[e_vertexCapacity];
 	u32 m_count;
 
 	GLuint m_programId;
@@ -625,7 +625,7 @@ struct DrawWire
 		glDeleteProgram(m_programId);
 	}
 
-	void DrawSphere(float32 radius, const b3Color& c, const b3Transform& xf)
+	void DrawSphere(scalar radius, const b3Color& c, const b3Transform& xf)
 	{
 		if (!g_glDrawLines)
 		{
@@ -792,7 +792,7 @@ struct DrawSolid
 	{
 	}
 
-	void DrawCylinder(float32 radius, float32 height, const b3Color& c, const b3Transform& xf)
+	void DrawCylinder(scalar radius, scalar height, const b3Color& c, const b3Transform& xf)
 	{
 		if (!g_glDrawTriangles)
 		{
@@ -831,7 +831,7 @@ struct DrawSolid
 		glUseProgram(0);
 	}
 
-	void DrawSphere(float32 radius, const b3Color& c, const b3Transform& xf)
+	void DrawSphere(scalar radius, const b3Color& c, const b3Transform& xf)
 	{
 		if (!g_glDrawTriangles)
 		{

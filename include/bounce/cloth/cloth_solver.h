@@ -24,18 +24,22 @@
 
 class b3StackAllocator;
 
-class b3Particle;
+class b3ClothParticle;
 class b3Force;
-class b3ParticleBodyContact;
-class b3ParticleTriangleContact;
+class b3ClothSphereAndShapeContact;
+class b3ClothSphereAndTriangleContact;
+class b3ClothCapsuleAndCapsuleContact;
+
+struct b3ClothTimeStep;
 
 struct b3ClothSolverDef
 {
 	b3StackAllocator* stack;
 	u32 particleCapacity;
 	u32 forceCapacity;
-	u32 bodyContactCapacity;
+	u32 shapeContactCapacity;
 	u32 triangleContactCapacity;
+	u32 capsuleContactCapacity;
 };
 
 class b3ClothSolver
@@ -44,30 +48,35 @@ public:
 	b3ClothSolver(const b3ClothSolverDef& def);
 	~b3ClothSolver();
 	
-	void Add(b3Particle* p);
+	void Add(b3ClothParticle* p);
 	void Add(b3Force* f);
-	void Add(b3ParticleBodyContact* c);
-	void Add(b3ParticleTriangleContact* c);
+	void Add(b3ClothSphereAndShapeContact* c);
+	void Add(b3ClothSphereAndTriangleContact* c);
+	void Add(b3ClothCapsuleAndCapsuleContact* c);
 
-	void Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations);
+	void Solve(const b3ClothTimeStep& step, const b3Vec3& gravity);
 private:
-	b3StackAllocator* m_allocator;
+	b3StackAllocator* m_stack;
 
 	u32 m_particleCapacity;
 	u32 m_particleCount;
-	b3Particle** m_particles;
+	b3ClothParticle** m_particles;
 
 	u32 m_forceCapacity;
 	u32 m_forceCount;
 	b3Force** m_forces;
 
-	u32 m_bodyContactCapacity;
-	u32 m_bodyContactCount;
-	b3ParticleBodyContact** m_bodyContacts;
+	u32 m_shapeContactCapacity;
+	u32 m_shapeContactCount;
+	b3ClothSphereAndShapeContact** m_shapeContacts;
 
 	u32 m_triangleContactCapacity;
 	u32 m_triangleContactCount;
-	b3ParticleTriangleContact** m_triangleContacts;
+	b3ClothSphereAndTriangleContact** m_triangleContacts;
+	
+	u32 m_capsuleContactCapacity;
+	u32 m_capsuleContactCount;
+	b3ClothCapsuleAndCapsuleContact** m_capsuleContacts;
 };
 
 #endif

@@ -1,9 +1,10 @@
-inline b3HalfEdge b3MakeEdge(u32 origin, u32 twin, u32 face, u32 next)
+inline b3HalfEdge b3MakeEdge(u32 origin, u32 twin, u32 face, u32 prev, u32 next)
 {
 	b3HalfEdge edge;
 	edge.origin = origin;
 	edge.twin = twin;
 	edge.face = face;
+	edge.prev = prev;
 	edge.next = next;
 	return edge;
 }
@@ -31,10 +32,10 @@ inline const b3Plane& b3Hull::GetPlane(u32 index) const
 inline u32 b3Hull::GetSupportVertex(const b3Vec3& direction) const
 {
 	u32 maxIndex = 0;
-	float32 maxProjection = b3Dot(direction, vertices[maxIndex]);
+	scalar maxProjection = b3Dot(direction, vertices[maxIndex]);
 	for (u32 i = 1; i < vertexCount; ++i)
 	{
-		float32 projection = b3Dot(direction, vertices[i]);
+		scalar projection = b3Dot(direction, vertices[i]);
 		if (projection > maxProjection)
 		{
 			maxIndex = i;
@@ -47,10 +48,10 @@ inline u32 b3Hull::GetSupportVertex(const b3Vec3& direction) const
 inline u32 b3Hull::GetSupportFace(const b3Vec3& direction) const
 {
 	u32 maxIndex = 0;
-	float32 maxProjection = b3Dot(direction, planes[maxIndex].normal);
+	scalar maxProjection = b3Dot(direction, planes[maxIndex].normal);
 	for (u32 i = 1; i < faceCount; ++i)
 	{
-		float32 projection = b3Dot(direction, planes[i].normal);
+		scalar projection = b3Dot(direction, planes[i].normal);
 		if (projection > maxProjection)
 		{
 			maxIndex = i;

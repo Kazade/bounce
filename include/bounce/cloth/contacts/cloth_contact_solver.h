@@ -21,35 +21,65 @@
 
 #include <bounce/common/math/mat22.h>
 #include <bounce/common/math/mat33.h>
+#include <bounce/cloth/cloth_time_step.h>
 
 class b3StackAllocator;
 
-class b3Particle;
+class b3ClothParticle;
 class b3Body;
 
-class b3ParticleBodyContact;
-class b3ParticleTriangleContact;
+class b3ClothSphereAndShapeContact;
+class b3ClothSphereAndTriangleContact;
+class b3ClothCapsuleAndCapsuleContact;
 
-struct b3ClothSolverBodyContactVelocityConstraint
+struct b3ClothSolverShapeContactVelocityConstraint
 {
 	u32 indexA;
-	float32 invMassA;
-	b3Mat33 invIA;
+	scalar invMassA;
 
-	b3Body* bodyB;
-	float32 invMassB;
-	b3Mat33 invIB;
-
-	float32 friction;
-
-	b3Vec3 point;
-	b3Vec3 rA;
-	b3Vec3 rB;
+	scalar friction;
 
 	b3Vec3 normal;
-	float32 normalMass;
-	float32 normalImpulse;
-	float32 velocityBias;
+	scalar normalMass;
+	scalar normalImpulse;
+
+	b3Vec3 tangent1;
+	b3Vec3 tangent2;
+	scalar tangentMass;
+	b3Vec2 tangentImpulse;
+};
+
+struct b3ClothSolverShapeContactPositionConstraint
+{
+	u32 indexA;
+	scalar invMassA;
+	scalar radiusA;
+
+	scalar radiusB;
+	
+	b3Vec3 normal;
+	b3Vec3 pointB;
+};
+
+struct b3ClothSolverTriangleContactVelocityConstraint
+{
+	u32 indexA;
+	scalar invMassA;
+
+	u32 indexB;
+	scalar invMassB;
+	u32 indexC;
+	scalar invMassC;
+	u32 indexD;
+	scalar invMassD;
+	
+	scalar wB, wC, wD;
+
+	b3Vec3 normal;
+	scalar normalMass;
+	scalar normalImpulse;
+
+	scalar friction;
 
 	b3Vec3 tangent1;
 	b3Vec3 tangent2;
@@ -57,88 +87,85 @@ struct b3ClothSolverBodyContactVelocityConstraint
 	b3Vec2 tangentImpulse;
 };
 
-struct b3ClothSolverBodyContactPositionConstraint
-{
-	u32 indexA;
-	float32 invMassA;
-	b3Mat33 invIA;
-	float32 radiusA;
-	b3Vec3 localCenterA;
-
-	b3Body* bodyB;
-	float32 invMassB;
-	b3Mat33 invIB;
-	float32 radiusB;
-	b3Vec3 localCenterB;
-
-	b3Vec3 rA;
-	b3Vec3 rB;
-
-	b3Vec3 normalA;
-	b3Vec3 localPointA;
-	b3Vec3 localPointB;
-};
-
-struct b3ClothSolverTriangleContactVelocityConstraint
-{
-	u32 indexA;
-	float32 invMassA;
-
-	u32 indexB;
-	float32 invMassB;
-	u32 indexC;
-	float32 invMassC;
-	u32 indexD;
-	float32 invMassD;
-	
-	float32 wB, wC, wD;
-
-	b3Vec3 normal;
-	float32 normalMass;
-	float32 normalImpulse;
-
-	float32 friction;
-
-	b3Vec3 tangent1;
-	b3Vec3 tangent2;
-	float32 tangentMass1;
-	float32 tangentMass2;
-	float32 tangentImpulse1;
-	float32 tangentImpulse2;
-};
-
 struct b3ClothSolverTriangleContactPositionConstraint
 {
 	u32 indexA;
-	float32 invMassA;
-	float32 radiusA;
+	scalar invMassA;
+	scalar radiusA;
 
 	u32 indexB;
-	float32 invMassB;
+	scalar invMassB;
 	u32 indexC;
-	float32 invMassC;
+	scalar invMassC;
 	u32 indexD;
-	float32 invMassD;
-	float32 triangleRadius;
+	scalar invMassD;
+	scalar triangleRadius;
 
-	float32 wB, wC, wD;
+	scalar wB, wC, wD;
+};
+
+struct b3ClothSolverCapsuleContactVelocityConstraint
+{
+	u32 indexA;
+	scalar invMassA;
+	u32 indexB;
+	scalar invMassB;
+
+	u32 indexC;
+	scalar invMassC;
+	u32 indexD;
+	scalar invMassD;
+
+	scalar wA, wB, wC, wD;
+
+	b3Vec3 normal;
+	scalar normalMass;
+	scalar normalImpulse;
+
+	scalar friction;
+
+	b3Vec3 tangent1;
+	b3Vec3 tangent2;
+	b3Mat22 tangentMass;
+	b3Vec2 tangentImpulse;
+};
+
+struct b3ClothSolverCapsuleContactPositionConstraint
+{
+	u32 indexA;
+	scalar invMassA;
+	u32 indexB;
+	scalar invMassB;
+	scalar radiusA;
+
+	u32 indexC;
+	scalar invMassC;
+	u32 indexD;
+	scalar invMassD;
+	scalar radiusB;
+
+	scalar wA, wB, wC, wD;
 };
 
 struct b3ClothContactSolverDef
 {
+	b3ClothTimeStep step;
 	b3StackAllocator* allocator;
 	
 	b3Vec3* positions;
 	b3Vec3* velocities;
 	
-	u32 bodyContactCount;
-	b3ParticleBodyContact** bodyContacts;
+	u32 shapeContactCount;
+	b3ClothSphereAndShapeContact** shapeContacts;
 
 	u32 triangleContactCount;
-	b3ParticleTriangleContact** triangleContacts;
+	b3ClothSphereAndTriangleContact** triangleContacts;
+	
+	u32 capsuleContactCount;
+	b3ClothCapsuleAndCapsuleContact** capsuleContacts;
 };
 
-inline float32 b3MixFriction(float32 u1, float32 u2)
+inline scalar b3MixFriction(scalar u1, scalar u2)
 {
 	return b3Sqrt(u1 * u2);
 }
@@ -149,34 +176,45 @@ public:
 	b3ClothContactSolver(const b3ClothContactSolverDef& def);
 	~b3ClothContactSolver();
 
-	void InitializeBodyContactConstraints();
+	void InitializeShapeContactConstraints();
 	void InitializeTriangleContactConstraints();
+	void InitializeCapsuleContactConstraints();
 
-	void WarmStartBodyContactConstraints();
+	void WarmStartShapeContactConstraints();
 	void WarmStartTriangleContactConstraints();
+	void WarmStartCapsuleContactConstraints();
 
-	void SolveBodyContactVelocityConstraints();
+	void SolveShapeContactVelocityConstraints();
 	void SolveTriangleContactVelocityConstraints();
+	void SolveCapsuleContactVelocityConstraints();
 
 	void StoreImpulses();
 
-	bool SolveBodyContactPositionConstraints();
+	bool SolveShapeContactPositionConstraints();
 	bool SolveTriangleContactPositionConstraints();
+	bool SolveCapsuleContactPositionConstraints();
 protected:
+	b3ClothTimeStep m_step;
+
 	b3StackAllocator* m_allocator;
 
 	b3Vec3* m_positions;
 	b3Vec3* m_velocities;
 
-	u32 m_bodyContactCount;
-	b3ParticleBodyContact** m_bodyContacts;
-	b3ClothSolverBodyContactVelocityConstraint* m_bodyVelocityConstraints;
-	b3ClothSolverBodyContactPositionConstraint* m_bodyPositionConstraints;
+	u32 m_shapeContactCount;
+	b3ClothSphereAndShapeContact** m_shapeContacts;
+	b3ClothSolverShapeContactVelocityConstraint* m_shapeVelocityConstraints;
+	b3ClothSolverShapeContactPositionConstraint* m_shapePositionConstraints;
 
 	u32 m_triangleContactCount;
-	b3ParticleTriangleContact** m_triangleContacts;
+	b3ClothSphereAndTriangleContact** m_triangleContacts;
 	b3ClothSolverTriangleContactVelocityConstraint* m_triangleVelocityConstraints;
 	b3ClothSolverTriangleContactPositionConstraint* m_trianglePositionConstraints;
+	
+	u32 m_capsuleContactCount;
+	b3ClothCapsuleAndCapsuleContact** m_capsuleContacts;
+	b3ClothSolverCapsuleContactVelocityConstraint* m_capsuleVelocityConstraints;
+	b3ClothSolverCapsuleContactPositionConstraint* m_capsulePositionConstraints;
 };
 
 #endif

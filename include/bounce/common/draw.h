@@ -20,16 +20,16 @@
 #define B3_DRAW_H
 
 #include <bounce/common/math/math.h>
-#include <bounce/collision/shapes/aabb3.h>
+#include <bounce/collision/shapes/aabb.h>
 
 // Color channels used by the debug draw interface.
 struct b3Color 
 {
 	b3Color() { }
 	
-	b3Color(float32 R, float32 G, float32 B, float32 A = 1.0f) : r(R),	g(G), b(B),	a(A) { }
+	b3Color(scalar R, scalar G, scalar B, scalar A = scalar(1)) : r(R),	g(G), b(B),	a(A) { }
 	
-	float32 r, g, b, a;
+	scalar r, g, b, a;
 };
 
 // Color pallete commonly used by the debug draw interface.
@@ -72,7 +72,7 @@ public :
 	void AppendFlags(u32 flags);
 	
 	// Draw a point.
-	virtual void DrawPoint(const b3Vec3& p, float32 size, const b3Color& color) = 0;
+	virtual void DrawPoint(const b3Vec3& p, scalar size, const b3Color& color) = 0;
 
 	// Draw a line segment.
 	virtual void DrawSegment(const b3Vec3& p1, const b3Vec3& p2, const b3Color& color) = 0;
@@ -90,31 +90,31 @@ public :
 	virtual void DrawSolidPolygon(const b3Vec3& normal, const b3Vec3* vertices, u32 count, const b3Color& color) = 0;
 
 	// Draw a circle with center, normal, and radius.
-	virtual void DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color) = 0;
+	virtual void DrawCircle(const b3Vec3& normal, const b3Vec3& center, scalar radius, const b3Color& color) = 0;
 	
 	// Draw a solid circle with center, normal, and radius.
-	virtual void DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color) = 0;
+	virtual void DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, scalar radius, const b3Color& color) = 0;
 
 	// Draw a plane with center, normal and radius.
-	virtual void DrawPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color) = 0;
+	virtual void DrawPlane(const b3Vec3& normal, const b3Vec3& center, scalar radius, const b3Color& color) = 0;
 
 	// Draw a solid plane with center, normal and radius.
-	virtual void DrawSolidPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color) = 0;
+	virtual void DrawSolidPlane(const b3Vec3& normal, const b3Vec3& center, scalar radius, const b3Color& color) = 0;
 
 	// Draw a sphere with center, and radius.
-	virtual void DrawSphere(const b3Vec3& center, float32 radius, const b3Color& color) = 0;
+	virtual void DrawSphere(const b3Vec3& center, scalar radius, const b3Color& color) = 0;
 
 	// Draw a solid sphere with center, radius, and rotation.
-	virtual void DrawSolidSphere(const b3Vec3& center, float32 radius, const b3Mat33& rotation, const b3Color& color) = 0;
+	virtual void DrawSolidSphere(const b3Vec3& center, scalar radius, const b3Quat& rotation, const b3Color& color) = 0;
 	
 	// Draw a capsule with segment, and radius.
-	virtual void DrawCapsule(const b3Vec3& p1, const b3Vec3& p2, float32 radius, const b3Color& color) = 0;
+	virtual void DrawCapsule(const b3Vec3& p1, const b3Vec3& p2, scalar radius, const b3Color& color) = 0;
 
 	// Draw a solid capsule with segment, radius, and rotation.
-	virtual void DrawSolidCapsule(const b3Vec3& p1, const b3Vec3& p2, float32 radius, const b3Mat33& rotation, const b3Color& color) = 0;
+	virtual void DrawSolidCapsule(const b3Vec3& p1, const b3Vec3& p2, scalar radius, const b3Quat& rotation, const b3Color& color) = 0;
 
 	// Draw a AABB.
-	virtual void DrawAABB(const b3AABB3& aabb, const b3Color& color) = 0;
+	virtual void DrawAABB(const b3AABB& aabb, const b3Color& color) = 0;
 
 	// Draw a transform.
 	virtual void DrawTransform(const b3Transform& xf) = 0;

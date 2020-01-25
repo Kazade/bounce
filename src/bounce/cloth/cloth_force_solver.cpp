@@ -17,7 +17,7 @@
 */
 
 #include <bounce/cloth/cloth_force_solver.h>
-#include <bounce/cloth/particle.h>
+#include <bounce/cloth/cloth_particle.h>
 #include <bounce/cloth/forces/force.h>
 #include <bounce/sparse/dense_vec3.h>
 #include <bounce/sparse/diag_mat33.h>
@@ -29,14 +29,12 @@
 // described in the paper:
 // "Large Steps in Cloth Simulation - David Baraff, Andrew Witkin".
 
-// Some improvements for the original MPCG algorithm are described in the paper:
-// "On the modified conjugate gradient method in cloth simulation - Uri M. Ascher, Eddy Boxerman".
-
 u32 b3_clothSolverIterations = 0;
 
 b3ClothForceSolver::b3ClothForceSolver(const b3ClothForceSolverDef& def)
 {
-	m_allocator = def.stack;
+	m_step = def.step;
+	m_stack = def.stack;
 
 	m_particleCount = def.particleCount;
 	m_particles = def.particles;
@@ -57,47 +55,46 @@ void b3ClothForceSolver::ApplyForces()
 	}
 }
 
-// Solve Ax = b
+// Solve A * x = b
 static void b3SolveMPCG(b3DenseVec3& x,
 	const b3SparseMat33View& A, const b3DenseVec3& b,
-	const b3DiagMat33& S, const b3DenseVec3& z,
-	const b3DenseVec3& y, const b3DiagMat33& I, u32 maxIterations = 20)
+	const b3DenseVec3& z, const b3DiagMat33& S, u32 maxIterations = 20)
 {
 	B3_PROFILE("Cloth Solve MPCG");
 
-	// Jacobi preconditioner 
-	// P = diag(A)
-	b3DiagMat33 inv_P(A.rowCount);
+	// Jacobi preconditioner
+	// P = diag(A) 
+	b3DiagMat33 P(A.rowCount);
+	b3DiagMat33 invP(A.rowCount);
+
 	for (u32 i = 0; i < A.rowCount; ++i)
 	{
 		b3Mat33 a = A(i, i);
 
 		// Sylvester Criterion to ensure PD-ness
-		B3_ASSERT(b3Det(a.x, a.y, a.z) > 0.0f);
+		B3_ASSERT(b3Det(a.x, a.y, a.z) > scalar(0));
 
-		B3_ASSERT(a.x.x > 0.0f);
-		float32 xx = 1.0f / a.x.x;
+		B3_ASSERT(a.x.x > scalar(0));
+		scalar xx = scalar(1) / a.x.x;
 
-		B3_ASSERT(a.y.y > 0.0f);
-		float32 yy = 1.0f / a.y.y;
+		B3_ASSERT(a.y.y > scalar(0));
+		scalar yy = scalar(1) / a.y.y;
 
-		B3_ASSERT(a.z.z > 0.0f);
-		float32 zz = 1.0f / a.z.z;
+		B3_ASSERT(a.z.z > scalar(0));
+		scalar zz = scalar(1) / a.z.z;
 
-		inv_P[i] = b3Diagonal(xx, yy, zz);
+		P[i] = b3Diagonal(a.x.x, a.y.y, a.z.z);
+		invP[i] = b3Diagonal(xx, yy, zz);
 	}
 
-	x = (S * y) + (I - S) * z;
+	x = z;
 
-	b3DenseVec3 b_hat = S * (b - A * ((I - S) * z));
-
-	float32 b_delta = b3Dot(b_hat, inv_P * b_hat);
+	scalar delta_0 = b3Dot(S * b, P * (S * b));
 
 	b3DenseVec3 r = S * (b - A * x);
+	b3DenseVec3 c = S * (invP * r);
 
-	b3DenseVec3 p = S * (inv_P * r);
-
-	float32 delta_new = b3Dot(r, p);
+	scalar delta_new = b3Dot(r, c);
 
 	u32 iteration = 0;
 	for (;;)
@@ -107,27 +104,27 @@ static void b3SolveMPCG(b3DenseVec3& x,
 			break;
 		}
 
-		if (delta_new <= B3_EPSILON * B3_EPSILON * b_delta)
+		if (delta_new <= B3_EPSILON * B3_EPSILON * delta_0)
 		{
 			break;
 		}
 
-		b3DenseVec3 s = S * (A * p);
+		b3DenseVec3 q = S * (A * c);
 
-		float32 alpha = delta_new / b3Dot(p, s);
+		scalar alpha = delta_new / b3Dot(c, q);
 
-		x = x + alpha * p;
-		r = r - alpha * s;
+		x = x + alpha * c;
+		r = r - alpha * q;
 
-		b3DenseVec3 h = inv_P * r;
+		b3DenseVec3 s = invP * r;
 
-		float32 delta_old = delta_new;
+		scalar delta_old = delta_new;
 
-		delta_new = b3Dot(r, h);
+		delta_new = b3Dot(r, s);
 
-		float32 beta = delta_new / delta_old;
+		scalar beta = delta_new / delta_old;
 
-		p = S * (h + beta * p);
+		c = S * (s + beta * c);
 
 		++iteration;
 	}
@@ -135,22 +132,19 @@ static void b3SolveMPCG(b3DenseVec3& x,
 	b3_clothSolverIterations = iteration;
 }
 
-void b3ClothForceSolver::Solve(float32 dt, const b3Vec3& gravity)
+void b3ClothForceSolver::Solve(const b3Vec3& gravity)
 {
-	float32 h = dt;
+	scalar h = m_step.dt;
 
 	b3DenseVec3 sx(m_particleCount);
 	b3DenseVec3 sv(m_particleCount);
 	b3DenseVec3 sf(m_particleCount);
 	b3DenseVec3 sy(m_particleCount);
 	b3DenseVec3 sz(m_particleCount);
-	b3DenseVec3 sx0(m_particleCount);
-	b3SparseMat33 M(m_particleCount);
+	b3DiagMat33 M(m_particleCount);
 	b3SparseMat33 dfdx(m_particleCount);
 	b3SparseMat33 dfdv(m_particleCount);
 	b3DiagMat33 S(m_particleCount);
-	b3DiagMat33 I(m_particleCount);
-	I.SetIdentity();
 
 	m_solverData.x = &sx;
 	m_solverData.v = &sv;
@@ -163,28 +157,31 @@ void b3ClothForceSolver::Solve(float32 dt, const b3Vec3& gravity)
 
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
-		b3Particle* p = m_particles[i];
+		b3ClothParticle* p = m_particles[i];
 
-		M(i, i) = b3Diagonal(p->m_mass);
-		
 		sx[i] = p->m_position;
 		sv[i] = p->m_velocity;
 		sf[i] = p->m_force;
 		sz[i].SetZero();
 
-		if (p->m_type == e_dynamicParticle)
+		if (p->m_type == e_dynamicClothParticle)
 		{
+			B3_ASSERT(p->m_mass > scalar(0));
+			M[i] = b3Diagonal(p->m_mass);
+			S[i].SetIdentity();
+
 			// Apply weight
 			sf[i] += p->m_mass * gravity;
-			S[i].SetIdentity();
 		}
 		else
 		{
+			// Ensure a non-zero mass because zero masses 
+			// can make the system unsolvable.
+			M[i] = b3Diagonal(scalar(1));
 			S[i].SetZero();
 		}
 
 		sy[i] = p->m_translation;
-		sx0[i] = p->m_x;
 	}
 
 	// Apply internal forces
@@ -198,14 +195,14 @@ void b3ClothForceSolver::Solve(float32 dt, const b3Vec3& gravity)
 	b3SparseMat33 A = M - h * dfdv - (h * h) * dfdx;
 
 	// View for A
-	b3SparseMat33View viewA(A);
+	b3SparseMat33View AV(A);
 
 	// b
 	b3DenseVec3 b = h * (sf + h * (dfdx * sv) + dfdx * sy);
 
 	// x
 	b3DenseVec3 x(m_particleCount);
-	b3SolveMPCG(x, viewA, b, S, sz, sx0, I);
+	b3SolveMPCG(x, AV, b, sz, S);
 
 	// Velocity update
 	sv = sv + x;
@@ -214,7 +211,7 @@ void b3ClothForceSolver::Solve(float32 dt, const b3Vec3& gravity)
 	// Copy state buffers back to the particle
 	for (u32 i = 0; i < m_particleCount; ++i)
 	{
-		b3Particle* p = m_particles[i];
+		b3ClothParticle* p = m_particles[i];
 
 		p->m_x = x[i];
 		p->m_position = sx[i];

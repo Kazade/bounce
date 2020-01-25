@@ -32,9 +32,8 @@ struct Settings
 		drawLines = true;
 		drawTriangles = true;
 		drawGrid = true;
-		drawProfileTree = false;
-		drawProfileTreeStats = false;
 		drawStats = false;
+		drawProfiler = false;
 	}
 
 	int testID;
@@ -43,9 +42,8 @@ struct Settings
 	bool drawLines;
 	bool drawTriangles;
 	bool drawGrid;
-	bool drawProfileTree;
-	bool drawProfileTreeStats;
 	bool drawStats;
+	bool drawProfiler;
 };
 
 //

@@ -53,9 +53,9 @@ public:
 			{
 				// Clamp to force coplanarities.
 				// This will stress the generation code.
-				float32 x = 3.0f * RandomFloat(-1.0f, 1.0f);
-				float32 y = 3.0f * RandomFloat(-1.0f, 1.0f);
-				float32 z = 3.0f * RandomFloat(-1.0f, 1.0f);
+				float x = 3.0f * RandomFloat(-1.0f, 1.0f);
+				float y = 3.0f * RandomFloat(-1.0f, 1.0f);
+				float z = 3.0f * RandomFloat(-1.0f, 1.0f);
 
 				x = b3Clamp(x, -1.5f, 1.5f);
 				y = b3Clamp(y, -1.5f, 1.5f);

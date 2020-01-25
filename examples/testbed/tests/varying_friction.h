@@ -36,19 +36,12 @@ public:
 			ground->CreateShape(sd);
 		}
 
-		static b3BoxHull rampHull;
-
-		{
-			b3Transform xf;
-			xf.position.SetZero();
-			xf.rotation = b3Diagonal(25.0f, 0.5f, 25.0f);
-			rampHull.SetTransform(xf);
-		}
+		static b3BoxHull rampHull(25.0f, 0.5f, 25.0f);
 
 		{
 			b3BodyDef bdef;
 			bdef.position.Set(-20.0f, 20.0f, 0.0f);
-			bdef.orientation = b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), -0.1f * B3_PI);
+			bdef.orientation = b3QuatRotationZ(-0.1f * B3_PI);
 
 			b3Body* ramp = m_world.CreateBody(bdef);
 			
@@ -64,7 +57,7 @@ public:
 		{
 			b3BodyDef bdef;
 			bdef.position.Set(20.0f, 30.0f, 0.0f);
-			bdef.orientation = b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.1f * B3_PI);
+			bdef.orientation = b3QuatRotationZ(0.1f * B3_PI);
 
 			b3Body* ramp = m_world.CreateBody(bdef);
 
@@ -80,7 +73,7 @@ public:
 		{
 			b3BodyDef bdef;
 			bdef.position.Set(-20.0f, 40.0f, 0.0f);
-			bdef.orientation = b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), -0.1f * B3_PI);
+			bdef.orientation = b3QuatRotationZ(-0.1f * B3_PI);
 
 			b3Body* ramp = m_world.CreateBody(bdef);
 
@@ -96,7 +89,7 @@ public:
 		{
 			b3BodyDef bdef;
 			bdef.position.Set(20.0f, 50.0f, 0.0f);
-			bdef.orientation = b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.1f * B3_PI);
+			bdef.orientation = b3QuatRotationZ(0.1f * B3_PI);
 
 			b3Body* ramp = m_world.CreateBody(bdef);
 

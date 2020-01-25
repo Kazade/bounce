@@ -19,9 +19,7 @@
 #ifndef B3_SOFT_BODY_NODE_H
 #define B3_SOFT_BODY_NODE_H
 
-#include <bounce/common/math/vec2.h>
 #include <bounce/common/math/vec3.h>
-#include <bounce/common/math/transform.h>
 
 class b3SoftBody;
 
@@ -36,7 +34,7 @@ enum b3SoftBodyNodeType
 };
 
 // A soft body node.
-struct b3SoftBodyNode 
+class b3SoftBodyNode 
 {
 public:
 	// Set the node type.
@@ -44,9 +42,6 @@ public:
 
 	// Get the node type.
 	b3SoftBodyNodeType GetType() const;
-
-	// Get the vertex index.
-	u32 GetVertex() const;
 
 	// Set the node position. 
 	// If the node is dynamic changing the position directly might lead 
@@ -63,46 +58,40 @@ public:
 	const b3Vec3& GetVelocity() const;
 
 	// Get the node mass.
-	float32 GetMass() const;
+	scalar GetMass() const;
 
-	// Set the node mass damping.
-	void SetMassDamping(float32 damping);
+	// Get the mesh vertex index.
+	u32 GetMeshIndex() const;
 
-	// Get the node mass damping.
-	float32 GetMassDamping() const;
-
-	// Set the node radius.
-	void SetRadius(float32 radius);
-	
-	// Get the node radius.
-	float32 GetRadius() const;
-
-	// Set the node coefficient of friction.
-	void SetFriction(float32 friction);
-	
-	// Get the node coefficient of friction.
-	float32 GetFriction() const;
-	
 	// Apply a force.
 	void ApplyForce(const b3Vec3& force);
+
+	// Get the applied force.
+	const b3Vec3& GetForce() const;
+
+	// Apply a translation.
+	void ApplyTranslation(const b3Vec3& translation);
+
+	// Get the applied translation.
+	const b3Vec3& GetTranslation() const;
 private:
 	friend class b3SoftBody;
 	friend class b3SoftBodyContactManager;
 	friend class b3SoftBodySolver;
 	friend class b3SoftBodyForceSolver;
 	friend class b3SoftBodyContactSolver;
-	friend class b3NodeBodyContact;
+	friend class b3SoftBodySphereAndShapeContact;
+	friend class b3SoftBodyAnchor;
 
 	b3SoftBodyNode() { }
-
 	~b3SoftBodyNode() { }
 
-	// Synchronize node
-	void Synchronize(const b3Vec3& displacement);
+	// Synchronize spheres
+	void SynchronizeSpheres();
 
-	// Destroy associated contacts
+	// Destroy contacts
 	void DestroyContacts();
-
+	
 	// Type
 	b3SoftBodyNodeType m_type;
 
@@ -115,70 +104,31 @@ private:
 	// Applied external force
 	b3Vec3 m_force;
 
+	// Applied external translation
+	b3Vec3 m_translation;
+	
 	// Mass
-	float32 m_mass;
+	scalar m_mass;
 
 	// Inverse mass
-	float32 m_invMass;
+	scalar m_invMass;
 
-	// Mass damping
-	float32 m_massDamping;
-
-	// Radius
-	float32 m_radius;
-
-	// Coefficient of friction
-	float32 m_friction;
-	
-	// User data. 
-	void* m_userData;
-
-	// Soft body mesh vertex index.
-	u32 m_vertex;
-
-	// Broadphase proxy
-	u32 m_broadPhaseId;
+	// Mesh index
+	u32 m_meshIndex;
 
 	// Soft body
 	b3SoftBody* m_body;
 };
-
-inline void b3SoftBodyNode::SetType(b3SoftBodyNodeType type)
-{
-	if (m_type == type)
-	{
-		return;
-	}
-
-	m_type = type;
-	m_force.SetZero();
-
-	if (type == e_staticSoftBodyNode)
-	{
-		m_velocity.SetZero();
-		Synchronize(b3Vec3_zero);
-	}
-
-	DestroyContacts();
-}
 
 inline b3SoftBodyNodeType b3SoftBodyNode::GetType() const
 {
 	return m_type;
 }
 
-inline u32 b3SoftBodyNode::GetVertex() const
-{
-	return m_vertex;
-}
-
 inline void b3SoftBodyNode::SetPosition(const b3Vec3& position)
 {
-	b3Vec3 displacement = position - m_position;
-
 	m_position = position;
-
-	Synchronize(displacement);
+	SynchronizeSpheres();
 }
 
 inline const b3Vec3& b3SoftBodyNode::GetPosition() const
@@ -200,41 +150,9 @@ inline const b3Vec3& b3SoftBodyNode::GetVelocity() const
 	return m_velocity;
 }
 
-inline float32 b3SoftBodyNode::GetMass() const
+inline scalar b3SoftBodyNode::GetMass() const
 {
 	return m_mass;
-}
-
-inline void b3SoftBodyNode::SetMassDamping(float32 massDamping)
-{
-	m_massDamping = massDamping;
-}
-
-inline float32 b3SoftBodyNode::GetMassDamping() const
-{
-	return m_massDamping;
-}
-
-inline void b3SoftBodyNode::SetRadius(float32 radius)
-{
-	m_radius = radius;
-	
-	Synchronize(b3Vec3_zero);
-}
-
-inline float32 b3SoftBodyNode::GetRadius() const
-{
-	return m_radius;
-}
-
-inline void b3SoftBodyNode::SetFriction(float32 friction)
-{
-	m_friction = friction;
-}
-
-inline float32 b3SoftBodyNode::GetFriction() const
-{
-	return m_friction;
 }
 
 inline void b3SoftBodyNode::ApplyForce(const b3Vec3& force)
@@ -244,6 +162,26 @@ inline void b3SoftBodyNode::ApplyForce(const b3Vec3& force)
 		return;
 	}
 	m_force += force;
+}
+
+inline const b3Vec3& b3SoftBodyNode::GetForce() const
+{
+	return m_force;
+}
+
+inline void b3SoftBodyNode::ApplyTranslation(const b3Vec3& translation)
+{
+	m_translation += translation;
+}
+
+inline const b3Vec3& b3SoftBodyNode::GetTranslation() const
+{
+	return m_translation;
+}
+
+inline u32 b3SoftBodyNode::GetMeshIndex() const
+{
+	return m_meshIndex;
 }
 
 #endif

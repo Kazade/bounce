@@ -24,25 +24,21 @@ class CapsuleCollision : public Collide
 public:
 	CapsuleCollision()
 	{
-		m_xfA.SetIdentity();
-		m_xfA.position.Set(0.0f, 0.0f, 0.0f);
-		//m_xfA.rotation = b3ConvertQuatToRot(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.25f * B3_PI));
-		m_xfA.rotation.SetIdentity();
-		m_sA.m_centers[0].Set(0.0f, -5.0f, 0.0f);
-		m_sA.m_centers[1].Set(0.0f, 5.0f, 0.0f);
+		m_sA.m_vertex1.Set(0.0f, -5.0f, 0.0f);
+		m_sA.m_vertex2.Set(0.0f, 5.0f, 0.0f);
 		m_sA.m_radius = 1.0f;
 
-		m_xfB.SetIdentity();
-		m_xfB.position.Set(0.f, 0.0f, 0.0f);
-		//m_xfB.rotation = b3ConvertQuatToRot(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.251f * B3_PI));
-		m_xfB.rotation.SetIdentity();
-		m_sB.m_centers[0].Set(0.0f, -1.0f, 0.0f);
-		m_sB.m_centers[1].Set(0.0f, 1.0f, 0.0f);
+		m_xfA.SetIdentity();
+		
+		m_sB.m_vertex1.Set(0.0f, -1.0f, 0.0f);
+		m_sB.m_vertex2.Set(0.0f, 1.0f, 0.0f);
 		m_sB.m_radius = 1.0f;
 
-		m_cache.count = 0;
+		m_xfB.SetIdentity();
+
 		m_shapeA = &m_sA;
 		m_shapeB = &m_sB;
+		m_cache.count = 0;
 	}
 
 	static Test* Create()

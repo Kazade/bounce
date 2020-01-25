@@ -18,6 +18,7 @@
 
 #include <bounce/dynamics/island.h>
 #include <bounce/dynamics/body.h>
+#include <bounce/dynamics/world_listeners.h>
 #include <bounce/dynamics/time_step.h>
 #include <bounce/dynamics/joints/joint.h>
 #include <bounce/dynamics/joints/joint_solver.h>
@@ -25,9 +26,10 @@
 #include <bounce/dynamics/contacts/contact_solver.h>
 #include <bounce/common/memory/stack_allocator.h>
 
-b3Island::b3Island(b3StackAllocator* allocator, u32 bodyCapacity, u32 contactCapacity, u32 jointCapacity) 
+b3Island::b3Island(b3StackAllocator* allocator, u32 bodyCapacity, u32 contactCapacity, u32 jointCapacity, b3ContactListener* listener) 
 {
 	m_allocator = allocator;
+	m_listener = listener;
 	m_bodyCapacity = bodyCapacity;
 	m_contactCapacity = contactCapacity;
 	m_jointCapacity = jointCapacity;
@@ -84,11 +86,11 @@ void b3Island::Add(b3Joint* j)
 	++m_jointCount;
 }
 
-// Box2D
-static B3_FORCE_INLINE b3Vec3 b3SolveGyro(const b3Quat& q, const b3Mat33& Ib, const b3Vec3& w1, float32 h)
+// Numerical Methods (Erin, p60)
+static B3_FORCE_INLINE b3Vec3 b3SolveGyro(const b3Quat& q, const b3Mat33& Ib, const b3Vec3& w1, scalar h)
 {
 	// Convert angular velocity to body coordinates
-	b3Vec3 w1b = b3MulT(q, w1);
+	b3Vec3 w1b = b3MulC(q, w1);
 	
 	// Jacobian of f
 	b3Mat33 J = Ib + h * (b3Skew(w1b) * Ib - b3Skew(Ib * w1b));
@@ -106,9 +108,9 @@ static B3_FORCE_INLINE b3Vec3 b3SolveGyro(const b3Quat& q, const b3Mat33& Ib, co
 	return w2;
 }
 
-void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, u32 positionIterations, u32 flags)
+void b3Island::Solve(const b3Vec3& gravity, scalar dt, u32 velocityIterations, u32 positionIterations, u32 flags)
 {
-	float32 h = dt;
+	scalar h = dt;
 
 	// 1. Integrate velocities
 	for (u32 i = 0; i < m_bodyCount; ++i) 
@@ -127,34 +129,21 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 		if (b->m_type == e_dynamicBody) 
 		{
 			// Integrate forces
-			v += h * (b->m_gravityScale * gravity + b->m_invMass * b->m_force);
+			v += h * (b3MulCW(b->m_gravityScale, gravity) + b->m_invMass * b->m_force);
 			
 			// Clear forces
 			b->m_force.SetZero();
 			
 			// Integrate torques
-			
-			// Superposition Principle
-			// w2 - w1 = dw1 + dw2 
-			// w2 - w1 = h * I^1 * bt + h * I^1 * -gt
-			// w2 = w1 + dw1 + dw2
-						
-			// Explicit Euler on current inertia and applied torque
-			// w2 = w1 + h * I1^1 * bt1
 			b3Vec3 dw1 = h * b->m_worldInvI * b->m_torque;
 			
+			// "Numerical Methods", (Erin, p71)
 			// Implicit Euler on next inertia and angular velocity
-			// w2 = w1 - h * I2^1 * cross(w2, I2 * w2)
-			// w2 - w1 = -I2^1 * h * cross(w2, I2 * w2)
-			// I2 * (w2 - w1) = -h * cross(w2, I2 * w2)
-			// I2 * (w2 - w1) + h * cross(w2, I2 * w2) = 0
-			// Toss out I2 from f using local I2 (constant) and local w1 
-			// to remove its time dependency.
 			b3Vec3 w2 = b3SolveGyro(q, b->m_I, w, h);
 			b3Vec3 dw2 = w2 - w;
 
 			w += dw1 + dw2;
-			
+
 			// Clear torques
 			b->m_torque.SetZero();
 			
@@ -165,8 +154,13 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 			// v2 = exp(-c * dt) * v1
 			// Padé approximation:
 			// 1 / (1 + c * dt) 
-			v *= 1.0f / (1.0f + h * b->m_linearDamping);
-			w *= 1.0f / (1.0f + h * b->m_angularDamping);
+			v.x *= scalar(1) / (scalar(1) + h * b->m_linearDamping.x);
+			v.y *= scalar(1) / (scalar(1) + h * b->m_linearDamping.y);
+			v.z *= scalar(1) / (scalar(1) + h * b->m_linearDamping.z);
+
+			w.x *= scalar(1) / (scalar(1) + h * b->m_angularDamping.x);
+			w.y *= scalar(1) / (scalar(1) + h * b->m_angularDamping.y);
+			w.z *= scalar(1) / (scalar(1) + h * b->m_angularDamping.z);
 		}
 
 		m_velocities[i].v = v;
@@ -241,25 +235,28 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 		b3Vec3 w = m_velocities[i].w;
 		b3Mat33 invI = m_invInertias[i];
 
-		// Prevent numerical instability due to large velocity changes.		
-		b3Vec3 translation = h * v;
-		if (b3Dot(translation, translation) > B3_MAX_TRANSLATION_SQUARED)
+		if (b->m_type != e_staticBody)
 		{
-			float32 ratio = B3_MAX_TRANSLATION / b3Length(translation);
-			v *= ratio;
-		}
+			// Prevent numerical instability due to large velocity changes.		
+			b3Vec3 translation = h * v;
+			if (b3Dot(translation, translation) > B3_MAX_TRANSLATION_SQUARED)
+			{
+				scalar ratio = B3_MAX_TRANSLATION / b3Length(translation);
+				v *= ratio;
+			}
 
-		b3Vec3 rotation = h * w;
-		if (b3Dot(rotation, rotation) > B3_MAX_ROTATION_SQUARED)
-		{
-			float32 ratio = B3_MAX_ROTATION / b3Length(rotation);
-			w *= ratio;
-		}
+			b3Vec3 rotation = h * w;
+			if (b3Dot(rotation, rotation) > B3_MAX_ROTATION_SQUARED)
+			{
+				scalar ratio = B3_MAX_ROTATION / b3Length(rotation);
+				w *= ratio;
+			}
 
-		// Integrate
-		x += h * v;
-		q = b3Integrate(q, w, h);
-		invI = b3RotateToFrame(b->m_invI, q);
+			// Integrate
+			x += h * v;
+			q = b3Integrate(q, w, h);
+			invI = b3RotateToFrame(b->m_invI, q);
+		}
 
 		m_positions[i].x = x;
 		m_positions[i].q = q;
@@ -269,10 +266,11 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 	}
 
 	// 5. Solve position constraints
+	bool positionsSolved = false;
+	
 	{
 		B3_PROFILE("Solve Position Constraints");
 		
-		bool positionsSolved = false;
 		for (u32 i = 0; i < positionIterations; ++i) 
 		{
 			bool contactsSolved = contactSolver.SolvePositionConstraints();
@@ -292,7 +290,6 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 		b3Body* b = m_bodies[i];
 		b->m_sweep.worldCenter = m_positions[i].x;
 		b->m_sweep.orientation = m_positions[i].q;
-		b->m_sweep.orientation.Normalize();
 		b->m_linearVelocity = m_velocities[i].v;
 		b->m_angularVelocity = m_velocities[i].w;	
 		b->m_worldInvI = m_invInertias[i];
@@ -300,10 +297,14 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 		b->SynchronizeTransform();
 	}
 
+	// Post solve callback report
+	Report();
+
 	// 7. Put bodies under unconsiderable motion to sleep
 	if (flags & e_sleepBit) 
 	{
-		float32 minSleepTime = B3_MAX_FLOAT;
+		scalar minSleepTime = B3_MAX_SCALAR;
+
 		for (u32 i = 0; i < m_bodyCount; ++i) 
 		{
 			b3Body* b = m_bodies[i];
@@ -313,29 +314,44 @@ void b3Island::Solve(const b3Vec3& gravity, float32 dt, u32 velocityIterations, 
 			}
 
 			// Compute the linear and angular speed of the body.
-			float32 sqrLinVel = b3Dot(b->m_linearVelocity, b->m_linearVelocity);
-			float32 sqrAngVel = b3Dot(b->m_angularVelocity, b->m_angularVelocity);
+			scalar sqrLinVel = b3Dot(b->m_linearVelocity, b->m_linearVelocity);
+			scalar sqrAngVel = b3Dot(b->m_angularVelocity, b->m_angularVelocity);
 
-			if (sqrLinVel > B3_SLEEP_LINEAR_TOL || sqrAngVel > B3_SLEEP_ANGULAR_TOL) 
+			if (b->IsSleepingAllowed() == false ||
+				sqrLinVel > b->m_linearSleepTolerance * b->m_linearSleepTolerance || 
+				sqrAngVel > b->m_angularSleepTolerance * b->m_angularSleepTolerance) 
 			{
-				minSleepTime = 0.0f;
-				b->m_sleepTime = 0.0f;
+				b->m_sleepTime = scalar(0);
 			}
 			else 
 			{
 				b->m_sleepTime += h;
-				minSleepTime = b3Min(minSleepTime, b->m_sleepTime);
 			}
+
+			minSleepTime = b3Min(minSleepTime, b->m_sleepTime);
 		}
 
 		// Put the island to sleep so long as the minimum found sleep time
 		// is below the threshold. 
-		if (minSleepTime >= B3_TIME_TO_SLEEP) 
+		if (minSleepTime >= B3_TIME_TO_SLEEP && positionsSolved) 
 		{
 			for (u32 i = 0; i < m_bodyCount; ++i) 
 			{
 				m_bodies[i]->SetAwake(false);
 			}
 		}
+	}
+}
+
+void b3Island::Report()
+{
+	if (m_listener == nullptr)
+	{
+		return;
+	}
+
+	for (u32 i = 0; i < m_contactCount; ++i)
+	{
+		m_listener->PostSolve(m_contacts[i]);
 	}
 }

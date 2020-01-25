@@ -19,33 +19,34 @@
 #ifndef BEAM_H
 #define BEAM_H
 
-#include <testbed/framework/softbody_dragger.h>
-
 class Beam : public Test
 {
 public:
+	enum
+	{
+		e_w = 5,
+		e_h = 2,
+		e_d = 2
+	};
+
 	Beam()
 	{
+		m_E0 = 1000.0f;
+		m_E = m_E0;
+
 		// Create soft body
 		b3SoftBodyDef def;
 		def.mesh = &m_mesh;
 		def.density = 0.2f;
-		def.E = 1000.0f;
+		def.E = m_E0;
 		def.nu = 0.33f;
+		def.radius = 0.2f;
+		def.friction = 0.6f;
 
 		m_body = new b3SoftBody(def);
 
 		b3Vec3 gravity(0.0f, -9.8f, 0.0f);
 		m_body->SetGravity(gravity);
-		m_body->SetWorld(&m_world);
-
-		for (u32 i = 0; i < m_mesh.vertexCount; ++i)
-		{
-			b3SoftBodyNode* n = m_body->GetVertexNode(i);
-
-			n->SetRadius(0.05f);
-			n->SetFriction(0.2f);
-		}
 
 		// Create body
 		{
@@ -55,7 +56,7 @@ public:
 
 			b3Body* b = m_world.CreateBody(bd);
 
-			m_wallHull.Set(1.0f, 5.0f, 5.0f);
+			m_wallHull.SetExtents(1.0f, 5.0f, 5.0f);
 
 			b3HullShape wallShape;
 			wallShape.m_hull = &m_wallHull;
@@ -64,18 +65,20 @@ public:
 			sd.shape = &wallShape;
 
 			b3Shape* wall = b->CreateShape(sd);
+
+			b3SoftBodyWorldShapeDef ssd;
+			ssd.shape = wall;
+
+			m_body->CreateWorldShape(ssd);
 		}
 
-		b3AABB3 aabb;
-		aabb.m_lower.Set(-3.0f, -5.0f, -5.0f);
-		aabb.m_upper.Set(-2.0f, 5.0f, 5.0f);
-
-		for (u32 i = 0; i < m_mesh.vertexCount; ++i)
+		for (u32 i = 0; i < e_h + 1; ++i)
 		{
-			b3SoftBodyNode* n = m_body->GetVertexNode(i);
-			b3Vec3 p = n->GetPosition();
-			if (aabb.Contains(p))
+			for (u32 k = 0; k < e_d + 1; ++k)
 			{
+				u32 v = m_mesh.GetVertex(i, 0, k);
+
+				b3SoftBodyNode* n = m_body->GetNode(v);
 				n->SetType(e_staticSoftBodyNode);
 			}
 		}
@@ -107,9 +110,9 @@ public:
 			b3Vec3 pA = m_bodyDragger->GetPointA();
 			b3Vec3 pB = m_bodyDragger->GetPointB();
 
-			g_draw->DrawPoint(pA, 2.0f, b3Color_green);
+			g_draw->DrawPoint(pA, 4.0f, b3Color_green);
 
-			g_draw->DrawPoint(pB, 2.0f, b3Color_green);
+			g_draw->DrawPoint(pB, 4.0f, b3Color_green);
 
 			g_draw->DrawSegment(pA, pB, b3Color_white);
 		}
@@ -117,8 +120,10 @@ public:
 		extern u32 b3_softBodySolverIterations;
 		g_draw->DrawString(b3Color_white, "Iterations = %d", b3_softBodySolverIterations);
 
-		float32 E = m_body->GetEnergy();
+		scalar E = m_body->GetEnergy();
 		g_draw->DrawString(b3Color_white, "E = %f", E);
+		
+		g_draw->DrawString(b3Color_white, "Up/Down - Young Modulus (%f)", m_E);
 	}
 
 	void MouseMove(const b3Ray3& pw)
@@ -146,13 +151,37 @@ public:
 		}
 	}
 
+	void KeyDown(int button)
+	{
+		if (button == GLFW_KEY_UP)
+		{
+			m_E = b3Clamp(m_E + scalar(10), scalar(0), m_E0);
+			for (u32 i = 0; i < m_mesh.tetrahedronCount; ++i)
+			{
+				m_body->GetElement(i)->SetE(m_E);
+			}
+		}
+		
+		if (button == GLFW_KEY_DOWN)
+		{
+			m_E = b3Clamp(m_E - scalar(10), scalar(10), m_E0);
+			for (u32 i = 0; i < m_mesh.tetrahedronCount; ++i)
+			{
+				m_body->GetElement(i)->SetE(m_E);
+			}
+		}
+	}
+
 	static Test* Create()
 	{
 		return new Beam();
 	}
 
-	b3BlockSoftBodyMesh<5, 2, 2> m_mesh;
+	b3BlockSoftBodyMesh<e_w, e_h, e_d> m_mesh;
 	
+	scalar m_E0;
+	scalar m_E;
+
 	b3SoftBody* m_body;
 	b3SoftBodyDragger* m_bodyDragger;
 	

@@ -17,12 +17,12 @@
 */
 
 #include <bounce/cloth/forces/spring_force.h>
-#include <bounce/cloth/particle.h>
+#include <bounce/cloth/cloth_particle.h>
 #include <bounce/cloth/cloth_force_solver.h>
 #include <bounce/sparse/dense_vec3.h>
 #include <bounce/sparse/sparse_mat33.h>
 
-void b3SpringForceDef::Initialize(b3Particle* particle1, b3Particle* particle2, float32 structuralStiffness, float32 dampingStiffness)
+void b3SpringForceDef::Initialize(b3ClothParticle* particle1, b3ClothParticle* particle2, scalar structuralStiffness, scalar dampingStiffness)
 {
 	type = e_springForce;
 	p1 = particle1;
@@ -42,12 +42,18 @@ b3SpringForce::b3SpringForce(const b3SpringForceDef* def)
 	m_L0 = def->restLength;
 	m_ks = def->structural;
 	m_kd = def->damping;
-	m_f.SetZero();
+	m_f1.SetZero();
+	m_f2.SetZero();
 }
 
 b3SpringForce::~b3SpringForce()
 {
 
+}
+
+bool b3SpringForce::HasParticle(const b3ClothParticle* particle) const
+{
+	return m_p1 == particle || m_p2 == particle;
 }
 
 void b3SpringForce::Apply(const b3ClothForceSolverData* data)
@@ -69,52 +75,60 @@ void b3SpringForce::Apply(const b3ClothForceSolverData* data)
 
 	b3Mat33 I; I.SetIdentity();
 
-	m_f.SetZero();
+	m_f1.SetZero();
+	m_f2.SetZero();
 
-	if (m_ks > 0.0f)
+	b3Vec3 dx = x1 - x2;
+
+	scalar L = b3Length(dx);
+
+	if (L > scalar(0))
 	{
-		b3Vec3 dx = x1 - x2;
+		b3Vec3 n = dx / L;
 
-		float32 L = b3Length(dx);
-
-		if (L > m_L0)
+		if (m_ks > scalar(0))
 		{
-			// Jacobian
-			b3Vec3 dCdx = dx / L;
+			if (L > m_L0)
+			{
+				scalar C = L - m_L0;
 
-			m_f += -m_ks * (L - m_L0) * dCdx;
+				m_f1 += -m_ks * C * n;
+				m_f2 -= -m_ks * C * n;
+
+				// Force derivative
+				b3Mat33 K11 = -m_ks * (b3Outer(dx, dx) + (scalar(1) - m_L0 / L) * (I - b3Outer(dx, dx)));
+				b3Mat33 K12 = -K11;
+				b3Mat33 K21 = K12;
+				b3Mat33 K22 = K11;
+
+				dfdx(i1, i1) += K11;
+				dfdx(i1, i2) += K12;
+				dfdx(i2, i1) += K21;
+				dfdx(i2, i2) += K22;
+			}
+		}
+
+		if (m_kd > scalar(0))
+		{
+			scalar dCdt = b3Dot(n, v1 - v2);
+
+			// Force
+			m_f1 += -m_kd * dCdt * n;
+			m_f2 -= -m_kd * dCdt * n;
 
 			// Force derivative
-			b3Mat33 K11 = -m_ks * (b3Outer(dx, dx) + (1.0f - m_L0 / L) * (I - b3Outer(dx, dx)));
+			b3Mat33 K11 = -m_kd * b3Outer(n, n);
 			b3Mat33 K12 = -K11;
 			b3Mat33 K21 = K12;
 			b3Mat33 K22 = K11;
 
-			dfdx(i1, i1) += K11;
-			dfdx(i1, i2) += K12;
-			dfdx(i2, i1) += K21;
-			dfdx(i2, i2) += K22;
+			dfdv(i1, i1) += K11;
+			dfdv(i1, i2) += K12;
+			dfdv(i2, i1) += K21;
+			dfdv(i2, i2) += K22;
 		}
 	}
 
-	if (m_kd > 0.0f)
-	{
-		// C * J
-		b3Vec3 dv = v1 - v2;
-
-		m_f += -m_kd * dv;
-		
-		b3Mat33 K11 = -m_kd * I;
-		b3Mat33 K12 = -K11;
-		b3Mat33 K21 = K12;
-		b3Mat33 K22 = K11;
-
-		dfdv(i1, i1) += K11;
-		dfdv(i1, i2) += K12;
-		dfdv(i2, i1) += K21;
-		dfdv(i2, i2) += K22;
-	}
-
-	f[i1] += m_f;
-	f[i2] -= m_f;
+	f[i1] += m_f1;
+	f[i2] += m_f2;
 }

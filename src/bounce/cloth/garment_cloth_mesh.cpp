@@ -29,6 +29,10 @@ b3GarmentClothMesh::b3GarmentClothMesh()
 	triangles = nullptr;
 	meshCount = 0;
 	meshes = nullptr;
+	shearingLineCount = 0;
+	shearingLines = nullptr;
+	bendingLineCount = 0;
+	bendingLines = nullptr;
 	sewingLineCount = 0;
 	sewingLines = nullptr;
 }
@@ -38,6 +42,8 @@ b3GarmentClothMesh::~b3GarmentClothMesh()
 	b3Free(vertices);
 	b3Free(triangles);
 	b3Free(meshes);
+	b3Free(shearingLines);
+	b3Free(bendingLines);
 	b3Free(sewingLines);
 }
 
@@ -77,7 +83,7 @@ void b3GarmentClothMesh::Set(const b3GarmentMesh* garment)
 		{
 			vertices[vertex_count].x = garment->meshes[pattern_index].vertices[pattern_vertex].x;
 			vertices[vertex_count].y = garment->meshes[pattern_index].vertices[pattern_vertex].y;
-			vertices[vertex_count].z = 0.0f;
+			vertices[vertex_count].z = scalar(0);
 			
 			++vertex_count;
 		}

@@ -22,14 +22,14 @@
 #include <bounce/collision/gjk/gjk.h>
 #include <bounce/collision/gjk/gjk_proxy.h>
 #include <bounce/collision/sat/sat.h>
-#include <bounce/collision/sat/sat_edge_and_hull.h>
-#include <bounce/collision/sat/sat_vertex_and_hull.h>
+#include <bounce/collision/sat/sat_hull_and_edge.h>
+#include <bounce/collision/sat/sat_hull_and_vertex.h>
 
 class b3Shape;
 class b3SphereShape;
 class b3CapsuleShape;
+class b3TriangleShape;
 class b3HullShape;
-class b3MeshShape;
 
 struct b3Manifold;
 
@@ -70,25 +70,41 @@ void b3CollideSphereAndSphere(b3Manifold& manifold,
 	const b3Transform& xf1, const b3SphereShape* shape1, 
 	const b3Transform& xf2, const b3SphereShape* shape2);
 
-// Compute a manifold for a sphere and a hull.
-void b3CollideSphereAndHull(b3Manifold& manifold, 
-	const b3Transform& xf1, const b3SphereShape* shape1, 
-	const b3Transform& xf2, const b3HullShape* shape2);
-
-// Compute a manifold for a sphere and a capsule.
-void b3CollideSphereAndCapsule(b3Manifold& manifold, 
-	const b3Transform& xf1, const b3SphereShape* shape1, 
-	const b3Transform& xf2, const b3CapsuleShape* shape2);
+// Compute a manifold for a capsule and a sphere.
+void b3CollideCapsuleAndSphere(b3Manifold& manifold,
+	const b3Transform& xf1, const b3CapsuleShape* shape1,
+	const b3Transform& xf2, const b3SphereShape* shape2);
 
 // Compute a manifold for two capsules.
 void b3CollideCapsuleAndCapsule(b3Manifold& manifold, 
 	const b3Transform& xf1, const b3CapsuleShape* shape1, 
 	const b3Transform& xf2, const b3CapsuleShape* shape2);
 
-// Compute a manifold for a capsule and a hull.
-void b3CollideCapsuleAndHull(b3Manifold& manifold, 
-	const b3Transform& xf1, const b3CapsuleShape* shape1, 
-	const b3Transform& xf2, const b3HullShape* shape2);
+// Compute a manifold for a triangle and a sphere.
+void b3CollideTriangleAndSphere(b3Manifold& manifold,
+	const b3Transform& xf1, const b3TriangleShape* shape1,
+	const b3Transform& xf2, const b3SphereShape* shape2);
+
+// Compute a manifold for a triangle and a capsule.
+void b3CollideTriangleAndCapsule(b3Manifold& manifold,
+	const b3Transform& xf1, const b3TriangleShape* shape1,
+	const b3Transform& xf2, const b3CapsuleShape* shape2);
+
+// Compute a manifold for a triangle and a hull.
+void b3CollideTriangleAndHull(b3Manifold& manifold,
+	const b3Transform& xf1, const b3TriangleShape* shape1,
+	const b3Transform& xf2, const b3HullShape* shape2,
+	b3ConvexCache* cache);
+
+// Compute a manifold for a hull and a sphere.
+void b3CollideHullAndSphere(b3Manifold& manifold,
+	const b3Transform& xf1, const b3HullShape* shape1,
+	const b3Transform& xf2, const b3SphereShape* shape2);
+
+// Compute a manifold for a hull and a capsule.
+void b3CollideHullAndCapsule(b3Manifold& manifold,
+	const b3Transform& xf1, const b3HullShape* shape1,
+	const b3Transform& xf2, const b3CapsuleShape* shape2);
 
 // Compute a manifold for two hulls. 
 void b3CollideHullAndHull(b3Manifold& manifold, 

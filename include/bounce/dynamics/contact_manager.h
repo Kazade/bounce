@@ -22,9 +22,9 @@
 #include <bounce/common/memory/block_pool.h>
 #include <bounce/common/template/list.h>
 #include <bounce/collision/broad_phase.h>
+#include <bounce/dynamics/contacts/contact.h>
 
 class b3Shape;
-class b3Contact;
 class b3ContactFilter;
 class b3ContactListener;
 struct b3MeshContactLink;
@@ -51,7 +51,8 @@ public:
 
 	b3BlockPool m_convexBlocks;
 	b3BlockPool m_meshBlocks;
-	
+	b3BlockPool* m_allocators[e_maxContact];
+
 	b3BroadPhase m_broadPhase;	
 	b3List2<b3Contact> m_contactList;
 	b3List2<b3MeshContactLink> m_meshContactList;

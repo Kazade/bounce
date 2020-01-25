@@ -22,7 +22,6 @@
 // Include this file header in your project to directly access Bounce objects.
 
 #include <bounce/common/settings.h>
-#include <bounce/common/time.h>
 #include <bounce/common/draw.h>
 
 #include <bounce/common/math/math.h>
@@ -31,14 +30,18 @@
 #include <bounce/collision/sat/sat.h>
 #include <bounce/collision/collision.h>
 #include <bounce/collision/broad_phase.h>
+#include <bounce/collision/time_of_impact.h>
 
 #include <bounce/collision/shapes/sphere.h>
 #include <bounce/collision/shapes/capsule.h>
 #include <bounce/collision/shapes/hull.h>
 #include <bounce/collision/shapes/box_hull.h>
+#include <bounce/collision/shapes/cylinder_hull.h>
+#include <bounce/collision/shapes/cone_hull.h>
 #include <bounce/collision/shapes/qhull.h>
 #include <bounce/collision/shapes/mesh.h>
 #include <bounce/collision/shapes/grid_mesh.h>
+#include <bounce/collision/shapes/sdf.h>
 
 #include <bounce/dynamics/joints/mouse_joint.h>
 #include <bounce/dynamics/joints/spring_joint.h>
@@ -46,11 +49,17 @@
 #include <bounce/dynamics/joints/sphere_joint.h>
 #include <bounce/dynamics/joints/revolute_joint.h>
 #include <bounce/dynamics/joints/cone_joint.h>
+#include <bounce/dynamics/joints/friction_joint.h>
+#include <bounce/dynamics/joints/motor_joint.h>
+#include <bounce/dynamics/joints/prismatic_joint.h>
+#include <bounce/dynamics/joints/wheel_joint.h>
 
 #include <bounce/dynamics/shapes/sphere_shape.h>
 #include <bounce/dynamics/shapes/capsule_shape.h>
+#include <bounce/dynamics/shapes/triangle_shape.h>
 #include <bounce/dynamics/shapes/hull_shape.h>
 #include <bounce/dynamics/shapes/mesh_shape.h>
+#include <bounce/dynamics/shapes/sdf_shape.h>
 
 #include <bounce/dynamics/contacts/contact.h>
 #include <bounce/dynamics/contacts/convex_contact.h>
@@ -63,17 +72,25 @@
 
 #include <bounce/rope/rope.h>
 
+#include <bounce/sparse/sparse.h>
+
 #include <bounce/cloth/cloth_mesh.h>
 #include <bounce/cloth/grid_cloth_mesh.h>
 #include <bounce/cloth/garment_cloth_mesh.h>
-#include <bounce/cloth/cloth.h>
-#include <bounce/cloth/particle.h>
-#include <bounce/cloth/cloth_triangle.h>
 
-#include <bounce/cloth/forces/strech_force.h>
+#include <bounce/cloth/cloth.h>
+#include <bounce/cloth/cloth_particle.h>
+
+#include <bounce/cloth/shapes/cloth_sphere_shape.h>
+#include <bounce/cloth/shapes/cloth_capsule_shape.h>
+#include <bounce/cloth/shapes/cloth_triangle_shape.h>
+#include <bounce/cloth/shapes/cloth_world_shape.h>
+
+#include <bounce/cloth/forces/stretch_force.h>
 #include <bounce/cloth/forces/shear_force.h>
 #include <bounce/cloth/forces/spring_force.h>
 #include <bounce/cloth/forces/mouse_force.h>
+#include <bounce/cloth/forces/element_force.h>
 
 #include <bounce/cloth/garment/sewing_pattern.h>
 #include <bounce/cloth/garment/garment.h>
@@ -83,5 +100,11 @@
 #include <bounce/softbody/block_softbody_mesh.h>
 #include <bounce/softbody/softbody.h>
 #include <bounce/softbody/softbody_node.h>
+#include <bounce/softbody/softbody_element.h>
+
+#include <bounce/softbody/shapes/softbody_sphere_shape.h>
+#include <bounce/softbody/shapes/softbody_world_shape.h>
+
+#include <bounce/softbody/joints/softbody_anchor.h>
 
 #endif

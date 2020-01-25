@@ -20,182 +20,29 @@
 #include <bounce/dynamics/body.h>
 #include <bounce/common/draw.h>
 
-/*
-
-Algebra:
-
-Q(p) * P(q) = P(q) * Q(p)
-q' = 0.5 * w * q
-
-P = [0 1 0 0]
-	[0 0 1 0]
-	[0 0 0 1]
-
-Hinge projection matrix:
-
-P_hin = [x^T] * P = [0 1 0 0]
-		[y^T]		[0 0 1 0]
-
-Constraint:
-
-q = conj(q1) * q2
-
-C = P_hin * q
-
-Chain rule:
-
-q' = 
-conj(q1)' * q2 + conj(q1) * q2' =
-conj(q1') * q2 + conj(q1) * q2'
-
-1st term:
-
-conj(q1') * q2 =
-0.5 * conj(w1 * q1) * w2 =
-0.5 * conj(q1) * conj(w1) * q2 =
-0.5 * conj(q1) * -w1 * q2 =
--0.5 * conj(q1) * w1 * q2 =
--0.5 * Q(conj(q1)) * P(q2) * Q(w1)
-
-J1 = -0.5 * Q(conj(qA)) * P(qB)
-
-2nd term:
-
-conj(q1) * q2' =
-0.5 * conj(q1) * w2 * q2 =
-0.5 * Q(conj(q1)) * Q(w2) * Q(q2) =
-0.5 * Q(conj(q1)) * P(q2) * Q(w2)
-
-J2 = 0.5 * Q(conj(q1)) * P(q2)
-
-C' = P_hin * q' =
-P_hin * (J1 * P^T * w1 + J2 * P^T * w2) =
-P_hin * J1 * P^T * w1 + P_hin * J2 * P^T * w2
-
-New Jacobians:
-
-J1 = P_hin * J1 * P^T
-J2 = P_hin * J2 * P^T
-
-Limit constraint:
-
-q = conj(q1) * q2
-
-C = 2 * atan(q.z / q.w)
-
-Chain rule:
-
-f( g( q(t) ) ) = 2 * atan( g( q(t) ) )
-g( q(t) ) = q.z / q.w
-
-df / dt = del_f / del_g * del_g / del_q * dq / dt
-
-del_f / del_g = 
-1 / (g^2 + 1) = 
-1 / ((q.z / q.w)^2 + 1) = 
-q.w^2 / (q.w^2 + q.z^2) ~
-q.w^2
-
-del_g / del_q = 
-[del_g / del_w | del_g / del_x | del_g / del_y | del_g / del_z] = 
-[-q.z/q.w^2  0  0  q.w/q.w^2] =
-[-q.z/q.w^2  0  0  1/q.w] =
-1 / q.w^2 * [-q.z  0  0  q.w]
-
-df / dt = 
-q.w^2 * 1 / q.w^2 * [-q.z  0  0  q.w] * dq / dt =
-[-q.z  0  0  q.w] * dq / dt
-
-P_lim = [-q.z  0  0  q.w]
-
-C' = P_lim * (P_hinge * q') - target_speed
-
-*/
-
-static B3_FORCE_INLINE b3Mat44 b3Mat44_Quat(const b3Quat& q)
-{
-	b3Mat44 Q;
-	Q.x = b3Vec4(q.w, q.x, q.y, q.z);
-	Q.y = b3Vec4(-q.x, q.w, q.z, -q.y);
-	Q.z = b3Vec4(-q.y, -q.z, q.w, q.x);
-	Q.w = b3Vec4(-q.z, q.y, -q.x, q.w);
-	return Q;
-}
-
-static B3_FORCE_INLINE b3Mat44 b3Mat44_Projection(const b3Quat& q)
-{
-	b3Mat44 P;
-	P.x = b3Vec4(q.w, q.x, q.y, q.z);
-	P.y = b3Vec4(-q.x, q.w, -q.z, q.y);
-	P.z = b3Vec4(-q.y, q.z, q.w, -q.x);
-	P.w = b3Vec4(-q.z, -q.y, q.x, q.w);
-	return P;
-}
-
-static B3_FORCE_INLINE b3Mat34 b3Mat34_Projection()
-{
-	b3Mat34 P;
-	P.x = b3Vec3(0.0f, 0.0f, 0.0f);
-	P.y = b3Vec3(1.0f, 0.0f, 0.0f);
-	P.z = b3Vec3(0.0f, 1.0f, 0.0f);
-	P.w = b3Vec3(0.0f, 0.0f, 1.0f);
-	return P;
-}
-
-static B3_FORCE_INLINE b3Mat24 b3Mat24_Hinge_Projection()
-{
-	b3Mat24 P;
-	P.x = b3Vec2(0.0f, 0.0f);
-	P.y = b3Vec2(1.0f, 0.0f);
-	P.z = b3Vec2(0.0f, 1.0f);
-	P.w = b3Vec2(0.0f, 0.0f);
-	return P;
-}
-
-static B3_FORCE_INLINE b3Vec4 b3Mat14_Hinge_Limit_Projection(const b3Quat& q)
-{
-	return b3Vec4(-q.z, 0.0f, 0.0f, q.w);
-}
-
-static B3_FORCE_INLINE b3Vec4 b3Vec4_Quat(const b3Quat& q)
-{
-	return b3Vec4(q.w, q.x, q.y, q.z);
-}
-
-static const b3Mat34 b3Mat34_P = b3Mat34_Projection();
-static const b3Mat43 b3Mat43_PT = b3Transpose(b3Mat34_P);
-static const b3Mat24 b3Mat24_P_Hinge = b3Mat24_Hinge_Projection();
-
 void b3RevoluteJointDef::Initialize(b3Body* bA, b3Body* bB,
 	const b3Vec3& axis, const b3Vec3& anchor,
-	float32 lower, float32 upper)
+	scalar lower, scalar upper)
 {
-	B3_ASSERT(b3Length(axis) > B3_EPSILON);
-	B3_ASSERT(lowerAngle <= upperAngle);
+	B3_ASSERT(lower <= upper);
+
+	bodyA = bA;
+	bodyB = bB;
 
 	b3Mat33 rotation;
 	rotation.z = axis;
-	rotation.y = b3Perp(axis);
-	rotation.x = b3Cross(rotation.y, axis);
+	b3ComputeBasis(rotation.z, rotation.x, rotation.y);
 
 	b3Quat q = b3Mat33Quat(rotation);
-	float32 len = q.Normalize();
-	B3_ASSERT(len > B3_EPSILON);
 
-	b3Quat qA = bA->GetOrientation();
-	b3Quat qB = bB->GetOrientation();
-	
-	bodyA = bA;
-	bodyB = bB;
-	
-	localAnchorA = bA->GetLocalPoint(anchor);
-	localRotationA = b3Conjugate(qA) * q;
+	localAnchorA = bodyA->GetLocalPoint(anchor);
+	localRotationA = bodyA->GetLocalFrame(q);
 
-	localAnchorB = bB->GetLocalPoint(anchor);
-	localRotationB = b3Conjugate(qB) * q;
+	localAnchorB = bodyB->GetLocalPoint(anchor);
+	localRotationB = bodyB->GetLocalFrame(q);
 
-	referenceRotation = b3Conjugate(qA * localRotationA) * qB * localRotationB;
-	
+	referenceRotation.SetIdentity();
+
 	lowerAngle = lower;
 	upperAngle = upper;
 }
@@ -218,14 +65,13 @@ b3RevoluteJoint::b3RevoluteJoint(const b3RevoluteJointDef* def)
 	m_upperAngle = def->upperAngle;
 	B3_ASSERT(m_lowerAngle <= m_upperAngle);
 	
-	m_motorImpulse = 0.0f;
+	m_motorImpulse = scalar(0);
 
 	m_limitState = e_inactiveLimit;
-	m_limitImpulse = 0.0f;
+	m_limitImpulse = scalar(0);
 	
-	m_impulse.SetZero();
-
-	m_axisImpulse.SetZero();
+	m_linearImpulse.SetZero();
+	m_angularImpulse.SetZero();
 }
 
 void b3RevoluteJoint::InitializeConstraints(const b3SolverData* data)
@@ -248,50 +94,51 @@ void b3RevoluteJoint::InitializeConstraints(const b3SolverData* data)
 	b3Quat qA = data->positions[m_indexA].q;
 	b3Quat qB = data->positions[m_indexB].q;
 
-	float32 mA = m_mA;
+	scalar mA = m_mA;
 	b3Mat33 iA = m_iA;
-	float32 mB = m_mB;
+	scalar mB = m_mB;
 	b3Mat33 iB = m_iB;
 
-	// Joint rotation
 	b3Quat fA = qA * m_localRotationA;
 	b3Quat fB = qB * m_localRotationB;
-	b3Quat q = b3Conjugate(m_referenceRotation) * b3Conjugate(fA) * fB;
 
-	// Add motor constraint.
+	b3Mat33 RfA = b3QuatMat33(fA);
+	b3Mat33 RfB = b3QuatMat33(fB);
+
+	b3Vec3 u1 = RfA.x;
+	b3Vec3 v1 = RfA.y;
+	b3Vec3 w1 = RfA.z;
+
+	b3Vec3 u2 = RfB.x;
+	b3Vec3 v2 = RfB.y;
+	b3Vec3 w2 = RfB.z;
+	
+	// Motor constraint.
 	if (m_enableMotor || m_enableLimit)
 	{
-		b3Mat43 PT = b3Mat43_PT;
-		b3Vec4 P_limit = b3Mat14_Hinge_Limit_Projection(q);
+		m_motorAxis = w1;
+		m_motorAxis.Normalize();
 
-		b3Mat44 G1 = -0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
-		b3Mat44 G2 =  0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
-
-		b3Vec3 J1 = P_limit * G1 * PT;
-		b3Vec3 J2 = P_limit * G2 * PT;
+		scalar K = b3Dot((iA + iB) * m_motorAxis, m_motorAxis);
 		
-		b3Vec3 J1T = J1;
-		b3Vec3 J2T = J2;
-
-		m_motor_J1 = J1;
-		m_motor_J2 = J2;
-
-		float32 K = J1 * iA * J1T + J2 * iB * J2T;
-		m_motorMass = K > 0.0f ? 1.0f / K : 0.0f;
+		m_motorMass = K > scalar(0) ? scalar(1) / K : scalar(0);
 	}
 		
-	// Add limit constraint.
+	// Limit constraint.
 	if (m_enableLimit)
 	{
-		// Compute joint angle
-		float32 angle = 2.0f * atan2(q.z, q.w);
+		// Joint rotation
+		b3Quat q = b3Conjugate(m_referenceRotation) * b3Conjugate(fA) * fB;
 		
-		if (b3Abs(m_upperAngle - m_lowerAngle) < 2.0f * B3_ANGULAR_SLOP)
+		// Joint angle
+		scalar angle = scalar(2) * atan2(q.v.z, q.s);
+
+		if (b3Abs(m_upperAngle - m_lowerAngle) < scalar(2) * B3_ANGULAR_SLOP)
 		{
 			if (m_limitState != e_equalLimits)
 			{
 				m_limitState = e_equalLimits;
-				m_limitImpulse = 0.0f;
+				m_limitImpulse = scalar(0);
 			}
 		}
 		else if (angle <= m_lowerAngle)
@@ -299,7 +146,7 @@ void b3RevoluteJoint::InitializeConstraints(const b3SolverData* data)
 			if (m_limitState != e_atLowerLimit)
 			{
 				m_limitState = e_atLowerLimit;
-				m_limitImpulse = 0.0f;
+				m_limitImpulse = scalar(0);
 			}
 		}
 		else if (angle >= m_upperAngle)
@@ -307,13 +154,13 @@ void b3RevoluteJoint::InitializeConstraints(const b3SolverData* data)
 			if (m_limitState != e_atUpperLimit)
 			{
 				m_limitState = e_atUpperLimit;
-				m_limitImpulse = 0.0f;
+				m_limitImpulse = scalar(0);
 			}
 		}
 		else
 		{
 			m_limitState = e_inactiveLimit;
-			m_limitImpulse = 0.0f;
+			m_limitImpulse = scalar(0);
 		}
 	}
 	else
@@ -321,7 +168,7 @@ void b3RevoluteJoint::InitializeConstraints(const b3SolverData* data)
 		m_limitState = e_inactiveLimit;
 	}
 
-	// Add point-to-point constraints.
+	// Linear constraints.
 	{
 		m_rA = b3Mul(qA, m_localAnchorA - m_localCenterA);
 		m_rB = b3Mul(qB, m_localAnchorB - m_localCenterB);
@@ -332,31 +179,27 @@ void b3RevoluteJoint::InitializeConstraints(const b3SolverData* data)
 		b3Mat33 RBT = b3Transpose(RB);
 		b3Mat33 M = b3Diagonal(mA + mB);
 
-		m_mass = M + RA * iA * RAT + RB * iB * RBT;
+		m_linearMass = M + RA * iA * RAT + RB * iB * RBT;
 	}
 
-	// Add hinge constraints.
+	// Angular constraints.
 	{
-		b3Mat43 PT = b3Mat43_PT;
-		b3Mat24 P_hinge = b3Mat24_P_Hinge;
+		b3Vec3 s2 = b3Cross(u2, w1);
+		b3Vec3 s4 = b3Cross(v2, w1);
 
-		b3Mat44 G1 = -0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
-		b3Mat44 G2 =  0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
+		scalar k11 = b3Dot(s2, (iA + iB) * s2);
+		scalar k12 = b3Dot(s2, iA * s4) + b3Dot(s2, iB * s4);
+		scalar k22 = b3Dot(s4, (iA + iB) * s4);
 
-		b3Mat23 J1 = P_hinge * G1 * PT;
-		b3Mat23 J2 = P_hinge * G2 * PT;
-		
-		b3Mat32 J1T = b3Transpose(J1);
-		b3Mat32 J2T = b3Transpose(J2);
-		
-		m_J1 = J1;
-		m_J2 = J2;
+		b3Mat22 K;
+		K.x.x = k11;
+		K.x.y = k12;
+		K.y.x = k12;
+		K.y.y = k22;
 
-		m_J1T = J1T;
-		m_J2T = J2T;
-
-		b3Mat22 K = J1 * iA * J1T + J2 * iB * J2T;
-		m_K = b3Inverse(K);
+		m_a1 = s2;
+		m_a2 = s4;
+		m_angularMass = b3Inverse(K);
 	}
 }
 
@@ -369,36 +212,33 @@ void b3RevoluteJoint::WarmStart(const b3SolverData* data)
 
 	if (m_enableMotor && m_limitState != e_equalLimits)
 	{
-		b3Vec3 P1 = m_motor_J1 * m_motorImpulse;
-		b3Vec3 P2 = m_motor_J2 * m_motorImpulse;
+		b3Vec3 P = m_motorAxis * m_motorImpulse;
 
-		wA += m_iA * P1;
-		wB += m_iB * P2;
+		wA -= m_iA * P;
+		wB += m_iB * P;
 	}
 
 	if (m_enableLimit && m_limitState != e_inactiveLimit)
 	{
-		b3Vec3 P1 = m_motor_J1 * m_limitImpulse;
-		b3Vec3 P2 = m_motor_J2 * m_limitImpulse;
+		b3Vec3 P = m_motorAxis * m_limitImpulse;
 
-		wA += m_iA * P1;
-		wB += m_iB * P2;
+		wA -= m_iA * P;
+		wB += m_iB * P;
 	}
 
 	{
-		vA -= m_mA * m_impulse;
-		wA -= m_iA * b3Cross(m_rA, m_impulse);
+		vA -= m_mA * m_linearImpulse;
+		wA -= m_iA * b3Cross(m_rA, m_linearImpulse);
 
-		vB += m_mB * m_impulse;
-		wB += m_iB * b3Cross(m_rB, m_impulse);
+		vB += m_mB * m_linearImpulse;
+		wB += m_iB * b3Cross(m_rB, m_linearImpulse);
 	}
 
 	{
-		b3Vec3 P1 = m_J1T * m_axisImpulse;
-		b3Vec3 P2 = m_J2T * m_axisImpulse;
+		b3Vec3 L = m_angularImpulse.x * m_a1 + m_angularImpulse.y * m_a2;
 
-		wA += m_iA * P1;
-		wB += m_iB * P2;
+		wA -= m_iA * L;
+		wB += m_iB * L;
 	}
 
 	data->velocities[m_indexA].v = vA;
@@ -420,26 +260,25 @@ void b3RevoluteJoint::SolveVelocityConstraints(const b3SolverData* data)
 	// Solve motor constraint.
 	if (m_enableMotor && m_limitState != e_equalLimits)
 	{
-		float32 dw = m_motor_J1 * wA + m_motor_J2 * wB;
-		float32 Cdot = dw - m_motorSpeed;
-		float32 impulse = -m_motorMass * Cdot;
-		float32 oldImpulse = m_motorImpulse;
-		float32 maxImpulse = data->dt * m_maxMotorTorque;
+		scalar dw = b3Dot(wB - wA, m_motorAxis);
+		scalar Cdot = dw - m_motorSpeed;
+		scalar impulse = -m_motorMass * Cdot;
+		scalar oldImpulse = m_motorImpulse;
+		scalar maxImpulse = data->dt * m_maxMotorTorque;
 		m_motorImpulse = b3Clamp(m_motorImpulse + impulse, -maxImpulse, maxImpulse);
 		impulse = m_motorImpulse - oldImpulse;
 
-		b3Vec3 P1 = m_motor_J1 * impulse;
-		b3Vec3 P2 = m_motor_J2 * impulse;
+		b3Vec3 P = m_motorAxis * impulse;
 
-		wA += iA * P1;
-		wB += iB * P2;
+		wA -= iA * P;
+		wB += iB * P;
 	}
 
 	// Solve limit constraint.
 	if (m_enableLimit && m_limitState != e_inactiveLimit)
 	{
-		float32 Cdot = m_motor_J1 * wA + m_motor_J2 * wB;
-		float32 impulse = -m_motorMass * Cdot;
+		scalar Cdot = b3Dot(wB - wA, m_motorAxis);
+		scalar impulse = -m_motorMass * Cdot;
 
 		if (m_limitState == e_equalLimits)
 		{
@@ -447,30 +286,29 @@ void b3RevoluteJoint::SolveVelocityConstraints(const b3SolverData* data)
 		}
 		else if (m_limitState == e_atLowerLimit)
 		{
-			float32 oldImpulse = m_limitImpulse;
-			m_limitImpulse = b3Max(m_limitImpulse + impulse, 0.0f);
+			scalar oldImpulse = m_limitImpulse;
+			m_limitImpulse = b3Max(m_limitImpulse + impulse, scalar(0));
 			impulse = m_limitImpulse - oldImpulse;
 		}
 		else if (m_limitState == e_atUpperLimit)
 		{
-			float32 oldImpulse = m_limitImpulse;
-			m_limitImpulse = b3Min(m_limitImpulse + impulse, 0.0f);
+			scalar oldImpulse = m_limitImpulse;
+			m_limitImpulse = b3Min(m_limitImpulse + impulse, scalar(0));
 			impulse = m_limitImpulse - oldImpulse;
 		}
 
-		b3Vec3 P1 = m_motor_J1 * impulse;
-		b3Vec3 P2 = m_motor_J2 * impulse;
+		b3Vec3 P = impulse * m_motorAxis;
 
-		wA += iA * P1;
-		wB += iB * P2;
+		wA -= iA * P;
+		wB += iB * P;
 	}
 
-	// Solve point-to-point constraints.
+	// Solve linear constraints.
 	{
 		b3Vec3 Cdot = vB + b3Cross(wB, m_rB) - vA - b3Cross(wA, m_rA);
-		b3Vec3 impulse = m_mass.Solve(-Cdot);
+		b3Vec3 impulse = m_linearMass.Solve(-Cdot);
 
-		m_impulse += impulse;
+		m_linearImpulse += impulse;
 
 		vA -= m_mA * impulse;
 		wA -= m_iA * b3Cross(m_rA, impulse);
@@ -479,18 +317,22 @@ void b3RevoluteJoint::SolveVelocityConstraints(const b3SolverData* data)
 		wB += m_iB * b3Cross(m_rB, impulse);
 	}
 
-	// Solve axes-to-axes constraint.
+	// Solve angular constraints.
 	{
-		b3Vec2 Cdot = m_J1 * wA + m_J2 * wB;
-		b3Vec2 impulse = m_K * -Cdot;
+		b3Vec3 dw = wB - wA;
 
-		m_axisImpulse += impulse;
+		b3Vec2 Cdot;
+		Cdot.x = b3Dot(dw, m_a1);
+		Cdot.y = b3Dot(dw, m_a2);
 
-		b3Vec3 P1 = m_J1T * impulse;
-		b3Vec3 P2 = m_J2T * impulse;
+		b3Vec2 impulse = m_angularMass * -Cdot;
 
-		wA += m_iA * P1;
-		wB += m_iB * P2;
+		m_angularImpulse += impulse;
+
+		b3Vec3 L = impulse.x * m_a1 + impulse.y * m_a2;
+
+		wA -= m_iA * L;
+		wB += m_iB * L;
 	}
 
 	data->velocities[m_indexA].v = vA;
@@ -508,80 +350,99 @@ bool b3RevoluteJoint::SolvePositionConstraints(const b3SolverData* data)
 	b3Mat33 iA = data->invInertias[m_indexA];
 	b3Mat33 iB = data->invInertias[m_indexB];
 
-	float32 mA = m_mA;
-	float32 mB = m_mB;
+	scalar mA = m_mA;
+	scalar mB = m_mB;
 
-	// Solve limit constraint.
-	float32 limitError = 0.0f;
-	
-	if (m_enableLimit)
+	// Solve angular constraints.
+	scalar angularError = scalar(0);
+
 	{
 		b3Quat fA = qA * m_localRotationA;
 		b3Quat fB = qB * m_localRotationB;
-		b3Quat q = b3Conjugate(m_referenceRotation) * b3Conjugate(fA) * fB;
 
-		b3Mat43 PT = b3Mat43_PT;
-		b3Vec4 P_limit = b3Mat14_Hinge_Limit_Projection(q);
+		b3Quat q1 = b3Conjugate(m_referenceRotation) * b3Conjugate(fA) * fB;
 		
-		b3Mat44 G1 = -0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
-		b3Mat44 G2 =  0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
+		b3Quat q2;
+		q2.v.x = scalar(0);
+		q2.v.y = scalar(0);
+		q2.v.z = q1.v.z;
+		q2.s = q1.s;
 
-		b3Vec3 J1 = P_limit * G1 * PT;
-		b3Vec3 J2 = P_limit * G2 * PT;
-
-		b3Vec3 J1T = J1;
-		b3Vec3 J2T = J2;
-		
-		float32 K = J1 * iA * J1T + J2 * iB * J2T;
-		float32 limitMass = K > 0.0f ? 1.0f / K : 0.0f;
-		
-		float32 limitImpulse = 0.0f;
-
-		float32 angle = 2.0f * atan2(q.z, q.w);
-		
-		if (b3Abs(m_upperAngle - m_lowerAngle) < 2.0f * B3_ANGULAR_SLOP)
+		// Solve limit constraint
+		if (m_enableLimit)
 		{
-			float32 C = angle - m_lowerAngle;
-			limitError = b3Abs(C);
-			
-			// Prevent large corrections
-			C = b3Clamp(C, -B3_MAX_ANGULAR_CORRECTION, B3_MAX_ANGULAR_CORRECTION);
-			limitImpulse = -C * limitMass;
-		}
-		else if (angle <= m_lowerAngle)
-		{
-			float32 C = angle - m_lowerAngle;
-			limitError = -C;
+			// Joint angle
+			scalar angle = scalar(2) * atan2(q2.v.z, q2.s);
 
-			// Allow some slop and prevent large corrections
-			C = b3Clamp(C + B3_ANGULAR_SLOP, -B3_MAX_ANGULAR_CORRECTION, 0.0f);
-			limitImpulse = -C * limitMass;
-		}
-		else if (angle >= m_upperAngle)
-		{
-			float32 C = angle - m_upperAngle;
-			limitError = C;
+			scalar C = scalar(0);
+			if (b3Abs(m_upperAngle - m_lowerAngle) < scalar(2) * B3_ANGULAR_SLOP)
+			{
+				C = angle - m_lowerAngle;
 
-			// Allow some slop and prevent large corrections
-			C = b3Clamp(C - B3_ANGULAR_SLOP, 0.0f, B3_MAX_ANGULAR_CORRECTION);
-			limitImpulse = -C * limitMass;
+				// Prevent large corrections
+				C = b3Clamp(C, -B3_MAX_ANGULAR_CORRECTION, B3_MAX_ANGULAR_CORRECTION);
+			}
+			else if (angle <= m_lowerAngle)
+			{
+				C = angle - m_lowerAngle;
+
+				// Allow some slop and prevent large corrections
+				C = b3Clamp(C + B3_ANGULAR_SLOP, -B3_MAX_ANGULAR_CORRECTION, scalar(0));
+			}
+			else if (angle >= m_upperAngle)
+			{
+				C = angle - m_upperAngle;
+
+				// Allow some slop and prevent large corrections
+				C = b3Clamp(C - B3_ANGULAR_SLOP, scalar(0), B3_MAX_ANGULAR_CORRECTION);
+			}
+
+			if (C != scalar(0))
+			{
+				scalar theta = scalar(0.5) * (angle - C);
+
+				q2.v.z = sin(theta);
+				q2.s = cos(theta);
+			}
 		}
 
-		b3Vec3 P1 = J1T * limitImpulse;
-		b3Vec3 P2 = J2T * limitImpulse;
+		if (b3Dot(q1, q2) < scalar(0))
+		{
+			q1 = -q1;
+		}
 
-		qA += b3Derivative(qA, iA * P1);
+		// d * q1 = q2
+		// d = q2 * q1^-1
+		b3Quat d = q2 * b3Conjugate(q1);
+
+		// Exact local errors
+		b3Vec3 v;
+		v.x = scalar(2) * atan2(d.v.x, d.s);
+		v.y = scalar(2) * atan2(d.v.y, d.s);
+		v.z = scalar(2) * atan2(d.v.z, d.s);
+
+		angularError += b3Length(v);
+
+		// Convert the local angular error to world's frame
+		// Negate the local error.
+		b3Vec3 C = b3Mul(fA, -v);
+
+		b3Mat33 mass = iA + iB;
+
+		b3Vec3 impulse = mass.Solve(-C);
+
+		qA -= b3Derivative(qA, iA * impulse);
 		qA.Normalize();
 		iA = b3RotateToFrame(m_localInvIA, qA);
 
-		qB += b3Derivative(qB, iB * P2);
+		qB += b3Derivative(qB, iB * impulse);
 		qB.Normalize();
 		iB = b3RotateToFrame(m_localInvIB, qB);
 	}
-	
-	// Solve point-to-point constraints.
-	float32 linearError = 0.0f;
-	
+
+	// Solve linear constraints.
+	scalar linearError = scalar(0);
+
 	{
 		b3Vec3 rA = b3Mul(qA, m_localAnchorA - m_localCenterA);
 		b3Vec3 rB = b3Mul(qB, m_localAnchorB - m_localCenterB);
@@ -612,46 +473,6 @@ bool b3RevoluteJoint::SolvePositionConstraints(const b3SolverData* data)
 		iB = b3RotateToFrame(m_localInvIB, qB);
 	}
 
-	// Solve hinge constraints.
-	float32 angularError = 0.0f;
-
-	{
-		b3Quat fA = qA * m_localRotationA;
-		b3Quat fB = qB * m_localRotationB;
-		b3Quat q = b3Conjugate(m_referenceRotation) * b3Conjugate(fA) * fB;
-
-		b3Mat43 PT = b3Mat43_PT;
-		b3Mat24 P_hinge = b3Mat24_P_Hinge;
-
-		b3Vec2 C = P_hinge * b3Vec4_Quat(q);
-		
-		angularError += b3Length(C);
-		
-		// Compute effective mass
-		b3Mat44 G1 = -0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
-		b3Mat44 G2 =  0.5f * b3Mat44_Quat(b3Conjugate(fA)) * b3Mat44_Projection(fB);
-
-		b3Mat23 J1 = P_hinge * G1 * PT;
-		b3Mat23 J2 = P_hinge * G2 * PT;
-		
-		b3Mat32 J1T = b3Transpose(J1);
-		b3Mat32 J2T = b3Transpose(J2);
-		
-		b3Mat22 mass = J1 * iA * J1T + J2 * iB * J2T;
-		b3Vec2 impulse = mass.Solve(-C);
-
-		b3Vec3 P1 = J1T * impulse;
-		b3Vec3 P2 = J2T * impulse;
-
-		qA += b3Derivative(qA, iA * P1);
-		qA.Normalize();
-		iA = b3RotateToFrame(m_localInvIA, qA);
-
-		qB += b3Derivative(qB, iB * P2);
-		qB.Normalize();
-		iB = b3RotateToFrame(m_localInvIB, qB);
-	}
-
 	data->positions[m_indexA].x = xA;
 	data->positions[m_indexA].q = qA;
 	data->positions[m_indexB].x = xB;
@@ -659,31 +480,29 @@ bool b3RevoluteJoint::SolvePositionConstraints(const b3SolverData* data)
 	data->invInertias[m_indexA] = iA;
 	data->invInertias[m_indexB] = iB;
 
-	return linearError <= B3_LINEAR_SLOP && 
-		angularError <= B3_ANGULAR_SLOP &&
-		limitError <= B3_ANGULAR_SLOP;
+	return linearError <= B3_LINEAR_SLOP && angularError <= B3_ANGULAR_SLOP;
 }
 
 b3Transform b3RevoluteJoint::GetFrameA() const
 {
-	b3Transform xf(m_localRotationA, m_localAnchorA);
+	b3Transform xf(m_localAnchorA, m_localRotationA);
 	return GetBodyA()->GetWorldFrame(xf);
 }
 
 b3Transform b3RevoluteJoint::GetFrameB() const
 {
-	b3Transform xf(m_localRotationB, m_localAnchorB);
+	b3Transform xf(m_localAnchorB, m_localRotationB);
 	return GetBodyB()->GetWorldFrame(xf);
 }
 
 b3Transform b3RevoluteJoint::GetLocalFrameA() const
 {
-	return b3Transform(m_localRotationA, m_localAnchorA);
+	return b3Transform(m_localAnchorA, m_localRotationA);
 }
 
 b3Transform b3RevoluteJoint::GetLocalFrameB() const
 {
-	return b3Transform(m_localRotationB, m_localAnchorB);
+	return b3Transform(m_localAnchorB, m_localRotationB);
 }
 
 bool b3RevoluteJoint::IsLimitEnabled() const
@@ -697,30 +516,30 @@ void b3RevoluteJoint::SetEnableLimit(bool bit)
 	{
 		GetBodyA()->SetAwake(true);
 		GetBodyB()->SetAwake(true);
-		m_limitImpulse = 0.0f;
+		m_limitImpulse = scalar(0);
 		m_limitState = e_inactiveLimit;
 		m_enableLimit = bit;
 	}
 }
 
-float32 b3RevoluteJoint::GetLowerLimit() const
+scalar b3RevoluteJoint::GetLowerLimit() const
 {
 	return m_lowerAngle;
 }
 
-float32 b3RevoluteJoint::GetUpperLimit() const
+scalar b3RevoluteJoint::GetUpperLimit() const
 {
 	return m_upperAngle;
 }
 
-void b3RevoluteJoint::SetLimits(float32 lower, float32 upper)
+void b3RevoluteJoint::SetLimits(scalar lower, scalar upper)
 {
 	B3_ASSERT(lower <= upper);
 	if (lower != m_lowerAngle || upper != m_upperAngle)
 	{
 		GetBodyA()->SetAwake(true);
 		GetBodyB()->SetAwake(true);
-		m_limitImpulse = 0.0f;
+		m_limitImpulse = scalar(0);
 		m_lowerAngle = lower;
 		m_upperAngle = upper;
 	}
@@ -737,29 +556,29 @@ void b3RevoluteJoint::SetEnableMotor(bool bit)
 	{
 		GetBodyA()->SetAwake(true);
 		GetBodyB()->SetAwake(true);
-		m_motorImpulse = 0.0f;
+		m_motorImpulse = scalar(0);
 		m_enableMotor = bit;
 	}
 }
 
-float32 b3RevoluteJoint::GetMotorSpeed() const
+scalar b3RevoluteJoint::GetMotorSpeed() const
 {
 	return m_motorSpeed;
 }
 
-void b3RevoluteJoint::SetMotorSpeed(float32 speed)
+void b3RevoluteJoint::SetMotorSpeed(scalar speed)
 {
 	GetBodyA()->SetAwake(true);
 	GetBodyB()->SetAwake(true);
 	m_motorSpeed = speed;
 }
 
-float32 b3RevoluteJoint::GetMaxMotorTorque() const
+scalar b3RevoluteJoint::GetMaxMotorTorque() const
 {
 	return m_maxMotorTorque;
 }
 
-void b3RevoluteJoint::SetMaxMotorTorque(float32 torque)
+void b3RevoluteJoint::SetMaxMotorTorque(scalar torque)
 {
 	GetBodyA()->SetAwake(true);
 	GetBodyB()->SetAwake(true);

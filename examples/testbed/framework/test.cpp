@@ -17,8 +17,10 @@
 */
 
 #include <testbed/framework/test.h>
-#include <testbed/framework/profiler.h>
-#include <testbed/framework/profiler_st.h>
+#include <bounce/common/profiler.h>
+
+extern b3FrameAllocator* g_frameAllocator;
+extern b3Profiler* g_profiler;
 
 extern u32 b3_allocCalls, b3_maxAllocCalls;
 extern u32 b3_convexCalls, b3_convexCacheHits;
@@ -28,19 +30,18 @@ extern bool b3_convexCache;
 void b3BeginProfileScope(const char* name)
 {
 	g_profiler->BeginScope(name);
-	g_profilerSt->BeginScope(name);
 }
 
 void b3EndProfileScope()
 {
 	g_profiler->EndScope();
-	g_profilerSt->EndScope();
 }
 
 Test::Test() : 
 	m_bodyDragger(&m_ray, &m_world)
 {
 	b3Draw_draw = g_draw;
+	b3FrameAllocator_sparseAllocator = g_frameAllocator;
 	b3_convexCache = g_testSettings->convexCache;
 
 	m_world.SetContactListener(this);
@@ -49,13 +50,16 @@ Test::Test() :
 	m_ray.direction.Set(0.0f, 0.0f, -1.0f);
 	m_ray.fraction = g_camera->m_zFar;
 
-	m_groundHull.Set(50.0f, 1.0f, 50.0f);
+	m_groundHull.SetExtents(50.0f, 1.0f, 50.0f);
+	
 	m_groundMesh.BuildTree();
+	m_groundMesh.BuildAdjacency();
 }
 
 Test::~Test()
 {
 	b3Draw_draw = nullptr;
+	b3FrameAllocator_sparseAllocator = nullptr;
 }
 
 void Test::Step()
@@ -63,7 +67,7 @@ void Test::Step()
 	b3_convexCache = g_testSettings->convexCache;
 
 	// Step
-	float32 dt = g_testSettings->inv_hertz;
+	scalar dt = g_testSettings->inv_hertz;
 
 	m_world.SetSleeping(g_testSettings->sleep);
 	m_world.SetWarmStart(g_testSettings->warmStart);
@@ -97,19 +101,19 @@ void Test::Step()
 		g_draw->DrawString(b3Color_white, "Joints %d", m_world.GetJointList().m_count);
 		g_draw->DrawString(b3Color_white, "Contacts %d", m_world.GetContactList().m_count);
 
-		float32 avgGjkIters = 0.0f;
+		scalar avgGjkIters = 0.0f;
 		if (b3_gjkCalls > 0)
 		{
-			avgGjkIters = float32(b3_gjkIters) / float32(b3_gjkCalls);
+			avgGjkIters = scalar(b3_gjkIters) / scalar(b3_gjkCalls);
 		}
 
 		g_draw->DrawString(b3Color_white, "GJK Calls %d", b3_gjkCalls);
 		g_draw->DrawString(b3Color_white, "GJK Iterations %d (%d) (%f)", b3_gjkIters, b3_gjkMaxIters, avgGjkIters);
 
-		float32 convexCacheHitRatio = 0.0f;
+		scalar convexCacheHitRatio = 0.0f;
 		if (b3_convexCalls > 0)
 		{
-			convexCacheHitRatio = float32(b3_convexCacheHits) / float32(b3_convexCalls);
+			convexCacheHitRatio = scalar(b3_convexCacheHits) / scalar(b3_convexCalls);
 		}
 
 		g_draw->DrawString(b3Color_white, "Convex Calls %d", b3_convexCalls);

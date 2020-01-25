@@ -19,10 +19,12 @@
 #include <bounce/collision/trees/static_tree.h>
 #include <bounce/common/template/stack.h>
 #include <bounce/common/draw.h>
+#include <algorithm>
 
 b3StaticTree::b3StaticTree()
 {
-	m_nodes = NULL;
+	m_root = B3_NULL_NODE_S;
+	m_nodes = nullptr;
 	m_nodeCount = 0;
 }
 
@@ -31,51 +33,36 @@ b3StaticTree::~b3StaticTree()
 	b3Free(m_nodes);
 }
 
-static B3_FORCE_INLINE bool b3SortPredicate(const b3AABB3* set, u32 axis, u32 a, u32 b)
+struct b3SortPredicate
 {
-	b3Vec3 c1 = set[a].Centroid();
-	b3Vec3 c2 = set[b].Centroid();
+	b3SortPredicate() { }
 
-	return c1[axis] < c2[axis];
-}
-
-static void b3Sort(const b3AABB3* set, u32 axis, u32* ids, u32 count)
-{
-	if (count <= 1)
+	bool operator()(u32 a, u32 b)
 	{
-		return;
+		b3Vec3 ca = set[a].GetCenter();
+		b3Vec3 cb = set[b].GetCenter();
+
+		return ca[axis] < cb[axis];
 	}
 
-	u32 pivot = ids[count - 1];
-	u32 low = 0;
-	for (u32 i = 0; i < count - 1; ++i)
-	{
-		if (b3SortPredicate(set, axis, ids[i], pivot))
-		{
-			u32 tmp = ids[i];
-			ids[i] = ids[low];
-			ids[low] = tmp;
-			low++;
-		}
-	}
+	const b3AABB* set;
+	u32 axis;
+};
 
-	ids[count - 1] = ids[low];
-	ids[low] = pivot;
-	
-	b3Sort(set, axis, ids, low);
-	b3Sort(set, axis, ids + low + 1, count - 1 - low);
-}
-
-static u32 b3Partition(const b3AABB3& setAABB, const b3AABB3* set, u32* ids, u32 count)
+static u32 b3Partition(const b3AABB& setAABB, const b3AABB* set, u32* ids, u32 count)
 {
 	// Choose a partitioning axis.
 	u32 splitAxis = setAABB.GetLongestAxisIndex();
 
 	// Choose a split point.
-	float32 splitPos = setAABB.Centroid()[splitAxis];
+	scalar splitPos = setAABB.GetCenter()[splitAxis];
 
 	// Sort along the split axis.
-	b3Sort(set, splitAxis, ids, count);
+	b3SortPredicate predicate;
+	predicate.set = set;
+	predicate.axis = splitAxis;
+
+	std::sort(ids, ids + count, predicate);
 
 	// Find the AABB that splits the set in two subsets.
 	u32 left = 0;
@@ -83,7 +70,7 @@ static u32 b3Partition(const b3AABB3& setAABB, const b3AABB3* set, u32* ids, u32
 	u32 middle = left;
 	while (middle < right)
 	{
-		b3Vec3 center = set[ids[middle]].Centroid();
+		b3Vec3 center = set[ids[middle]].GetCenter();
 		if (center[splitAxis] > splitPos)
 		{
 			// Found median.
@@ -104,12 +91,12 @@ static u32 b3Partition(const b3AABB3& setAABB, const b3AABB3* set, u32* ids, u32
 	return middle;
 }
 
-void b3StaticTree::Build(const b3AABB3* set, b3Node* node, u32* ids, u32 count, u32 minObjectsPerLeaf, u32 nodeCapacity, u32& leafCount, u32& internalCount)
+void b3StaticTree::RecurseBuild(const b3AABB* set, b3Node* node, u32* ids, u32 count, u32 minObjectsPerLeaf, u32 nodeCapacity, u32& leafCount, u32& internalCount)
 {
 	B3_ASSERT(count > 0);
 	
 	// Enclose set
-	b3AABB3 setAABB = set[ids[0]];
+	b3AABB setAABB = set[ids[0]];
 	for (u32 i = 1; i < count; ++i)
 	{
 		setAABB = b3Combine(setAABB, set[ids[i]]);
@@ -141,12 +128,12 @@ void b3StaticTree::Build(const b3AABB3* set, b3Node* node, u32* ids, u32 count, 
 		++m_nodeCount;
 
 		// Build left and right subtrees
-		Build(set, m_nodes + node->child1, ids, middle, minObjectsPerLeaf, nodeCapacity, leafCount, internalCount);
-		Build(set, m_nodes + node->child2, ids + middle, count - middle, minObjectsPerLeaf, nodeCapacity, leafCount, internalCount);
+		RecurseBuild(set, m_nodes + node->child1, ids, middle, minObjectsPerLeaf, nodeCapacity, leafCount, internalCount);
+		RecurseBuild(set, m_nodes + node->child2, ids + middle, count - middle, minObjectsPerLeaf, nodeCapacity, leafCount, internalCount);
 	}
 }
 
-void b3StaticTree::Build(const b3AABB3* set, u32 count)
+void b3StaticTree::Build(const b3AABB* set, u32 count)
 {
 	B3_ASSERT(count > 0);
 
@@ -167,10 +154,11 @@ void b3StaticTree::Build(const b3AABB3* set, u32 count)
 	u32 internalCount = 0;
 	u32 leafCount = 0;
 
+	m_root = 0;
 	m_nodes = (b3Node*)b3Alloc(nodeCapacity * sizeof(b3Node));
 	m_nodeCount = 1;
 
-	Build(set, m_nodes, ids, count, kMinObjectsPerLeaf, nodeCapacity, leafCount, internalCount);
+	RecurseBuild(set, m_nodes, ids, count, kMinObjectsPerLeaf, nodeCapacity, leafCount, internalCount);
 
 	b3Free(ids);
 
@@ -186,10 +174,8 @@ void b3StaticTree::Draw() const
 		return;
 	}
 
-	u32 root = 0;
-
 	b3Stack<u32, 256> stack;
-	stack.Push(root);
+	stack.Push(m_root);
 
 	while (!stack.IsEmpty())
 	{

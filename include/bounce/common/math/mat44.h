@@ -46,7 +46,7 @@ struct b3Mat44
 };
 
 // 
-inline b3Mat44 operator*(float32 s, const b3Mat44& A)
+inline b3Mat44 operator*(scalar s, const b3Mat44& A)
 {
 	return b3Mat44(s * A.x, s * A.y, s * A.z, s * A.w);
 }
@@ -61,6 +61,11 @@ inline b3Vec4 operator*(const b3Mat44& A, const b3Vec4& v)
 inline b3Mat44 operator*(const b3Mat44& A, const b3Mat44& B)
 {
 	return b3Mat44(A * B.x, A * B.y, A * B.z, A * B.w);
+}
+
+inline b3Mat44 operator-(const b3Mat44& A)
+{
+	return scalar(-1) * A;
 }
 
 #endif

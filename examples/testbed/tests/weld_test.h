@@ -46,8 +46,8 @@ public:
 			bA = m_world.CreateBody(bd);
 
 			b3CapsuleShape shape;
-			shape.m_centers[0].Set(0.0f, -3.5f, 0.0f);
-			shape.m_centers[1].Set(0.0f, 3.5f, 0.0f);
+			shape.m_vertex1.Set(0.0f, -3.5f, 0.0f);
+			shape.m_vertex2.Set(0.0f, 3.5f, 0.0f);
 			shape.m_radius = 0.5f;
 
 			b3ShapeDef sd;
@@ -64,13 +64,7 @@ public:
 
 			bB = m_world.CreateBody(bd);
 
-			static b3BoxHull doorHull;
-			{
-				b3Transform xf;
-				xf.position.SetZero();
-				xf.rotation = b3Diagonal(2.0f, 4.0f, 0.5f);
-				doorHull.SetTransform(xf);
-			}
+			static b3BoxHull doorHull(2.0f, 4.0f, 0.5f);
 
 			b3HullShape hull;
 			hull.m_hull = &doorHull;
@@ -86,14 +80,15 @@ public:
 
 				b3WeldJointDef jd;
 				jd.Initialize(bA, bB, anchor);
+				jd.frequencyHz = 2.0f;
+				jd.dampingRatio = 0.3f;
 
 				b3WeldJoint* wj = (b3WeldJoint*)m_world.CreateJoint(jd);
 			}
 
 			// Invalidate the orientation
-			b3Vec3 axis(1.0f, 0.0f, 0.0f);
-			float32 angle = B3_PI;
-			bB->SetTransform(bB->GetPosition(), axis, angle);
+			b3Quat q = b3QuatRotationX(B3_PI);
+			bB->SetTransform(bB->GetPosition(), q);
 		}
 	}
 

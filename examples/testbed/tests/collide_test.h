@@ -68,46 +68,43 @@ public:
 	{
 		if (key == GLFW_KEY_LEFT)
 		{
-			m_xfB.position.x -= 0.05f;
+			m_xfB.translation.x -= 0.05f;
 		}
 
 		if (key == GLFW_KEY_RIGHT)
 		{
-			m_xfB.position.x += 0.05f;
+			m_xfB.translation.x += 0.05f;
 		}
 		
 		if (key == GLFW_KEY_UP)
 		{
-			m_xfB.position.y += 0.05f;
+			m_xfB.translation.y += 0.05f;
 		}
 		
 		if (key == GLFW_KEY_DOWN)
 		{
-			m_xfB.position.y -= 0.05f;
+			m_xfB.translation.y -= 0.05f;
 		}
 
 		if (key == GLFW_KEY_X)
 		{
-			b3Quat qx(b3Vec3(1.0f, 0.0f, 0.0f), 0.05f * B3_PI);
-			b3Mat33 xfx = b3QuatMat33(qx);
+			b3Quat qx = b3QuatRotationX(0.05f * B3_PI);
 
-			m_xfB.rotation = m_xfB.rotation * xfx;
+			m_xfB.rotation = m_xfB.rotation * qx;
 		}
 
 		if (key == GLFW_KEY_Y)
 		{
-			b3Quat qy(b3Vec3(0.0f, 1.0f, 0.0f), 0.05f * B3_PI);
-			b3Mat33 xfy = b3QuatMat33(qy);
+			b3Quat qy = b3QuatRotationY(0.05f * B3_PI);
 
-			m_xfB.rotation = m_xfB.rotation * xfy;
+			m_xfB.rotation = m_xfB.rotation * qy;
 		}
 
 		if (key == GLFW_KEY_Z)
 		{
-			b3Quat qy(b3Vec3(0.0f, 0.0f, 1.0f), 0.05f * B3_PI);
-			b3Mat33 xfz = b3QuatMat33(qy);
+			b3Quat qz = b3QuatRotationZ(0.05f * B3_PI);
 
-			m_xfB.rotation = m_xfB.rotation * xfz;
+			m_xfB.rotation = m_xfB.rotation * qz;
 		}
 	}
 

@@ -20,8 +20,11 @@
 #define MODEL_H
 
 #include <testbed/framework/draw.h>
-#include <testbed/framework/profiler.h>
-#include <testbed/framework/profiler_st.h>
+#include <bounce/common/profiler.h>
+
+extern b3FrameAllocator* g_frameAllocator;
+
+extern b3Profiler* g_profiler;
 
 // Set to 1 to write profile events into a .json file. Set to 0 otherwise.
 #define PROFILE_JSON 0
@@ -53,12 +56,12 @@ public:
 	void Command_Release_Mouse_Left(const b3Vec2& ps);
 	void Command_Move_Cursor(const b3Vec2& ps);
 
-	void Command_ResizeCamera(float32 w, float32 h);
-	void Command_RotateCameraX(float32 angle);
-	void Command_RotateCameraY(float32 angle);
-	void Command_TranslateCameraX(float32 d);
-	void Command_TranslateCameraY(float32 d);
-	void Command_ZoomCamera(float32 d);
+	void Command_ResizeCamera(scalar w, scalar h);
+	void Command_RotateCameraX(scalar angle);
+	void Command_RotateCameraY(scalar angle);
+	void Command_TranslateCameraX(scalar d);
+	void Command_TranslateCameraY(scalar d);
+	void Command_ZoomCamera(scalar d);
 
 	void Update();
 
@@ -74,8 +77,8 @@ private:
 
 	Draw m_draw;
 	Camera m_camera;
-	Profiler m_profiler;
-	ProfilerSt m_profilerSt;
+	b3FrameAllocator m_frame;
+	b3Profiler m_profiler;
 
 #if (PROFILE_JSON == 1)
 	JsonProfiler m_jsonProfiler;
@@ -115,13 +118,13 @@ inline void Model::Action_ResetCamera()
 	m_camera.m_zoom = 50.0f;
 }
 
-inline void Model::Command_ResizeCamera(float32 w, float32 h)
+inline void Model::Command_ResizeCamera(scalar w, scalar h)
 {
 	m_camera.m_width = w;
 	m_camera.m_height = h;
 }
 
-inline void Model::Command_RotateCameraX(float32 angle)
+inline void Model::Command_RotateCameraX(scalar angle)
 {
 	b3Quat d = b3QuatRotationX(angle);
 
@@ -129,7 +132,7 @@ inline void Model::Command_RotateCameraX(float32 angle)
 	m_camera.m_q.Normalize();
 }
 
-inline void Model::Command_RotateCameraY(float32 angle)
+inline void Model::Command_RotateCameraY(scalar angle)
 {
 	b3Quat d = b3QuatRotationY(angle);
 
@@ -137,21 +140,21 @@ inline void Model::Command_RotateCameraY(float32 angle)
 	m_camera.m_q.Normalize();
 }
 
-inline void Model::Command_TranslateCameraX(float32 d)
+inline void Model::Command_TranslateCameraX(scalar d)
 {
 	b3Transform transform = m_camera.BuildWorldTransform();
 
-	m_camera.m_center += d * transform.rotation.x;
+	m_camera.m_center += d * transform.rotation.GetXAxis();
 }
 
-inline void Model::Command_TranslateCameraY(float32 d)
+inline void Model::Command_TranslateCameraY(scalar d)
 {
 	b3Transform transform = m_camera.BuildWorldTransform();
 
-	m_camera.m_center += d * transform.rotation.y;
+	m_camera.m_center += d * transform.rotation.GetYAxis();
 }
 
-inline void Model::Command_ZoomCamera(float32 d)
+inline void Model::Command_ZoomCamera(scalar d)
 {
 	m_camera.m_zoom += d;
 }

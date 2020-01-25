@@ -19,25 +19,24 @@
 #ifndef B3_COLLISION_H
 #define B3_COLLISION_H
 
-#include <bounce/common/geometry.h>
-#include <bounce/collision/shapes/aabb3.h>
+#include <bounce/common/math/vec3.h>
 
 // Input for a ray cast.
 struct b3RayCastInput
 {
 	b3Vec3 p1; // first point on segment
 	b3Vec3 p2; // second point on segment
-	float32 maxFraction; // maximum intersection
+	scalar maxFraction; // maximum intersection
 };
 
 // Output of a ray cast.
 struct b3RayCastOutput
 {
-	float32 fraction; // time of intersection on ray-segment
+	scalar fraction; // time of intersection on ray-segment
 	b3Vec3 normal; // surface normal of intersection
 };
 
-// Perform a ray-cast on a triangle.
+// Perform a ray-cast against a triangle.
 bool b3RayCast(b3RayCastOutput* output, const b3RayCastInput* input,
 	const b3Vec3& v1, const b3Vec3& v2, const b3Vec3& v3);
 

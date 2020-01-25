@@ -21,54 +21,68 @@
 
 #include <bounce/cloth/forces/force.h>
 
+// Spring force definition.
+// This requires defining two particles, the 
+// natural spring rest length, and the spring parameters.
 struct b3SpringForceDef : public b3ForceDef
 {
 	b3SpringForceDef()
 	{
 		type = e_springForce;
-		p1 = nullptr;
-		p2 = nullptr;
-		restLength = 0.0f;
-		structural = 0.0f;
-		damping = 0.0f;
+		restLength = scalar(0);
+		structural = scalar(0);
+		damping = scalar(0);
 	}
 
-	// 
-	void Initialize(b3Particle* particle1, b3Particle* particle2, float32 structuralStiffness, float32 dampingStiffness);
+	// Initialize this definition from particles and stiffnesses.
+	void Initialize(b3ClothParticle* particle1, b3ClothParticle* particle2, scalar structuralStiffness, scalar dampingStiffness);
 
 	// Particle 1
-	b3Particle* p1;
+	b3ClothParticle* p1;
 
 	// Particle 2
-	b3Particle* p2;
+	b3ClothParticle* p2;
 
 	// Rest length
-	float32 restLength;
+	scalar restLength;
 
 	// Structural stiffness
-	float32 structural;
+	scalar structural;
 
 	// Damping stiffness
-	float32 damping;
+	scalar damping;
 };
 
-// 
+// A spring force acting on two particles 
+// to maintain them at a desired distance.
 class b3SpringForce : public b3Force
 {
 public:
-	b3Particle* GetParticle1();
+	// Does this force contain a given particle?
+	bool HasParticle(const b3ClothParticle* particle) const;
 
-	b3Particle* GetParticle2();
+	// Get the particle 1.
+	const b3ClothParticle* GetParticle1() const { return m_p1; }
+	b3ClothParticle* GetParticle1() { return m_p1; }
 
-	float32 GetRestLenght() const;
+	// Get the particle 2.
+	const b3ClothParticle* GetParticle2() const { return m_p2; }
+	b3ClothParticle* GetParticle2() { return m_p2; }
 
-	float32 GetStructuralStiffness() const;
+	// Get the spring natural rest length.
+	scalar GetRestLenght() const;
 
-	float32 GetDampingStiffness() const;
+	// Get the spring stiffness.
+	scalar GetStructuralStiffness() const;
 
+	// Get the damping stiffness.
+	scalar GetDampingStiffness() const;
+
+	// Get the force acting on particle 1.
 	b3Vec3 GetActionForce() const;
 
-	bool HasParticle(const b3Particle* particle) const;
+	// Get the force acting on particle 2.
+	b3Vec3 GetReactionForce() const;
 private:
 	friend class b3Force;
 	friend class b3Cloth;
@@ -78,60 +92,48 @@ private:
 
 	void Apply(const b3ClothForceSolverData* data);
 
-	// Solver shared
-
 	// Particle 1
-	b3Particle* m_p1;
+	b3ClothParticle* m_p1;
 
 	// Particle 2
-	b3Particle* m_p2;
+	b3ClothParticle* m_p2;
 
-	// Rest length
-	float32 m_L0;
+	// Spring natural rest length
+	scalar m_L0;
 
-	// Structural stiffness
-	float32 m_ks;
+	// Spring stiffness
+	scalar m_ks;
 
 	// Damping stiffness
-	float32 m_kd;
+	scalar m_kd;
 
-	// Applied internal force (on particle 1)
-	b3Vec3 m_f;
+	// Action forces
+	b3Vec3 m_f1, m_f2;
 };
 
-inline b3Particle * b3SpringForce::GetParticle1()
-{
-	return m_p1;
-}
-
-inline b3Particle* b3SpringForce::GetParticle2()
-{
-	return m_p2;
-}
-
-inline float32 b3SpringForce::GetRestLenght() const
+inline scalar b3SpringForce::GetRestLenght() const
 {
 	return m_L0;
 }
 
-inline float32 b3SpringForce::GetStructuralStiffness() const
+inline scalar b3SpringForce::GetStructuralStiffness() const
 {
 	return m_ks;
 }
 
-inline float32 b3SpringForce::GetDampingStiffness() const
+inline scalar b3SpringForce::GetDampingStiffness() const
 {
 	return m_kd;
 }
 
 inline b3Vec3 b3SpringForce::GetActionForce() const
 {
-	return m_f;
+	return m_f1;
 }
 
-inline bool b3SpringForce::HasParticle(const b3Particle* particle) const
+inline b3Vec3 b3SpringForce::GetReactionForce() const
 {
-	return m_p1 == particle || m_p2 == particle;
+	return m_f2;
 }
 
 #endif

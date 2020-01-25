@@ -40,7 +40,7 @@ struct b3RectangleGarment : public b3Garment
 	b3RectanglePattern rectangle;
 	b3SewingPattern* rectanglePatterns[1];
 
-	b3RectangleGarment(float32 ex = 1.0f, float32 ey = 1.0f) : rectangle(ex, ey)
+	b3RectangleGarment(scalar ex = scalar(1), scalar ey = scalar(1)) : rectangle(ex, ey)
 	{
 		rectanglePatterns[0] = &rectangle;
 
@@ -57,7 +57,7 @@ struct b3CircleGarment : public b3Garment
 	b3CirclePattern<> circle;
 	b3SewingPattern* circlePatterns[1];
 
-	b3CircleGarment(float32 r = 1.0f) : circle(r)
+	b3CircleGarment(scalar r = scalar(1)) : circle(r)
 	{
 		circlePatterns[0] = &circle;
 

@@ -22,17 +22,18 @@
 #include <bounce/common/math/transform.h>
 #include <bounce/common/template/list.h>
 
-struct b3ClothForceSolverData;
+class b3ClothParticle;
 
-class b3Particle;
+struct b3ClothForceSolverData;
 
 // Force types
 enum b3ForceType
 {
-	e_strechForce,
+	e_stretchForce,
 	e_shearForce,
 	e_springForce,
 	e_mouseForce,
+	e_elementForce,
 };
 
 struct b3ForceDef
@@ -40,24 +41,26 @@ struct b3ForceDef
 	b3ForceType type;
 };
 
-// 
+// A force acts on a set of particles.
 class b3Force
 {
 public:
-	// 
+	// Get the force type.
 	b3ForceType GetType() const;
 
-	//
-	b3Force* GetNext();
+	// Has this force a given particle?
+	virtual bool HasParticle(const b3ClothParticle* particle) const = 0;
 
-	//
-	virtual bool HasParticle(const b3Particle* particle) const = 0;
+	// Get the next force in the cloth force list.
+	const b3Force* GetNext() const;
+	b3Force* GetNext();
 protected:
 	friend class b3List2<b3Force>;
 	friend class b3Cloth;
+	friend class b3ClothParticle;
 	friend class b3ClothForceSolver;
-	friend class b3Particle;
 
+	// Factory create and destroy.
 	static b3Force* Create(const b3ForceDef* def);
 	static void Destroy(b3Force* f);
 
@@ -66,19 +69,20 @@ protected:
 
 	virtual void Apply(const b3ClothForceSolverData* data) = 0;
 
-	// Force type
 	b3ForceType m_type;
 
-	// 
 	b3Force* m_prev;
-
-	// 
 	b3Force* m_next;
 };
 
 inline b3ForceType b3Force::GetType() const
 {
 	return m_type;
+}
+
+inline const b3Force* b3Force::GetNext() const
+{
+	return m_next;
 }
 
 inline b3Force* b3Force::GetNext()

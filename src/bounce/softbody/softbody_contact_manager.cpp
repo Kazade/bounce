@@ -20,146 +20,138 @@
 #include <bounce/softbody/softbody.h>
 #include <bounce/softbody/softbody_mesh.h>
 #include <bounce/softbody/softbody_node.h>
-#include <bounce/dynamics/world.h>
-#include <bounce/dynamics/world_listeners.h>
+#include <bounce/softbody/shapes/softbody_sphere_shape.h>
+#include <bounce/softbody/shapes/softbody_world_shape.h>
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/body.h>
 
 b3SoftBodyContactManager::b3SoftBodyContactManager() : 
-	m_nodeBodyContactBlocks(sizeof(b3NodeBodyContact))
+	m_sphereAndShapeContactBlocks(sizeof(b3SoftBodySphereAndShapeContact))
 {
 
 }
 
-class b3SoftBodyContactManagerFindNewBodyContactsQueryListener : public b3QueryListener
+void b3SoftBodyContactManager::FindNewContacts()
 {
-public:
-	virtual bool ReportShape(b3Shape* s2)
-	{
-		cm->AddNSPair(n1, s2);
+	B3_PROFILE("Soft Body Find New Contacts");
 
-		// Keep looking for overlaps
-		return true;
-	}
-
-	b3SoftBodyContactManager* cm;
-	b3SoftBodyNode* n1;
-};
-
-void b3SoftBodyContactManager::FindNewBodyContacts()
-{
-	B3_PROFILE("Soft Body Find New Body Contacts");
-
-	// Is there a world attached to this body?
-	if (m_body->m_world == nullptr)
-	{
-		return;
-	}
-
-	for (u32 i = 0; i < m_body->m_mesh->vertexCount; ++i)
-	{
-		b3SoftBodyNode* n = m_body->m_nodes + i;
-
-		if (n->m_type != e_dynamicSoftBodyNode)
-		{
-			continue;
-		}
-
-		b3AABB3 aabb = m_broadPhase.GetAABB(n->m_broadPhaseId);
-
-		b3SoftBodyContactManagerFindNewBodyContactsQueryListener listener;
-		listener.cm = this;
-		listener.n1 = n;
-
-		m_body->m_world->QueryAABB(&listener, aabb);
-	}
+	m_broadPhase.FindPairs(this);
 }
 
-void b3SoftBodyContactManager::AddNSPair(b3SoftBodyNode* n1, b3Shape* s2)
+void b3SoftBodyContactManager::AddPair(void* data1, void* data2)
 {
-	// Check if there is a contact between the two entities.
-	for (b3NodeBodyContact* c = m_nodeBodyContactList.m_head; c; c = c->m_next)
+	b3SoftBodyShape* shape1 = (b3SoftBodyShape*)data1;
+	b3SoftBodyShape* shape2 = (b3SoftBodyShape*)data2;
+
+	if (shape1->m_type > shape2->m_type)
 	{
-		if (c->m_n1 == n1 && c->m_s2 == s2)
+		b3Swap(shape1, shape2);
+	}
+
+	if (shape1->m_type == e_softBodySphereShape && shape2->m_type == e_softBodyWorldShape)
+	{
+		b3SoftBodySphereShape* s1 = (b3SoftBodySphereShape*)shape1;
+		b3SoftBodyWorldShape* ws2 = (b3SoftBodyWorldShape*)shape2;
+
+		b3SoftBodyNode* n1 = s1->m_node;
+
+		const b3Shape* s2 = ws2->m_shape;
+		const b3Body* b2 = s2->GetBody();
+
+		if (b2->GetType() != e_staticBody)
 		{
-			// A contact already exists.
+			// Only collisions with static bodies are supported.
 			return;
 		}
-	}
 
-	bool isntDynamic1 = n1->m_type != e_dynamicSoftBodyNode;
-	bool isntDynamic2 = s2->GetBody()->GetType() != e_dynamicBody;
-
-	if (isntDynamic1 && isntDynamic2)
-	{
-		// The entities must not collide with each other.
-		return;
-	}
-
-	// Create a new contact.
-	b3NodeBodyContact* c = CreateNodeBodyContact();
-
-	c->m_n1 = n1;
-	c->m_s2 = s2;
-	c->m_active = false;
-	c->m_normalImpulse = 0.0f;
-	c->m_tangentImpulse.SetZero();
-
-	// Add the contact to the body contact list.
-	m_nodeBodyContactList.PushFront(c);
-}
-
-void b3SoftBodyContactManager::UpdateBodyContacts()
-{
-	B3_PROFILE("Soft Body Update Body Contacts");
-
-	// Update the state of node-body contacts.
-	b3NodeBodyContact* c = m_nodeBodyContactList.m_head;
-	while (c)
-	{
-		bool isntDynamic1 = c->m_n1->m_type != e_dynamicSoftBodyNode;
-		bool isntDynamic2 = c->m_s2->GetBody()->GetType() != e_dynamicBody;
-
-		// Cease the contact if entities must not collide with each other.
-		if (isntDynamic1 && isntDynamic2)
+		if (n1->m_type != e_dynamicSoftBodyNode)
 		{
-			b3NodeBodyContact* quack = c;
-			c = c->m_next;
-			Destroy(quack);
-			continue;
+			// The entities must not collide with each other.
+			return;
 		}
 
-		b3AABB3 aabb1 = m_broadPhase.GetAABB(c->m_n1->m_broadPhaseId);
-		b3AABB3 aabb2 = c->m_s2->GetAABB();
-
-		// Destroy the contact if entities AABBs are not overlapping.
-		bool overlap = b3TestOverlap(aabb1, aabb2);
-		if (overlap == false)
+		// Check if there is a contact between the two entities.
+		for (b3SoftBodySphereAndShapeContact* c = m_sphereAndShapeContactList.m_head; c; c = c->m_next)
 		{
-			b3NodeBodyContact* quack = c;
-			c = c->m_next;
-			Destroy(quack);
-			continue;
+			if (c->m_s1 == s1 && c->m_s2 == ws2)
+			{
+				// A contact already exists.
+				return;
+			}
 		}
 
-		// The contact persists.
-		c->Update();
+		// Create a new contact.
+		b3SoftBodySphereAndShapeContact* c = CreateSphereAndShapeContact();
 
-		c = c->m_next;
+		c->m_s1 = s1;
+		c->m_s2 = ws2;
+		c->m_active = false;
+		c->m_normalImpulse = scalar(0);
+		c->m_tangentImpulse.SetZero();
+
+		// Add the contact to the soft body contact list.
+		m_sphereAndShapeContactList.PushFront(c);
 	}
 }
 
-b3NodeBodyContact* b3SoftBodyContactManager::CreateNodeBodyContact()
+void b3SoftBodyContactManager::UpdateContacts()
 {
-	void* block = m_nodeBodyContactBlocks.Allocate();
-	return new(block) b3NodeBodyContact();
+	B3_PROFILE("Soft Body Update Contacts");
+
+	{
+		// Update the state of sphere and shape contacts.
+		b3SoftBodySphereAndShapeContact* c = m_sphereAndShapeContactList.m_head;
+		while (c)
+		{
+			b3SoftBodySphereShape* s1 = c->m_s1;
+			b3SoftBodyNode* n1 = s1->m_node;
+
+			b3SoftBodyWorldShape* ws2 = c->m_s2;
+			const b3Shape* s2 = ws2->m_shape;
+			const b3Body* b2 = s2->GetBody();
+
+			bool isntDynamic1 = n1->GetType() != e_dynamicSoftBodyNode;
+			bool isntDynamic2 = b2->GetType() != e_dynamicBody;
+
+			// Cease the contact if entities must not collide with each other.
+			if (isntDynamic1 && isntDynamic2)
+			{
+				b3SoftBodySphereAndShapeContact* quack = c;
+				c = c->m_next;
+				Destroy(quack);
+				continue;
+			}
+
+			u32 proxy1 = c->m_s1->m_broadPhaseId;
+			u32 proxy2 = c->m_s2->m_broadPhaseId;
+
+			// Destroy the contact if primitive AABBs are not overlapping.
+			bool overlap = m_broadPhase.TestOverlap(proxy1, proxy2);
+			if (overlap == false)
+			{
+				b3SoftBodySphereAndShapeContact* quack = c;
+				c = c->m_next;
+				Destroy(quack);
+				continue;
+			}
+
+			// The contact persists.
+			c->Update();
+
+			c = c->m_next;
+		}
+	}
 }
 
-void b3SoftBodyContactManager::Destroy(b3NodeBodyContact* c)
+b3SoftBodySphereAndShapeContact* b3SoftBodyContactManager::CreateSphereAndShapeContact()
 {
-	m_nodeBodyContactList.Remove(c);
+	void* block = m_sphereAndShapeContactBlocks.Allocate();
+	return new(block) b3SoftBodySphereAndShapeContact();
+}
 
-	c->~b3NodeBodyContact();
-
-	m_nodeBodyContactBlocks.Free(c);
+void b3SoftBodyContactManager::Destroy(b3SoftBodySphereAndShapeContact* c)
+{
+	m_sphereAndShapeContactList.Remove(c);
+	c->~b3SoftBodySphereAndShapeContact();
+	m_sphereAndShapeContactBlocks.Free(c);
 }

@@ -21,51 +21,93 @@
 
 #include <bounce/cloth/forces/force.h>
 
-class b3ClothTriangle;
-
+// Mouse force definition.
+// This requires defining a particle and a triangle 
+// and the coordinates of the particle local to the triangle 
+// in the rest state using a barycentric coordinate system.
+// You must also provide spring parameters.
 struct b3MouseForceDef : public b3ForceDef
 {
 	b3MouseForceDef()
 	{
-		type = e_mouseForce;
+		type = e_mouseForce; 
+		w2 = scalar(0);
+		w3 = scalar(0);
+		w4 = scalar(0);
+		restLength = scalar(0);
+		mouse = scalar(0);
+		damping = scalar(0);
 	}
 
-	// Particle
-	b3Particle* particle;
+	// Particle 1
+	b3ClothParticle* p1;
 
-	// Triangle
-	b3ClothTriangle* triangle;
-
+	// Particle 2
+	b3ClothParticle* p2;
+	
+	// Particle 3
+	b3ClothParticle* p3;
+	
+	// Particle 4
+	b3ClothParticle* p4;
+	
 	// Barycentric coordinates on triangle
-	float32 w2, w3, w4;
+	scalar w2, w3, w4;
 
 	// Mouse stiffness
-	float32 mouse;
+	scalar mouse;
 
 	// Damping stiffness
-	float32 damping;
+	scalar damping;
+
+	// Rest length
+	scalar restLength;
 };
 
 // Mouse force acting on a particle and triangle.
+// This force will keep a point on one particle and the other on the 
+// triangle to a given desired distance.
 class b3MouseForce : public b3Force
 {
 public:
-	bool HasParticle(const b3Particle* particle) const;
+	// Has this force a given particle?
+	bool HasParticle(const b3ClothParticle* particle) const;
 
-	b3Particle* GetParticle() const;
+	// Get the particle 1.
+	const b3ClothParticle* GetParticle1() const;
+	b3ClothParticle* GetParticle1();
+
+	// Get the particle 2.
+	const b3ClothParticle* GetParticle2() const;
+	b3ClothParticle* GetParticle2();
 	
-	b3ClothTriangle* GetTriangle() const;
+	// Get the particle 3.
+	const b3ClothParticle* GetParticle3() const;
+	b3ClothParticle* GetParticle3();
+	
+	// Get the particle 4.
+	const b3ClothParticle* GetParticle4() const;
+	b3ClothParticle* GetParticle4();
+	
+	// Get the natural spring length.
+	scalar GetRestLenght() const;
 
-	float32 GetMouseStiffness() const;
+	// Get the mouse stiffness.
+	scalar GetMouseStiffness() const;
 
-	float32 GetDampingStiffness() const;
+	// Get the damping stiffness.
+	scalar GetDampingStiffness() const;
 
+	// Get the force acting on particle 1.
 	b3Vec3 GetActionForce1() const;
 
+	// Get the force acting on particle 2.
 	b3Vec3 GetActionForce2() const;
 
+	// Get the force acting on particle 3.
 	b3Vec3 GetActionForce3() const;
 
+	// Get the force acting on particle 4.
 	b3Vec3 GetActionForce4() const;
 private:
 	friend class b3Force;
@@ -76,43 +118,85 @@ private:
 
 	void Apply(const b3ClothForceSolverData* data);
 
-	// Solver shared
+	// Particle 1
+	b3ClothParticle* m_p1;
 
-	// Particle
-	b3Particle* m_particle;
+	// Particle 2
+	b3ClothParticle* m_p2;
 	
-	// Triangle
-	b3ClothTriangle* m_triangle;
-
-	// Barycentric coordinates
-	float32 m_w2, m_w3, m_w4;
+	// Particle 3
+	b3ClothParticle* m_p3;
+	
+	// Particle 4
+	b3ClothParticle* m_p4;
+	
+	// Barycentric coordinates in the rest state
+	scalar m_w2, m_w3, m_w4;
 
 	// Mouse stiffness
-	float32 m_km;
+	scalar m_km;
 
 	// Damping stiffness
-	float32 m_kd;
+	scalar m_kd;
+
+	// Rest length
+	scalar m_L0;
 
 	// Action forces
 	b3Vec3 m_f1, m_f2, m_f3, m_f4;
 };
 
-inline b3Particle* b3MouseForce::GetParticle() const
+inline const b3ClothParticle* b3MouseForce::GetParticle1() const
 {
-	return m_particle;
+	return m_p1;
 }
 
-inline b3ClothTriangle* b3MouseForce::GetTriangle() const
+inline b3ClothParticle* b3MouseForce::GetParticle1()
 {
-	return m_triangle;
+	return m_p1;
 }
 
-inline float32 b3MouseForce::GetMouseStiffness() const
+inline const b3ClothParticle* b3MouseForce::GetParticle2() const
+{
+	return m_p2;
+}
+
+inline b3ClothParticle* b3MouseForce::GetParticle2()
+{
+	return m_p2;
+}
+
+inline const b3ClothParticle* b3MouseForce::GetParticle3() const
+{
+	return m_p3;
+}
+
+inline b3ClothParticle* b3MouseForce::GetParticle3()
+{
+	return m_p3;
+}
+
+inline const b3ClothParticle* b3MouseForce::GetParticle4() const
+{
+	return m_p4;
+}
+
+inline b3ClothParticle* b3MouseForce::GetParticle4()
+{
+	return m_p4;
+}
+
+inline scalar b3MouseForce::GetRestLenght() const
+{
+	return m_L0;
+}
+
+inline scalar b3MouseForce::GetMouseStiffness() const
 {
 	return m_km;
 }
 
-inline float32 b3MouseForce::GetDampingStiffness() const
+inline scalar b3MouseForce::GetDampingStiffness() const
 {
 	return m_kd;
 }

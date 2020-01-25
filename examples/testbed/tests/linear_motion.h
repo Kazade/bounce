@@ -34,8 +34,8 @@ public:
 		m_body = m_world.CreateBody(bdef);
 
 		b3CapsuleShape shape;
-		shape.m_centers[0].Set(0.0f, 1.0f, 0.0f);
-		shape.m_centers[1].Set(0.0f, -1.0f, 0.0f);
+		shape.m_vertex1.Set(0.0f, 1.0f, 0.0f);
+		shape.m_vertex2.Set(0.0f, -1.0f, 0.0f);
 		shape.m_radius = 1.0f;
 
 		b3ShapeDef sdef;
@@ -55,16 +55,11 @@ public:
 	{
 		Test::Step();
 
-		b3Vec3 q(0.0f, 0.0f, 0.0f);
-		b3Vec3 p = m_body->GetTransform().position;
-		if (b3Distance(p, q) > 50.0f)
+		b3Vec3 p(0.0f, 0.0f, 0.0f);
+		if (b3Distance(m_body->GetPosition(), p) > 50.0f)
 		{
-			b3Quat quat = m_body->GetSweep().orientation;
-
-			b3Vec3 axis;
-			float32 angle;
-			quat.GetAxisAngle(&axis, &angle);
-			m_body->SetTransform(q, axis, angle);
+			b3Quat q = m_body->GetOrientation();
+			m_body->SetTransform(p, q);
 		}
 	}
 

@@ -20,6 +20,7 @@
 #define B3_DIAG_MAT_33_H
 
 #include <bounce/common/math/mat33.h>
+#include <bounce/sparse/sparse.h>
 #include <bounce/sparse/dense_vec3.h>
 
 // Diagonal matrix storing only the diagonal elements of the 
@@ -35,20 +36,20 @@ struct b3DiagMat33
 	b3DiagMat33(u32 _n)
 	{
 		n = _n;
-		v = (b3Mat33*)b3Alloc(n * sizeof(b3Mat33));
+		v = (b3Mat33*)b3FrameAllocator_sparseAllocator->Allocate(n * sizeof(b3Mat33));
 	}
 
 	b3DiagMat33(const b3DiagMat33& _v)
 	{
 		n = _v.n;
-		v = (b3Mat33*)b3Alloc(n * sizeof(b3Mat33));
+		v = (b3Mat33*)b3FrameAllocator_sparseAllocator->Allocate(n * sizeof(b3Mat33));
 
 		Copy(_v);
 	}
 
 	~b3DiagMat33()
 	{
-		b3Free(v);
+		b3FrameAllocator_sparseAllocator->Free(v);
 	}
 
 	const b3Mat33& operator[](u32 i) const
@@ -76,10 +77,10 @@ struct b3DiagMat33
 			return *this;
 		}
 
-		b3Free(v);
+		b3FrameAllocator_sparseAllocator->Free(v);
 
 		n = _v.n;
-		v = (b3Mat33*)b3Alloc(n * sizeof(b3Mat33));
+		v = (b3Mat33*)b3FrameAllocator_sparseAllocator->Allocate(n * sizeof(b3Mat33));
 
 		Copy(_v);
 
@@ -132,7 +133,7 @@ inline void b3Sub(b3DiagMat33& out, const b3DiagMat33& a, const b3DiagMat33& b)
 	}
 }
 
-inline void b3Mul(b3DiagMat33& out, float32 a, const b3DiagMat33& b)
+inline void b3Mul(b3DiagMat33& out, scalar a, const b3DiagMat33& b)
 {
 	B3_ASSERT(out.n == b.n);
 
@@ -154,7 +155,7 @@ inline void b3Mul(b3DenseVec3& out, const b3DiagMat33& a, const b3DenseVec3& b)
 
 inline void b3Negate(b3DiagMat33& out, const b3DiagMat33& v)
 {
-	b3Mul(out, -1.0f, v);
+	b3Mul(out, scalar(-1), v);
 }
 
 inline b3DiagMat33 operator+(const b3DiagMat33& a, const b3DiagMat33& b)
@@ -171,7 +172,7 @@ inline b3DiagMat33 operator-(const b3DiagMat33& a, const b3DiagMat33& b)
 	return result;
 }
 
-inline b3DiagMat33 operator*(float32 a, const b3DiagMat33& b)
+inline b3DiagMat33 operator*(scalar a, const b3DiagMat33& b)
 {
 	b3DiagMat33 result(b.n);
 	b3Mul(result, a, b);

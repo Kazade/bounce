@@ -32,15 +32,15 @@ struct b3RevoluteJointDef : public b3JointDef
 		localRotationB.SetIdentity();
 		referenceRotation.SetIdentity();
 		enableLimit = false;
-		lowerAngle = 0.0f;
-		upperAngle = 0.0f;
+		lowerAngle = scalar(0);
+		upperAngle = scalar(0);
 		enableMotor = false;
-		motorSpeed = 0.0f;
-		maxMotorTorque = 0.0f;
+		motorSpeed = scalar(0);
+		maxMotorTorque = scalar(0);
 	}
 
 	// Initialize this definition from hinge axis, anchor point, and the lower and upper angle limits in radians.
-	void Initialize(b3Body* bodyA, b3Body* bodyB, const b3Vec3& axis, const b3Vec3& anchor, float32 lowerAngle, float32 upperAngle);
+	void Initialize(b3Body* bodyA, b3Body* bodyB, const b3Vec3& axis, const b3Vec3& anchor, scalar lowerAngle, scalar upperAngle);
 
 	// The joint anchor relative body A's origin.
 	b3Vec3 localAnchorA;
@@ -61,19 +61,19 @@ struct b3RevoluteJointDef : public b3JointDef
 	bool enableLimit;
 
 	// The hinge lower angle limit in radians.
-	float32 lowerAngle;
+	scalar lowerAngle;
 	
 	// The hinge upper angle limit in radians.
-	float32 upperAngle;
+	scalar upperAngle;
 
 	// Enable the joint motor.
 	bool enableMotor;
 
 	// The desired motor speed in radians per second.
-	float32 motorSpeed;
+	scalar motorSpeed;
 	
 	// The maximum motor torque in Newton per meter.
-	float32 maxMotorTorque;
+	scalar maxMotorTorque;
 };
 
 // A revolute joint constrains two bodies to share a point and an axis while 
@@ -105,13 +105,13 @@ public:
 	void SetEnableLimit(bool bit);
 
 	// Get the lower angle limit.
-	float32 GetLowerLimit() const;
+	scalar GetLowerLimit() const;
 
 	// Get the upper angle limit.
-	float32 GetUpperLimit() const;
+	scalar GetUpperLimit() const;
 
 	// Set the angle limits.
-	void SetLimits(float32 lowerAngle, float32 upperAngle);
+	void SetLimits(scalar lowerAngle, scalar upperAngle);
 
 	// Is the joint motor enabled?
 	bool IsMotorEnabled() const;
@@ -120,16 +120,16 @@ public:
 	void SetEnableMotor(bool bit);
 
 	// Get the desired motor speed in radians per second.
-	float32 GetMotorSpeed() const;
+	scalar GetMotorSpeed() const;
 
 	// Set the desired motor speed in radians per second.
-	void SetMotorSpeed(float32 speed);
+	void SetMotorSpeed(scalar speed);
 
 	// Get the maximum motor torque in Newton per meter.
-	float32 GetMaxMotorTorque() const;
+	scalar GetMaxMotorTorque() const;
 
 	// Set the maximum motor torque in Newton per meter.
-	void SetMaxMotorTorque(float32 torque);
+	void SetMaxMotorTorque(scalar torque);
 
 	// Draw this joint.
 	void Draw() const;
@@ -155,18 +155,18 @@ private:
 	b3Quat m_localRotationB;
 	
 	bool m_enableMotor;
-	float32 m_motorSpeed;
-	float32 m_maxMotorTorque;
+	scalar m_motorSpeed;
+	scalar m_maxMotorTorque;
 	
 	bool m_enableLimit;
-	float32 m_lowerAngle;
-	float32 m_upperAngle;
+	scalar m_lowerAngle;
+	scalar m_upperAngle;
 
 	// Solver temp
 	u32 m_indexA;
 	u32 m_indexB;
-	float32 m_mA;
-	float32 m_mB;
+	scalar m_mA;
+	scalar m_mB;
 	b3Mat33 m_iA;
 	b3Mat33 m_iB;
 	b3Vec3 m_localCenterA;
@@ -174,30 +174,26 @@ private:
 	b3Mat33 m_localInvIA;
 	b3Mat33 m_localInvIB;
 
-	// Hinge motor
-	b3Vec3 m_motor_J1; // 1x3 (row)
-	b3Vec3 m_motor_J2; // 1x3 (row)
-	float32 m_motorMass;
-	float32 m_motorImpulse;
+	// Motor
+	scalar m_motorMass;
+	scalar m_motorImpulse;
+	b3Vec3 m_motorAxis;
 
-	// Hinge limit
-	// The limit axis and constraint space mass are the same as the motor's
-	b3LimitState m_limitState; // constraint state
-	float32 m_limitImpulse;
+	// Angle limit
+	// This reuses the motor Jacobian and mass
+	b3LimitState m_limitState;
+	scalar m_limitImpulse;
 
-	// Spherical
+	// Linear
 	b3Vec3 m_rA;
 	b3Vec3 m_rB;
-	b3Mat33 m_mass;
-	b3Vec3 m_impulse;
+	b3Mat33 m_linearMass;
+	b3Vec3 m_linearImpulse;
 
-	// Hinge
-	b3Mat23 m_J1;
-	b3Mat23 m_J2;
-	b3Mat32 m_J1T;
-	b3Mat32 m_J2T;
-	b3Mat22 m_K;
-	b3Vec2 m_axisImpulse;
+	// Angular
+	b3Vec3 m_a1, m_a2;
+	b3Mat22 m_angularMass;
+	b3Vec2 m_angularImpulse;
 };
 
 #endif

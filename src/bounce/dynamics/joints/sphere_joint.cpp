@@ -169,10 +169,10 @@ b3Vec3 b3SphereJoint::GetAnchorB() const
 void b3SphereJoint::Draw() const
 {
 	b3Vec3 a = GetAnchorA();
-	b3Draw_draw->DrawPoint(a, 4.0f, b3Color_red);
+	b3Draw_draw->DrawPoint(a, scalar(4), b3Color_red);
 	
 	b3Vec3 b = GetAnchorB();
-	b3Draw_draw->DrawPoint(b, 4.0f, b3Color_green);
+	b3Draw_draw->DrawPoint(b, scalar(4), b3Color_green);
 	
 	b3Draw_draw->DrawSegment(a, b, b3Color_yellow);
 }

@@ -21,41 +21,88 @@
 
 #include <bounce/cloth/forces/force.h>
 
-class b3ClothTriangle;
-
+// Shear force definition.
+// This requires defining the (u, v) coordinates 
+// of the triangle and some parameters.
 struct b3ShearForceDef : public b3ForceDef
 {
 	b3ShearForceDef()
 	{
 		type = e_shearForce;
+		u1 = scalar(0);
+		v1 = scalar(0);
+		u2 = scalar(0);
+		v2 = scalar(0);
+		u3 = scalar(0);
+		v3 = scalar(0);
+		alpha = scalar(0);
+		shearing = scalar(0);
+		damping = scalar(0);
 	}
+	
+	// Initialize this definition from rest positions
+	void Initialize(const b3Vec3& p1, const b3Vec3& p2, const b3Vec3& p3);
+	
+	// Particle 1
+	b3ClothParticle* p1;
 
-	// Triangle
-	b3ClothTriangle* triangle;
+	// Particle 2
+	b3ClothParticle* p2;
+
+	// Particle 3
+	b3ClothParticle* p3;
+
+	// (u, v) coordinates for vertex 1 in the rest state
+	scalar u1, v1;
+
+	// (u, v) coordinates for vertex 2 in the rest state
+	scalar u2, v2;
+
+	// (u, v) coordinates for vertex 3 in the rest state
+	scalar u3, v3;
+
+	// Typically this is the triangle area in the rest state.
+	scalar alpha;
 
 	// Shearing stiffness
-	float32 shearing;
+	scalar shearing;
 
 	// Damping stiffness
-	float32 damping;
+	scalar damping;
 };
 
 // Shear force acting on a cloth triangle.
 class b3ShearForce : public b3Force
 {
 public:
-	bool HasParticle(const b3Particle* particle) const;
+	// Has this force a given particle?
+	bool HasParticle(const b3ClothParticle* particle) const;
 
-	b3ClothTriangle* GetTriangle() const;
+	// Get the particle 1.
+	const b3ClothParticle* GetParticle1() const { return m_p1; }
+	b3ClothParticle* GetParticle1() { return m_p1; }
 
-	float32 GetShearingStiffness() const;
+	// Get the particle 2.
+	const b3ClothParticle* GetParticle2() const { return m_p2; }
+	b3ClothParticle* GetParticle2() { return m_p2; }
+	
+	// Get the particle 3.
+	const b3ClothParticle* GetParticle3() const { return m_p3; }
+	b3ClothParticle* GetParticle3() { return m_p3; }
 
-	float32 GetDampingStiffness() const;
+	// Get the shearing stiffness.
+	scalar GetShearingStiffness() const;
 
+	// Get the damping stiffness.
+	scalar GetDampingStiffness() const;
+
+	// Get the force acting on particle 1.
 	b3Vec3 GetActionForce1() const;
 
+	// Get the force acting on particle 2.
 	b3Vec3 GetActionForce2() const;
 
+	// Get the force acting on particle 3.
 	b3Vec3 GetActionForce3() const;
 private:
 	friend class b3Force;
@@ -66,32 +113,42 @@ private:
 
 	void Apply(const b3ClothForceSolverData* data);
 
-	// Solver shared
+	// Particle 1
+	b3ClothParticle* m_p1;
 
-	// Triangle
-	b3ClothTriangle* m_triangle;
+	// Particle 2
+	b3ClothParticle* m_p2;
+
+	// Particle 3
+	b3ClothParticle* m_p3;
+	
+	// Alpha
+	scalar m_alpha;
+
+	// (u, v) matrix
+	scalar m_du1, m_dv1;
+	scalar m_du2, m_dv2;
+	scalar m_inv_det;
+
+	// dwudx, dwvdx
+	b3Vec3 m_dwudx, m_dwvdx;
 
 	// Shearing stiffness
-	float32 m_ks;
+	scalar m_ks;
 
 	// Damping stiffness
-	float32 m_kd;
+	scalar m_kd;
 
 	// Action forces
 	b3Vec3 m_f1, m_f2, m_f3;
 };
 
-inline b3ClothTriangle* b3ShearForce::GetTriangle() const
-{
-	return m_triangle;
-}
-
-inline float32 b3ShearForce::GetShearingStiffness() const
+inline scalar b3ShearForce::GetShearingStiffness() const
 {
 	return m_ks;
 }
 
-inline float32 b3ShearForce::GetDampingStiffness() const
+inline scalar b3ShearForce::GetDampingStiffness() const
 {
 	return m_kd;
 }

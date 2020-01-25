@@ -26,28 +26,30 @@
 template<u32 H = 1, u32 W = 1>
 struct b3GridMesh : public b3Mesh
 {
-	b3Vec3 gridVertices[ (H + 1) * (W + 1) ];
-	b3Triangle gridTriangles[2 * H * W];
+	b3Vec3 gridVertices[(H + 1) * (W + 1)];
+	b3MeshTriangle gridTriangles[2 * H * W];
 
 	// Set this grid to a W (width) per H (height) dimensioned grid centered at the origin and aligned
 	// with the world x-z axes.
 	b3GridMesh()
 	{
 		vertexCount = 0;
-		for (u32 i = 0; i <= H; ++i)
+		for (u32 j = 0; j <= W; ++j)
 		{
-			for (u32 j = 0; j <= W; ++j)
+			for (u32 i = 0; i <= H; ++i)
 			{
-				gridVertices[vertexCount++].Set(float32(j), 0.0f, float32(i));
+				u32 vertex = GetVertex(i, j);
+				gridVertices[vertex].Set(scalar(j), 0, scalar(i));
+				++vertexCount;
 			}
 		}
 
 		B3_ASSERT(vertexCount == (H + 1) * (W + 1));
 
 		b3Vec3 translation;
-		translation.x = -0.5f * float32(W);
-		translation.y = 0.0f;
-		translation.z = -0.5f * float32(H);
+		translation.x = scalar(-0.5) * scalar(W);
+		translation.y = 0;
+		translation.z = scalar(-0.5) * scalar(H);
 
 		for (u32 i = 0; i < vertexCount; ++i)
 		{
@@ -59,20 +61,23 @@ struct b3GridMesh : public b3Mesh
 		{
 			for (u32 j = 0; j < W; ++j)
 			{
-				u32 v1 = i * (W + 1) + j;
-				u32 v2 = (i + 1) * (W + 1) + j;
-				u32 v3 = (i + 1) * (W + 1) + (j + 1);
-				u32 v4 = i * (W + 1) + (j + 1);
+				// 1*|----|*4
+				//   |----|
+				// 2*|----|*3
+				u32 v1 = GetVertex(i, j);
+				u32 v2 = GetVertex(i + 1, j);
+				u32 v3 = GetVertex(i + 1, j + 1);
+				u32 v4 = GetVertex(i, j + 1);
 
-				b3Triangle* t1 = gridTriangles + triangleCount++;
-				t1->v1 = v3;
+				b3MeshTriangle* t1 = gridTriangles + triangleCount++;
+				t1->v1 = v1;
 				t1->v2 = v2;
-				t1->v3 = v1;
+				t1->v3 = v3;
 
-				b3Triangle* t2 = gridTriangles + triangleCount++;
-				t2->v1 = v1;
+				b3MeshTriangle* t2 = gridTriangles + triangleCount++;
+				t2->v1 = v3;
 				t2->v2 = v4;
-				t2->v3 = v3;
+				t2->v3 = v1;
 			}
 		}
 
@@ -80,6 +85,13 @@ struct b3GridMesh : public b3Mesh
 
 		vertices = gridVertices;
 		triangles = gridTriangles;
+	}
+
+	u32 GetVertex(u32 i, u32 j)
+	{
+		B3_ASSERT(i < H + 1);
+		B3_ASSERT(j < W + 1);
+		return i * (W + 1) + j;
 	}
 };
 

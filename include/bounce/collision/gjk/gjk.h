@@ -31,7 +31,7 @@ struct b3SimplexVertex
 	b3Vec3 point1; // support vertex on proxy 1
 	b3Vec3 point2; // support vertex on proxy 2
 	b3Vec3 point; // minkowski vertex
-	float32 weight; // barycentric coordinate for point
+	scalar weight; // barycentric coordinate for point
 	u32 index1; // support 1 vertex index
 	u32 index2; // support 2 vertex index
 };
@@ -56,7 +56,7 @@ struct b3Simplex
 	
 	void WriteCache(b3SimplexCache* cache) const;
 	
-	float32 GetMetric() const;
+	scalar GetMetric() const;
 };
 
 // The output of the GJK algorithm.
@@ -67,13 +67,13 @@ struct b3GJKOutput
 {
 	b3Vec3 point1; // closest point on proxy 1
 	b3Vec3 point2; // closest point on proxy 2
-	float32 distance; // euclidean distance between the closest points
+	scalar distance; // euclidean distance between the closest points
 	u32 iterations; // number of GJK iterations
 };
 
 // Find the closest points and distance between two proxies.
 b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1, 
-	const b3Transform& xf2, const b3GJKProxy& proxy2);
+	const b3Transform& xf2, const b3GJKProxy& proxy2, bool applyRadius);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -84,7 +84,7 @@ b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1,
 // for the first time.
 struct b3SimplexCache
 {
-	float32 metric; // distance or area or volume
+	scalar metric; // lenght or area or volume
 	u32 iterations; // number of GJK iterations
 	u16 count; // number of support vertices
 	u8 index1[4]; // support vertices on proxy 1
@@ -113,19 +113,5 @@ b3GJKFeaturePair b3GetFeaturePair(const b3SimplexCache& cache);
 b3GJKOutput b3GJK(const b3Transform& xf1, const b3GJKProxy& proxy1,
 	const b3Transform& xf2, const b3GJKProxy& proxy2,
 	bool applyRadius, b3SimplexCache* cache);
-
-// The output of the GJK-based shape cast algorithm.
-struct b3GJKShapeCastOutput
-{
-	float32 t; // time of impact
-	b3Vec3 point; // contact point at t
-	b3Vec3 normal; // contact normal at t
-	u32 iterations; // number of iterations 
-};
-
-// Find the time of impact between two proxies given the relative target translation vector.
-bool b3GJKShapeCast(b3GJKShapeCastOutput* output,
-	const b3Transform& xf1, const b3GJKProxy& proxy1,
-	const b3Transform& xf2, const b3GJKProxy& proxy2, const b3Vec3& translation2);
 
 #endif

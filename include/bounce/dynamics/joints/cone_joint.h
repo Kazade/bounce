@@ -26,59 +26,84 @@ struct b3ConeJointDef : public b3JointDef
 	b3ConeJointDef()
 	{
 		type = e_coneJoint;
-		localFrameA.SetIdentity();
-		localFrameB.SetIdentity();
-		enableLimit = false;
-		coneAngle = 0.0f;
+		localAnchorA.SetZero();
+		localRotationA.SetIdentity();
+		localAnchorB.SetZero();
+		localRotationB.SetIdentity();
+		referenceRotation.SetIdentity();
+		enableConeLimit = false;
+		coneAngle = scalar(0);
+		enableTwistLimit = false;
+		lowerAngle = scalar(0);
+		upperAngle = scalar(0);
 	}
 
 	// Initialize this definition from bodies, cone axis, anchor point, and full cone angle in radians.
-	void Initialize(b3Body* bodyA, b3Body* bodyB, const b3Vec3& axis, const b3Vec3& anchor, float32 angle);
+	void Initialize(b3Body* bodyA, b3Body* bodyB, const b3Vec3& axis, const b3Vec3& anchor, scalar coneAngle);
+
+	// The joint anchor relative to body A's origin.
+	b3Vec3 localAnchorA;
 
 	// The joint frame relative to body A's frame.
-	b3Transform localFrameA;
+	b3Quat localRotationA;
+
+	// The joint frame relative to body B's origin.
+	b3Vec3 localAnchorB;
 
 	// The joint frame relative to body B's frame.
-	b3Transform localFrameB;
+	b3Quat localRotationB;
+	
+	// Rotation from A to B in reference state
+	b3Quat referenceRotation;
 
 	// Enable cone angle limit.
-	bool enableLimit;
+	bool enableConeLimit;
 
 	// The full cone angle in radians.
-	float32 coneAngle;
+	scalar coneAngle;
+
+	// Enable the twist limit.
+	bool enableTwistLimit;
+
+	// The lower twist angle in radians 
+	scalar lowerAngle;
+
+	// The upper twist angle in radians 
+	scalar upperAngle;
 };
 
 // This joint constrains the bodies to share a common point (cone tip). 
 // It also constrains the relative rotation about an axis perpendicular 
 // to the cone axis.
 // You can limit the relative rotation with a cone angle limit. 
-// This joint can be used to create structures such as ragdolls.
+// You can limit the relative rotation around the cone axis with a 
+// twist limit.
+// This joint was designed to create structures such as ragdolls.
 class b3ConeJoint : public b3Joint
 {
 public:
-	// Get the joint frame on body A in world coordinates.
-	b3Transform GetFrameA() const;
-
-	// Get the joint frame on body B in world coordinates.
-	b3Transform GetFrameB() const;
-
-	// Get the joint frame relative to body A's frame.
-	const b3Transform& GetLocalFrameA() const;
-
-	// Get the joint frame relative to body B's frame.
-	const b3Transform& GetLocalFrameB() const;
-
-	// Is the joint limit enabled?
-	bool IsLimitEnabled() const;
-
 	// Set the joint limit enabled.
-	void SetEnableLimit(bool bit);
+	void SetEnableConeLimit(bool bit);
 
-	// Get the cone angle in radians.
-	float32 GetConeAngle() const;
+	// Is the joint cone limit enabled?
+	bool IsConeLimitEnabled() const;
 
 	// Set the cone angle in radians.
-	void SetConeAngle(float32 angle);
+	void SetConeAngle(scalar angle);
+
+	// Get the cone angle in radians.
+	scalar GetConeAngle() const;
+
+	// Set the joint twist limit enabled.
+	void SetEnableTwistLimit(bool bit);
+
+	// Is the joint twist limit enabled?
+	bool IsTwistLimitEnabled() const;
+
+	// Set/get the twist angles in radians.
+	void SetTwistLimits(scalar lowerAngle, scalar upperAngle);
+	scalar GetTwistLowerAngle() const;
+	scalar GetTwistUpperAngle() const;
 
 	// Draw this joint.
 	void Draw() const;
@@ -98,16 +123,24 @@ private:
 	virtual bool SolvePositionConstraints(const b3SolverData* data);
 
 	// Solver shared
-	b3Transform m_localFrameA;
-	b3Transform m_localFrameB;
-	float32 m_coneAngle;
-	bool m_enableLimit;
+	b3Vec3 m_localAnchorA;
+	b3Quat m_localRotationA;
+	b3Vec3 m_localAnchorB;
+	b3Quat m_localRotationB;
+	b3Quat m_referenceRotation;
+
+	scalar m_coneAngle;
+	bool m_enableConeLimit;
+
+	scalar m_lowerAngle;
+	scalar m_upperAngle;
+	bool m_enableTwistLimit;
 
 	// Solver temp
 	u32 m_indexA;
 	u32 m_indexB;
-	float32 m_mA;
-	float32 m_mB;
+	scalar m_mA;
+	scalar m_mB;
 	b3Mat33 m_iA;
 	b3Mat33 m_iB;
 	
@@ -117,17 +150,23 @@ private:
 	b3Vec3 m_localCenterA;
 	b3Vec3 m_localCenterB;
 	
-	// Point-to-point
+	// Linear
 	b3Vec3 m_rA;
 	b3Vec3 m_rB;
 	b3Mat33 m_mass;
 	b3Vec3 m_impulse;
 
-	// Limit
-	b3Vec3 m_limitAxis;
-	float32 m_limitMass;
-	float32 m_limitImpulse;
-	b3LimitState m_limitState;
+	// Cone limit
+	b3Vec3 m_coneAxis;
+	scalar m_coneMass;
+	scalar m_coneImpulse;
+	b3LimitState m_coneState;
+
+	// Twist limit
+	b3Vec3 m_twistAxis;
+	scalar m_twistMass;
+	scalar m_twistImpulse;
+	b3LimitState m_twistState;
 };
 
 #endif

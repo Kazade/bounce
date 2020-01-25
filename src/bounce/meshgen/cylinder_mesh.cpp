@@ -29,11 +29,12 @@ void cymCreateMesh(cymMesh& output, u32 segments)
 	u32 indexCount = 3 * (2 * segments) + 2 * 3 * (segments - 2);
 	u32* indices = (u32*)b3Alloc(indexCount * sizeof(u32));
 
-	float32 angle = 2.0f * B3_PI / float32(segments);
-	b3Quat q(b3Vec3_y, angle);
+	scalar angle = scalar(2) * B3_PI / scalar(segments);
+	b3Quat q;
+	q.SetAxisAngle(b3Vec3_y, angle);
 
 	// Lower 
-	b3Vec3 v(1.0f, -0.5f, 0.0f);
+	b3Vec3 v(scalar(1), scalar(-0.5), scalar(0));
 	for (u32 i = 0; i < segments; ++i)
 	{
 		vertices[i] = v;
@@ -41,7 +42,7 @@ void cymCreateMesh(cymMesh& output, u32 segments)
 	}
 
 	// Upper 
-	v.Set(1.0f, 0.5f, 0.0f);
+	v.Set(scalar(1), scalar(0.5), scalar(0));
 	for (u32 i = 0; i < segments; ++i)
 	{
 		vertices[segments + i] = v;
