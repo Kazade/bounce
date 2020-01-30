@@ -19,8 +19,6 @@
 #ifndef SMASH_SOFTBODY_H
 #define SMASH_SOFTBODY_H
 
-#include <testbed/framework/softbody_dragger.h>
-
 class SmashSoftBody : public Test
 {
 public:
@@ -42,20 +40,13 @@ public:
 		def.c_yield = 0.6f;
 		def.c_creep = 1.0f;
 		def.c_max = 1.0f;
+		def.radius = 0.05f;
+		def.friction = 0.2f;
 
 		m_body = new b3SoftBody(def);
 
 		b3Vec3 gravity(0.0f, -9.8f, 0.0f);
 		m_body->SetGravity(gravity);
-		m_body->SetWorld(&m_world);
-
-		for (u32 i = 0; i < m_mesh.vertexCount; ++i)
-		{
-			b3SoftBodyNode* n = m_body->GetVertexNode(i);
-
-			n->SetRadius(0.05f);
-			n->SetFriction(0.2f);
-		}
 
 		// Create ground
 		{
@@ -71,30 +62,14 @@ public:
 			sd.shape = &groundShape;
 			sd.friction = 0.3f;
 
-			b->CreateShape(sd);
+			b3Shape* s = b->CreateShape(sd);
+
+			b3SoftBodyWorldShapeDef ssd;
+			ssd.shape = s;
+
+			m_body->CreateWorldShape(ssd); 
 		}
 
-		// Create body
-		{
-			b3BodyDef bd;
-			bd.type = e_dynamicBody;
-			bd.position.y = 10.0f;
-
-			b3Body* b = m_world.CreateBody(bd);
-
-			static b3BoxHull boxHull(5.0f, 1.0f, 5.0f);
-
-			b3HullShape boxShape;
-			boxShape.m_hull = &boxHull;
-
-			b3ShapeDef sd;
-			sd.shape = &boxShape;
-			sd.density = 0.1f;
-			sd.friction = 0.3f;
-
-			b->CreateShape(sd);
-		}
-		
 		m_bodyDragger = new b3SoftBodyDragger(&m_ray, m_body);
 	}
 
@@ -122,9 +97,9 @@ public:
 			b3Vec3 pA = m_bodyDragger->GetPointA();
 			b3Vec3 pB = m_bodyDragger->GetPointB();
 
-			g_draw->DrawPoint(pA, 2.0f, b3Color_green);
+			g_draw->DrawPoint(pA, 4.0f, b3Color_green);
 
-			g_draw->DrawPoint(pB, 2.0f, b3Color_green);
+			g_draw->DrawPoint(pB, 4.0f, b3Color_green);
 
 			g_draw->DrawSegment(pA, pB, b3Color_white);
 		}
@@ -132,7 +107,7 @@ public:
 		extern u32 b3_softBodySolverIterations;
 		g_draw->DrawString(b3Color_white, "Iterations = %d", b3_softBodySolverIterations);
 
-		float32 E = m_body->GetEnergy();
+		scalar E = m_body->GetEnergy();
 		g_draw->DrawString(b3Color_white, "E = %f", E);
 	}
 

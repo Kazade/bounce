@@ -22,9 +22,7 @@
 b3CapsuleShape::b3CapsuleShape() 
 {
 	m_type = e_capsuleShape;
-	m_radius = 0.0f;
-	m_centers[0].SetZero();
-	m_centers[1].SetZero();
+	m_radius = scalar(0);
 }
 
 b3CapsuleShape::~b3CapsuleShape() 
@@ -33,45 +31,45 @@ b3CapsuleShape::~b3CapsuleShape()
 
 void b3CapsuleShape::Swap(const b3CapsuleShape& other) 
 {
-	m_centers[0] = other.m_centers[0];
-	m_centers[1] = other.m_centers[1];
+	m_vertex1 = other.m_vertex1;
+	m_vertex2 = other.m_vertex2;
 	m_radius = other.m_radius;
 }
 
-void b3CapsuleShape::ComputeMass(b3MassData* massData, float32 density) const 
+void b3CapsuleShape::ComputeMass(b3MassData* massData, scalar density) const 
 {
-	b3Vec3 A = m_centers[0];
-	b3Vec3 B = m_centers[1];
+	b3Vec3 A = m_vertex1;
+	b3Vec3 B = m_vertex2;
 
 	b3Vec3 d = B - A;
 	
-	float32 h = b3Length(d);
+	scalar h = b3Length(d);
 	B3_ASSERT(h > B3_LINEAR_SLOP);
-	float32 h2 = h * h;
+	scalar h2 = h * h;
 
-	float32 r = m_radius;
-	float32 r2 = r * r;
-	float32 r3 = r2 * r;
+	scalar r = m_radius;
+	scalar r2 = r * r;
+	scalar r3 = r2 * r;
 
 	//
-	b3Vec3 center = 0.5f * (A + B);
-	float32 mass = 0.0f;
+	b3Vec3 center = scalar(0.5) * (A + B);
+	scalar mass = scalar(0);
 	b3Mat33 I; I.SetZero();
 	
 	b3Mat33 rotation;
-	rotation.y = (1.0f / h) * d;
+	rotation.y = (scalar(1) / h) * d;
 	rotation.x = b3Perp(rotation.y);
 	rotation.z = b3Cross(rotation.y, rotation.x);
 
 	// Cylinder
 	{
 		// Mass
-		float32 cylinderVolume = B3_PI * r2 * h;
-		float32 cylinderMass = density * cylinderVolume;
+		scalar cylinderVolume = B3_PI * r2 * h;
+		scalar cylinderMass = density * cylinderVolume;
 
 		// Inertia about the center of mass
-		float32 Ixx = (1.0f / 12.0f) * cylinderMass * (3.0f * r2 + h2);
-		float32 Iyy = 0.5f * cylinderMass * r2;
+		scalar Ixx = (scalar(1) / scalar(12)) * cylinderMass * (scalar(3) * r2 + h2);
+		scalar Iyy = scalar(0.5) * cylinderMass * r2;
 		// Izz = Ixx
 		b3Mat33 cylinderI = b3Diagonal(Ixx, Iyy, Ixx);
 
@@ -89,23 +87,23 @@ void b3CapsuleShape::ComputeMass(b3MassData* massData, float32 density) const
 	// Hemispheres
 	{
 		// Mass
-		float32 hemiVolume = (2.0f / 3.0f) * B3_PI * r3;
-		float32 hemiMass = density * hemiVolume;
+		scalar hemiVolume = (scalar(2) / scalar(3)) * B3_PI * r3;
+		scalar hemiMass = density * hemiVolume;
 		
 		// Hemisphere inertia about the origin
-		float32 Io = (2.0f / 5.0f) * hemiMass * r2;
+		scalar Io = (scalar(2) / scalar(5)) * hemiMass * r2;
 
 		// Hemisphere center of mass relative to the origin
-		float32 coy = (3.0f / 8.0f) * r;
+		scalar coy = (scalar(3) / scalar(8)) * r;
 		
 		// Hemisphere inertia about the hemisphere/capsule center of mass
-		float32 Iyy = Io - hemiMass * coy * coy;
+		scalar Iyy = Io - hemiMass * coy * coy;
 
 		// Hemisphere center of mass relative to the capsule center of mass
-		float32 ccy = coy + 0.5f * h;
+		scalar ccy = coy + scalar(0.5) * h;
 		
 		// Hemisphere inertia about the capsule the center of mass
-		float32 Ixx = Io + hemiMass * ccy * ccy;
+		scalar Ixx = Io + hemiMass * ccy * ccy;
 
 		// Izz = Ixx 
 		b3Mat33 hemiI = b3Diagonal(Ixx, Iyy, Ixx);
@@ -117,8 +115,8 @@ void b3CapsuleShape::ComputeMass(b3MassData* massData, float32 density) const
 		hemiI += hemiMass * b3Steiner(center);
 
 		// Contribute twice
-		mass += 2.0f * hemiMass;
-		I += 2.0f * hemiI;
+		mass += scalar(2) * hemiMass;
+		I += scalar(2) * hemiI;
 	}
 
 	// Centroid, total mass, inertia at the origin
@@ -127,13 +125,13 @@ void b3CapsuleShape::ComputeMass(b3MassData* massData, float32 density) const
 	massData->I = I;
 }
 
-void b3CapsuleShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const 
+void b3CapsuleShape::ComputeAABB(b3AABB* aabb, const b3Transform& xf) const 
 {
-	b3Vec3 c1 = b3Mul(xf, m_centers[0]);
-	b3Vec3 c2 = b3Mul(xf, m_centers[1]);
+	b3Vec3 c1 = b3Mul(xf, m_vertex1);
+	b3Vec3 c2 = b3Mul(xf, m_vertex2);
 	b3Vec3 r(m_radius, m_radius, m_radius);
-	aabb->m_lower = b3Min(c1, c2) - r;
-	aabb->m_upper = b3Max(c1, c2) + r;
+	aabb->lowerBound = b3Min(c1, c2) - r;
+	aabb->upperBound = b3Max(c1, c2) + r;
 }
 
 bool b3CapsuleShape::TestSphere(const b3Sphere& sphere, const b3Transform& xf) const
@@ -141,17 +139,17 @@ bool b3CapsuleShape::TestSphere(const b3Sphere& sphere, const b3Transform& xf) c
 	// The point in the frame of the capsule
 	b3Vec3 Q = b3MulT(xf, sphere.vertex);
 
-	b3Vec3 A = m_centers[0];
-	b3Vec3 B = m_centers[1];
+	b3Vec3 A = m_vertex1;
+	b3Vec3 B = m_vertex2;
 	b3Vec3 AB = B - A;
 
 	// Barycentric coordinates for Q
-	float32 u = b3Dot(B - Q, AB);
-	float32 v = b3Dot(Q - A, AB);
+	scalar u = b3Dot(B - Q, AB);
+	scalar v = b3Dot(Q - A, AB);
 
-	float32 radius = m_radius + sphere.radius;
+	scalar radius = m_radius + sphere.radius;
 
-	if (v <= 0.0f)
+	if (v <= scalar(0))
 	{
 		// A
 		if (b3DistanceSquared(A, Q) > radius * radius)
@@ -161,7 +159,7 @@ bool b3CapsuleShape::TestSphere(const b3Sphere& sphere, const b3Transform& xf) c
 		return true;
 	}
 
-	if (u <= 0.0f)
+	if (u <= scalar(0))
 	{
 		// B
 		if (b3DistanceSquared(B, Q) > radius * radius)
@@ -172,9 +170,9 @@ bool b3CapsuleShape::TestSphere(const b3Sphere& sphere, const b3Transform& xf) c
 	}
 
 	// AB
-	float32 s = b3Dot(AB, AB);
-	B3_ASSERT(s > 0.0f);
-	b3Vec3 P = (1.0f / s) * (u * A + v * B);
+	scalar s = b3Dot(AB, AB);
+	B3_ASSERT(s > scalar(0));
+	b3Vec3 P = (scalar(1) / s) * (u * A + v * B);
 	if (b3DistanceSquared(P, Q) > radius * radius)
 	{
 		return false;
@@ -187,98 +185,87 @@ bool b3CapsuleShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphe
 {
 	b3Vec3 Q = sphere.vertex;
 
-	b3Vec3 A = b3Mul(xf, m_centers[0]);
-	b3Vec3 B = b3Mul(xf, m_centers[1]);
+	b3Vec3 A = b3Mul(xf, m_vertex1);
+	b3Vec3 B = b3Mul(xf, m_vertex2);
 	b3Vec3 AB = B - A;
 
 	// Barycentric coordinates for Q
-	float32 u = b3Dot(B - Q, AB);
-	float32 v = b3Dot(Q - A, AB);
+	scalar u = b3Dot(B - Q, AB);
+	scalar v = b3Dot(Q - A, AB);
 
-	float32 radius = m_radius + sphere.radius;
+	scalar radius = m_radius + sphere.radius;
 
-	if (v <= 0.0f)
+	if (v <= scalar(0))
 	{
 		// A
 		b3Vec3 P = A;
 		b3Vec3 d = Q - P;
-		float32 dd = b3Dot(d, d);
+		scalar dd = b3Dot(d, d);
 		if (dd > radius * radius)
 		{
 			return false;
 		}
 
-		b3Vec3 n(0.0f, 1.0f, 0.0f);
-		float32 len = b3Sqrt(dd);
+		b3Vec3 n(scalar(0), scalar(1), scalar(0));
+		scalar len = b3Sqrt(dd);
 		if (len > B3_EPSILON)
 		{
 			n = d / len;
 		}
 
-		output->point = A;
-		output->separation = len - radius;
+		output->point = P;
 		output->normal = n;
 
 		return true;
 	}
 
-	if (u <= 0.0f)
+	if (u <= scalar(0))
 	{
 		// B
 		b3Vec3 P = B;
 		b3Vec3 d = Q - P;
-		float32 dd = b3Dot(d, d);
+		scalar dd = b3Dot(d, d);
 		if (dd > radius * radius)
 		{
 			return false;
 		}
 
-		b3Vec3 n(0.0f, 1.0f, 0.0f);
-		float32 len = b3Sqrt(dd);
+		b3Vec3 n(scalar(0), scalar(1), scalar(0));
+		scalar len = b3Sqrt(dd);
 		if (len > B3_EPSILON)
 		{
 			n = d / len;
 		}
 
-		output->point = B;
-		output->separation = len - radius;
+		output->point = P;
 		output->normal = n;
 
 		return true;
 	}
 
 	// AB
-	float32 s = b3Dot(AB, AB);
-	//B3_ASSERT(s > 0.0f);
-	b3Vec3 P;
-	if (s < B3_LINEAR_SLOP * B3_LINEAR_SLOP)
-	{
-		P = A;
-	}
-	else
-	{
-		P = (u * A + v * B) / s;
-	}
+	scalar s = b3Dot(AB, AB);
+	//B3_ASSERT(s > scalar(0));
+	b3Vec3 P = (u * A + v * B) / s;
 
 	b3Vec3 d = Q - P;
-	float32 dd = b3Dot(d, d);
+	scalar dd = b3Dot(d, d);
 	if (dd > radius * radius)
 	{
 		return false;
 	}
 
-	b3Vec3 QA = A - Q;
-	b3Vec3 e = b3Cross(AB, QA);
-	b3Vec3 n = b3Cross(AB, e);
-	if (b3Dot(n, QA) < 0.0f)
+	b3Vec3 AQ = Q - A;
+	b3Vec3 AB_x_AQ = b3Cross(AB, AQ);
+	b3Vec3 n = b3Cross(AB_x_AQ, AB);
+	if (b3Dot(n, AQ) < scalar(0))
 	{
 		n = -n;
 	}
 	n.Normalize();
 
 	output->point = P;
-	output->separation = b3Sqrt(dd) - radius;
-	output->normal = -n;
+	output->normal = n;
 	return true;
 }
 
@@ -288,7 +275,7 @@ bool b3CapsuleShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& inpu
 	b3Vec3 B = input.p2;
 
 	b3Vec3 n = B - A;
-	float32 nn = b3Dot(n, n);
+	scalar nn = b3Dot(n, n);
 	
 	// Check for short segment.
 	if (nn < B3_EPSILON * B3_EPSILON)
@@ -296,34 +283,34 @@ bool b3CapsuleShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& inpu
 		return false;
 	}
 
-	b3Vec3 P = b3Mul(xf, m_centers[0]);
-	b3Vec3 Q = b3Mul(xf, m_centers[1]);
+	b3Vec3 P = b3Mul(xf, m_vertex1);
+	b3Vec3 Q = b3Mul(xf, m_vertex2);
 
 	b3Vec3 d = Q - P;
-	float32 dd = b3Dot(d, d);
+	scalar dd = b3Dot(d, d);
 	
 	// Check for short segment.
 	if (dd < B3_EPSILON * B3_EPSILON)
 	{
-		float32 a = nn;
+		scalar a = nn;
 		
 		b3Vec3 m = A - P;
-		float32 b = b3Dot(m, n);
-		float32 c = b3Dot(m, m) - m_radius * m_radius;
+		scalar b = b3Dot(m, n);
+		scalar c = b3Dot(m, m) - m_radius * m_radius;
 
-		float32 disc = b * b - a * c;
+		scalar disc = b * b - a * c;
 
 		// Check for negative discriminant.
-		if (disc < 0.0f)
+		if (disc < scalar(0))
 		{
 			return false;
 		}
 
 		// Find the minimum time of impact of the line with the sphere.
-		float32 t = -b - b3Sqrt(disc);
+		scalar t = -b - b3Sqrt(disc);
 
 		// Is the intersection point on the segment?
-		if (t > 0.0f && t <= input.maxFraction * a)
+		if (t > scalar(0) && t <= input.maxFraction * a)
 		{
 			// Finish solution.
 			t /= a;
@@ -337,43 +324,43 @@ bool b3CapsuleShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& inpu
 
 	// Solve quadratic equation.
 	b3Vec3 m = A - P;
-	float32 nd = b3Dot(n, d);
-	float32 mm = b3Dot(m, m);
-	float32 md = b3Dot(m, d);
-	float32 mn = b3Dot(m, n);
+	scalar nd = b3Dot(n, d);
+	scalar mm = b3Dot(m, m);
+	scalar md = b3Dot(m, d);
+	scalar mn = b3Dot(m, n);
 	
-	float32 a = dd * nn - nd * nd;
-	if (b3Abs(a) < 2.0f * (B3_EPSILON * B3_EPSILON))
+	scalar a = dd * nn - nd * nd;
+	if (b3Abs(a) < scalar(2) * (B3_EPSILON * B3_EPSILON))
 	{
 		return false;
 	}
 
-	float32 b = dd * mn - nd * md;
-	float32 c = dd * (mm - m_radius * m_radius) - md * md;
+	scalar b = dd * mn - nd * md;
+	scalar c = dd * (mm - m_radius * m_radius) - md * md;
 
-	float32 disc = b * b - a * c;
+	scalar disc = b * b - a * c;
 
 	// Check for negative discriminant.
-	if (disc < 0.0f)
+	if (disc < scalar(0))
 	{
 		return false;
 	}
 
 	// Find minimum intersection of the line with the cylinder.
-	float32 t = -b - b3Sqrt(disc);
+	scalar t = -b - b3Sqrt(disc);
 	t /= a;
 
 	// Is the intersection on the segment?
-	if (t < 0.0f || t > 1.0f)
+	if (t < scalar(0) || t > scalar(1))
 	{
 		return false;
 	}
 	
 	// Hemisphere check.
-	float32 tp = md + t * nd;
+	scalar tp = md + t * nd;
 
 	b3Vec3 C;
-	if (tp < 0.0f)
+	if (tp < scalar(0))
 	{
 		// P
 		C = P;
@@ -387,7 +374,7 @@ bool b3CapsuleShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& inpu
 	{
 		// PQ
 		// Intersection is on the cylinder.
-		b3Vec3 X = (1.0f - t) * A + t * B;
+		b3Vec3 X = (scalar(1) - t) * A + t * B;
 		b3Vec3 e2 = b3Cross(d, X - P);
 		b3Vec3 e3 = b3Cross(e2, d);
 		e3.Normalize();
@@ -408,7 +395,7 @@ bool b3CapsuleShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& inpu
 	disc = b * b - a * c;
 
 	// Check for negative discriminant.
-	if (disc < 0.0f)
+	if (disc < scalar(0))
 	{
 		return false;
 	}
@@ -417,7 +404,7 @@ bool b3CapsuleShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& inpu
 	t = -b - b3Sqrt(disc);
 
 	// Is the intersection point on the segment?
-	if (t > 0.0f && t <= input.maxFraction * a)
+	if (t > scalar(0) && t <= input.maxFraction * a)
 	{
 		// Finish solution.
 		t /= a;

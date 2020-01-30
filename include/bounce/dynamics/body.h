@@ -50,17 +50,20 @@ struct b3BodyDef
 	{
 		type = e_staticBody;
 		awake = true;
+		allowSleep = true;
 		fixedRotationX = false;
 		fixedRotationY = false;
 		fixedRotationZ = false;
-		userData = NULL;
+		userData = nullptr;
 		position.SetZero();
 		orientation.SetIdentity();
 		linearVelocity.SetZero();
 		angularVelocity.SetZero();
-		gravityScale = 1.0f;
-		linearDamping = 0.0f;
-		angularDamping = 0.0f;
+		gravityScale.Set(scalar(1), scalar(1), scalar(1));
+		linearDamping.SetZero();
+		angularDamping.SetZero();
+		linearSleepTolerance = scalar(0.05);
+		angularSleepTolerance = scalar(2) / scalar(180) * B3_PI;
 	}
 
 	//
@@ -69,6 +72,9 @@ struct b3BodyDef
 	//
 	bool awake;
 	
+	//
+	bool allowSleep;
+
 	//
 	bool fixedRotationX;
 	
@@ -94,13 +100,19 @@ struct b3BodyDef
 	b3Vec3 angularVelocity;
 	
 	//
-	float32 linearDamping;
+	b3Vec3 linearDamping;
 
 	//
-	float32 angularDamping;
+	b3Vec3 angularDamping;
 
 	//
-	float32 gravityScale;
+	b3Vec3 gravityScale;
+
+	//
+	scalar linearSleepTolerance;
+
+	//
+	scalar angularSleepTolerance;
 };
 
 class b3Body
@@ -127,6 +139,10 @@ public:
 	// Therefore you can create shapes on the stack memory.
 	b3Shape* CreateShape(const b3ShapeDef& def);
 	
+	// Get the list of all joints connected to this body.
+	const b3List2<b3JointEdge>& GetJointList() const;
+	b3List2<b3JointEdge>& GetJointList();
+
 	// Destroy a given shape from the body.
 	void DestroyShape(b3Shape* shape);
 
@@ -135,11 +151,14 @@ public:
 
 	// Get the body world transform.
 	const b3Transform& GetTransform() const;
-
-	// Set the body world transform from a position, axis of rotation and an angle 
-	// of rotation about the axis.
+	
+	// Set the body world transform from a position and orientation quaternion.
 	// However, manipulating a body transform during the simulation may cause non-physical behaviour.
-	void SetTransform(const b3Vec3& position, const b3Vec3& axis, float32 angle);
+	void SetTransform(const b3Vec3& position, const b3Quat& orientation);
+
+	// Set the body world transform from a position and orientation matrix.
+	// However, manipulating a body transform during the simulation may cause non-physical behaviour.
+	void SetTransform(const b3Vec3& position, const b3Mat33& orientation);
 
 	// Get the position of the world body origin.
 	b3Vec3 GetPosition() const;
@@ -195,10 +214,10 @@ public:
 	void ApplyAngularImpulse(const b3Vec3& impulse, bool wake);
 
 	// Get the mass of the body. Typically in kg/m^3.
-	float32 GetMass() const;
+	scalar GetMass() const;
 
 	// Get the inverse mass of the body. Typically in kg/m^3.
-	float32 GetInverseMass() const;
+	scalar GetInverseMass() const;
 	
 	// Get the rotational inertia of the body about the local center of mass. Typically in kg/m^3.
 	const b3Mat33& GetInertia() const;
@@ -221,13 +240,13 @@ public:
 	void ResetMass();
 
 	// Get the linear kinetic energy of the body in Joules (kg m^2/s^2).
-	float32 GetLinearEnergy() const;
+	scalar GetLinearEnergy() const;
 
 	// Get the angular kinetic energy of the body in Joules (kg m^2/s^2).
-	float32 GetAngularEnergy() const;
+	scalar GetAngularEnergy() const;
 
 	// Get the total kinetic energy of the body in Joules (kg m^2/s^2).
-	float32 GetEnergy() const;
+	scalar GetEnergy() const;
 	
 	// Transform a vector to the local space of this body.
 	b3Vec3 GetLocalVector(const b3Vec3& vector) const;
@@ -242,28 +261,34 @@ public:
 	b3Vec3 GetWorldPoint(const b3Vec3& localPoint) const;
 
 	// Transform a frame to the local space of this body.
+	b3Quat GetLocalFrame(const b3Quat& frame) const;
+
+	// Transform a frame to the world space.
+	b3Quat GetWorldFrame(const b3Quat& localFrame) const;
+
+	// Transform a frame to the local space of this body.
 	b3Transform GetLocalFrame(const b3Transform& frame) const;
 
 	// Transform a frame to the world space.
 	b3Transform GetWorldFrame(const b3Transform& localFrame) const;
 
 	// Get the linear damping of the body. 
-	float32 GetLinearDamping() const;
+	const b3Vec3& GetLinearDamping() const;
 	
 	// Set the linear damping of the body. Zero is set by default.
-	void SetLinearDamping(float32 damping);
+	void SetLinearDamping(const b3Vec3& damping);
 
 	// Get the angular damping of the body. 
-	float32 GetAngularDamping() const;
+	const b3Vec3& GetAngularDamping() const;
 
 	// Set the angular damping of the body. Zero is set by default.
-	void SetAngularDamping(float32 damping);
+	void SetAngularDamping(const b3Vec3& damping);
 
 	// Get the gravity scale of the body. 
-	float32 GetGravityScale() const;
+	const b3Vec3& GetGravityScale() const;
 
 	// Set the gravity scale of the body. One is set by default.
-	void SetGravityScale(float32 scale);
+	void SetGravityScale(const b3Vec3& scale);
 
 	// See if the body is awake.
 	bool IsAwake() const;
@@ -277,6 +302,27 @@ public:
 
 	// Set the user data to the body.
 	void SetUserData(void* _userData);
+
+	// Set the fixed rotation along the world axes.
+	void SetFixedRotation(bool flagX, bool flagY, bool flagZ);
+
+	// Set the linear sleep tolerance in meters per second.
+	void SetLinearSleepTolerance(scalar tolerance);
+
+	// Get the linear sleep tolerance in meters per second.
+	scalar GetLinearSleepTolerance() const;
+
+	// Set the angular sleep tolerance in radians per second.
+	void SetAngularSleepTolerance(scalar tolerance);
+
+	// Get the angular sleep tolerance in radians per second.
+	scalar GetAngularSleepTolerance() const;
+
+	// Set if automatic sleeping is allowed.
+	void SetSleepingAllowed(bool bit);
+
+	// Is automatic sleeping allowed?
+	bool IsSleepingAllowed() const;
 
 	// Get the next body in the world body list.
 	const b3Body* GetNext() const;
@@ -303,9 +349,14 @@ private:
 	friend class b3RevoluteJoint;
 	friend class b3SphereJoint;
 	friend class b3ConeJoint;
+	friend class b3FrictionJoint;
+	friend class b3MotorJoint;
+	friend class b3PrismaticJoint;
+	friend class b3WheelJoint;
 
 	friend class b3List2<b3Body>;
 
+	friend class b3Cloth;
 	friend class b3ClothSolver;
 	friend class b3ClothContactSolver;
 
@@ -317,9 +368,10 @@ private:
 	{
 		e_awakeFlag = 0x0001,
 		e_islandFlag = 0x0002,
-		e_fixedRotationX = 0x0004,
-		e_fixedRotationY = 0x0008,
-		e_fixedRotationZ = 0x0010,
+		e_autoSleepFlag = 0x0004,
+		e_fixedRotationX = 0x0008,
+		e_fixedRotationY = 0x0010,
+		e_fixedRotationZ = 0x0020
 	};
 
 	b3Body(const b3BodyDef& def, b3World* world);
@@ -343,7 +395,11 @@ private:
 	b3BodyType m_type;
 	u32 m_islandID;
 	u32 m_flags;
-	float32 m_sleepTime;
+	
+	// Body sleeping
+	scalar m_linearSleepTolerance;
+	scalar m_angularSleepTolerance;
+	scalar m_sleepTime;
 
 	// The shapes attached to this body.
 	b3List1<b3Shape> m_shapeList;
@@ -355,10 +411,10 @@ private:
 	void* m_userData;
 
 	// Body mass.
-	float32 m_mass;
+	scalar m_mass;
 
 	// Inverse body mass.
-	float32 m_invMass;
+	scalar m_invMass;
 	
 	// Inertia about the body local center of mass.
 	b3Mat33 m_I;	
@@ -374,9 +430,9 @@ private:
 	b3Vec3 m_linearVelocity;
 	b3Vec3 m_angularVelocity;
 	
-	float32 m_linearDamping;
-	float32 m_angularDamping;
-	float32 m_gravityScale;
+	b3Vec3 m_linearDamping;
+	b3Vec3 m_angularDamping;
+	b3Vec3 m_gravityScale;
 	
 	// Motion proxy for CCD.
 	b3Sweep m_sweep;
@@ -437,30 +493,56 @@ inline b3List1<b3Shape>& b3Body::GetShapeList()
 	return m_shapeList;
 }
 
+inline const b3List2<b3JointEdge>& b3Body::GetJointList() const
+{
+	return m_jointEdges;
+}
+
+inline b3List2<b3JointEdge>& b3Body::GetJointList()
+{
+	return m_jointEdges;
+}
+
 inline const b3Transform& b3Body::GetTransform() const
 {
 	return m_xf;
 }
 
-inline void b3Body::SetTransform(const b3Vec3& position, const b3Vec3& axis, float32 angle) 
+inline void b3Body::SetTransform(const b3Vec3& position, const b3Quat& orientation)
 {
-	b3Quat q = b3Quat(axis, angle);
-	
-	m_xf.position = position;
-	m_xf.rotation = b3QuatMat33(q);
+	m_xf.translation = position;
+	m_xf.rotation = orientation;
 
 	m_sweep.worldCenter = b3Mul(m_xf, m_sweep.localCenter);
-	m_sweep.orientation = q;
+	m_sweep.orientation = orientation;
 
 	m_sweep.worldCenter0 = m_sweep.worldCenter;
 	m_sweep.orientation0 = m_sweep.orientation;
+
+	m_worldInvI = b3RotateToFrame(m_invI, orientation);
+
+	SynchronizeShapes();
+}
+
+inline void b3Body::SetTransform(const b3Vec3& position, const b3Mat33& orientation)
+{
+	m_xf.translation = position;
+	m_xf.rotation = b3Mat33Quat(orientation);
+
+	m_sweep.worldCenter = b3Mul(m_xf, m_sweep.localCenter);
+	m_sweep.orientation = m_xf.rotation;
+
+	m_sweep.worldCenter0 = m_sweep.worldCenter;
+	m_sweep.orientation0 = m_sweep.orientation;
+
+	m_worldInvI = b3RotateToFrame(m_invI, orientation);
 
 	SynchronizeShapes();
 }
 
 inline b3Vec3 b3Body::GetPosition() const
 {
-	return m_xf.position;
+	return m_xf.translation;
 }
 
 inline b3Quat b3Body::GetOrientation() const
@@ -480,7 +562,7 @@ inline b3Vec3 b3Body::GetLocalCenter() const
 
 inline b3Vec3 b3Body::GetLocalVector(const b3Vec3& vector) const
 {
-	return b3MulT(m_xf.rotation, vector);
+	return b3MulC(m_xf.rotation, vector);
 }
 
 inline b3Vec3 b3Body::GetWorldVector(const b3Vec3& localVector) const
@@ -496,6 +578,16 @@ inline b3Vec3 b3Body::GetLocalPoint(const b3Vec3& point) const
 inline b3Vec3 b3Body::GetWorldPoint(const b3Vec3& point) const
 {
 	return b3Mul(m_xf, point);
+}
+
+inline b3Quat b3Body::GetLocalFrame(const b3Quat& frame) const
+{
+	return b3MulC(m_sweep.orientation, frame);
+}
+
+inline b3Quat b3Body::GetWorldFrame(const b3Quat& localFrame) const
+{
+	return b3Mul(m_sweep.orientation, localFrame);
 }
 
 inline b3Transform b3Body::GetLocalFrame(const b3Transform& xf) const
@@ -525,13 +617,13 @@ inline void b3Body::SetAwake(bool flag)
 		if (!IsAwake()) 
 		{
 			m_flags |= e_awakeFlag;
-			m_sleepTime = 0.0f;
+			m_sleepTime = scalar(0);
 		}
 	}
 	else 
 	{
 		m_flags &= ~e_awakeFlag;
-		m_sleepTime = 0.0f;
+		m_sleepTime = scalar(0);
 		m_force.SetZero();
 		m_torque.SetZero();
 		m_linearVelocity.SetZero();
@@ -539,32 +631,32 @@ inline void b3Body::SetAwake(bool flag)
 	}
 }
 
-inline float32 b3Body::GetLinearDamping() const
+inline const b3Vec3& b3Body::GetLinearDamping() const
 {
 	return m_linearDamping;
 }
 
-inline void b3Body::SetLinearDamping(float32 damping) 
+inline void b3Body::SetLinearDamping(const b3Vec3& damping) 
 {
 	m_linearDamping = damping;
 }
 
-inline float32 b3Body::GetAngularDamping() const
+inline const b3Vec3& b3Body::GetAngularDamping() const
 {
 	return m_angularDamping;
 }
 
-inline void b3Body::SetAngularDamping(float32 damping) 
+inline void b3Body::SetAngularDamping(const b3Vec3& damping) 
 {
 	m_angularDamping = damping;
 }
 
-inline float32 b3Body::GetGravityScale() const
+inline const b3Vec3& b3Body::GetGravityScale() const
 { 
 	return m_gravityScale; 
 }
 
-inline void b3Body::SetGravityScale(float32 scale)
+inline void b3Body::SetGravityScale(const b3Vec3& scale)
 {
 	if (m_type != e_staticBody) 
 	{
@@ -589,7 +681,7 @@ inline void b3Body::SetLinearVelocity(const b3Vec3& linearVelocity)
 		return;
 	}
 	
-	if (b3Dot(linearVelocity, linearVelocity) > 0.0f) 
+	if (b3Dot(linearVelocity, linearVelocity) > scalar(0)) 
 	{
 		SetAwake(true);
 	}
@@ -609,7 +701,7 @@ inline void b3Body::SetAngularVelocity(const b3Vec3& angularVelocity)
 		return;
 	}
 
-	if (b3Dot(angularVelocity, angularVelocity) > 0.0f) 
+	if (b3Dot(angularVelocity, angularVelocity) > scalar(0)) 
 	{
 		SetAwake(true);
 	}
@@ -617,12 +709,12 @@ inline void b3Body::SetAngularVelocity(const b3Vec3& angularVelocity)
 	m_angularVelocity = angularVelocity;
 }
 
-inline float32 b3Body::GetMass() const
+inline scalar b3Body::GetMass() const
 {
 	return m_mass;
 }
 
-inline float32 b3Body::GetInverseMass() const
+inline scalar b3Body::GetInverseMass() const
 {
 	return m_invMass;
 }
@@ -637,24 +729,24 @@ inline const b3Mat33& b3Body::GetInertia() const
 	return m_I;
 }
 
-inline float32 b3Body::GetLinearEnergy() const
+inline scalar b3Body::GetLinearEnergy() const
 {
 	b3Vec3 P = m_mass * m_linearVelocity;
 	return b3Dot(P, m_linearVelocity);
 }
 
-inline float32 b3Body::GetAngularEnergy() const
+inline scalar b3Body::GetAngularEnergy() const
 {
 	b3Mat33 I = b3RotateToFrame(m_I, m_xf.rotation);
 	b3Vec3 L = I * m_angularVelocity;
 	return b3Dot(L, m_angularVelocity);
 }
 
-inline float32 b3Body::GetEnergy() const
+inline scalar b3Body::GetEnergy() const
 {
-	float32 e1 = GetLinearEnergy();
-	float32 e2 = GetAngularEnergy();
-	return 0.5f * (e1 + e2);
+	scalar e1 = GetLinearEnergy();
+	scalar e2 = GetAngularEnergy();
+	return scalar(0.5) * (e1 + e2);
 }
 
 inline void b3Body::ApplyForce(const b3Vec3& force, const b3Vec3& point, bool wake) 
@@ -747,6 +839,34 @@ inline void b3Body::ApplyAngularImpulse(const b3Vec3& impulse, bool wake)
 	{
 		m_angularVelocity += b3Mul(m_worldInvI, impulse);
 	}
+}
+
+inline scalar b3Body::GetLinearSleepTolerance() const
+{
+	return m_linearSleepTolerance;
+}
+
+inline scalar b3Body::GetAngularSleepTolerance() const
+{
+	return m_angularSleepTolerance;
+}
+
+inline void b3Body::SetSleepingAllowed(bool flag)
+{
+	if (flag)
+	{
+		m_flags |= e_autoSleepFlag;
+	}
+	else
+	{
+		m_flags &= ~e_autoSleepFlag;
+		SetAwake(true);
+	}
+}
+
+inline bool b3Body::IsSleepingAllowed() const
+{
+	return (m_flags & e_autoSleepFlag) == e_autoSleepFlag;
 }
 
 #endif

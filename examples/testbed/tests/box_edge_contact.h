@@ -24,27 +24,19 @@ class BoxEdgeContact : public Collide
 public:
 	BoxEdgeContact()
 	{
-		b3Transform xf;
-		xf.position.SetZero();
-		xf.rotation = b3Diagonal(1.0f, 2.0f, 1.0f);
-		m_box.SetTransform(xf);
+		m_box.SetExtents(1.0f, 2.0f, 1.0f);
 
 		m_sA.m_hull = &m_box;
-		m_sB.m_hull = &m_box;
-		
-		m_xfA.position.Set(1.500000, 1.000000, 0.000000);
-		m_xfA.rotation.x.Set(0.707107, 0.000000, -0.707107);
-		m_xfA.rotation.y.Set(0.000000, 1.000000, 0.000000);
-		m_xfA.rotation.z.Set(0.707107, 0.000000, 0.707107);
+		m_xfA.translation.Set(1.500000, 1.000000, 0.000000);
+		m_xfA.rotation.SetIdentity();
+		m_shapeA = &m_sA;
 
-		m_xfB.position.Set(-1.300000, 0.000000, 0.000000);
-		m_xfB.rotation.x.Set(0.809017, 0.266849, -0.523721);
-		m_xfB.rotation.y.Set(0.000000, 0.891007, 0.453991);
-		m_xfB.rotation.z.Set(0.587785, -0.367286, 0.720840);
+		m_sB.m_hull = &m_box;
+		m_xfB.translation.Set(-1.29999995, 1.34999979, 0.000000000);
+		m_xfB.rotation.Set(0.810514629, 0.342624813, 0.334119707, 0.337692767);
+		m_shapeB = &m_sB;
 
 		m_cache.count = 0;
-		m_shapeA = &m_sA;
-		m_shapeB = &m_sB;
 	}
 	
 	static Test* Create()

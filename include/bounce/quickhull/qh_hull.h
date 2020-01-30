@@ -53,7 +53,7 @@ struct qhFace
 
 	b3Vec3 center;
 	b3Plane plane;
-	float32 area;
+	scalar area;
 
 	qhFaceMark mark;
 
@@ -172,7 +172,7 @@ private:
 	qhList<qhFace> m_faceList; 
 
 	// Coplanarity tolerance
-	float32 m_tolerance;
+	scalar m_tolerance;
 
 	// Number of Quickhull iterations
 	u32 m_iterations;

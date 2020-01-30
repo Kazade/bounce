@@ -22,7 +22,7 @@ b3SoftBodyDragger::b3SoftBodyDragger(b3Ray3* ray, b3SoftBody* body)
 {
 	m_ray = ray;
 	m_body = body;
-	m_tetrahedron = nullptr;
+	m_isDragging = false;
 }
 
 b3SoftBodyDragger::~b3SoftBodyDragger()
@@ -40,40 +40,44 @@ bool b3SoftBodyDragger::StartDragging()
 		return false;
 	}
 
-	m_mesh = m_body->GetMesh();
-	m_tetrahedron = m_mesh->tetrahedrons + rayOut.tetrahedron;
-	m_v1 = m_tetrahedron->v1;
-	m_v2 = m_tetrahedron->v2;
-	m_v3 = m_tetrahedron->v3;
-	m_v4 = m_tetrahedron->v4;
+	m_isDragging = true;
 	m_x = rayOut.fraction;
 
-	b3SoftBodyNode* n1 = m_body->GetVertexNode(m_v1);
-	b3SoftBodyNode* n2 = m_body->GetVertexNode(m_v2);
-	b3SoftBodyNode* n3 = m_body->GetVertexNode(m_v3);
-	b3SoftBodyNode* n4 = m_body->GetVertexNode(m_v4);
+	const b3SoftBodyMesh* mesh = m_body->GetMesh();
+	const b3SoftBodyMeshTriangle* triangle = mesh->triangles + rayOut.triangle;
 
-	b3Vec3 v1 = n1->GetPosition();
-	b3Vec3 v2 = n2->GetPosition();
-	b3Vec3 v3 = n3->GetPosition();
-	b3Vec3 v4 = n4->GetPosition();
+	m_n1 = m_body->GetNode(triangle->v1);
+	m_n2 = m_body->GetNode(triangle->v2);
+	m_n3 = m_body->GetNode(triangle->v3);
+
+	b3Vec3 v1 = m_n1->GetPosition();
+	b3Vec3 v2 = m_n2->GetPosition();
+	b3Vec3 v3 = m_n3->GetPosition();
 
 	b3Vec3 B = GetPointB();
 
-	float32 wABCD[5];
-	b3BarycentricCoordinates(wABCD, v1, v2, v3, v4, B);
+	scalar wABC[4];
+	b3BarycentricCoordinates(wABC, v1, v2, v3, B);
 
-	if (wABCD[4] > B3_EPSILON)
+	if (wABC[3] > B3_EPSILON)
 	{
-		m_tu = wABCD[0] / wABCD[4];
-		m_tv = wABCD[1] / wABCD[4];
-		m_tw = wABCD[2] / wABCD[4];
-		m_tx = wABCD[3] / wABCD[4];
+		m_tu = wABC[0] / wABC[3];
+		m_tv = wABC[1] / wABC[3];
+		m_tw = wABC[2] / wABC[3];
 	}
 	else
 	{
-		m_tu = m_tv = m_tw = m_tx = 0.0f;
+		m_tu = m_tv = m_tw = 0.0f;
 	}
+
+	m_t1 = m_n1->GetType();
+	m_n1->SetType(e_staticSoftBodyNode);
+
+	m_t2 = m_n2->GetType();
+	m_n2->SetType(e_staticSoftBodyNode);
+
+	m_t3 = m_n3->GetType();
+	m_n3->SetType(e_staticSoftBodyNode);
 
 	return true;
 }
@@ -87,38 +91,31 @@ void b3SoftBodyDragger::Drag()
 
 	b3Vec3 dx = B - A;
 
-	const float32 k = 100.0f;
-
-	b3Vec3 f = k * dx;
-
-	b3Vec3 f1 = m_tu * f;
-	b3Vec3 f2 = m_tv * f;
-	b3Vec3 f3 = m_tw * f;
-	b3Vec3 f4 = m_tx * f;
-
-	m_body->GetVertexNode(m_v1)->ApplyForce(f1);
-	m_body->GetVertexNode(m_v2)->ApplyForce(f2);
-	m_body->GetVertexNode(m_v3)->ApplyForce(f3);
-	m_body->GetVertexNode(m_v4)->ApplyForce(f4);
+	m_n1->ApplyTranslation(dx);
+	m_n2->ApplyTranslation(dx);
+	m_n3->ApplyTranslation(dx);
 }
 
 void b3SoftBodyDragger::StopDragging()
 {
 	B3_ASSERT(IsDragging() == true);
 	
-	m_tetrahedron = nullptr;
+	m_n1->SetType(m_t1);
+	m_n2->SetType(m_t2);
+	m_n3->SetType(m_t3);
+	
+	m_isDragging = false;
 }
 
 b3Vec3 b3SoftBodyDragger::GetPointA() const
 {
 	B3_ASSERT(IsDragging() == true);
 
-	b3Vec3 A = m_body->GetVertexNode(m_v1)->GetPosition();
-	b3Vec3 B = m_body->GetVertexNode(m_v2)->GetPosition();
-	b3Vec3 C = m_body->GetVertexNode(m_v3)->GetPosition();
-	b3Vec3 D = m_body->GetVertexNode(m_v4)->GetPosition();
+	b3Vec3 A = m_n1->GetPosition() + m_n1->GetTranslation();
+	b3Vec3 B = m_n2->GetPosition() + m_n2->GetTranslation();
+	b3Vec3 C = m_n3->GetPosition() + m_n3->GetTranslation();
 
-	return m_tu * A + m_tv * B + m_tw * C + m_tx * D;
+	return m_tu * A + m_tv * B + m_tw * C;
 }
 
 b3Vec3 b3SoftBodyDragger::GetPointB() const

@@ -24,28 +24,24 @@ class BoxFaceContact : public Collide
 public:
 	BoxFaceContact()
 	{
-		b3Transform m;
-		m.rotation = b3Diagonal(1.0f, 2.0f, 1.0f);
-		m.position.Set(0.0f, 2.0f, 0.0f);
-		m_box1.SetTransform(m);
+		m_boxA.SetExtents(1.0f, 2.0f, 1.0f);
+		b3Vec3 translation(0.0f, 2.0f, 0.0f);
+		m_boxA.Translate(translation);
 
-		m.rotation = b3Diagonal(1.0f, 1.0f, 1.0f);
-		m.position.Set(0.0f, 0.0f, 0.0f);
-		m_box2.SetTransform(m);
-
-		m_xfA.SetIdentity();
-		m_xfA.position.SetZero();
-		m_xfA.rotation.SetIdentity();
-		m_sA.m_hull = &m_box1;
+		m_sA.m_hull = &m_boxA;
 		
-		m_xfB.SetIdentity();
-		m_xfB.position.Set(0.0f, 0.0f, 0.0f);
-		m_xfB.rotation.SetIdentity();
-		m_sB.m_hull = &m_box2;
+		m_xfA.SetIdentity();
 
-		m_cache.count = 0;
 		m_shapeA = &m_sA;
+		
+		m_boxB.SetExtents(1.0f, 1.0f, 1.0f);
+
+		m_xfB.SetIdentity();
+		m_sB.m_hull = &m_boxB;
+
 		m_shapeB = &m_sB;
+		
+		m_cache.count = 0;
 	}
 
 	static Test* Create()
@@ -53,8 +49,8 @@ public:
 		return new BoxFaceContact();
 	}
 
-	b3BoxHull m_box1;
-	b3BoxHull m_box2;
+	b3BoxHull m_boxA;
+	b3BoxHull m_boxB;
 	b3HullShape m_sA;
 	b3HullShape m_sB;
 };

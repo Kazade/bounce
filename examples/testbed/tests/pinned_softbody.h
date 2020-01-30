@@ -19,14 +19,12 @@
 #ifndef PINNED_SOFTBODY_H
 #define PINNED_SOFTBODY_H
 
-#include <testbed/framework/softbody_dragger.h>
-
 class PinnedSoftBody : public Test
 {
 public:
 	PinnedSoftBody()
 	{
-		m_mesh.SetAsSphere(5.0f, 0);
+		m_mesh.SetAsSphere(4.0f, 0);
 
 		// Create soft body
 		b3SoftBodyDef def;
@@ -37,20 +35,15 @@ public:
 		def.c_yield = 0.1f;
 		def.c_creep = 0.5f;
 		def.c_max = 1.0f;
+		def.massDamping = 0.2f;
 
 		m_body = new b3SoftBody(def);
 
-		for (u32 i = 0; i < m_mesh.vertexCount; ++i)
-		{
-			b3SoftBodyNode* n = m_body->GetVertexNode(i);
-			n->SetMassDamping(0.2f);
-		}
-
 		u32 pinIndex = ~0;
-		float32 pinDot = -B3_MAX_FLOAT;
+		scalar pinDot = -B3_MAX_SCALAR;
 		for (u32 i = 0; i < m_mesh.vertexCount; ++i)
 		{
-			float32 dot = b3Dot(m_mesh.vertices[i], b3Vec3_y);
+			scalar dot = b3Dot(m_mesh.vertices[i], b3Vec3_y);
 			if (dot > pinDot)
 			{
 				pinDot = dot;
@@ -58,7 +51,7 @@ public:
 			}
 		}
 
-		b3SoftBodyNode* pinNode = m_body->GetVertexNode(pinIndex);
+		b3SoftBodyNode* pinNode = m_body->GetNode(pinIndex);
 		pinNode->SetType(e_staticSoftBodyNode);
 
 		b3Vec3 gravity(0.0f, -9.8f, 0.0f);
@@ -91,9 +84,9 @@ public:
 			b3Vec3 pA = m_bodyDragger->GetPointA();
 			b3Vec3 pB = m_bodyDragger->GetPointB();
 
-			g_draw->DrawPoint(pA, 2.0f, b3Color_green);
+			g_draw->DrawPoint(pA, 4.0f, b3Color_green);
 
-			g_draw->DrawPoint(pB, 2.0f, b3Color_green);
+			g_draw->DrawPoint(pB, 4.0f, b3Color_green);
 
 			g_draw->DrawSegment(pA, pB, b3Color_white);
 		}
@@ -101,7 +94,7 @@ public:
 		extern u32 b3_softBodySolverIterations;
 		g_draw->DrawString(b3Color_white, "Iterations = %d", b3_softBodySolverIterations);
 
-		float32 E = m_body->GetEnergy();
+		scalar E = m_body->GetEnergy();
 		g_draw->DrawString(b3Color_white, "E = %f", E);
 	}
 

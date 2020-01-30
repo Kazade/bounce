@@ -42,13 +42,13 @@ public:
 	b3Vec2 ConvertWorldToScreen(const b3Vec3& pw) const;
 	b3Ray3 ConvertScreenToWorld(const b3Vec2& ps) const;
 
-	float32 m_zoom;
+	scalar m_zoom;
 	b3Vec3 m_center;
 	b3Quat m_q;
-	float32 m_width, m_height;
-	float32 m_fovy;
-	float32 m_zNear;
-	float32 m_zFar;
+	scalar m_width, m_height;
+	scalar m_fovy;
+	scalar m_zNear;
+	scalar m_zFar;
 };
 
 class Draw : public b3Draw
@@ -67,7 +67,7 @@ public:
 	
 	void EnableDrawTriangles(bool flag);
 
-	void DrawPoint(const b3Vec3& p, float32 size, const b3Color& color);
+	void DrawPoint(const b3Vec3& p, scalar size, const b3Color& color);
 
 	void DrawSegment(const b3Vec3& p1, const b3Vec3& p2, const b3Color& color);
 	
@@ -79,23 +79,23 @@ public:
 	
 	void DrawSolidPolygon(const b3Vec3& normal, const b3Vec3* vertices, u32 count, const b3Color& color);
 
-	void DrawCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color);
+	void DrawCircle(const b3Vec3& normal, const b3Vec3& center, scalar radius, const b3Color& color);
 
-	void DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color);
+	void DrawSolidCircle(const b3Vec3& normal, const b3Vec3& center, scalar radius, const b3Color& color);
 
-	void DrawSphere(const b3Vec3& center, float32 radius, const b3Color& color);
+	void DrawSphere(const b3Vec3& center, scalar radius, const b3Color& color);
 	
-	void DrawSolidSphere(const b3Vec3& center, float32 radius, const b3Mat33& rotation, const b3Color& color);
+	void DrawSolidSphere(const b3Vec3& center, scalar radius, const b3Quat& rotation, const b3Color& color);
 
-	void DrawCapsule(const b3Vec3& p1, const b3Vec3& p2, float32 radius, const b3Color& color);
+	void DrawCapsule(const b3Vec3& p1, const b3Vec3& p2, scalar radius, const b3Color& color);
 
-	void DrawSolidCapsule(const b3Vec3& p1, const b3Vec3& p2, float32 radius, const b3Mat33& rotation, const b3Color& color);
+	void DrawSolidCapsule(const b3Vec3& p1, const b3Vec3& p2, scalar radius, const b3Quat& rotation, const b3Color& color);
 
-	void DrawPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color);
+	void DrawPlane(const b3Vec3& normal, const b3Vec3& center, scalar radius, const b3Color& color);
 
-	void DrawSolidPlane(const b3Vec3& normal, const b3Vec3& center, float32 radius, const b3Color& color);
+	void DrawSolidPlane(const b3Vec3& normal, const b3Vec3& center, scalar radius, const b3Color& color);
 
-	void DrawAABB(const b3AABB3& aabb, const b3Color& color);
+	void DrawAABB(const b3AABB& aabb, const b3Color& color);
 
 	void DrawTransform(const b3Transform& xf);
 

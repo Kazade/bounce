@@ -63,8 +63,8 @@ public:
 			m_character = m_world.CreateBody(bd);
 
 			b3CapsuleShape cap;
-			cap.m_centers[0].Set(0.0f, 2.0f, 0.0f);
-			cap.m_centers[1].Set(0.0f, -2.0f, 0.0f);
+			cap.m_vertex1.Set(0.0f, 2.0f, 0.0f);
+			cap.m_vertex2.Set(0.0f, -2.0f, 0.0f);
 			cap.m_radius = 0.5f;
 
 			b3ShapeDef sd;
@@ -129,7 +129,7 @@ public:
 			bd.type = b3BodyType::e_dynamicBody;
 			bd.position.Set(RandomFloat(-20.0f, 20.0f), RandomFloat(10.0f, 20.0f), RandomFloat(-20.0f, 20.0f));
 
-			b3Vec3 n = m_character->GetTransform().position - bd.position;
+			b3Vec3 n = m_character->GetTransform().translation - bd.position;
 			n.Normalize();
 
 			bd.linearVelocity = 60.0f * n;

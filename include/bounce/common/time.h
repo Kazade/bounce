@@ -37,7 +37,7 @@
 
 #if B3_PLATFORM == B3_WINDOWS
 
-#include <windows.h>
+#include <Windows.h>
 
 // A timer class that accumulates time.
 // Usefull for measuring elapsed times between code sections.
@@ -54,13 +54,13 @@ public:
 	}
 	
 	// Get the accumulated time in miliseconds from this timer.
-	float64 GetCurrentMilis() const
+	double GetCurrentMilis() const
 	{
 		return m_t;
 	}
 
 	// Get the elapsed time since this timer was updated.
-	float64 GetElapsedMilis() const
+	double GetElapsedMilis() const
 	{	
 		return m_t - m_t0;
 	}
@@ -68,37 +68,37 @@ public:
 	// Add the elapsed time since this function was called to this timer.
 	void Update()
 	{
-		static float64 inv_frequency = 0.0;
+		static double inv_frequency = 0.0;
 		if (inv_frequency == 0.0)
 		{
 			LARGE_INTEGER c;
 			QueryPerformanceFrequency(&c);
 			
-			float64 cycles_per_s = float64(c.QuadPart);
-			float64 s_per_cycle = 1.0 / cycles_per_s;
-			float64 ms_per_cycle = 1000.0 * s_per_cycle;
+			double cycles_per_s = double(c.QuadPart);
+			double s_per_cycle = 1.0 / cycles_per_s;
+			double ms_per_cycle = 1000.0 * s_per_cycle;
 			inv_frequency = ms_per_cycle;
 		}
 
 		LARGE_INTEGER c;
 		QueryPerformanceCounter(&c);
-
-		float64 dt = inv_frequency * float64(c.QuadPart - m_c0);
+		
+		double dt = inv_frequency * double(c.QuadPart - m_c0);
 		m_c0 = c.QuadPart;
 		Add(dt);
 	}
 
 	// Add time to this timer.
-	void Add(float64 dt)	
+	void Add(double dt)	
 	{
 		m_t0 = m_t;
 		m_t += dt;
 	}
 
 private:
-	u64 m_c0;
-	float64 m_t0;
-	float64 m_t;
+	LONGLONG m_c0;
+	double m_t0;
+	double m_t;
 };
 
 #elif B3_PLATFORM == B3_MAC
@@ -207,6 +207,7 @@ private:
     double m_t;
 };
 
+
 #else
 
 #include <time.h>
@@ -240,7 +241,7 @@ public:
 	{		
 		struct timespec c;
 		clock_gettime(CLOCK_MONOTONIC, &c);
-		double dt = (double)(c.tv_nsec - m_c0.tv_nsec) * 1.0e-6;
+		double dt = 1000.0 * double(c.tv_sec - m_c0.tv_sec) + 1.0e-6 * double(c.tv_nsec - m_c0.tv_nsec);
 		m_c0 = c;
 		Add(dt);
 	}

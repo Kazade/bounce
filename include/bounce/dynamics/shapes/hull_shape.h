@@ -25,15 +25,15 @@ struct b3Hull;
 
 class b3HullShape : public b3Shape 
 {
-public :
+public:
 	b3HullShape();
 	~b3HullShape();
 
 	void Swap(const b3HullShape& other);
 	
-	void ComputeMass(b3MassData* data, float32 density) const;
+	void ComputeMass(b3MassData* data, scalar density) const;
 
-	void ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const;	
+	void ComputeAABB(b3AABB* aabb, const b3Transform& xf) const;	
 
 	bool TestSphere(const b3Sphere& sphere, const b3Transform& xf) const;
 	

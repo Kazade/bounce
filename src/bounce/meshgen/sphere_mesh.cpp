@@ -18,7 +18,7 @@
 
 #include <bounce/meshgen/sphere_mesh.h>
 
-static inline void smAddVertex(smMesh& mesh, float32 x, float32 y, float32 z)
+static inline void smAddVertex(smMesh& mesh, scalar x, scalar y, scalar z)
 {
 	mesh.vertices[mesh.vertexCount++].Set(x, y, z);
 }
@@ -34,12 +34,12 @@ static inline void smSetAsOctahedron(smMesh& mesh)
 {
 	B3_ASSERT(mesh.vertexCount == 0);
 
-	smAddVertex(mesh, 0.0f, -1.0f, 0.0f);
-	smAddVertex(mesh, 0.0f, 0.0f, 1.0f);
-	smAddVertex(mesh, -1.0f, 0.0f, 0.0f);
-	smAddVertex(mesh, 0.0f, 0.0f, -1.0f);
-	smAddVertex(mesh, 1.0f, 0.0f, 0.0f);
-	smAddVertex(mesh, 0.0f, 1.0f, 0.0f);
+	smAddVertex(mesh, scalar(0), -scalar(1), scalar(0));
+	smAddVertex(mesh, scalar(0), scalar(0), scalar(1));
+	smAddVertex(mesh, -scalar(1), scalar(0), scalar(0));
+	smAddVertex(mesh, scalar(0), scalar(0), -scalar(1));
+	smAddVertex(mesh, scalar(1), scalar(0), scalar(0));
+	smAddVertex(mesh, scalar(0), scalar(1), scalar(0));
 
 	B3_ASSERT(mesh.indexCount == 0);
 
@@ -109,10 +109,11 @@ static inline u32 smSubdivideEdge(smMesh& out, smEdgeVertexMap& map,
 
 	b3Vec3 v1 = in.vertices[i1];
 	b3Vec3 v2 = in.vertices[i2];
-	b3Vec3 v = 0.5f * (v1 + v2);
-	v.Normalize();
+	
+	b3Vec3 c = scalar(0.5) * (v1 + v2);
+	c.Normalize();
 
-	smAddVertex(out, v.x, v.y, v.z);
+	smAddVertex(out, c.x, c.y, c.z);
 
 	smEdgeVertexPair newPair;
 	newPair.edge = newEdge;

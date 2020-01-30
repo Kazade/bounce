@@ -64,8 +64,8 @@ public:
 			b3Body* body = m_world.CreateBody(bdef);
 
 			b3CapsuleShape capsule;
-			capsule.m_centers[0].Set(0.0f, 0.0f, -1.0f);
-			capsule.m_centers[1].Set(0.0f, 0.0f, 1.0f);
+			capsule.m_vertex1.Set(0.0f, 0.0f, -1.0f);
+			capsule.m_vertex2.Set(0.0f, 0.0f, 1.0f);
 			capsule.m_radius = 1.0f;
 
 			b3ShapeDef sdef;
@@ -83,7 +83,7 @@ public:
 
 			b3Body* body = m_world.CreateBody(bdef);
 
-			m_coneHull.SetAsCone();
+			m_coneHull.SetExtents(1.0f, 1.0f);
 
 			b3HullShape hull;
 			hull.m_hull = &m_coneHull;
@@ -103,7 +103,7 @@ public:
 
 			b3Body* body = m_world.CreateBody(bdef);
 
-			m_cylinderHull.SetAsCylinder();
+			m_cylinderHull.SetExtents(1.0f, 1.0f);
 
 			b3HullShape hull;
 			hull.m_hull = &m_cylinderHull;
@@ -126,8 +126,8 @@ public:
 		return new QuadricShapes();
 	}
 
-	b3QHull m_coneHull;
-	b3QHull m_cylinderHull;
+	b3ConeHull m_coneHull;
+	b3CylinderHull m_cylinderHull;
 };
 
 #endif

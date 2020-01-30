@@ -37,7 +37,7 @@ struct b3Ray3
 
 	b3Vec3 direction;
 	b3Vec3 origin;
-	float32 fraction;
+	scalar fraction;
 };
 
 // A plane in constant normal form.
@@ -48,7 +48,7 @@ struct b3Plane
 	b3Plane() { }
 	
 	// Set this plane from a normal and a signed distance from its origin.
-	b3Plane(const b3Vec3& _normal, float32 _offset) 
+	b3Plane(const b3Vec3& _normal, scalar _offset) 
 	{
 		normal = _normal;
 		offset = _offset;
@@ -70,14 +70,14 @@ struct b3Plane
 	}
 
 	b3Vec3 normal;
-	float32 offset;
+	scalar offset;
 };
 
 // Transform a plane by a given frame.
 inline b3Plane b3Mul(const b3Transform& T, const b3Plane& plane)
 {
 	b3Vec3 normal = b3Mul(T.rotation, plane.normal);
-	return b3Plane(normal, plane.offset + b3Dot(normal, T.position));
+	return b3Plane(normal, plane.offset + b3Dot(normal, T.translation));
 }
 
 // Transform a plane by a given frame.
@@ -87,7 +87,7 @@ inline b3Plane operator*(const b3Transform& T, const b3Plane& plane)
 }
 
 // Compute the distance between a point and a plane.
-inline float32 b3Distance(const b3Vec3& P, const b3Plane& plane)
+inline scalar b3Distance(const b3Vec3& P, const b3Plane& plane)
 {
 	return b3Dot(plane.normal, P) - plane.offset;
 }
@@ -95,14 +95,14 @@ inline float32 b3Distance(const b3Vec3& P, const b3Plane& plane)
 // Project a point onto a normal plane.
 inline b3Vec3 b3ClosestPointOnPlane(const b3Vec3& P, const b3Plane& plane)
 {
-	float32 fraction = b3Distance(P, plane);
+	scalar fraction = b3Distance(P, plane);
 	return P - fraction * plane.normal;
 }
 
 // Convert a point Q from Cartesian coordinates to Barycentric coordinates (u, v) 
 // with respect to a segment AB.
 // The last output value is the divisor.
-inline void b3BarycentricCoordinates(float32 out[3], 
+inline void b3BarycentricCoordinates(scalar out[3], 
 	const b3Vec3& A, const b3Vec3& B, 
 	const b3Vec3& Q)
 {
@@ -110,16 +110,17 @@ inline void b3BarycentricCoordinates(float32 out[3],
 	b3Vec3 QA = A - Q;
 	b3Vec3 QB = B - Q;
 	
-	float32 divisor = b3Dot(AB, AB);
+	scalar divisor = b3Dot(AB, AB);
 	
 	out[0] = b3Dot(QB, AB);
 	out[1] = -b3Dot(QA, AB);
 	out[2] = divisor;
 }
+
 // Convert a point Q from Cartesian coordinates to Barycentric coordinates (u, v, w) 
 // with respect to a triangle ABC.
 // The last output value is the divisor.
-inline void b3BarycentricCoordinates(float32 out[4],
+inline void b3BarycentricCoordinates(scalar out[4],
 	const b3Vec3& A, const b3Vec3& B, const b3Vec3& C,
 	const b3Vec3& Q)
 {
@@ -136,7 +137,7 @@ inline void b3BarycentricCoordinates(float32 out[4],
 
 	b3Vec3 AB_x_AC = b3Cross(AB, AC);
 
-	//float32 divisor = b3Dot(AB_x_AC, AB_x_AC);
+	//scalar divisor = b3Dot(AB_x_AC, AB_x_AC);
 
 	out[0] = b3Dot(QB_x_QC, AB_x_AC);
 	out[1] = b3Dot(QC_x_QA, AB_x_AC);
@@ -147,7 +148,7 @@ inline void b3BarycentricCoordinates(float32 out[4],
 // Convert a point Q from Cartesian coordinates to Barycentric coordinates (u, v, w, x) 
 // with respect to a tetrahedron ABCD.
 // The last output value is the (positive) divisor.
-inline void b3BarycentricCoordinates(float32 out[5],
+inline void b3BarycentricCoordinates(scalar out[5],
 	const b3Vec3& A, const b3Vec3& B, const b3Vec3& C, const b3Vec3& D,
 	const b3Vec3& Q)
 {
@@ -160,8 +161,8 @@ inline void b3BarycentricCoordinates(float32 out[5],
 	b3Vec3 QC = C - Q;
 	b3Vec3 QD = D - Q;
 
-	float32 divisor = b3Det(AB, AC, AD);
-	float32 sign = b3Sign(divisor);
+	scalar divisor = b3Det(AB, AC, AD);
+	scalar sign = b3Sign(divisor);
 
 	out[0] = sign * b3Det(QB, QC, QD);
 	out[1] = sign * b3Det(QA, QD, QC);
@@ -173,22 +174,22 @@ inline void b3BarycentricCoordinates(float32 out[5],
 // Project a point onto a segment AB.
 inline b3Vec3 b3ClosestPointOnSegment(const b3Vec3& P, const b3Vec3& A, const b3Vec3& B)
 {
-	float32 wAB[3];
+	scalar wAB[3];
 	b3BarycentricCoordinates(wAB, A, B, P);
 
-	if (wAB[1] <= 0.0f)
+	if (wAB[1] <= scalar(0))
 	{
 		return A;
 	}
 
-	if (wAB[0] <= 0.0f)
+	if (wAB[0] <= scalar(0))
 	{
 		return B;
 	}
 
-	float32 s = 1.0f / wAB[2];
-	float32 wA = s * wAB[0];
-	float32 wB = s * wAB[1];
+	scalar s = scalar(1) / wAB[2];
+	scalar wA = s * wAB[0];
+	scalar wB = s * wAB[1];
 	return wA * A + wB * B;
 }
 

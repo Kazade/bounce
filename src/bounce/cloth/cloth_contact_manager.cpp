@@ -18,298 +18,421 @@
 
 #include <bounce/cloth/cloth_contact_manager.h>
 #include <bounce/cloth/cloth.h>
-#include <bounce/cloth/cloth_mesh.h>
-#include <bounce/cloth/particle.h>
-#include <bounce/cloth/cloth_triangle.h>
-#include <bounce/dynamics/world.h>
-#include <bounce/dynamics/world_listeners.h>
+#include <bounce/cloth/shapes/cloth_sphere_shape.h>
+#include <bounce/cloth/shapes/cloth_capsule_shape.h>
+#include <bounce/cloth/shapes/cloth_triangle_shape.h>
+#include <bounce/cloth/shapes/cloth_world_shape.h>
+#include <bounce/cloth/cloth_particle.h>
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/body.h>
 
 b3ClothContactManager::b3ClothContactManager() : 
-	m_particleTriangleContactBlocks(sizeof(b3ParticleTriangleContact)),
-	m_particleBodyContactBlocks(sizeof(b3ParticleBodyContact))
+	m_sphereAndTriangleContactBlocks(sizeof(b3ClothSphereAndTriangleContact)),
+	m_sphereAndShapeContactBlocks(sizeof(b3ClothSphereAndShapeContact)),
+	m_capsuleAndCapsuleContactBlocks(sizeof(b3ClothCapsuleAndCapsuleContact))
 {
 
 }
 
 void b3ClothContactManager::FindNewContacts()
 {
-	FindNewClothContacts();
-	FindNewBodyContacts();
-}
+	B3_PROFILE("Cloth Find New Contacts");
 
-void b3ClothContactManager::FindNewClothContacts()
-{
-	B3_PROFILE("Cloth Find New Cloth Contacts");
-	
 	m_broadPhase.FindPairs(this);
-}
-
-class b3ClothContactManagerFindNewBodyContactsQueryListener : public b3QueryListener
-{
-public:
-	virtual bool ReportShape(b3Shape* s2)
-	{
-		cm->AddPSPair(p1, s2);
-		
-		// Keep looking for overlaps
-		return true;
-	}
-	
-	b3ClothContactManager* cm;
-	b3Particle* p1;
-};
-
-void b3ClothContactManager::FindNewBodyContacts()
-{
-	B3_PROFILE("Cloth Find New Body Contacts");
-
-	// Is there a world attached to this cloth?
-	if (m_cloth->m_world == nullptr)
-	{
-		return;
-	}
-
-	for (b3Particle* p = m_cloth->m_particleList.m_head; p; p = p->m_next)
-	{
-		if (p->m_type != e_dynamicParticle)
-		{
-			continue;
-		}
-
-		b3AABB3 aabb = m_broadPhase.GetAABB(p->m_broadPhaseId);
-
-		b3ClothContactManagerFindNewBodyContactsQueryListener listener;
-		listener.cm = this;
-		listener.p1 = p;
-
-		m_cloth->m_world->QueryAABB(&listener, aabb);
-	}
-}
-
-void b3ClothContactManager::AddPSPair(b3Particle* p1, b3Shape* s2)
-{
-	// Check if there is a contact between the two entities.
-	for (b3ParticleBodyContact* c = m_particleBodyContactList.m_head; c; c = c->m_next)
-	{
-		if (c->m_p1 == p1 && c->m_s2 == s2)
-		{
-			// A contact already exists.
-			return;
-		}
-	}
-
-	bool isntDynamic1 = p1->m_type != e_dynamicParticle;
-	bool isntDynamic2 = s2->GetBody()->GetType() != e_dynamicBody;
-
-	if (isntDynamic1 && isntDynamic2)
-	{
-		// The entities must not collide with each other.
-		return;
-	}
-
-	// Create a new contact.
-	b3ParticleBodyContact* c = CreateParticleBodyContact();
-
-	c->m_p1 = p1;
-	c->m_s2 = s2;
-	c->m_active = false;
-	c->m_normalImpulse = 0.0f;
-	c->m_tangentImpulse.SetZero();
-
-	// Add the contact to the body contact list.
-	m_particleBodyContactList.PushFront(c);
 }
 
 void b3ClothContactManager::AddPair(void* data1, void* data2)
 {
-	b3ClothAABBProxy* proxy1 = (b3ClothAABBProxy*)data1;
-	b3ClothAABBProxy* proxy2 = (b3ClothAABBProxy*)data2;
+	b3ClothShape* shape1 = (b3ClothShape*)data1;
+	b3ClothShape* shape2 = (b3ClothShape*)data2;
 
-	if (proxy1->type == e_particleProxy && proxy2->type == e_particleProxy)
+	if (shape1->m_type > shape2->m_type)
 	{
-		// Particle-particle contacts are not supported.
+		// Ensure type1 < type2.
+		b3Swap(shape1, shape2);
+	}
+
+	if (shape1->m_type == e_clothSphereShape && shape2->m_type == e_clothSphereShape)
+	{
 		return;
 	}
 
-	if (proxy1->type == e_triangleProxy && proxy2->type == e_triangleProxy)
+	if (shape1->m_type == e_clothSphereShape && shape2->m_type == e_clothCapsuleShape)
 	{
-		// Triangle-triangle contacts are not supported.
 		return;
 	}
 
-	if (proxy1->type == e_triangleProxy)
+	if (shape1->m_type == e_clothCapsuleShape && shape2->m_type == e_clothTriangleShape)
 	{
-		// Ensure proxy1 is a particle and proxy 2 a triangle.
-		b3Swap(proxy1, proxy2);
+		return;
+	}
+	
+	if (shape1->m_type == e_clothCapsuleShape && shape2->m_type == e_clothWorldShape)
+	{
+		return;
+	}
+	
+	if (shape1->m_type == e_clothTriangleShape && shape2->m_type == e_clothTriangleShape)
+	{
+		return;
 	}
 
-	B3_ASSERT(proxy1->type == e_particleProxy);
-	B3_ASSERT(proxy2->type == e_triangleProxy);
-
-	b3Particle* p1 = (b3Particle*)proxy1->owner;
-
-	b3ClothTriangle* t2 = (b3ClothTriangle*)proxy2->owner;
-	b3ClothMeshTriangle* triangle = m_cloth->m_mesh->triangles + t2->m_triangle;
-	b3Particle* p2 = m_cloth->m_particles[triangle->v1];
-	b3Particle* p3 = m_cloth->m_particles[triangle->v2];
-	b3Particle* p4 = m_cloth->m_particles[triangle->v3];
-
-	// Check if there is a contact between the two entities.
-	for (b3ParticleTriangleContact* c = m_particleTriangleContactList.m_head; c; c = c->m_next)
+	if (shape1->m_type == e_clothTriangleShape && shape2->m_type == e_clothWorldShape)
 	{
-		if (c->m_p1 == p1 && c->m_t2 == t2)
+		return;
+	}
+	
+	if (shape1->m_type == e_clothWorldShape && shape2->m_type == e_clothWorldShape)
+	{
+		return;
+	}
+	
+	if (shape1->m_type == e_clothSphereShape && shape2->m_type == e_clothWorldShape)
+	{
+		b3ClothSphereShape* s1 = (b3ClothSphereShape*)shape1;
+		b3ClothParticle* p1 = s1->m_p;
+
+		b3ClothWorldShape* ws2 = (b3ClothWorldShape*)shape2;
+		const b3Shape* s2 = ws2->m_shape;
+		const b3Body* b2 = s2->GetBody();
+
+		if (b2->GetType() != e_staticBody)
 		{
-			// A contact already exists.
+			// The cloth can't collide with non-static shapes.
 			return;
 		}
-	}
 
-	bool isntDynamic1 = p1->m_type != e_dynamicParticle;
-	bool isntDynamic2 = p2->m_type != e_dynamicParticle && p3->m_type != e_dynamicParticle && p4->m_type != e_dynamicParticle;
+		if (p1->GetType() != e_dynamicClothParticle)
+		{
+			// The shapes must not collide with each other.
+			return;
+		}
 
-	if (isntDynamic1 && isntDynamic2)
-	{
-		// The entities must not collide with each other.
+		// Check if there is a contact between the two entities.
+		for (b3ClothSphereAndShapeContact* c = m_sphereAndShapeContactList.m_head; c; c = c->m_next)
+		{
+			if (c->m_s1 == s1 && c->m_s2 == ws2)
+			{
+				// A contact already exists.
+				return;
+			}
+		}
+
+		// Create a new contact.
+		b3ClothSphereAndShapeContact* c = CreateSphereAndShapeContact();
+
+		c->m_s1 = s1;
+		c->m_s2 = ws2;
+		c->m_active = false;
+		c->m_normalImpulse = scalar(0);
+		c->m_tangentImpulse.SetZero();
+
+		// Add the contact to the contact list.
+		m_sphereAndShapeContactList.PushFront(c);
+
 		return;
 	}
 
-	if (p1 == p2 || p1 == p3 || p1 == p4)
+	if (m_cloth->m_enableSelfCollision == true && 
+		shape1->m_type == e_clothCapsuleShape && shape2->m_type == e_clothCapsuleShape)
 	{
-		// The entities must not collide with each other.
+		b3ClothCapsuleShape* s1 = (b3ClothCapsuleShape*)shape1;
+		b3ClothCapsuleShape* s2 = (b3ClothCapsuleShape*)shape2;
+
+		b3ClothParticle* p1 = s1->m_p1;
+		b3ClothParticle* p2 = s1->m_p2;
+
+		b3ClothParticle* p3 = s2->m_p1;
+		b3ClothParticle* p4 = s2->m_p2;
+
+		bool isntDynamic1 = p1->m_type != e_dynamicClothParticle && p2->m_type != e_dynamicClothParticle;
+		bool isntDynamic2 = p3->m_type != e_dynamicClothParticle && p4->m_type != e_dynamicClothParticle;
+
+		if (isntDynamic1 && isntDynamic2)
+		{
+			// The entities must not collide with each other.
+			return;
+		}
+
+		// Do the edges share a vertex?
+		if (p1 == p3 || p1 == p4)
+		{
+			return;
+		}
+
+		if (p2 == p3 || p2 == p4)
+		{
+			return;
+		}
+
+		// Check if there is a contact between the two capsules.
+		for (b3ClothCapsuleAndCapsuleContact* c = m_capsuleAndCapsuleContactList.m_head; c; c = c->m_next)
+		{
+			if (c->m_s1 == s1 && c->m_s2 == s2)
+			{
+				// A contact already exists.
+				return;
+			}
+			
+			if (c->m_s1 == s2 && c->m_s2 == s1)
+			{
+				// A contact already exists.
+				return;
+			}
+		}
+
+		// Create a new contact.
+		b3ClothCapsuleAndCapsuleContact* c = CreateCapsuleAndCapsuleContact();
+
+		c->m_s1 = s1;
+		c->m_s2 = s2;
+		c->m_normalImpulse = scalar(0);
+		c->m_tangentImpulse.SetZero();
+		c->m_active = false;
+
+		// Add the contact to the cloth contact list.
+		m_capsuleAndCapsuleContactList.PushFront(c);
+		
 		return;
 	}
-	
-	// Create a new contact.
-	b3ParticleTriangleContact* c = CreateParticleTriangleContact();
 
-	c->m_p1 = p1;
-	c->m_t2 = t2;
-	c->m_p2 = p2;
-	c->m_p3 = p3;
-	c->m_p4 = p4;
-	c->m_normalImpulse = 0.0f;
-	c->m_tangentImpulse1 = 0.0f;
-	c->m_tangentImpulse2 = 0.0f;
-	c->m_active = false;
+	if (m_cloth->m_enableSelfCollision == true && 
+		shape1->m_type == e_clothSphereShape && shape2->m_type == e_clothTriangleShape)
+	{
+		b3ClothSphereShape* s1 = (b3ClothSphereShape*)shape1;
+		b3ClothTriangleShape* s2 = (b3ClothTriangleShape*)shape2;
 
-	// Add the contact to the cloth contact list.
-	m_particleTriangleContactList.PushFront(c);
+		b3ClothParticle* p1 = s1->m_p;
+
+		b3ClothParticle* p2 = s2->m_p1;
+		b3ClothParticle* p3 = s2->m_p2;
+		b3ClothParticle* p4 = s2->m_p3;
+
+		bool isntDynamic1 = p1->m_type != e_dynamicClothParticle;
+		bool isntDynamic2 = p2->m_type != e_dynamicClothParticle && p3->m_type != e_dynamicClothParticle && p4->m_type != e_dynamicClothParticle;
+
+		if (isntDynamic1 && isntDynamic2)
+		{
+			// The entities must not collide with each other.
+			return;
+		}
+
+		if (p1 == p2 || p1 == p3 || p1 == p4)
+		{
+			// The entities must not collide with each other.
+			return;
+		}
+
+		// Check if there is a contact between the two entities.
+		for (b3ClothSphereAndTriangleContact* c = m_sphereAndTriangleContactList.m_head; c; c = c->m_next)
+		{
+			if (c->m_s1 == s1 && c->m_s2 == s2)
+			{
+				// A contact already exists.
+				return;
+			}
+		}
+
+		// Create a new contact.
+		b3ClothSphereAndTriangleContact* c = CreateSphereAndTriangleContact();
+
+		c->m_s1 = s1;
+		c->m_s2 = s2;
+		c->m_normalImpulse = scalar(0);
+		c->m_tangentImpulse.SetZero();
+		c->m_active = false;
+
+		// Add the contact to the cloth contact list.
+		m_sphereAndTriangleContactList.PushFront(c);
+
+		return;
+	}
 }
 
-b3ParticleTriangleContact* b3ClothContactManager::CreateParticleTriangleContact()
+b3ClothSphereAndTriangleContact* b3ClothContactManager::CreateSphereAndTriangleContact()
 {
-	void* block = m_particleTriangleContactBlocks.Allocate();
-	return new(block) b3ParticleTriangleContact();
+	void* block = m_sphereAndTriangleContactBlocks.Allocate();
+	return new(block) b3ClothSphereAndTriangleContact();
 }
 
-void b3ClothContactManager::Destroy(b3ParticleTriangleContact* c)
+void b3ClothContactManager::Destroy(b3ClothSphereAndTriangleContact* c)
 {
-	m_particleTriangleContactList.Remove(c);
-
-	c->~b3ParticleTriangleContact();
-	
-	m_particleTriangleContactBlocks.Free(c);
+	m_sphereAndTriangleContactList.Remove(c);
+	c->~b3ClothSphereAndTriangleContact();
+	m_sphereAndTriangleContactBlocks.Free(c);
 }
 
-b3ParticleBodyContact* b3ClothContactManager::CreateParticleBodyContact()
+b3ClothSphereAndShapeContact* b3ClothContactManager::CreateSphereAndShapeContact()
 {
-	void* block = m_particleBodyContactBlocks.Allocate();
-	return new(block) b3ParticleBodyContact();
+	void* block = m_sphereAndShapeContactBlocks.Allocate();
+	return new(block) b3ClothSphereAndShapeContact();
 }
 
-void b3ClothContactManager::Destroy(b3ParticleBodyContact* c)
+void b3ClothContactManager::Destroy(b3ClothSphereAndShapeContact* c)
 {
-	m_particleBodyContactList.Remove(c);
+	m_sphereAndShapeContactList.Remove(c);
+	c->~b3ClothSphereAndShapeContact();
+	m_sphereAndShapeContactBlocks.Free(c);
+}
 
-	c->~b3ParticleBodyContact();
+b3ClothCapsuleAndCapsuleContact* b3ClothContactManager::CreateCapsuleAndCapsuleContact()
+{
+	void* block = m_capsuleAndCapsuleContactBlocks.Allocate();
+	return new(block) b3ClothCapsuleAndCapsuleContact();
+}
 
-	m_particleBodyContactBlocks.Free(c);
+void b3ClothContactManager::Destroy(b3ClothCapsuleAndCapsuleContact* c)
+{
+	m_capsuleAndCapsuleContactList.Remove(c);
+	c->~b3ClothCapsuleAndCapsuleContact();
+	m_capsuleAndCapsuleContactBlocks.Free(c);
 }
 
 void b3ClothContactManager::UpdateContacts()
 {
-	UpdateClothContacts();
-	UpdateBodyContacts();
-}
-
-void b3ClothContactManager::UpdateClothContacts()
-{
-	B3_PROFILE("Cloth Update Cloth Contacts");
+	B3_PROFILE("Cloth Update Contacts");
 	
-	// Update the state of particle-triangle contacts.
-	b3ParticleTriangleContact* c = m_particleTriangleContactList.m_head;
-	while (c)
 	{
-		bool isntDynamic1 = c->m_p1->m_type != e_dynamicParticle;
-		bool isntDynamic2 = c->m_p2->m_type != e_dynamicParticle && c->m_p3->m_type != e_dynamicParticle && c->m_p4->m_type != e_dynamicParticle;
-
-		// Destroy the contact if primitives must not collide with each other.
-		if (isntDynamic1 && isntDynamic2)
+		// Update the state of sphere and shape contacts.
+		b3ClothSphereAndShapeContact* c = m_sphereAndShapeContactList.m_head;
+		while (c)
 		{
-			b3ParticleTriangleContact* quack = c;
+			b3ClothSphereShape* s1 = c->m_s1;
+			b3ClothParticle* p1 = s1->m_p;
+
+			b3ClothWorldShape* ws2 = c->m_s2;
+			const b3Shape* s2 = ws2->m_shape;
+			const b3Body* b2 = s2->GetBody();
+
+			// Cease the contact if body became non-static.
+			if (b2->GetType() != e_staticBody)
+			{
+				b3ClothSphereAndShapeContact* quack = c;
+				c = c->m_next;
+				Destroy(quack);
+				continue;
+			}
+
+			// Cease the contact if entities must not collide with each other.
+			if (p1->m_type != e_dynamicClothParticle)
+			{
+				b3ClothSphereAndShapeContact* quack = c;
+				c = c->m_next;
+				Destroy(quack);
+				continue;
+			}
+
+			u32 proxy1 = c->m_s1->m_broadPhaseId;
+			u32 proxy2 = c->m_s2->m_broadPhaseId;
+
+			// Destroy the contact if AABBs are not overlapping.
+			bool overlap = m_broadPhase.TestOverlap(proxy1, proxy2);
+			if (overlap == false)
+			{
+				b3ClothSphereAndShapeContact* quack = c;
+				c = c->m_next;
+				Destroy(quack);
+				continue;
+			}
+
+			// The contact persists.
+			c->Update();
+
 			c = c->m_next;
-			Destroy(quack);
-			continue;
 		}
-
-		u32 proxy1 = c->m_p1->m_broadPhaseId;
-		u32 proxy2 = c->m_t2->m_broadPhaseId;
-
-		// Destroy the contact if primitive AABBs are not overlapping.
-		bool overlap = m_broadPhase.TestOverlap(proxy1, proxy2);
-		if (overlap == false)
-		{
-			b3ParticleTriangleContact* quack = c;
-			c = c->m_next;
-			Destroy(quack);
-			continue;
-		}
-
-		// The contact persists.
-		c->Update();
-
-		c = c->m_next;
 	}
-}
 
-void b3ClothContactManager::UpdateBodyContacts()
-{
-	B3_PROFILE("Cloth Update Body Contacts");
-	
-	// Update the state of particle-body contacts.
-	b3ParticleBodyContact* c = m_particleBodyContactList.m_head;
-	while (c)
 	{
-		bool isntDynamic1 = c->m_p1->m_type != e_dynamicParticle;
-		bool isntDynamic2 = c->m_s2->GetBody()->GetType() != e_dynamicBody;
-
-		// Cease the contact if entities must not collide with each other.
-		if (isntDynamic1 && isntDynamic2)
+		// Update the state of sphere and triangle contacts.
+		b3ClothSphereAndTriangleContact* c = m_sphereAndTriangleContactList.m_head;
+		while (c)
 		{
-			b3ParticleBodyContact* quack = c;
+			b3ClothSphereShape* s1 = c->m_s1;
+			b3ClothParticle* p1 = s1->m_p;
+
+			b3ClothTriangleShape* s2 = c->m_s2;
+			b3ClothParticle* p2 = s2->m_p1;
+			b3ClothParticle* p3 = s2->m_p2;
+			b3ClothParticle* p4 = s2->m_p3;
+
+			bool isntDynamic1 = p1->m_type != e_dynamicClothParticle;
+			
+			bool isntDynamic2 = 
+				p2->m_type != e_dynamicClothParticle && 
+				p3->m_type != e_dynamicClothParticle && 
+				p4->m_type != e_dynamicClothParticle;
+
+			// Destroy the contact if shapes must not collide with each other.
+			if (isntDynamic1 && isntDynamic2)
+			{
+				b3ClothSphereAndTriangleContact* quack = c;
+				c = c->m_next;
+				Destroy(quack);
+				continue;
+			}
+
+			u32 proxy1 = c->m_s1->m_broadPhaseId;
+			u32 proxy2 = c->m_s2->m_broadPhaseId;
+
+			// Destroy the contact if primitive AABBs are not overlapping.
+			bool overlap = m_broadPhase.TestOverlap(proxy1, proxy2);
+			if (overlap == false)
+			{
+				b3ClothSphereAndTriangleContact* quack = c;
+				c = c->m_next;
+				Destroy(quack);
+				continue;
+			}
+
+			// The contact persists.
+			c->Update();
+
 			c = c->m_next;
-			Destroy(quack);
-			continue;
 		}
+	}
 
-		b3AABB3 aabb1 = m_broadPhase.GetAABB(c->m_p1->m_broadPhaseId);
-		b3AABB3 aabb2 = c->m_s2->GetAABB();
-
-		// Destroy the contact if entities AABBs are not overlapping.
-		bool overlap = b3TestOverlap(aabb1, aabb2);
-		if (overlap == false)
+	{
+		// Update the state of capsule contacts.
+		b3ClothCapsuleAndCapsuleContact* c = m_capsuleAndCapsuleContactList.m_head;
+		while (c)
 		{
-			b3ParticleBodyContact* quack = c;
+			b3ClothCapsuleShape* s1 = c->m_s1;
+			b3ClothParticle* p1 = s1->m_p1;
+			b3ClothParticle* p2 = s1->m_p2;
+
+			b3ClothCapsuleShape* s2 = c->m_s2;
+			b3ClothParticle* p3 = s2->m_p1;
+			b3ClothParticle* p4 = s2->m_p2;
+			
+			bool isntDynamic1 = p1->m_type != e_dynamicClothParticle && p2->m_type != e_dynamicClothParticle;
+			bool isntDynamic2 = p3->m_type != e_dynamicClothParticle && p4->m_type != e_dynamicClothParticle;
+
+			// Destroy the contact if primitives must not collide with each other.
+			if (isntDynamic1 && isntDynamic2)
+			{
+				b3ClothCapsuleAndCapsuleContact* quack = c;
+				c = c->m_next;
+				Destroy(quack);
+				continue;
+			}
+
+			u32 proxy1 = c->m_s1->m_broadPhaseId;
+			u32 proxy2 = c->m_s2->m_broadPhaseId;
+
+			// Destroy the contact if AABBs are not overlapping.
+			bool overlap = m_broadPhase.TestOverlap(proxy1, proxy2);
+			if (overlap == false)
+			{
+				b3ClothCapsuleAndCapsuleContact* quack = c;
+				c = c->m_next;
+				Destroy(quack);
+				continue;
+			}
+
+			// The contact persists.
+			c->Update();
+
 			c = c->m_next;
-			Destroy(quack);
-			continue;
 		}
-
-		// The contact persists.
-		c->Update();
-
-		c = c->m_next;
 	}
 }

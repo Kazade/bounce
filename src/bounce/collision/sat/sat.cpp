@@ -23,7 +23,7 @@
 // convex hulls. Thanks to Dirk Gregorius for his presentation 
 // at GDC 2013.
 
-float32 b3Project(const b3Hull* hull, const b3Plane& plane)
+scalar b3Project(const b3Hull* hull, const b3Plane& plane)
 {
 	b3Vec3 support = hull->GetVertex(hull->GetSupportVertex(-plane.normal));
 	return b3Distance(support, plane);
@@ -38,12 +38,12 @@ b3FaceQuery b3QueryFaceSeparation(const b3Transform& xf1, const b3Hull* hull1,
 
 	// Here greater means less than since is a signed distance.
 	u32 maxIndex = 0;
-	float32 maxSeparation = -B3_MAX_FLOAT;
+	scalar maxSeparation = -B3_MAX_SCALAR;
 
 	for (u32 i = 0; i < hull1->faceCount; ++i)
 	{
 		b3Plane plane = xf * hull1->GetPlane(i);
-		float32 separation = b3Project(hull2, plane);
+		scalar separation = b3Project(hull2, plane);
 		if (separation > maxSeparation)
 		{
 			maxIndex = i;
@@ -59,46 +59,48 @@ b3FaceQuery b3QueryFaceSeparation(const b3Transform& xf1, const b3Hull* hull1,
 
 bool b3IsMinkowskiFace(const b3Vec3& A, const b3Vec3& B, const b3Vec3& B_x_A, const b3Vec3& C, const b3Vec3& D, const b3Vec3& D_x_C)
 {
-	float32 ADC = b3Dot(A, D_x_C);
-	float32 BDC = b3Dot(B, D_x_C);
+	scalar ADC = b3Dot(A, D_x_C);
+	scalar BDC = b3Dot(B, D_x_C);
 
-	float32 CBA = b3Dot(C, B_x_A);
-	float32 DBA = b3Dot(D, B_x_A);
+	scalar CBA = b3Dot(C, B_x_A);
+	scalar DBA = b3Dot(D, B_x_A);
 
-	return CBA * DBA < 0.0f && // Test arc CD against AB plane.
-		ADC * BDC < 0.0f && // Test arc AB against DC plane.
-		CBA * BDC > 0.0f; // Test if arcs AB and CD are on the same hemisphere.
+	return CBA * DBA < scalar(0) && // Test arc CD against AB plane.
+		ADC * BDC < scalar(0) && // Test arc AB against DC plane.
+		CBA * BDC > scalar(0); // Test if arcs AB and CD are on the same hemisphere.
 }
 
-float32 b3Project(const b3Vec3& P1, const b3Vec3& E1, const b3Vec3& P2, const b3Vec3& E2, const b3Vec3& C1)
+scalar b3Project(const b3Vec3& P1, const b3Vec3& Q1, const b3Vec3& E1, const b3Vec3& P2, const b3Vec3& E2, const b3Vec3& C1)
 {
-	float32 L1 = b3Length(E1);
+	scalar L1 = b3Length(E1);
 	B3_ASSERT(L1 > B3_LINEAR_SLOP);
 	if (L1 < B3_LINEAR_SLOP)
 	{
-		return -B3_MAX_FLOAT;
+		return -B3_MAX_SCALAR;
 	}
 	
-	float32 L2 = b3Length(E2);
+	scalar L2 = b3Length(E2);
 	B3_ASSERT(L2 > B3_LINEAR_SLOP);
 	if (L2 < B3_LINEAR_SLOP)
 	{
-		return -B3_MAX_FLOAT;
+		return -B3_MAX_SCALAR;
 	}
 	
 	// Skip over almost parallel edges.
-	const float32 kTol = 0.005f;
+	const scalar kTol = scalar(0.005);
 	
 	b3Vec3 E1_x_E2 = b3Cross(E1, E2);
-	float32 L = b3Length(E1_x_E2);
+	scalar L = b3Length(E1_x_E2);
 	if (L < kTol * L1 * L2)
 	{
-		return -B3_MAX_FLOAT;
+		return -B3_MAX_SCALAR;
 	}
 
+	b3Vec3 E1C = scalar(0.5) * (P1 + Q1);
+
 	// Ensure consistent normal orientation to hull B.
-	b3Vec3 N = (1.0f / L) * E1_x_E2;
-	if (b3Dot(N, P1 - C1) < 0.0f)
+	b3Vec3 N = (scalar(1) / L) * E1_x_E2;
+	if (b3Dot(N, E1C - C1) < scalar(0))
 	{
 		N = -N;
 	}
@@ -117,7 +119,7 @@ b3EdgeQuery b3QueryEdgeSeparation(const b3Transform& xf1, const b3Hull* hull1,
 
 	u32 maxIndex1 = 0;
 	u32 maxIndex2 = 0;
-	float32 maxSeparation = -B3_MAX_FLOAT;
+	scalar maxSeparation = -B3_MAX_SCALAR;
 
 	// Loop through the first hull's unique edges.
 	for (u32 i = 0; i < hull1->edgeCount; i += 2)
@@ -132,8 +134,8 @@ b3EdgeQuery b3QueryEdgeSeparation(const b3Transform& xf1, const b3Hull* hull1,
 		b3Vec3 E1 = Q1 - P1;
 
 		// The Gauss Map of edge 1.
-		b3Vec3 U1 = xf.rotation * hull1->GetPlane(edge1->face).normal;
-		b3Vec3 V1 = xf.rotation * hull1->GetPlane(twin1->face).normal;
+		b3Vec3 U1 = b3Mul(xf.rotation, hull1->GetPlane(edge1->face).normal);
+		b3Vec3 V1 = b3Mul(xf.rotation, hull1->GetPlane(twin1->face).normal);
 
 		// Loop through the second hull's unique edges.
 		for (u32 j = 0; j < hull2->edgeCount; j += 2)
@@ -154,7 +156,7 @@ b3EdgeQuery b3QueryEdgeSeparation(const b3Transform& xf1, const b3Hull* hull1,
 			// Negate the Gauss Map 2 for account for the MD.
 			if (b3IsMinkowskiFace(U1, V1, -E1, -U2, -V2, -E2))
 			{
-				float32 separation = b3Project(P1, E1, P2, E2, C1);
+				scalar separation = b3Project(P1, Q1, E1, P2, E2, C1);
 				if (separation > maxSeparation)
 				{
 					maxSeparation = separation;
@@ -176,7 +178,7 @@ b3EdgeQuery b3QueryEdgeSeparation(const b3Transform& xf1, const b3Hull* hull1,
 
 b3SATCacheType b3FeatureCache::ReadState(
 	const b3Transform& xf1, const b3Hull* hull1,
-	const b3Transform& xf2, const b3Hull* hull2, float32 totalRadius)
+	const b3Transform& xf2, const b3Hull* hull2, scalar totalRadius)
 {
 	// If the cache was empty or flushed choose an arbitrary feature pair.
 	if (m_featurePair.state == b3SATCacheType::e_empty)
@@ -207,12 +209,12 @@ b3SATCacheType b3FeatureCache::ReadState(
 
 b3SATCacheType b3FeatureCache::ReadFace(
 	const b3Transform& xf1, const b3Hull* hull1,
-	const b3Transform& xf2, const b3Hull* hull2, float32 totalRadius)
+	const b3Transform& xf2, const b3Hull* hull2, scalar totalRadius)
 {
 	// Perform computations in the local space of the second hull.
 	b3Transform xf = b3MulT(xf2, xf1);
 	b3Plane plane = xf * hull1->GetPlane(m_featurePair.index1);
-	float32 separation = b3Project(hull2, plane);
+	scalar separation = b3Project(hull2, plane);
 	if (separation > totalRadius)
 	{
 		return e_separation;
@@ -222,7 +224,7 @@ b3SATCacheType b3FeatureCache::ReadFace(
 
 b3SATCacheType b3FeatureCache::ReadEdge(
 	const b3Transform& xf1, const b3Hull* hull1,
-	const b3Transform& xf2, const b3Hull* hull2, float32 totalRadius)
+	const b3Transform& xf2, const b3Hull* hull2, scalar totalRadius)
 {
 	u32 i = m_featurePair.index1;
 	u32 j = m_featurePair.index2;
@@ -242,8 +244,8 @@ b3SATCacheType b3FeatureCache::ReadEdge(
 	b3Vec3 E1 = Q1 - P1;
 
 	// The Gauss Map of edge 1.
-	b3Vec3 U1 = xf.rotation * hull1->GetPlane(edge1->face).normal;
-	b3Vec3 V1 = xf.rotation * hull1->GetPlane(twin1->face).normal;
+	b3Vec3 U1 = b3Mul(xf.rotation, hull1->GetPlane(edge1->face).normal);
+	b3Vec3 V1 = b3Mul(xf.rotation, hull1->GetPlane(twin1->face).normal);
 
 	const b3HalfEdge* edge2 = hull2->GetEdge(j);
 	const b3HalfEdge* twin2 = hull2->GetEdge(j + 1);
@@ -261,7 +263,7 @@ b3SATCacheType b3FeatureCache::ReadEdge(
 	// Negate the Gauss Map 2 for account for the MD.
 	if (b3IsMinkowskiFace(U1, V1, -E1, -U2, -V2, -E2))
 	{
-		float32 separation = b3Project(P1, E1, P2, E2, C1);
+		scalar separation = b3Project(P1, Q1, E1, P2, E2, C1);
 		if (separation > totalRadius)
 		{
 			return b3SATCacheType::e_separation;

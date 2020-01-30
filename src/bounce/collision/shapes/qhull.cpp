@@ -49,7 +49,7 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 	
 	B3_ASSERT(hull->vertexCount >= 4);
 
-	float32 volume = 0.0f;
+	scalar volume = scalar(0);
 
 	b3Vec3 centroid; centroid.SetZero();
 
@@ -59,7 +59,7 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 	{
 		s += hull->vertices[i];
 	}
-	s /= float32(hull->vertexCount);
+	s /= scalar(hull->vertexCount);
 
 	for (u32 i = 0; i < hull->faceCount; ++i)
 	{
@@ -80,7 +80,7 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 			b3Vec3 v3 = hull->GetVertex(i3) - s;
 
 			// Signed tetrahedron volume
-			float32 D = b3Det(v1, v2, v3);
+			scalar D = b3Det(v1, v2, v3);
 
 			// Contribution to the mass
 			volume += D;
@@ -96,7 +96,7 @@ static b3Vec3 b3ComputeCentroid(b3QHull* hull)
 
 	// Centroid
 	B3_ASSERT(volume > B3_EPSILON);
-	centroid /= 4.0f * volume;
+	centroid /= scalar(4) * volume;
 	centroid += s;
 	return centroid;
 }
@@ -159,7 +159,7 @@ void b3QHull::Set(u32 vtxStride, const void* vtxBase, u32 vtxCount, bool simplif
 		{
 			s += v->position;
 		}
-		s /= float32(primary.GetVertexList().count);
+		s /= scalar(primary.GetVertexList().count);
 
 		primary.Translate(-s);
 
@@ -171,7 +171,7 @@ void b3QHull::Set(u32 vtxStride, const void* vtxBase, u32 vtxCount, bool simplif
 		for (qhFace* f = primary.GetFaceList().head; f; f = f->next)
 		{
 			b3Plane plane = f->plane;
-			B3_ASSERT(plane.offset > 0.0f);
+			B3_ASSERT(plane.offset > scalar(0));
 			b3Vec3 v = plane.normal / plane.offset;
 			b3Vec3 vn = plane.normal;
 
@@ -184,7 +184,7 @@ void b3QHull::Set(u32 vtxStride, const void* vtxBase, u32 vtxCount, bool simplif
 				b3Vec3 dvn = b3Normalize(dv);
 
 				// ~45 degrees
-				const float32 kTol = 0.7f;
+				const scalar kTol = scalar(0.7);
 
 				if (b3Dot(vn, dvn) > kTol)
 				{
@@ -225,7 +225,7 @@ void b3QHull::Set(u32 vtxStride, const void* vtxBase, u32 vtxCount, bool simplif
 		for (qhFace* f = dual.GetFaceList().head; f; f = f->next)
 		{
 			b3Plane plane = f->plane;
-			B3_ASSERT(plane.offset > 0.0f);
+			B3_ASSERT(plane.offset > scalar(0));
 			b3Vec3 v = plane.normal / plane.offset;
 
 			bool unique = true;
@@ -268,13 +268,13 @@ void b3QHull::Set(u32 vtxStride, const void* vtxBase, u32 vtxCount, bool simplif
 	b3UniqueStackArray<qhHalfEdge*> es;
 
 	// Add vertices to the map
-	for (qhVertex* vertex = hull.GetVertexList().head; vertex != NULL; vertex = vertex->next)
+	for (qhVertex* vertex = hull.GetVertexList().head; vertex != nullptr; vertex = vertex->next)
 	{
 		vs.PushBack(vertex);
 	}
 
 	// Add half-edges to the map
-	for (qhFace* face = hull.GetFaceList().head; face != NULL; face = face->next)
+	for (qhFace* face = hull.GetFaceList().head; face != nullptr; face = face->next)
 	{
 		// Add half-edges 
 		qhHalfEdge* begin = face->edge;
@@ -298,7 +298,7 @@ void b3QHull::Set(u32 vtxStride, const void* vtxBase, u32 vtxCount, bool simplif
 
 	// Build and link the features
 	u32 iface = 0;
-	for (qhFace* face = hull.GetFaceList().head; face != NULL; face = face->next)
+	for (qhFace* face = hull.GetFaceList().head; face != nullptr; face = face->next)
 	{
 		// Build and link the half-edges 
 		b3Face* hface = hullFaces.Get(iface);
@@ -329,7 +329,11 @@ void b3QHull::Set(u32 vtxStride, const void* vtxBase, u32 vtxCount, bool simplif
 
 			qhHalfEdge* next = edge->next;
 			u32 inext = es.PushBack(next);
+			
+			qhHalfEdge* prev = edge->prev;
+			u32 iprev = es.PushBack(prev);
 
+			hullEdges[iedge].prev = iprev;
 			hullEdges[iedge].next = inext;
 
 			edge = next;
@@ -353,12 +357,12 @@ void b3QHull::Set(u32 vtxStride, const void* vtxBase, u32 vtxCount, bool simplif
 	centroid = b3ComputeCentroid(this);
 }
 
-void b3QHull::SetAsSphere(float32 radius)
+void b3QHull::SetAsSphere(scalar radius, u32 subdivisions)
 {
-	B3_ASSERT(radius > 0.0f);
+	B3_ASSERT(radius > scalar(0));
 	
 	smMesh mesh;
-	smCreateMesh(mesh, 2);
+	smCreateMesh(mesh, subdivisions);
 	
 	for (u32 i = 0; i < mesh.vertexCount; ++i)
 	{
@@ -368,15 +372,15 @@ void b3QHull::SetAsSphere(float32 radius)
 	Set(sizeof(b3Vec3), mesh.vertices, mesh.vertexCount, false);
 }
 
-void b3QHull::SetAsCylinder(float32 radius, float32 ey)
+void b3QHull::SetAsCylinder(scalar radius, scalar ey, u32 segments)
 {
-	B3_ASSERT(radius > 0.0f);
-	B3_ASSERT(ey > 0.0f);
+	B3_ASSERT(radius > scalar(0));
+	B3_ASSERT(ey > scalar(0));
 
-	float32 height = 2.0f * ey;
+	scalar height = scalar(2) * ey;
 
 	cymMesh mesh;
-	cymCreateMesh(mesh, 20);
+	cymCreateMesh(mesh, segments);
 
 	for (u32 i = 0; i < mesh.vertexCount; ++i)
 	{
@@ -388,24 +392,23 @@ void b3QHull::SetAsCylinder(float32 radius, float32 ey)
 	Set(sizeof(b3Vec3), mesh.vertices, mesh.vertexCount, false);
 }
 
-void b3QHull::SetAsCone(float32 radius, float32 ey)
+void b3QHull::SetAsCone(scalar radius, scalar ey, u32 segments)
 {
-	B3_ASSERT(radius > 0.0f);
-	B3_ASSERT(ey > 0.0f);
+	B3_ASSERT(radius > scalar(0));
+	B3_ASSERT(ey > scalar(0));
 
-	const u32 kEdgeCount = 20;
-	const u32 kVertexCount = 2 * kEdgeCount + 1;
-	b3Vec3 vs[kVertexCount];
+	u32 vertexCount = 2 * segments + 1;
+	b3Vec3* vs = (b3Vec3*)b3Alloc(vertexCount * sizeof(b3Vec3));
 
 	u32 count = 0;
 
-	float32 kAngleInc = 2.0f * B3_PI / float32(kEdgeCount);
-	b3Quat q = b3QuatRotationY(kAngleInc);
+	scalar angleInc = scalar(2) * B3_PI / scalar(segments);
+	b3Quat q = b3QuatRotationY(angleInc);
 
-	b3Vec3 center(0.0f, -ey, 0.0f);
-	b3Vec3 n1(1.0f, 0.0f, 0.0f);
+	b3Vec3 center(scalar(0), -ey, scalar(0));
+	b3Vec3 n1(scalar(1), scalar(0), scalar(0));
 	b3Vec3 v1 = center + radius * n1;
-	for (u32 i = 0; i < kEdgeCount; ++i)
+	for (u32 i = 0; i < segments; ++i)
 	{
 		b3Vec3 n2 = b3Mul(q, n1);
 		b3Vec3 v2 = center + radius * n2;
@@ -417,8 +420,10 @@ void b3QHull::SetAsCone(float32 radius, float32 ey)
 		v1 = v2;
 	}
 
-	vs[count++].Set(0.0f, ey, 0.0f);
+	vs[count++].Set(scalar(0), ey, scalar(0));
 
 	// Set
 	Set(sizeof(b3Vec3), vs, count, false);
+
+	b3Free(vs);
 }

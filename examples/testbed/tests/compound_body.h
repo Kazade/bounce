@@ -38,38 +38,33 @@ public:
 		}
 
 		{
-			b3Transform xf;
-			xf.SetIdentity();
-			xf.position.Set(-5.0f, 10.0f, 0.0f);
-			m_box1.SetTransform(xf);
+			m_box1.SetExtents(1.0f, 1.0f, 1.0f);
+			b3Vec3 translation(-5.0f, 10.0f, 0.0f);
+			m_box1.Translate(translation);
 		}
 		
 		{
-			b3Transform xf;
-			xf.SetIdentity();
-			xf.position.Set(5.0f, 10.0f, 0.0f);
-			m_box2.SetTransform(xf);
+			b3Vec3 translation(5.0f, 10.0f, 0.0f);
+			m_box2.SetExtents(1.0f, 1.0f, 1.0f);
+			m_box2.Translate(translation);
 		}
 		
 		{
-			b3Transform xf;
-			xf.SetIdentity();
-			xf.position.Set(0.0f, 2.0f, 0.0f);
-			m_box3.SetTransform(xf);
+			b3Vec3 translation(0.0f, 2.0f, 0.0f);
+			m_box3.SetExtents(1.0f, 1.0f, 1.0f);
+			m_box3.Translate(translation);
 		}
 		 
 		{
-			b3Transform xf;
-			xf.SetIdentity();
-			xf.position.Set(0.0f, 6.0f, 0.0f);
-			m_box4.SetTransform(xf);
+			b3Vec3 translation(0.0f, 6.0f, 0.0f);
+			m_box4.SetExtents(1.0f, 1.0f, 1.0f);
+			m_box4.Translate(translation);
 		}
 		
 		{
-			b3Transform xf;
-			xf.SetIdentity();
-			xf.position.Set(0.0f, 10.0f, 0.0f);
-			m_box5.SetTransform(xf);
+			b3Vec3 translation(0.0f, 10.0f, 0.0f);
+			m_box5.SetExtents(1.0f, 1.0f, 1.0f);
+			m_box5.Translate(translation);
 		}
 		
 		{

@@ -20,14 +20,17 @@
 #include <testbed/framework/view_model.h>
 #include <testbed/framework/test.h>
 
+b3FrameAllocator* g_frameAllocator = nullptr;
+b3Profiler* g_profiler = nullptr;
+
 Model::Model()
 {
 	m_viewModel = nullptr;
 	g_draw = &m_draw;
 	g_camera = &m_camera;
 	g_profiler = &m_profiler;
-	g_profilerSt = &m_profilerSt;
-	
+	g_frameAllocator = &m_frame;
+
 #if (PROFILE_JSON == 1)
 	g_jsonProfiler = &m_jsonProfiler;
 #endif
@@ -41,7 +44,7 @@ Model::Model()
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+	glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 	glClearDepth(1.0f);
 
 	Action_ResetCamera();
@@ -56,7 +59,7 @@ Model::~Model()
 	g_draw = nullptr;
 	g_camera = nullptr;
 	g_profiler = nullptr;
-	g_profilerSt = nullptr;
+	g_frameAllocator = nullptr;
 
 #if (PROFILE_JSON == 1)
 	g_jsonProfiler = nullptr;
@@ -114,11 +117,11 @@ void Model::Update()
 
 	if (m_setTest)
 	{
+		Action_ResetCamera();
 		delete m_test;
 		m_test = g_tests[g_settings->testID].create();
 		m_setTest = false;
 		m_pause = true;
-		Action_ResetCamera();
 	}
 	
 	if (g_settings->drawGrid)
@@ -129,9 +132,9 @@ void Model::Update()
 		b3Vec3 vs[h * w];
 
 		b3Vec3 t;
-		t.x = -0.5f * float32(w) + 0.5f;
+		t.x = -0.5f * scalar(w) + 0.5f;
 		t.y = 0.0f;
-		t.z = -0.5f * float32(h) + 0.5f;
+		t.z = -0.5f * scalar(h) + 0.5f;
 
 		for (u32 i = 0; i < h; ++i)
 		{
@@ -140,9 +143,9 @@ void Model::Update()
 				u32 iv = i * w + j;
 
 				b3Vec3 v;
-				v.x = float32(j);
+				v.x = scalar(j);
 				v.y = 0.0f;
-				v.z = float32(i);
+				v.z = scalar(i);
 
 				v += t;
 				
@@ -150,56 +153,54 @@ void Model::Update()
 			}
 		}
 
-		b3Color color(0.2f, 0.2f, 0.2f, 1.0f);
+		b3Color borderColor(0.0f, 0.0f, 0.0f, 1.0f);
+		b3Color centerColor(0.8f, 0.8f, 0.8f, 1.0f);
+		b3Color color(0.4f, 0.4f, 0.4f, 1.0f);
 
-		// Left-Right Lines
-		u32 hv1 = (h - 1) / 2 * w + 0;
-		u32 hv2 = (h - 1) / 2 * w + (w - 1);
-		{
-			b3Vec3 v1 = vs[hv1];
-			b3Vec3 v2 = vs[hv2];
-
-			b3Draw_draw->DrawSegment(v1, v2, b3Color_black);
-		}
-		
+		// Left to right lines
 		for (u32 i = 0; i < h; ++i)
 		{
-			if (i == hv1)
-			{
-				continue;
-			}
-
 			u32 iv1 = i * w + 0;
 			u32 iv2 = i * w + (w - 1);
 
 			b3Vec3 v1 = vs[iv1];
 			b3Vec3 v2 = vs[iv2];
 
-			b3Draw_draw->DrawSegment(v1, v2, color);
-		}
-
-		// Up-Bottom Lines
-		u32 wv1 = 0 * w + (w - 1) / 2;
-		u32 wv2 = (h - 1) * w + (w - 1) / 2;
-		{
-			b3Vec3 v1 = vs[wv1];
-			b3Vec3 v2 = vs[wv2];
-
-			b3Draw_draw->DrawSegment(v1, v2, b3Color_black);
-		}
-
-		for (u32 j = 0; j < w; ++j)
-		{
-			if (j == wv1)
+			if (i == 0 || i == (h - 1))
 			{
+				b3Draw_draw->DrawSegment(v1, v2, borderColor);
 				continue;
 			}
 
+			if (i == (h - 1) / 2)
+			{
+				b3Draw_draw->DrawSegment(v1, v2, centerColor);
+				continue;
+			}
+
+			b3Draw_draw->DrawSegment(v1, v2, color);
+		}
+
+		// Up to bottom lines
+		for (u32 j = 0; j < w; ++j)
+		{
 			u32 iv1 = 0 * w + j;
 			u32 iv2 = (h - 1) * w + j;
 
 			b3Vec3 v1 = vs[iv1];
 			b3Vec3 v2 = vs[iv2];
+
+			if (j == 0 || j == (w - 1))
+			{
+				b3Draw_draw->DrawSegment(v1, v2, borderColor);
+				continue;
+			}
+
+			if (j == (w - 1) / 2)
+			{
+				b3Draw_draw->DrawSegment(v1, v2, centerColor);
+				continue;
+			}
 
 			b3Draw_draw->DrawSegment(v1, v2, color);
 		}
@@ -233,15 +234,17 @@ void Model::Update()
 
 #if (PROFILE_JSON == 1)
 
-static inline void RecurseEvents(ProfilerNode* node)
+static inline void RecurseEvents(b3ProfilerNode* node)
 {
 	g_jsonProfiler->BeginEvent(node->name, node->t0);
 	
 	g_jsonProfiler->EndEvent(node->name, node->t1);
 
-	for (u32 i = 0; i < node->children.Count(); ++i)
+	b3ProfilerNode* child = node->head;
+	while (child)
 	{
-		RecurseEvents(node->children[i]);
+		RecurseEvents(child);
+		child = child->next;
 	}
 }
 
@@ -249,7 +252,7 @@ void Model::UpdateJson()
 {
 	m_jsonProfiler.BeginEvents();
 
-	ProfilerNode* root = m_profiler.GetRoot();
+	b3ProfilerNode* root = m_profiler.GetRoot();
 
 	if (root)
 	{

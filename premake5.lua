@@ -45,12 +45,13 @@ workspace(solution_name)
 	warnings 'Extra'
 
 	filter "system:windows" 
-		platforms { "x86", "x86_x64" }
-	    defaultplatform "x86_64"
+		platforms { "x86", "x86_64" }
+	    	defaultplatform "x86_64"
 		defines { "_CRT_SECURE_NO_WARNINGS", "_WIN32", "WIN32", "_WINDOWS" }
 		
 	filter "system:linux" 
-		platforms { "x86_64" }
+		platforms { "x86", "x86_64" }
+		defaultplatform "x86_64"
 		cppdialect "C++11"
 	
 	filter {}
@@ -96,7 +97,7 @@ workspace(solution_name)
 		includedirs { external_dir }
 		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.c" }	
 
-		filter { "system:windows", "options:gfxapi=opengl_2" } 
+		filter { "options:gfxapi=opengl_2" } 
 			files 
 			{ 
 				external_dir .. "/glad_2/khrplatform.h",
@@ -104,7 +105,7 @@ workspace(solution_name)
 				external_dir .. "/glad_2/glad.c",
 			}
 				
-		filter { "system:windows", "options:gfxapi=opengl_4" } 
+		filter { "options:gfxapi=opengl_4" } 
 			files 
 			{ 
 				external_dir .. "/glad_4/khrplatform.h",
@@ -115,7 +116,6 @@ workspace(solution_name)
 		filter { "system:linux", "options:gfxapi=opengl_2" } 
 			files 
 			{ 
-				external_dir .. "/glad_2/khrplatform.h",
 				external_dir .. "/glad_2/glad_glx.h", 
 				external_dir .. "/glad_2/glad_glx.c",
 			}
@@ -123,7 +123,6 @@ workspace(solution_name)
 		filter { "system:linux", "options:gfxapi=opengl_4" }
 			files 
 			{ 
-				external_dir .. "/glad_4/khrplatform.h",
 				external_dir .. "/glad_4/glad_glx.h", 
 				external_dir .. "/glad_4/glad_glx.c",
 			}
@@ -157,15 +156,17 @@ workspace(solution_name)
 				external_dir .. "/glfw/win32_joystick.h",
 				external_dir .. "/glfw/wgl_context.h",
 				external_dir .. "/glfw/egl_context.h",
+				external_dir .. "/glfw/osmesa_context.h",
 				
 				external_dir .. "/glfw/win32_init.c",
 				external_dir .. "/glfw/win32_joystick.c",
 				external_dir .. "/glfw/win32_monitor.c",
 				external_dir .. "/glfw/win32_time.c",
-				external_dir .. "/glfw/win32_tls.c",
+				external_dir .. "/glfw/win32_thread.c",
 				external_dir .. "/glfw/win32_window.c",
 				external_dir .. "/glfw/wgl_context.c",
-				external_dir .. "/glfw/egl_context.c",				
+				external_dir .. "/glfw/egl_context.c",
+				external_dir .. "/glfw/osmesa_context.c",				
 			}
 
 		filter "system:linux" 
@@ -174,21 +175,23 @@ workspace(solution_name)
 			{	 
 				external_dir .. "/glfw/x11_platform.h",
 				external_dir .. "/glfw/xkb_unicode.h",
-				external_dir .. "/glfw/linux_joystick.h",
 				external_dir .. "/glfw/posix_time.h",	
-				external_dir .. "/glfw/posix_tls.h",		
+				external_dir .. "/glfw/posix_thread.h",	
 				external_dir .. "/glfw/glx_context.h",
 				external_dir .. "/glfw/egl_context.h",
+				external_dir .. "/glfw/osmesa_context.h",
+				external_dir .. "/glfw/linux_joystick.h",
 				
 				external_dir .. "/glfw/x11_init.c",	
 				external_dir .. "/glfw/x11_monitor.c",
 				external_dir .. "/glfw/x11_window.c",
 				external_dir .. "/glfw/xkb_unicode.c",
-				external_dir .. "/glfw/linux_joystick.c",
 				external_dir .. "/glfw/posix_time.c",
-				external_dir .. "/glfw/posix_tls.c",
-				external_dir .. "/glfw/egl_context.c",
-				external_dir .. "/glfw/glx_context.c",					
+				external_dir .. "/glfw/posix_thread.c",
+				external_dir .. "/glfw/glx_context.c",
+				external_dir .. "/glfw/egl_context.c",					
+				external_dir .. "/glfw/osmesa_context.c",
+				external_dir .. "/glfw/linux_joystick.c",				
 			}	
 			
 	project "imgui"
@@ -204,27 +207,32 @@ workspace(solution_name)
 			external_dir .. "/imgui/imgui.h", 
 			external_dir .. "/imgui/imgui_internal.h", 
 			
-			external_dir .. "/imgui/stb_rect_pack.h", 
-			external_dir .. "/imgui/stb_textedit.h", 
-			external_dir .. "/imgui/stb_truetype.h", 
+			external_dir .. "/imgui/imstb_rect_pack.h", 
+			external_dir .. "/imgui/imstb_textedit.h", 
+			external_dir .. "/imgui/imstb_truetype.h", 
+			
+			external_dir .. "/imgui/imgui_impl_glfw.h", 
 			
 			external_dir .. "/imgui/imgui.cpp",
+			external_dir .. "/imgui/imgui_widgets.cpp",
 			external_dir .. "/imgui/imgui_demo.cpp",
-			external_dir .. "/imgui/imgui_draw.cpp" 
+			external_dir .. "/imgui/imgui_draw.cpp",
+			
+			external_dir .. "/imgui/imgui_impl_glfw.cpp"			
 		}
 
 		filter "options:gfxapi=opengl_2"
 			files 
 			{ 
-				external_dir .. "/imgui/imgui_impl_glfw_gl2.h", 
-				external_dir .. "/imgui/imgui_impl_glfw_gl2.cpp" 
+				external_dir .. "/imgui/imgui_impl_opengl2.h", 
+				external_dir .. "/imgui/imgui_impl_opengl2.cpp" 
 			}
 			
 		filter "options:gfxapi=opengl_4" 
 			files 
 			{ 
-				external_dir .. "/imgui/imgui_impl_glfw_gl3.h", 
-				external_dir .. "/imgui/imgui_impl_glfw_gl3.cpp"
+				external_dir .. "/imgui/imgui_impl_opengl3.h", 
+				external_dir .. "/imgui/imgui_impl_opengl3.cpp"
 			}
 	
 	project "rapidjson"
@@ -238,6 +246,19 @@ workspace(solution_name)
 		{ 
 			external_dir .. "/rapidjson/**.h", 
 			external_dir .. "/rapidjson/**.cpp" 
+		}
+		
+	project "tinyobjloader"
+		kind "StaticLib"
+		language "C++"
+		location ( solution_dir .. action )
+		includedirs { external_dir } 
+		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.cc" }		
+
+		files 
+		{ 
+			external_dir .. "/tinyobjloader/**.h", 
+			external_dir .. "/tinyobjloader/**.cc" 
 		}
 		
 	project "triangle"
@@ -259,12 +280,10 @@ workspace(solution_name)
 		location ( solution_dir .. action )
 		includedirs { external_dir, bounce_inc_dir, examples_inc_dir }
 		vpaths { [""] = "testbed" }
-
+		
 		files 
 		{ 
 			examples_inc_dir .. "/testbed/framework/draw.h", 
-			examples_inc_dir .. "/testbed/framework/profiler.h", 
-			examples_inc_dir .. "/testbed/framework/profiler_st.h", 
 			examples_inc_dir .. "/testbed/framework/json_profiler.h", 
 			
 			examples_inc_dir .. "/testbed/framework/model.h", 
@@ -284,8 +303,6 @@ workspace(solution_name)
 			examples_inc_dir .. "/testbed/tests/**.h", 
 			
 			examples_src_dir .. "/testbed/framework/draw.cpp", 
-			examples_src_dir .. "/testbed/framework/profiler.cpp", 
-			examples_src_dir .. "/testbed/framework/profiler_st.cpp", 
 			examples_src_dir .. "/testbed/framework/json_profiler.cpp", 
 			
 			examples_inc_dir .. "/testbed/framework/model.cpp", 
@@ -315,10 +332,11 @@ workspace(solution_name)
 			
 		filter "system:linux" 
 			links { "GL", "X11", "Xrandr", "Xinerama", "Xcursor", "pthread", "dl" }
+			linkoptions { "-no-pie" }
 		
 		filter {}
 		
-		links { "glfw", "glad", "imgui", "bounce", "triangle" }
+		links { "glad", "glfw", "imgui", "tinyobjloader", "bounce", "triangle" }
 			
 	project "hello_world"
 		kind "ConsoleApp"
@@ -326,13 +344,18 @@ workspace(solution_name)
 		location ( solution_dir .. action )
 		includedirs { bounce_inc_dir, examples_inc_dir }
 		vpaths { ["Headers"] = "**.h", ["Sources"] = "**.cpp" }
-
+		
 		files 
 		{ 
 			examples_inc_dir .. "/hello_world/**.h", 
 			examples_src_dir .. "/hello_world/**.cpp" 
 		}
 
+		filter { "system:linux" }
+			linkoptions { "-no-pie" }
+		
+		filter {}
+		
 		links { "bounce" }
 
 -- build
@@ -358,12 +381,22 @@ if os.istarget("windows") then
         end
     }
 
+	newaction
+    {
+        trigger = "solution_vs2019",
+        description = "Generate solution",
+        execute = function ()
+	    os.execute ( "premake5 clean" )
+            os.execute ( "premake5 vs2019" )
+        end
+    }
+
     newaction
     {
         trigger = "doc",
         description = "Generate documentation",
         execute = function ()
-	    os.execute ( "doxygen doxyfile" )
+	    os.execute ( "doxygen doc\\doxyfile" )
 	    os.execute ( "start doc\\api\\html\\index.html" )
         end
     }
@@ -375,7 +408,6 @@ newaction
 	trigger = "clean",
     description = "Clean solution",
     execute = function ()
-          os.rmdir( "doc" )
-	  os.rmdir( solution_dir )
+      os.rmdir( solution_dir )
     end
 }

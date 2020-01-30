@@ -40,14 +40,14 @@ public:
 		{
 			b3BodyDef bdef;
 			bdef.type = e_dynamicBody;
-			bdef.orientation.Set(b3Vec3(1.0f, 0.0f, 0.0f), 0.5f * B3_PI);
+			bdef.orientation.SetAxisAngle(b3Vec3(1.0f, 0.0f, 0.0f), 0.5f * B3_PI);
 			bdef.position.Set(0.0f, 10.0f, 0.0f);
 			bdef.angularVelocity.Set(0.0f, 0.0f, 4.0f * B3_PI);
 
 			b3Body* body = m_world.CreateBody(bdef);
 
 			{
-				m_rotorBox.Set(1.0f, 0.5f, 7.0f);
+				m_rotorBox.SetExtents(1.0f, 0.5f, 7.0f);
 
 				b3HullShape hull;
 				hull.m_hull = &m_rotorBox;
@@ -60,7 +60,7 @@ public:
 			}
 
 			{
-				m_cylinderHull.SetAsCylinder(0.95f, 4.0f);
+				m_cylinderHull.SetExtents(0.95f, 4.0f);
 
 				b3HullShape hull;
 				hull.m_hull = &m_cylinderHull;
@@ -86,7 +86,7 @@ public:
 	}
 
 	b3BoxHull m_rotorBox;
-	b3QHull m_cylinderHull;
+	b3CylinderHull m_cylinderHull;
 };
 
 #endif

@@ -26,28 +26,28 @@ void b3CollideSphereAndSphere(b3Manifold& manifold,
 	const b3Transform& xf2, const b3SphereShape* s2)
 {
 	b3Vec3 c1 = xf1 * s1->m_center;
-	float32 r1 = s1->m_radius;
+	scalar r1 = s1->m_radius;
 
 	b3Vec3 c2 = xf2 * s2->m_center;
-	float32 r2 = s2->m_radius;
+	scalar r2 = s2->m_radius;
 	
 	b3Vec3 d = c2 - c1;
-	float32 dd = b3Dot(d, d);
-	float32 totalRadius = r1 + r2;
+	scalar dd = b3Dot(d, d);
+	scalar totalRadius = r1 + r2;
 	if (dd > totalRadius * totalRadius)
 	{
 		return;
 	}
 
-	float32 distance = b3Length(d);
-	b3Vec3 normal(0.0f, 1.0f, 0.0f);
+	scalar distance = b3Length(d);
+	b3Vec3 normal(scalar(0), scalar(1), scalar(0));
 	if (distance > B3_EPSILON)
 	{
 		normal = d / distance;
 	}
 	
 	manifold.pointCount = 1;
-	manifold.points[0].localNormal1 = b3MulT(xf1.rotation, normal);
+	manifold.points[0].localNormal1 = b3MulC(xf1.rotation, normal);
 	manifold.points[0].localPoint1 = s1->m_center;
 	manifold.points[0].localPoint2 = s2->m_center;
 	manifold.points[0].key.triangleKey = B3_NULL_TRIANGLE;

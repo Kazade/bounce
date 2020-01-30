@@ -28,13 +28,13 @@ struct b3Vec2
 	b3Vec2() { }
 
 	// Set this vector from two components.
-	b3Vec2(float32 _x, float32 _y) : x(_x), y(_y) { }
+	b3Vec2(scalar _x, scalar _y) : x(_x), y(_y) { }
 
 	// Read an indexed component from this vector.
-	float32 operator[](u32 i) const { return (&x)[i]; }
+	scalar operator[](u32 i) const { return (&x)[i]; }
 
 	// Write an indexed component to this vector.
-	float32& operator[](u32 i) { return (&x)[i]; }
+	scalar& operator[](u32 i) { return (&x)[i]; }
 
 	// Add a vector to this vector.
 	void operator+=(const b3Vec2& v)
@@ -51,14 +51,14 @@ struct b3Vec2
 	}
 
 	// Scale this vector.
-	void operator*=(float32 s)
+	void operator*=(scalar s)
 	{
 		x *= s;
 		y *= s;
 	}
 
 	// Scale this vector.
-	void operator/=(float32 s)
+	void operator/=(scalar s)
 	{
 		x /= s;
 		y /= s;
@@ -67,11 +67,11 @@ struct b3Vec2
 	// Set this vector to the zero vector.
 	void SetZero()
 	{
-		x = y = 0.0f;
+		x = y = scalar(0);
 	}
 
 	// Set this vector from two components.
-	void Set(float32 _x, float32 _y)
+	void Set(scalar _x, scalar _y)
 	{
 		x = _x;
 		y = _y;
@@ -80,7 +80,7 @@ struct b3Vec2
 	// Normalize this vector.
 	void Normalize()
 	{
-		float32 s = b3Sqrt(x * x + y * y);
+		scalar s = b3Sqrt(x * x + y * y);
 		if (s > B3_EPSILON)
 		{
 			x /= s;
@@ -88,7 +88,7 @@ struct b3Vec2
 		}
 	}
 
-	float32 x, y;
+	scalar x, y;
 };
 
 // Zero vector 
@@ -119,49 +119,55 @@ inline b3Vec2 operator-(const b3Vec2& a, const b3Vec2& b)
 }
 
 // Multiply a vector by a scalar.
-inline b3Vec2 operator*(float32 s, const b3Vec2& v)
+inline b3Vec2 operator*(scalar s, const b3Vec2& v)
 {
 	return b3Vec2(s * v.x, s * v.y);
 }
 
 // Multiply a vector by a scalar.
-inline b3Vec2 operator*(const b3Vec2& v, float32 s)
+inline b3Vec2 operator*(const b3Vec2& v, scalar s)
 {
 	return s * v;
 }
 
 // Compute the dot product of two vectors.
-inline float32 b3Dot(const b3Vec2& a, const b3Vec2& b)
+inline scalar b3Dot(const b3Vec2& a, const b3Vec2& b)
 {
 	return a.x * b.x + a.y * b.y;
 }
 
 // Compute the length of a vector.
-inline float32 b3Length(const b3Vec2& v)
+inline scalar b3Length(const b3Vec2& v)
 {
 	return b3Sqrt(v.x * v.x + v.y * v.y);
+}
+
+// Compute the squared length of a vector.
+inline scalar b3LengthSquared(const b3Vec2& v)
+{
+	return v.x * v.x + v.y * v.y;
 }
 
 // Normalize a vector.
 inline b3Vec2 b3Normalize(const b3Vec2& v)
 {
-	float32 length = b3Length(v);
+	scalar length = b3Length(v);
 	if (length > B3_EPSILON)
 	{
-		float32 s = 1.0f / length;
+		scalar s = scalar(1) / length;
 		return s * v;
 	}
 	return v;
 }
 
 // Compute the euclidean distance between two points.
-inline float32 b3Distance(const b3Vec2& a, const b3Vec2& b)
+inline scalar b3Distance(const b3Vec2& a, const b3Vec2& b)
 {
 	return b3Length(a - b);
 }
 
 // Compute the determinant of two 2D vectors.
-inline float32 b3Det(const b3Vec2& a, const b3Vec2& b)
+inline scalar b3Det(const b3Vec2& a, const b3Vec2& b)
 {
 	return a.x * b.y - a.y * b.x;
 }

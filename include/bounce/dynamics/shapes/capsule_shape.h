@@ -29,9 +29,9 @@ public:
 
 	void Swap(const b3CapsuleShape& other);
 
-	void ComputeMass(b3MassData* data, float32 density) const;
+	void ComputeMass(b3MassData* data, scalar density) const;
 
-	void ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const;
+	void ComputeAABB(b3AABB* aabb, const b3Transform& xf) const;
 
 	bool TestSphere(const b3Sphere& sphere, const b3Transform& xf) const;
 	
@@ -39,7 +39,7 @@ public:
 
 	bool RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf) const;
 
-	b3Vec3 m_centers[2];
+	b3Vec3 m_vertex1, m_vertex2;
 };
 
 #endif

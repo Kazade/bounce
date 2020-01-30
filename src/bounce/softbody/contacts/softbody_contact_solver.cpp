@@ -17,7 +17,9 @@
 */
 
 #include <bounce/softbody/contacts/softbody_contact_solver.h>
-#include <bounce/softbody/contacts/softbody_node_body_contact.h>
+#include <bounce/softbody/contacts/softbody_sphere_shape_contact.h>
+#include <bounce/softbody/shapes/softbody_sphere_shape.h>
+#include <bounce/softbody/shapes/softbody_world_shape.h>
 #include <bounce/softbody/softbody_node.h>
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/body.h>
@@ -25,255 +27,145 @@
 
 b3SoftBodyContactSolver::b3SoftBodyContactSolver(const b3SoftBodyContactSolverDef& def)
 {
+	m_step = def.step;
 	m_allocator = def.allocator;
 
 	m_positions = def.positions;
 	m_velocities = def.velocities;
 
-	m_bodyContactCount = def.bodyContactCount;
-	m_bodyContacts = def.bodyContacts;
+	m_shapeContactCount = def.shapeContactCount;
+	m_shapeContacts = def.shapeContacts;
 }
 
 b3SoftBodyContactSolver::~b3SoftBodyContactSolver()
 {
-	m_allocator->Free(m_bodyPositionConstraints);
-	m_allocator->Free(m_bodyVelocityConstraints);
+	m_allocator->Free(m_shapePositionConstraints);
+	m_allocator->Free(m_shapeVelocityConstraints);
 }
 
-void b3SoftBodyContactSolver::InitializeBodyContactConstraints()
+void b3SoftBodyContactSolver::InitializeShapeContactConstraints()
 {
-	m_bodyVelocityConstraints = (b3SoftBodySolverBodyContactVelocityConstraint*)m_allocator->Allocate(m_bodyContactCount * sizeof(b3SoftBodySolverBodyContactVelocityConstraint));
-	m_bodyPositionConstraints = (b3SoftBodySolverBodyContactPositionConstraint*)m_allocator->Allocate(m_bodyContactCount * sizeof(b3SoftBodySolverBodyContactPositionConstraint));
+	m_shapeVelocityConstraints = (b3SoftBodySolverShapeContactVelocityConstraint*)m_allocator->Allocate(m_shapeContactCount * sizeof(b3SoftBodySolverShapeContactVelocityConstraint));
+	m_shapePositionConstraints = (b3SoftBodySolverShapeContactPositionConstraint*)m_allocator->Allocate(m_shapeContactCount * sizeof(b3SoftBodySolverShapeContactPositionConstraint));
 
-	for (u32 i = 0; i < m_bodyContactCount; ++i)
+	for (u32 i = 0; i < m_shapeContactCount; ++i)
 	{
-		b3NodeBodyContact* c = m_bodyContacts[i];
-		b3SoftBodySolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
-		b3SoftBodySolverBodyContactPositionConstraint* pc = m_bodyPositionConstraints + i;
+		b3SoftBodySphereAndShapeContact* c = m_shapeContacts[i];
+		b3SoftBodySolverShapeContactVelocityConstraint* vc = m_shapeVelocityConstraints + i;
+		b3SoftBodySolverShapeContactPositionConstraint* pc = m_shapePositionConstraints + i;
 
-		vc->indexA = c->m_n1->m_vertex;
-		vc->bodyB = c->m_s2->GetBody();
+		b3SoftBodySphereShape* s1 = c->m_s1;
+		b3SoftBodyNode* n1 = s1->m_node;
 
-		vc->invMassA = c->m_n1->m_type == e_staticSoftBodyNode ? 0.0f : c->m_n1->m_invMass;
-		vc->invMassB = vc->bodyB->GetInverseMass();
+		b3SoftBodyWorldShape* ws2 = c->m_s2;
+		const b3Shape* s2 = ws2->m_shape;
 
-		vc->invIA.SetZero();
-		vc->invIB = vc->bodyB->GetWorldInverseInertia();
+		vc->indexA = n1->m_meshIndex;
+		vc->invMassA = n1->m_type == e_staticSoftBodyNode ? scalar(0) : n1->m_invMass;
 
-		vc->friction = b3MixFriction(c->m_n1->m_friction, c->m_s2->GetFriction());
+		vc->friction = b3MixFriction(s1->m_friction, s2->GetFriction());
 
-		pc->indexA = c->m_n1->m_vertex;
-		pc->bodyB = vc->bodyB;
+		pc->indexA = n1->m_meshIndex;
+		pc->invMassA = n1->m_type == e_staticSoftBodyNode ? scalar(0) : n1->m_invMass;
 
-		pc->invMassA = c->m_n1->m_type == e_staticSoftBodyNode ? 0.0f : c->m_n1->m_invMass;
-		pc->invMassB = vc->bodyB->m_invMass;
+		pc->radiusA = s1->m_radius;
+		pc->radiusB = s2->m_radius;
 
-		pc->invIA.SetZero();
-		pc->invIB = vc->bodyB->m_worldInvI;
-
-		pc->radiusA = c->m_n1->m_radius;
-		pc->radiusB = c->m_s2->m_radius;
-
-		pc->localCenterA.SetZero();
-		pc->localCenterB = pc->bodyB->m_sweep.localCenter;
-
-		pc->normalA = c->m_normal1;
-		pc->localPointA = c->m_localPoint1;
-		pc->localPointB = c->m_localPoint2;
+		pc->normalB = c->m_normal2;
+		pc->pointB = c->m_point2;
 	}
 
-	for (u32 i = 0; i < m_bodyContactCount; ++i)
+	for (u32 i = 0; i < m_shapeContactCount; ++i)
 	{
-		b3NodeBodyContact* c = m_bodyContacts[i];
-		b3SoftBodySolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
-		b3SoftBodySolverBodyContactPositionConstraint* pc = m_bodyPositionConstraints + i;
+		b3SoftBodySphereAndShapeContact* c = m_shapeContacts[i];
+		b3SoftBodySolverShapeContactVelocityConstraint* vc = m_shapeVelocityConstraints + i;
+		b3SoftBodySolverShapeContactPositionConstraint* pc = m_shapePositionConstraints + i;
 
 		u32 indexA = vc->indexA;
-		b3Body* bodyB = vc->bodyB;
+		scalar mA = vc->invMassA;
+		b3Vec3 cA = m_positions[indexA];
 
-		float32 mA = vc->invMassA;
-		float32 mB = vc->invMassB;
-
-		b3Mat33 iA = vc->invIA;
-		b3Mat33 iB = vc->invIB;
-
-		b3Vec3 xA = m_positions[indexA];
-		b3Vec3 xB = bodyB->m_sweep.worldCenter;
-
-		b3Quat qA; qA.SetIdentity();
-		b3Quat qB = bodyB->m_sweep.orientation;
-
-		b3Vec3 localCenterA = pc->localCenterA;
-		b3Vec3 localCenterB = pc->localCenterB;
-
-		b3Transform xfA;
-		xfA.rotation = b3QuatMat33(qA);
-		xfA.position = xA - b3Mul(xfA.rotation, localCenterA);
-
-		b3Transform xfB;
-		xfB.rotation = b3QuatMat33(qB);
-		xfB.position = xB - b3Mul(xfB.rotation, localCenterB);
-
-		b3NodeBodyContactWorldPoint wp;
-		wp.Initialize(c, pc->radiusA, xfA, pc->radiusB, xfB);
+		b3SoftBodySphereAndShapeContactWorldPoint wp;
+		wp.Initialize(c, pc->radiusA, cA, pc->radiusB);
 
 		vc->normal = wp.normal;
 		vc->tangent1 = c->m_tangent1;
 		vc->tangent2 = c->m_tangent2;
-		vc->point = wp.point;
 
-		b3Vec3 point = vc->point;
-
-		b3Vec3 rA = point - xA;
-		b3Vec3 rB = point - xB;
-
-		vc->rA = rA;
-		vc->rB = rB;
-
-		vc->normalImpulse = c->m_normalImpulse;
-		vc->tangentImpulse = c->m_tangentImpulse;
+		vc->normalImpulse = m_step.dt_ratio * c->m_normalImpulse;
+		vc->tangentImpulse = m_step.dt_ratio * c->m_tangentImpulse;
 
 		{
-			b3Vec3 n = vc->normal;
-
-			b3Vec3 rnA = b3Cross(rA, n);
-			b3Vec3 rnB = b3Cross(rB, n);
-
-			float32 K = mA + mB + b3Dot(iA * rnA, rnA) + b3Dot(iB * rnB, rnB);
-
-			vc->normalMass = K > 0.0f ? 1.0f / K : 0.0f;
-			vc->velocityBias = 0.0f;
+			vc->normalMass = mA > scalar(0) ? scalar(1) / mA : scalar(0);
 		}
 
 		{
-			b3Vec3 t1 = vc->tangent1;
-			b3Vec3 t2 = vc->tangent2;
-
-			b3Vec3 rn1A = b3Cross(rA, t1);
-			b3Vec3 rn1B = b3Cross(rB, t1);
-			b3Vec3 rn2A = b3Cross(rA, t2);
-			b3Vec3 rn2B = b3Cross(rB, t2);
-
-			// dot(t1, t2) = 0
-			// J1_l1 * M1 * J2_l1 = J1_l2 * M2 * J2_l2 = 0
-			float32 k11 = mA + mB + b3Dot(iA * rn1A, rn1A) + b3Dot(iB * rn1B, rn1B);
-			float32 k12 = b3Dot(iA * rn1A, rn2A) + b3Dot(iB * rn1B, rn2B);
-			float32 k22 = mA + mB + b3Dot(iA * rn2A, rn2A) + b3Dot(iB * rn2B, rn2B);
-
-			b3Mat22 K;
-			K.x.Set(k11, k12);
-			K.y.Set(k12, k22);
-
-			vc->tangentMass = b3Inverse(K);
+			vc->tangentMass = mA > scalar(0) ? scalar(1) / mA : scalar(0);
 		}
 	}
 }
 
 void b3SoftBodyContactSolver::WarmStart()
 {
-	for (u32 i = 0; i < m_bodyContactCount; ++i)
+	for (u32 i = 0; i < m_shapeContactCount; ++i)
 	{
-		b3SoftBodySolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
+		b3SoftBodySolverShapeContactVelocityConstraint* vc = m_shapeVelocityConstraints + i;
 
 		u32 indexA = vc->indexA;
-		b3Body* bodyB = vc->bodyB;
-
 		b3Vec3 vA = m_velocities[indexA];
-		b3Vec3 vB = bodyB->GetLinearVelocity();
-
-		b3Vec3 wA; wA.SetZero();
-		b3Vec3 wB = bodyB->GetAngularVelocity();
-
-		float32 mA = vc->invMassA;
-		float32 mB = vc->invMassB;
-
-		b3Mat33 iA = vc->invIA;
-		b3Mat33 iB = vc->invIB;
+		scalar mA = vc->invMassA;
 
 		b3Vec3 P = vc->normalImpulse * vc->normal;
 
-		vA -= mA * P;
-		wA -= iA * b3Cross(vc->rA, P);
-
-		vB += mB * P;
-		wB += iB * b3Cross(vc->rB, P);
+		vA += mA * P;
 
 		b3Vec3 P1 = vc->tangentImpulse.x * vc->tangent1;
 		b3Vec3 P2 = vc->tangentImpulse.y * vc->tangent2;
 
-		vA -= mA * (P1 + P2);
-		wA -= iA * b3Cross(vc->rA, P1 + P2);
-
-		vB += mB * (P1 + P2);
-		wB += iB * b3Cross(vc->rB, P1 + P2);
+		vA += mA * (P1 + P2);
 
 		m_velocities[indexA] = vA;
-
-		bodyB->SetLinearVelocity(vB);
-		bodyB->SetAngularVelocity(wB);
 	}
 }
 
-void b3SoftBodyContactSolver::SolveBodyContactVelocityConstraints()
+void b3SoftBodyContactSolver::SolveShapeContactVelocityConstraints()
 {
-	for (u32 i = 0; i < m_bodyContactCount; ++i)
+	for (u32 i = 0; i < m_shapeContactCount; ++i)
 	{
-		b3SoftBodySolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
+		b3SoftBodySolverShapeContactVelocityConstraint* vc = m_shapeVelocityConstraints + i;
 
 		u32 indexA = vc->indexA;
-		b3Body* bodyB = vc->bodyB;
-
 		b3Vec3 vA = m_velocities[indexA];
-		b3Vec3 vB = bodyB->GetLinearVelocity();
-
-		b3Vec3 wA; wA.SetZero();
-		b3Vec3 wB = bodyB->GetAngularVelocity();
-
-		float32 mA = vc->invMassA;
-		float32 mB = vc->invMassB;
-
-		b3Mat33 iA = vc->invIA;
-		b3Mat33 iB = vc->invIB;
+		scalar mA = vc->invMassA;
 
 		b3Vec3 normal = vc->normal;
-		b3Vec3 point = vc->point;
-
-		b3Vec3 rA = vc->rA;
-		b3Vec3 rB = vc->rB;
 
 		// Solve normal constraint.
 		{
-			b3Vec3 dv = vB + b3Cross(wB, rB) - vA - b3Cross(wA, rA);
-			float32 Cdot = b3Dot(normal, dv);
+			scalar Cdot = b3Dot(normal, vA);
 
-			float32 impulse = vc->normalMass * (-Cdot + vc->velocityBias);
+			scalar impulse = -vc->normalMass * Cdot;
 
-			float32 oldImpulse = vc->normalImpulse;
-			vc->normalImpulse = b3Max(vc->normalImpulse + impulse, 0.0f);
+			scalar oldImpulse = vc->normalImpulse;
+			vc->normalImpulse = b3Max(vc->normalImpulse + impulse, scalar(0));
 			impulse = vc->normalImpulse - oldImpulse;
 
 			b3Vec3 P = impulse * normal;
 
-			vA -= mA * P;
-			wA -= iA * b3Cross(rA, P);
-
-			vB += mB * P;
-			wB += iB * b3Cross(rB, P);
+			vA += mA * P;
 		}
 
 		// Solve tangent constraints.
 		{
-			b3Vec3 dv = vB + b3Cross(wB, rB) - vA - b3Cross(wA, rA);
-
 			b3Vec2 Cdot;
-			Cdot.x = b3Dot(dv, vc->tangent1);
-			Cdot.y = b3Dot(dv, vc->tangent2);
+			Cdot.x = b3Dot(vA, vc->tangent1);
+			Cdot.y = b3Dot(vA, vc->tangent2);
 
 			b3Vec2 impulse = vc->tangentMass * -Cdot;
 			b3Vec2 oldImpulse = vc->tangentImpulse;
 			vc->tangentImpulse += impulse;
 
-			float32 maxImpulse = vc->friction * vc->normalImpulse;
+			scalar maxImpulse = vc->friction * vc->normalImpulse;
 			if (b3Dot(vc->tangentImpulse, vc->tangentImpulse) > maxImpulse * maxImpulse)
 			{
 				vc->tangentImpulse.Normalize();
@@ -284,28 +176,22 @@ void b3SoftBodyContactSolver::SolveBodyContactVelocityConstraints()
 
 			b3Vec3 P1 = impulse.x * vc->tangent1;
 			b3Vec3 P2 = impulse.y * vc->tangent2;
+			
 			b3Vec3 P = P1 + P2;
 
-			vA -= mA * P;
-			wA -= iA * b3Cross(rA, P);
-
-			vB += mB * P;
-			wB += iB * b3Cross(rB, P);
+			vA += mA * P;
 		}
 
 		m_velocities[indexA] = vA;
-
-		bodyB->SetLinearVelocity(vB);
-		bodyB->SetAngularVelocity(wB);
 	}
 }
 
 void b3SoftBodyContactSolver::StoreImpulses()
 {
-	for (u32 i = 0; i < m_bodyContactCount; ++i)
+	for (u32 i = 0; i < m_shapeContactCount; ++i)
 	{
-		b3NodeBodyContact* c = m_bodyContacts[i];
-		b3SoftBodySolverBodyContactVelocityConstraint* vc = m_bodyVelocityConstraints + i;
+		b3SoftBodySphereAndShapeContact* c = m_shapeContacts[i];
+		b3SoftBodySolverShapeContactVelocityConstraint* vc = m_shapeVelocityConstraints + i;
 
 		c->m_normalImpulse = vc->normalImpulse;
 		c->m_tangentImpulse = vc->tangentImpulse;
@@ -314,100 +200,56 @@ void b3SoftBodyContactSolver::StoreImpulses()
 
 struct b3SoftBodySolverBodyContactSolverPoint
 {
-	void Initialize(const b3SoftBodySolverBodyContactPositionConstraint* pc, const b3Transform& xfA, const b3Transform& xfB)
+	void Initialize(const b3SoftBodySolverShapeContactPositionConstraint* pc, const b3Vec3& cA)
 	{
-		b3Vec3 nA = pc->normalA;
+		b3Vec3 nB = pc->normalB;
+		b3Vec3 cB = pc->pointB;
 
-		b3Vec3 cA = xfA * pc->localPointA;
-		b3Vec3 cB = xfB * pc->localPointB;
+		scalar rA = pc->radiusA;
+		scalar rB = pc->radiusB;
 
-		float32 rA = pc->radiusA;
-		float32 rB = pc->radiusB;
-
-		b3Vec3 pA = cA + rA * nA;
-		b3Vec3 pB = cB - rB * nA;
-
-		point = cB;
-		normal = nA;
-		separation = b3Dot(cB - cA, nA) - rA - rB;
+		normal = nB;
+		separation = b3Dot(cA - cB, nB) - rA - rB;
 	}
 
 	b3Vec3 normal;
-	b3Vec3 point;
-	float32 separation;
+	scalar separation;
 };
 
-bool b3SoftBodyContactSolver::SolveBodyContactPositionConstraints()
+bool b3SoftBodyContactSolver::SolveShapeContactPositionConstraints()
 {
-	float32 minSeparation = 0.0f;
+	scalar minSeparation = scalar(0);
 
-	for (u32 i = 0; i < m_bodyContactCount; ++i)
+	for (u32 i = 0; i < m_shapeContactCount; ++i)
 	{
-		b3SoftBodySolverBodyContactPositionConstraint* pc = m_bodyPositionConstraints + i;
+		b3SoftBodySolverShapeContactPositionConstraint* pc = m_shapePositionConstraints + i;
 
 		u32 indexA = pc->indexA;
-		float32 mA = pc->invMassA;
-		b3Mat33 iA = pc->invIA;
-		b3Vec3 localCenterA = pc->localCenterA;
-
-		b3Body* bodyB = pc->bodyB;
-		float32 mB = pc->invMassB;
-		b3Mat33 iB = pc->invIB;
-		b3Vec3 localCenterB = pc->localCenterB;
-
+		scalar mA = pc->invMassA;
 		b3Vec3 cA = m_positions[indexA];
-		b3Quat qA; qA.SetIdentity();
-
-		b3Vec3 cB = bodyB->m_sweep.worldCenter;
-		b3Quat qB = bodyB->m_sweep.orientation;
 
 		// Solve normal constraint
-		b3Transform xfA;
-		xfA.rotation = b3QuatMat33(qA);
-		xfA.position = cA - b3Mul(xfA.rotation, localCenterA);
-
-		b3Transform xfB;
-		xfB.rotation = b3QuatMat33(qB);
-		xfB.position = cB - b3Mul(xfB.rotation, localCenterB);
-
 		b3SoftBodySolverBodyContactSolverPoint cpcp;
-		cpcp.Initialize(pc, xfA, xfB);
+		cpcp.Initialize(pc, cA);
 
 		b3Vec3 normal = cpcp.normal;
-		b3Vec3 point = cpcp.point;
-		float32 separation = cpcp.separation;
+		scalar separation = cpcp.separation;
 
 		// Update max constraint error.
 		minSeparation = b3Min(minSeparation, separation);
 
 		// Allow some slop and prevent large corrections.
-		float32 C = b3Clamp(B3_BAUMGARTE * (separation + B3_LINEAR_SLOP), -B3_MAX_LINEAR_CORRECTION, 0.0f);
-
-		// Compute effective mass.
-		b3Vec3 rA = point - cA;
-		b3Vec3 rB = point - cB;
-
-		b3Vec3 rnA = b3Cross(rA, normal);
-		b3Vec3 rnB = b3Cross(rB, normal);
-		float32 K = mA + mB + b3Dot(rnA, iA * rnA) + b3Dot(rnB, iB * rnB);
+		scalar C = b3Clamp(B3_BAUMGARTE * (separation + B3_LINEAR_SLOP), -B3_MAX_LINEAR_CORRECTION, scalar(0));
 
 		// Compute normal impulse.
-		float32 impulse = K > 0.0f ? -C / K : 0.0f;
+		scalar impulse = mA > scalar(0) ? -C / mA : scalar(0);
+		
 		b3Vec3 P = impulse * normal;
 
-		cA -= mA * P;
-		qA -= b3Derivative(qA, iA * b3Cross(rA, P));
-		qA.Normalize();
-
-		cB += mB * P;
-		qB += b3Derivative(qB, iB * b3Cross(rB, P));
-		qB.Normalize();
+		cA += mA * P;
 
 		m_positions[indexA] = cA;
-
-		bodyB->m_sweep.worldCenter = cB;
-		bodyB->m_sweep.orientation = qB;
 	}
 
-	return minSeparation >= -3.0f * B3_LINEAR_SLOP;
+	return minSeparation >= scalar(-3) * B3_LINEAR_SLOP;
 }

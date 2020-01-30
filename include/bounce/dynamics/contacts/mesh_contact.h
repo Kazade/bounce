@@ -22,7 +22,7 @@
 #include <bounce/dynamics/contacts/contact.h>
 #include <bounce/dynamics/contacts/manifold.h>
 #include <bounce/dynamics/contacts/collide/collide.h>
-#include <bounce/collision/shapes/aabb3.h>
+#include <bounce/collision/shapes/aabb.h>
 
 // This structure helps replicate the convex contact per convex-triangle pair scenario, 
 // but efficiently. There is no need to store a manifold here since they're reduced 
@@ -46,10 +46,8 @@ struct b3MeshContactLink
 class b3MeshContact : public b3Contact
 {
 public:
-private:
-	friend class b3ContactManager;
-	friend class b3List2<b3MeshContact>;
-	friend class b3StaticTree;
+	static b3Contact* Create(b3Shape* shapeA, b3Shape* shapeB, b3BlockPool* allocator);
+	static void Destroy(b3Contact* contact, b3BlockPool* allocator);
 
 	b3MeshContact(b3Shape* shapeA, b3Shape* shapeB);
 	~b3MeshContact();
@@ -57,12 +55,10 @@ private:
 	bool TestOverlap();
 
 	void Collide();
-	
-	void CollideSphere();
 
 	void SynchronizeShapes();
 
-	bool MoveAABB(const b3AABB3& aabb, const b3Vec3& displacement);
+	bool MoveAABB(const b3AABB& aabb, const b3Vec3& displacement);
 
 	void FindNewPairs();
 
@@ -70,10 +66,10 @@ private:
 	bool Report(u32 proxyId);
 
 	// Did the AABB move significantly?
-	bool m_aabbMoved;
+	bool m_aabbBMoved;
 
-	// The AABB A relative to shape B's origin.
-	b3AABB3 m_aabbA; 
+	// The AABB B relative to shape A's origin.
+	b3AABB m_aabbB; 
 	
 	// Triangles potentially overlapping with the first shape.
 	u32 m_triangleCapacity;

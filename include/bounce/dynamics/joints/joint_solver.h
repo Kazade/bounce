@@ -34,7 +34,7 @@ struct b3Jacobian
 
 struct b3JointSolverDef 
 {
-	float32 dt;
+	scalar dt;
 	u32 count;
 	b3Joint** joints;
 	b3Position* positions;

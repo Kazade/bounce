@@ -24,23 +24,17 @@ class DeepCapsule : public Collide
 public:
 	DeepCapsule()
 	{
-		m_xfA.position.Set(0.0f, 0.0f, 0.0f);
-		m_xfA.rotation = b3QuatMat33(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.55f * B3_PI));
-		
-		m_sA.m_centers[0].Set(1.0f, -1.0f, 0.0f);
-		m_sA.m_centers[1].Set(0.0f, 1.0f, 0.0f);
-		m_sA.m_radius = 2.0f;
+		m_box.SetExtents(4.0f, 1.0f, 4.0f);
+		m_sA.m_hull = &m_box;
 
-		m_xfB.position.Set(0.f, 0.0f, 0.0f);
-		m_xfB.rotation = b3QuatMat33(b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.0f * B3_PI));
+		m_xfA.SetIdentity();
 
-		b3Transform xf;
-		xf.SetIdentity();
-		xf.rotation = b3Diagonal(4.0f, 1.0f, 4.0f);
+		m_sB.m_vertex1.Set(1.0f, -1.0f, 0.0f);
+		m_sB.m_vertex2.Set(0.0f, 1.0f, 0.0f);
+		m_sB.m_radius = 2.0f;
 
-		m_box.SetTransform(xf);
-
-		m_sB.m_hull = &m_box;
+		m_xfB.translation.Set(0.0f, 0.0f, 0.0f);
+		m_xfB.rotation = b3QuatRotationZ(0.55f * B3_PI);
 
 		m_shapeA = &m_sA;
 		m_shapeB = &m_sB;
@@ -52,8 +46,8 @@ public:
 		return new DeepCapsule();
 	}
 
-	b3CapsuleShape m_sA;
-	b3HullShape m_sB;
+	b3HullShape m_sA;
+	b3CapsuleShape m_sB;
 	b3BoxHull m_box;
 };
 

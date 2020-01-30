@@ -29,12 +29,43 @@ struct b3Mat22
 
 	// Set this matrix from two vectors.
 	b3Mat22(const b3Vec2& _x, const b3Vec2& _y) : x(_x), y(_y) { }
+	
+	// Read an indexed column vector from this matrix.
+	const b3Vec2& operator[](u32 i) const
+	{
+		return (&x)[i];
+	}
+
+	// Write an indexed column vector to this matrix.
+	b3Vec2& operator[](u32 i)
+	{
+		return (&x)[i];
+	}
+
+	// Read an indexed element from this matrix.
+	scalar operator()(u32 i, u32 j) const
+	{
+		return (&x.x)[i + 2 * j];
+	}
+
+	// Write an indexed element from this matrix.
+	scalar& operator()(u32 i, u32 j)
+	{
+		return (&x.x)[i + 2 * j];
+	}
 
 	// Set this matrix to the zero matrix.
 	void SetZero()
 	{
 		x.SetZero();
 		y.SetZero();
+	}
+
+	// Set this matrix to the identity matrix.
+	void SetIdentity()
+	{
+		x.Set(scalar(1), scalar(0));
+		y.Set(scalar(0), scalar(1));
 	}
 
 	// Solve Ax = b. 
@@ -64,10 +95,37 @@ inline b3Mat22 operator+(const b3Mat22& A, const b3Mat22& B)
 	return b3Mat22(A.x + B.x, A.y + B.y);
 }
 
+// Subtract two matrices.
+inline b3Mat22 operator-(const b3Mat22& A, const b3Mat22& B)
+{
+	return b3Mat22(A.x - B.x, A.y - B.y);
+}
+
+// Multiply two matrices.
+inline b3Mat22 operator*(const b3Mat22& A, const b3Mat22& B)
+{
+	return b3Mat22(A * B.x, A * B.y);
+}
+
+// Multiply a scalar times a matrix.
+inline b3Mat22 operator*(scalar s, const b3Mat22& A)
+{
+	return b3Mat22(s * A.x, s * A.y);
+}
+
 // Multiply a matrix times a vector.
 inline b3Vec2 b3Mul(const b3Mat22& A, const b3Vec2& v)
 {
 	return v.x * A.x + v.y * A.y;
+}
+
+// Transpose a matrix.
+inline b3Mat22 b3Transpose(const b3Mat22& A)
+{
+	return b3Mat22(
+		b3Vec2(A.x.x, A.y.x),
+		b3Vec2(A.x.y, A.y.y)
+	);
 }
 
 // Invert a matrix.

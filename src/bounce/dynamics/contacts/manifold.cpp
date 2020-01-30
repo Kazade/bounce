@@ -22,12 +22,15 @@ void b3Manifold::Initialize()
 {
 	pointCount = 0;
 	tangentImpulse.SetZero();
-	motorImpulse = 0.0f;
+	motorImpulse = scalar(0);
+	motorSpeed = scalar(0);
+	tangentSpeed1 = scalar(0);
+	tangentSpeed2 = scalar(0);
 	for (u32 i = 0; i < B3_MAX_MANIFOLD_POINTS; ++i)
 	{
 		b3ManifoldPoint* p = points + i;
-		p->normalImpulse = 0.0f;
-		p->persisting = 0;
+		p->normalImpulse = scalar(0);
+		p->persistCount = 0;
 	}
 }
 
@@ -47,28 +50,28 @@ void b3Manifold::Initialize(const b3Manifold& oldManifold)
 			if (p2->key == p1->key)
 			{
 				p1->normalImpulse = p2->normalImpulse;
-				p1->persisting = 1;
+				p1->persistCount = p2->persistCount + 1;
 				break;
 			}
 		}
 	}
 }
 
-void b3WorldManifoldPoint::Initialize(const b3ManifoldPoint* p, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB)
+void b3WorldManifoldPoint::Initialize(const b3ManifoldPoint* p, scalar rA, const b3Transform& xfA, scalar rB, const b3Transform& xfB)
 {
-	b3Vec3 nA = xfA.rotation * p->localNormal1;
+	b3Vec3 nA = b3Mul(xfA.rotation, p->localNormal1);
 	b3Vec3 cA = xfA * p->localPoint1;
 	b3Vec3 cB = xfB * p->localPoint2;
 
 	b3Vec3 pA = cA + rA * nA;
 	b3Vec3 pB = cB - rB * nA;
 	
-	point = 0.5f * (pA + pB);
+	point = scalar(0.5) * (pA + pB);
 	normal = nA;
 	separation = b3Dot(cB - cA, nA) - rA - rB;
 }
 
-void b3WorldManifold::Initialize(const b3Manifold* m, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB)
+void b3WorldManifold::Initialize(const b3Manifold* m, scalar rA, const b3Transform& xfA, scalar rB, const b3Transform& xfB)
 {
 	center.SetZero();
 	normal.SetZero();
@@ -86,7 +89,7 @@ void b3WorldManifold::Initialize(const b3Manifold* m, float32 rA, const b3Transf
 
 	if (pointCount > 0)
 	{
-		center /= float32(pointCount);
+		center /= scalar(pointCount);
 		normal.Normalize();
 
 		tangent1 = b3Perp(normal);

@@ -24,17 +24,15 @@ class BoxStack : public Test
 public:
 	enum
 	{
-		e_rowCount = 1,
-		e_columnCount = 5,
-		e_depthCount = 1
+		e_h = 5,
+		e_w = 1,
+		e_d = 1
 	};
 
 	BoxStack()
 	{
 		{
 			b3BodyDef bdef;
-			bdef.type = b3BodyType::e_staticBody;
-
 			b3Body* body = m_world.CreateBody(bdef);
 
 			b3HullShape hs;
@@ -47,30 +45,53 @@ public:
 			body->CreateShape(sdef);
 		}
 
-		b3Vec3 boxScale(1.0f, 1.0f, 1.0f);
+		b3Vec3 e(1.0f, 1.0f, 1.0f);
 
-		b3Vec3 stackOrigin(0.0f, 4.05f, 0.0f);
+		m_boxHull.SetExtents(e.x, e.y, e.z);
 
-		for (u32 i = 0; i < e_rowCount; ++i)
+		b3Vec3 separation;
+		separation.x = 1.0f;
+		separation.y = 1.0f;
+		separation.z = 1.0f;
+
+		b3Vec3 scale;
+		scale.x = 2.0f * e.x + separation.x;
+		scale.y = 2.0f * e.y + separation.y;
+		scale.z = 2.0f * e.z + separation.z;
+
+		b3Vec3 size;
+		size.x = 2.0f * e.x + scale.x * scalar(e_w - 1);
+		size.y = 2.0f * e.y + scale.y * scalar(e_h - 1);
+		size.z = 2.0f * e.z + scale.z * scalar(e_d - 1);
+
+		b3Vec3 translation;
+		translation.x = e.x - 0.5f * size.x;
+		translation.y = e.y - 0.5f * size.y;
+		translation.z = e.z - 0.5f * size.z;
+
+		translation.y += 9.0f;
+
+		for (u32 i = 0; i < e_h; ++i)
 		{
-			for (u32 j = 0; j < e_columnCount; ++j)
+			for (u32 j = 0; j < e_w; ++j)
 			{
-				for (u32 k = 0; k < e_depthCount; ++k)
+				for (u32 k = 0; k < e_d; ++k)
 				{
 					b3BodyDef bdef;
-					bdef.type = b3BodyType::e_dynamicBody;
-					bdef.orientation.Set(b3Vec3(0.0f, 1.0f, 0.0f), 0.5f * B3_PI);
+					bdef.type = e_dynamicBody;
 
-					bdef.position.x = float32(i) * boxScale.x;
-					bdef.position.y = 2.5f * float32(j) * boxScale.y;
-					bdef.position.z = float32(k) * boxScale.z;
+					bdef.position.Set(scalar(j), scalar(i), scalar(k));
 
-					bdef.position += stackOrigin;
+					bdef.position.x *= scale.x;
+					bdef.position.y *= scale.y;
+					bdef.position.z *= scale.z;
+
+					bdef.position += translation;
 
 					b3Body* body = m_world.CreateBody(bdef);
 
 					b3HullShape hs;
-					hs.m_hull = &b3BoxHull_identity;
+					hs.m_hull = &m_boxHull;
 
 					b3ShapeDef sdef;
 					sdef.density = 0.1f;
@@ -78,15 +99,30 @@ public:
 					sdef.shape = &hs;
 
 					body->CreateShape(sdef);
+
+					u32 bodyIndex = GetBodyIndex(i, j, k);
+
+					m_bodies[bodyIndex] = body;
 				}
 			}
 		}
+	}
+
+	u32 GetBodyIndex(u32 i, u32 j, u32 k)
+	{
+		B3_ASSERT(i < e_h);
+		B3_ASSERT(j < e_w);
+		B3_ASSERT(k < e_d);
+		return k + e_d * (j + e_w * i);
 	}
 
 	static Test* Create()
 	{
 		return new BoxStack();
 	}
+
+	b3BoxHull m_boxHull;
+	b3Body* m_bodies[e_h * e_w * e_d];
 };
 
 #endif

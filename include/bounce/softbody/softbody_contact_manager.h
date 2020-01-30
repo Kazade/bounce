@@ -19,10 +19,10 @@
 #ifndef B3_SOFTBODY_CONTACT_MANAGER_H
 #define B3_SOFTBODY_CONTACT_MANAGER_H
 
-#include <bounce/softbody/contacts/softbody_node_body_contact.h>
-#include <bounce/collision/broad_phase.h>
-#include <bounce/common/memory/block_pool.h>
 #include <bounce/common/template/list.h>
+#include <bounce/common/memory/block_pool.h>
+#include <bounce/collision/broad_phase.h>
+#include <bounce/softbody/contacts/softbody_sphere_shape_contact.h>
 
 class b3SoftBody;
 
@@ -32,17 +32,17 @@ class b3SoftBodyContactManager
 public:
 	b3SoftBodyContactManager();
 
-	void FindNewBodyContacts();
-	void AddNSPair(b3SoftBodyNode* n1, b3Shape* s2);
-	void UpdateBodyContacts();
+	void FindNewContacts();
+	void AddPair(void* data1, void* data2);
+	void UpdateContacts();
 
-	b3NodeBodyContact* CreateNodeBodyContact();
-	void Destroy(b3NodeBodyContact* c);
+	b3SoftBodySphereAndShapeContact* CreateSphereAndShapeContact();
+	void Destroy(b3SoftBodySphereAndShapeContact* c);
 
-	b3BlockPool m_nodeBodyContactBlocks;
+	b3BlockPool m_sphereAndShapeContactBlocks;
 	b3SoftBody* m_body;
 	b3BroadPhase m_broadPhase;
-	b3List2<b3NodeBodyContact> m_nodeBodyContactList;
+	b3List2<b3SoftBodySphereAndShapeContact> m_sphereAndShapeContactList;
 };
 
 #endif

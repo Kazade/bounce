@@ -28,7 +28,7 @@ struct b3Vec4
 	b3Vec4() { }
 
 	//
-	b3Vec4(float32 _x, float32 _y, float32 _z, float32 _w)
+	b3Vec4(scalar _x, scalar _y, scalar _z, scalar _w)
 	{
 		x = _x;
 		y = _y;
@@ -39,13 +39,10 @@ struct b3Vec4
 	//
 	void SetZero()
 	{
-		x = 0.0f;
-		y = 0.0f;
-		z = 0.0f;
-		w = 0.0f;
+		x = y = z = w = scalar(0);
 	}
 	
-	float32 x, y, z, w;
+	scalar x, y, z, w;
 };
 
 //
@@ -61,13 +58,13 @@ inline b3Vec4 operator-(const b3Vec4& a, const b3Vec4& b)
 }
 
 //
-inline b3Vec4 operator*(float32 s, const b3Vec4& v)
+inline b3Vec4 operator*(scalar s, const b3Vec4& v)
 {
 	return b3Vec4(s * v.x, s * v.y, s * v.z, s * v.w);
 }
 
 //  
-inline float32 operator*(const b3Vec4& A, const b3Vec4& B)
+inline scalar operator*(const b3Vec4& A, const b3Vec4& B)
 {
 	return A.x * B.x + A.y * B.y + A.z * B.z + A.w * B.w;
 }

@@ -43,9 +43,9 @@ public:
 
 	void EndEvents();
 
-	void BeginEvent(const char* name, float64 time);
+	void BeginEvent(const char* name, scalar64 time);
 
-	void EndEvent(const char* name, float64 time);
+	void EndEvent(const char* name, scalar64 time);
 private:
 	FILE* m_file;
 	FileWriteStream* m_stream;

@@ -51,6 +51,18 @@ public:
 	// Get the anchor point on body B in world coordinates.
 	b3Vec3 GetAnchorB() const;
 	
+	// Get the local anchor point relative to body A's origin.
+	const b3Vec3& GetLocalAnchorA() const
+	{
+		return m_localAnchorA;
+	}
+
+	// Get the local anchor point relative to body B's origin.
+	const b3Vec3& GetLocalAnchorB() const
+	{
+		return m_localAnchorB;
+	}
+
 	// Draw this joint.
 	void Draw() const;
 private:
@@ -72,8 +84,8 @@ private:
 	// Solver temp
 	u32 m_indexA;
 	u32 m_indexB;
-	float32 m_mA;
-	float32 m_mB;
+	scalar m_mA;
+	scalar m_mB;
 	b3Mat33 m_iA;
 	b3Mat33 m_iB;
 	

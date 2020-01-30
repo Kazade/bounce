@@ -19,8 +19,10 @@
 #include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/shapes/sphere_shape.h>
 #include <bounce/dynamics/shapes/capsule_shape.h>
+#include <bounce/dynamics/shapes/triangle_shape.h>
 #include <bounce/dynamics/shapes/hull_shape.h>
 #include <bounce/dynamics/shapes/mesh_shape.h>
+#include <bounce/dynamics/shapes/sdf_shape.h>
 #include <bounce/dynamics/body.h>
 #include <bounce/dynamics/world.h>
 #include <bounce/dynamics/contacts/contact.h>
@@ -28,12 +30,13 @@
 #include <bounce/collision/shapes/capsule.h>
 #include <bounce/collision/shapes/hull.h>
 #include <bounce/collision/shapes/mesh.h>
+#include <bounce/collision/shapes/sdf.h>
 
 b3Shape::b3Shape() 
 {
-	m_density = 0.0f;
-	m_friction = 0.0f;
-	m_restitution = 0.0f;
+	m_density = scalar(0);
+	m_friction = scalar(0);
+	m_restitution = scalar(0);
 	
 	m_isSensor = false;
 	m_userData = nullptr;
@@ -65,9 +68,14 @@ void b3Shape::DestroyContacts()
 	}
 }
 
-const b3AABB3& b3Shape::GetAABB() const
+const b3AABB& b3Shape::GetAABB() const
 {
 	return m_body->GetWorld()->m_contactMan.m_broadPhase.GetAABB(m_broadPhaseID);
+}
+
+void b3Shape::SetShape(b3Shape* shape)
+{
+	m_body = shape->GetBody();
 }
 
 void b3Shape::Dump(u32 bodyIndex) const
@@ -86,9 +94,19 @@ void b3Shape::Dump(u32 bodyIndex) const
 	{
 		b3CapsuleShape* capsule = (b3CapsuleShape*) this;
 		b3Log("		b3CapsuleShape shape;\n");
-		b3Log("		shape.m_centers[0].Set(%f, %f, %f);\n", capsule->m_centers[0].x, capsule->m_centers[0].y, capsule->m_centers[0].z);
-		b3Log("		shape.m_centers[1].Set(%f, %f, %f);\n", capsule->m_centers[1].x, capsule->m_centers[1].y, capsule->m_centers[1].z);
+		b3Log("		shape.m_centers[0].Set(%f, %f, %f);\n", capsule->m_vertex1.x, capsule->m_vertex1.y, capsule->m_vertex1.z);
+		b3Log("		shape.m_centers[1].Set(%f, %f, %f);\n", capsule->m_vertex2.x, capsule->m_vertex2.y, capsule->m_vertex2.z);
 		b3Log("		shape.m_radius = %f;\n", capsule->m_radius);
+		break;
+	}
+	case e_triangleShape:
+	{
+		b3TriangleShape* triangle = (b3TriangleShape*)this;
+		b3Log("		b3TriangleShape shape;\n");
+		b3Log("		shape.m_vertex1.Set(%f, %f, %f);\n", triangle->m_vertex1.x, triangle->m_vertex1.y, triangle->m_vertex1.z);
+		b3Log("		shape.m_vertex2.Set(%f, %f, %f);\n", triangle->m_vertex2.x, triangle->m_vertex2.y, triangle->m_vertex2.z);
+		b3Log("		shape.m_vertex3.Set(%f, %f, %f);\n", triangle->m_vertex3.x, triangle->m_vertex3.y, triangle->m_vertex3.z);
+		b3Log("		shape.m_radius = %f;\n", triangle->m_radius);
 		break;
 	}
 	case e_hullShape:
@@ -125,6 +143,7 @@ void b3Shape::Dump(u32 bodyIndex) const
 			b3Log("		h->edges[%d].origin = %d;\n", i, e->origin);
 			b3Log("		h->edges[%d].twin = %d;\n", i, e->twin);
 			b3Log("		h->edges[%d].face = %d;\n", i, e->face);
+			b3Log("		h->edges[%d].prev = %d;\n", i, e->prev);
 			b3Log("		h->edges[%d].next = %d;\n", i, e->next);
 		}
 		b3Log("		\n");
@@ -160,8 +179,8 @@ void b3Shape::Dump(u32 bodyIndex) const
 		b3Log("		marker += 1 * sizeof(b3Mesh);\n");
 		b3Log("		m->vertices = (b3Vec3*)marker;\n");
 		b3Log("		marker += %d * sizeof(b3Vec3);\n", m->vertexCount);
-		b3Log("		m->triangles = (b3Triangle*)marker;\n");
-		b3Log("		marker += %d * sizeof(b3Triangle);\n", m->triangleCount);
+		b3Log("		m->triangles = (b3MeshTriangle*)marker;\n");
+		b3Log("		marker += %d * sizeof(b3MeshTriangle);\n", m->triangleCount);
 		b3Log("		m->planes = (b3Plane*)marker;\n");
 		b3Log("		marker += %d * sizeof(b3Plane);\n", 2 * m->triangleCount);
 		b3Log("		\n");
@@ -173,7 +192,7 @@ void b3Shape::Dump(u32 bodyIndex) const
 		b3Log("		\n");
 		for (u32 i = 0; i < m->triangleCount; ++i)
 		{
-			const b3Triangle* t = m->triangles + i;
+			const b3MeshTriangle* t = m->triangles + i;
 			b3Log("		m->triangles[%d].v1 = %d;\n", i, t->v1);
 			b3Log("		m->triangles[%d].v2 = %d;\n", i, t->v2);
 			b3Log("		m->triangles[%d].v3 = %d;\n", i, t->v3);
@@ -185,6 +204,10 @@ void b3Shape::Dump(u32 bodyIndex) const
 		b3Log("		b3MeshShape shape;\n");
 		b3Log("		shape.m_mesh = m;\n");
 		b3Log("		shape.m_radius = %f;\n", m_radius);
+		break;
+	}
+	case e_sdfShape:
+	{
 		break;
 	}
 	default:
@@ -207,7 +230,7 @@ void b3Shape::Dump(u32 bodyIndex) const
 
 b3Shape* b3Shape::Create(const b3ShapeDef& def)
 {
-	b3Shape* shape = NULL;
+	b3Shape* shape = nullptr;
 	switch (def.shape->GetType())
 	{
 	case e_sphereShape:
@@ -231,6 +254,16 @@ b3Shape* b3Shape::Create(const b3ShapeDef& def)
 		shape = caps2;
 		break;
 	}
+	case e_triangleShape:
+	{
+		// Grab pointer to the specific memory.
+		b3TriangleShape* triangle1 = (b3TriangleShape*)def.shape;
+		void* block = b3Alloc(sizeof(b3TriangleShape));
+		b3TriangleShape* triangle2 = new (block)b3TriangleShape();
+		triangle2->Swap(*triangle1);
+		shape = triangle2;
+		break;
+	}
 	case e_hullShape:
 	{
 		// Grab pointer to the specific memory.
@@ -250,6 +283,17 @@ b3Shape* b3Shape::Create(const b3ShapeDef& def)
 		// Clone the mesh.
 		mesh2->Swap(*mesh1);
 		shape = mesh2;
+		break;
+	}
+	case e_sdfShape:
+	{
+		// Grab pointer to the specific memory.
+		b3SDFShape* sdf1 = (b3SDFShape*)def.shape;
+		void* block = b3Alloc(sizeof(b3SDFShape));
+		b3SDFShape* sdf2 = new (block) b3SDFShape();
+		// Clone the SDF.
+		sdf2->Swap(*sdf1);
+		shape = sdf2;
 		break;
 	}
 	default:
@@ -281,6 +325,13 @@ void b3Shape::Destroy(b3Shape* shape)
 		b3Free(shape);
 		break;
 	}
+	case e_triangleShape:
+	{
+		b3TriangleShape* triangle = (b3TriangleShape*)shape;
+		triangle->~b3TriangleShape();
+		b3Free(shape);
+		break;
+	}
 	case e_hullShape:
 	{
 		b3HullShape* hull = (b3HullShape*)shape;
@@ -292,6 +343,13 @@ void b3Shape::Destroy(b3Shape* shape)
 	{
 		b3MeshShape* mesh = (b3MeshShape*)shape;
 		mesh->~b3MeshShape();
+		b3Free(shape);
+		break;
+	}
+	case e_sdfShape:
+	{
+		b3SDFShape* sdf = (b3SDFShape*)shape;
+		sdf->~b3SDFShape();
 		b3Free(shape);
 		break;
 	}

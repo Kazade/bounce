@@ -18,336 +18,436 @@
 
 #include <bounce/cloth/cloth.h>
 #include <bounce/cloth/cloth_mesh.h>
-#include <bounce/cloth/particle.h>
-#include <bounce/cloth/cloth_triangle.h>
-#include <bounce/cloth/forces/strech_force.h>
+#include <bounce/cloth/cloth_particle.h>
+#include <bounce/cloth/shapes/cloth_sphere_shape.h>
+#include <bounce/cloth/shapes/cloth_capsule_shape.h>
+#include <bounce/cloth/shapes/cloth_triangle_shape.h>
+#include <bounce/cloth/shapes/cloth_world_shape.h>
+#include <bounce/cloth/cloth_solver.h>
+#include <bounce/cloth/cloth_time_step.h>
+#include <bounce/cloth/forces/stretch_force.h>
 #include <bounce/cloth/forces/shear_force.h>
 #include <bounce/cloth/forces/spring_force.h>
-#include <bounce/cloth/cloth_solver.h>
+#include <bounce/cloth/forces/element_force.h>
 #include <bounce/common/draw.h>
 
-static B3_FORCE_INLINE u32 b3NextIndex(u32 i)
+b3Cloth::b3Cloth() :
+	m_particleBlocks(sizeof(b3ClothParticle)),
+	m_sphereShapeBlocks(sizeof(b3ClothSphereShape)),
+	m_capsuleShapeBlocks(sizeof(b3ClothCapsuleShape)),
+	m_triangleShapeBlocks(sizeof(b3ClothTriangleShape)),
+	m_worldShapeBlocks(sizeof(b3ClothWorldShape))
 {
-	return i + 1 < 3 ? i + 1 : 0;
-}
-
-struct b3SharedEdge
-{
-	u32 v1, v2;
-	u32 nsv1, nsv2;
-};
-
-static u32 b3FindSharedEdges(b3SharedEdge* sharedEdges, const b3ClothMesh* m)
-{
-	u32 sharedCount = 0;
-
-	for (u32 i = 0; i < m->triangleCount; ++i)
-	{
-		b3ClothMeshTriangle* t1 = m->triangles + i;
-		u32 i1s[3] = { t1->v1, t1->v2, t1->v3 };
-
-		for (u32 j1 = 0; j1 < 3; ++j1)
-		{
-			u32 k1 = j1 + 1 < 3 ? j1 + 1 : 0;
-
-			u32 t1v1 = i1s[j1];
-			u32 t1v2 = i1s[k1];
-
-			for (u32 j = i + 1; j < m->triangleCount; ++j)
-			{
-				b3ClothMeshTriangle* t2 = m->triangles + j;
-				u32 i2s[3] = { t2->v1, t2->v2, t2->v3 };
-
-				for (u32 j2 = 0; j2 < 3; ++j2)
-				{
-					u32 k2 = j2 + 1 < 3 ? j2 + 1 : 0;
-
-					u32 t2v1 = i2s[j2];
-					u32 t2v2 = i2s[k2];
-
-					if (t1v1 == t2v2 && t1v2 == t2v1)
-					{
-						// The triangles are adjacent.
-						u32 k3 = k1 + 1 < 3 ? k1 + 1 : 0;
-						u32 t1v3 = i1s[k3];
-
-						u32 k4 = k2 + 1 < 3 ? k2 + 1 : 0;
-						u32 t2v3 = i2s[k4];
-
-						// Add shared edge and non-shared vertices.
-						b3SharedEdge se;
-						se.v1 = t1v1;
-						se.v2 = t1v2;
-						se.nsv1 = t1v3;
-						se.nsv2 = t2v3;
-
-						sharedEdges[sharedCount++] = se;
-
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	return sharedCount;
+	m_contactManager.m_cloth = this;
+	m_gravity.SetZero();
+	m_enableSelfCollision = false;
+	m_inv_dt0 = scalar(0);
+	m_mesh = nullptr;
+	m_particles = nullptr;
+	m_spheres = nullptr;
+	m_triangles = nullptr;
 }
 
 b3Cloth::b3Cloth(const b3ClothDef& def) :
-	m_particleBlocks(sizeof(b3Particle))
+	m_particleBlocks(sizeof(b3ClothParticle)),
+	m_sphereShapeBlocks(sizeof(b3ClothSphereShape)),
+	m_capsuleShapeBlocks(sizeof(b3ClothCapsuleShape)),
+	m_triangleShapeBlocks(sizeof(b3ClothTriangleShape)),
+	m_worldShapeBlocks(sizeof(b3ClothWorldShape))
 {
 	B3_ASSERT(def.mesh);
-	B3_ASSERT(def.density > 0.0f);
+	B3_ASSERT(def.density > scalar(0));
 
-	m_mesh = def.mesh;
-	m_density = def.density;
 	m_contactManager.m_cloth = this;
+	m_gravity.SetZero();
+	m_enableSelfCollision = false;
+	m_inv_dt0 = scalar(0);
+	m_mesh = def.mesh;
 
-	const b3ClothMesh* m = m_mesh;
+	const b3ClothMesh* m = def.mesh;
 
-	// Initialize particles
-	m_particles = (b3Particle**)b3Alloc(m->vertexCount * sizeof(b3Particle*));
+	// Create particles and spheres
+	m_particles = (b3ClothParticle * *)b3Alloc(m->vertexCount * sizeof(b3ClothParticle*));
+	m_spheres = (b3ClothSphereShape * *)b3Alloc(m->vertexCount * sizeof(b3ClothSphereShape*));
 	for (u32 i = 0; i < m->vertexCount; ++i)
 	{
-		b3ParticleDef pd;
-		pd.type = e_dynamicParticle;
-		pd.mass = 1.0f;
-		pd.radius = def.thickness;
-		pd.friction = def.friction;
+		b3ClothParticleDef pd;
+		pd.type = e_dynamicClothParticle;
 		pd.position = m->vertices[i];
+		pd.meshIndex = i;
 
-		b3Particle* p = CreateParticle(pd);
+		m_particles[i] = nullptr;
+		b3ClothParticle* p = CreateParticle(pd);
 
-		p->m_vertex = i;
-		m_particles[i] = p;
+		b3ClothSphereShapeDef sd;
+		sd.p = p;
+		sd.radius = def.thickness;
+		sd.friction = def.friction;
+		sd.meshIndex = i;
+
+		m_spheres[i] = nullptr;
+		b3ClothSphereShape* s = CreateSphereShape(sd);
 	}
 
-	// Compute mass
-	ComputeMass();
-
-	// Initialize triangles
-	m_triangles = (b3ClothTriangle*)b3Alloc(m_mesh->triangleCount * sizeof(b3ClothTriangle));
-	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
+	// Create triangles and capsules
+	m_triangles = (b3ClothTriangleShape * *)b3Alloc(m->triangleCount * sizeof(b3ClothTriangleShape*));
+	for (u32 i = 0; i < m->triangleCount; ++i)
 	{
-		b3ClothMeshTriangle* meshTriangle = m_mesh->triangles + i;
-		b3ClothTriangle* triangle = m_triangles + i;
+		b3ClothMeshTriangle* meshTriangle = m->triangles + i;
 
-		triangle->m_cloth = this;
-		triangle->m_radius = def.thickness;
-		triangle->m_friction = def.friction;
-		triangle->m_triangle = i;
+		u32 v1 = meshTriangle->v1;
+		u32 v2 = meshTriangle->v2;
+		u32 v3 = meshTriangle->v3;
 
-		b3Vec3 A = m_mesh->vertices[meshTriangle->v1];
-		b3Vec3 B = m_mesh->vertices[meshTriangle->v2];
-		b3Vec3 C = m_mesh->vertices[meshTriangle->v3];
-
-		b3AABB3 aabb;
-		aabb.Set(A, B, C);
-		aabb.Extend(triangle->m_radius);
-
-		triangle->m_aabbProxy.type = e_triangleProxy;
-		triangle->m_aabbProxy.owner = triangle;
-		triangle->m_broadPhaseId = m_contactManager.m_broadPhase.CreateProxy(aabb, &triangle->m_aabbProxy);
-
-		b3Vec3 AB = B - A;
-		b3Vec3 AC = C - A;
-
-		// uv1
-		float32 u1 = 0.0f;
-		float32 v1 = 0.0f;
-
-		// uv2
-		float32 u2 = b3Length(AB);
-		float32 v2 = 0.0f;
-
-		// uv3
-		B3_ASSERT(u2 > 0.0f);
-		b3Vec3 n_AB = AB / u2;
-
-		// A  = b * h / 2
-		// h = (A * 2) / b
-		float32 A2 = b3Length(b3Cross(AB, AC));
-		B3_ASSERT(A2 > 0.0f);
-
-		float32 u3 = b3Dot(AC, n_AB);
-		float32 v3 = A2 / u2;
-
-		// Strech matrix
-		float32 du1 = u2 - u1;
-		float32 dv1 = v2 - v1;
-		float32 du2 = u3 - u1;
-		float32 dv2 = v3 - v1;
+		b3ClothParticle* p1 = m_particles[v1];
+		b3ClothParticle* p2 = m_particles[v2];
+		b3ClothParticle* p3 = m_particles[v3];
 		
-		triangle->m_du1 = du1;
-		triangle->m_dv1 = dv1;
-		triangle->m_du2 = du2;
-		triangle->m_dv2 = dv2;
+		b3ClothTriangleShapeDef td;
+		td.p1 = p1;
+		td.p2 = p2;
+		td.p3 = p3;
+		td.v1 = m->vertices[v1];
+		td.v2 = m->vertices[v2];
+		td.v3 = m->vertices[v3];
+		td.radius = def.thickness;
+		td.friction = def.friction;
+		td.meshIndex = i;
 
-		float32 det = du1 * dv2 - du2 * dv1;
-		B3_ASSERT(det != 0.0f);
-		triangle->m_inv_det = 1.0f / det;
+		m_triangles[i] = nullptr;
+		b3ClothTriangleShape* ts = CreateTriangleShape(td);
 
-		// Area
-		triangle->m_alpha = 0.5f * A2;
-
-		// Create strech force
-		b3StrechForceDef sfdef;
-		sfdef.triangle = triangle;
-		sfdef.streching = def.streching;
-		sfdef.damping = def.damping;
-		sfdef.bu = 1.0f;
-		sfdef.bv = 1.0f;
-
-		if (def.streching > 0.0f)
 		{
-			CreateForce(sfdef);
+			b3ClothCapsuleShapeDef sd;
+			sd.p1 = p1;
+			sd.p2 = p2;
+			sd.radius = def.thickness;
+			sd.friction = def.friction;
+
+			CreateCapsuleShape(sd);
 		}
 
-		b3ShearForceDef shdef;
-		shdef.triangle = triangle;
-		shdef.shearing = def.shearing;
-		shdef.damping = def.damping;
-
-		if (def.shearing > 0.0f)
 		{
-			CreateForce(shdef);
+			b3ClothCapsuleShapeDef sd;
+			sd.p1 = p2;
+			sd.p2 = p3;
+			sd.radius = def.thickness;
+			sd.friction = def.friction;
+
+			CreateCapsuleShape(sd);
+		}
+
+		{
+			b3ClothCapsuleShapeDef sd;
+			sd.p1 = p3;
+			sd.p2 = p1;
+			sd.radius = def.thickness;
+			sd.friction = def.friction;
+
+			CreateCapsuleShape(sd);
 		}
 	}
 
-	// Initialize forces
-	b3StackAllocator* allocator = &m_stackAllocator;
-
-	// Worst-case edge memory
-	u32 edgeCount = 3 * m->triangleCount;
-
-	b3SharedEdge* sharedEdges = (b3SharedEdge*)allocator->Allocate(edgeCount * sizeof(b3SharedEdge));
-	u32 sharedCount = b3FindSharedEdges(sharedEdges, m);
-
-	// Bending
-	for (u32 i = 0; i < sharedCount; ++i)
+	if (def.streching > scalar(0))
 	{
-		b3SharedEdge* e = sharedEdges + i;
-
-		b3Particle* p1 = m_particles[e->v1];
-		b3Particle* p2 = m_particles[e->v2];
-		b3Particle* p3 = m_particles[e->nsv1];
-		b3Particle* p4 = m_particles[e->nsv2];
-
-		b3SpringForceDef fd;
-		fd.Initialize(p3, p4, def.bending, def.damping);
-
-		if (def.bending > 0.0f)
+		// Streching
+		for (u32 i = 0; i < m->triangleCount; ++i)
 		{
+			b3ClothMeshTriangle* t = m->triangles + i;
+
+			u32 v1 = t->v1;
+			u32 v2 = t->v2;
+			u32 v3 = t->v3;
+
+			b3ClothParticle* p1 = m_particles[v1];
+			b3ClothParticle* p2 = m_particles[v2];
+			b3ClothParticle* p3 = m_particles[v3];
+
+			b3Vec3 x1 = m->vertices[v1];
+			b3Vec3 x2 = m->vertices[v2];
+			b3Vec3 x3 = m->vertices[v3];
+
+			b3StretchForceDef fd;
+			fd.Initialize(x1, x2, x3);
+			
+			fd.p1 = p1;
+			fd.p2 = p2;
+			fd.p3 = p3;
+			fd.stretching_u = def.streching;
+			fd.damping_u = def.strechDamping;
+			fd.b_u = scalar(1);
+			fd.stretching_v = def.streching;
+			fd.damping_v = def.strechDamping;
+			fd.b_v = scalar(1);
+
 			CreateForce(fd);
 		}
 	}
-	
-	allocator->Free(sharedEdges);
 
-	// Sewing
-	for (u32 i = 0; i < m->sewingLineCount; ++i)
+	if (def.shearing > scalar(0))
 	{
-		b3ClothMeshSewingLine* line = m->sewingLines + i;
-
-		b3Particle* p1 = m_particles[line->v1];
-		b3Particle* p2 = m_particles[line->v2];
-
-		b3SpringForceDef fd;
-		fd.Initialize(p1, p2, def.sewing, def.damping);
-
-		if (def.sewing > 0.0f)
+		// Shearing
+		for (u32 i = 0; i < m->shearingLineCount; ++i)
 		{
+			b3ClothMeshShearingLine* line = m->shearingLines + i;
+
+			b3ClothParticle* p1 = m_particles[line->v1];
+			b3ClothParticle* p2 = m_particles[line->v2];
+
+			b3SpringForceDef fd;
+			fd.Initialize(p1, p2, def.shearing, def.shearDamping);
+
 			CreateForce(fd);
 		}
 	}
 
-	m_gravity.SetZero();
-	m_world = nullptr;
+	if (def.bending > scalar(0))
+	{
+		// Bending
+		for (u32 i = 0; i < m->bendingLineCount; ++i)
+		{
+			b3ClothMeshBendingLine* line = m->bendingLines + i;
+
+			b3ClothParticle* p1 = m_particles[line->v1];
+			b3ClothParticle* p2 = m_particles[line->v2];
+
+			b3SpringForceDef fd;
+			fd.Initialize(p1, p2, def.bending, def.bendDamping);
+
+			CreateForce(fd);
+		}
+	}
+
+	if (def.sewing > scalar(0))
+	{
+		// Sewing
+		for (u32 i = 0; i < m->sewingLineCount; ++i)
+		{
+			b3ClothMeshSewingLine* line = m->sewingLines + i;
+
+			b3ClothParticle* p1 = m_particles[line->v1];
+			b3ClothParticle* p2 = m_particles[line->v2];
+
+			b3SpringForceDef fd;
+			fd.Initialize(p1, p2, def.sewing, def.sewDamping);
+
+			CreateForce(fd);
+		}
+	}
 }
 
 b3Cloth::~b3Cloth()
 {
-	b3Free(m_particles);
-	b3Free(m_triangles);
-
-	b3Particle* p = m_particleList.m_head;
-	while (p)
-	{
-		b3Particle* p0 = p;
-		p = p->m_next;
-		p0->~b3Particle();
-	}
-
 	b3Force* f = m_forceList.m_head;
 	while (f)
 	{
-		b3Force* f0 = f;
+		b3Force* boom = f;
 		f = f->m_next;
-		b3Force::Destroy(f0);
-	}
-}
-
-void b3Cloth::SetWorld(b3World* world)
-{
-	if (!world && m_world)
-	{
-		// Destroy body contacts
-		b3ParticleBodyContact* c = m_contactManager.m_particleBodyContactList.m_head;
-		while (c)
-		{
-			b3ParticleBodyContact* boom = c;
-			c = c->m_next;
-			m_contactManager.Destroy(boom);
-		}
+		b3Force::Destroy(boom);
 	}
 
-	m_world = world;
+	b3Free(m_particles);
+	b3Free(m_spheres);
+	b3Free(m_triangles);
 }
 
-b3Particle* b3Cloth::CreateParticle(const b3ParticleDef& def)
+b3ClothParticle* b3Cloth::CreateParticle(const b3ClothParticleDef& def)
 {
 	void* mem = m_particleBlocks.Allocate();
-	b3Particle* p = new(mem) b3Particle(def, this);
-
-	b3AABB3 aabb;
-	aabb.Set(p->m_position, p->m_radius);
-
-	p->m_aabbProxy.type = e_particleProxy;
-	p->m_aabbProxy.owner = p;
-	p->m_broadPhaseId = m_contactManager.m_broadPhase.CreateProxy(aabb, &p->m_aabbProxy);
+	b3ClothParticle* p = new(mem) b3ClothParticle(def, this);
+	
+	if (p->m_meshIndex != B3_MAX_U32)
+	{
+		B3_ASSERT(m_particles[p->m_meshIndex] == nullptr);
+		m_particles[p->m_meshIndex] = p;
+	}
 
 	m_particleList.PushFront(p);
 
 	return p;
 }
 
-void b3Cloth::DestroyParticle(b3Particle* particle)
+void b3Cloth::DestroyParticle(b3ClothParticle* particle)
 {
-	B3_ASSERT(particle->m_vertex == ~0);
-	
-	// Destroy particle forces
-	b3Force* f = m_forceList.m_head;
-	while (f)
+	if (particle->m_meshIndex != B3_MAX_U32)
 	{
-		b3Force* f0 = f;
-		f = f->m_next;
-		
-		if (f0->HasParticle(particle))
+		m_particles[particle->m_meshIndex] = nullptr;
+	}
+
+	// Destroy shapes
+	particle->DestroySpheres();
+	particle->DestroyCapsules();
+	particle->DestroyTriangles();
+
+	// Destroy forces
+	particle->DestroyForces();
+
+	// Destroy contacts
+	particle->DestroyContacts();
+
+	m_particleList.Remove(particle);
+	particle->~b3ClothParticle();
+	m_particleBlocks.Free(particle);
+}
+
+b3ClothSphereShape* b3Cloth::CreateSphereShape(const b3ClothSphereShapeDef& def)
+{
+	// Check if the shape exists.
+	for (b3ClothSphereShape* s = m_sphereShapeList.m_head; s; s = s->m_next)
+	{
+		if (s->m_p == def.p)
 		{
-			m_forceList.Remove(f0);
-			b3Force::Destroy(f0);
+			return s;
 		}
 	}
 
-	// Destroy particle contacts
-	particle->DestroyContacts();
+	void* mem = m_sphereShapeBlocks.Allocate();
+	b3ClothSphereShape* s = new (mem)b3ClothSphereShape(def, this);
 
-	// Destroy AABB proxy
-	m_contactManager.m_broadPhase.DestroyProxy(particle->m_broadPhaseId);
+	s->m_radius = def.radius;
+	s->m_friction = def.friction;
+	s->m_density = def.density;
+	s->m_meshIndex = def.meshIndex;
 
-	m_particleList.Remove(particle);
-	particle->~b3Particle();
-	m_particleBlocks.Free(particle);
+	if (s->m_meshIndex != B3_MAX_U32)
+	{
+		B3_ASSERT(m_spheres[s->m_meshIndex] == nullptr);
+		m_spheres[s->m_meshIndex] = s;
+	}
+
+	b3AABB aabb = s->ComputeAABB();
+	s->m_broadPhaseId = m_contactManager.m_broadPhase.CreateProxy(aabb, s);
+
+	m_sphereShapeList.PushFront(s);
+
+	return s;
+}
+
+void b3Cloth::DestroySphereShape(b3ClothSphereShape* shape)
+{
+	if (shape->m_meshIndex != B3_MAX_U32)
+	{
+		m_spheres[shape->m_meshIndex] = nullptr;
+	}
+
+	// Destroy contacts
+	shape->DestroyContacts();
+
+	// Remove shape from broadphase
+	m_contactManager.m_broadPhase.DestroyProxy(shape->m_broadPhaseId);
+
+	m_sphereShapeList.Remove(shape);
+	shape->~b3ClothSphereShape();
+	m_sphereShapeBlocks.Free(shape);
+}
+
+b3ClothCapsuleShape* b3Cloth::CreateCapsuleShape(const b3ClothCapsuleShapeDef& def)
+{
+	// Check if the shape exists.
+	for (b3ClothCapsuleShape* c = m_capsuleShapeList.m_head; c; c = c->m_next)
+	{
+		if (c->m_p1 == def.p1 && c->m_p2 == def.p2)
+		{
+			return c;
+		}
+
+		if (c->m_p1 == def.p2 && c->m_p2 == def.p1)
+		{
+			return c;
+		}
+	}
+
+	void* mem = m_capsuleShapeBlocks.Allocate();
+	b3ClothCapsuleShape* c = new (mem)b3ClothCapsuleShape(def, this);
+
+	c->m_radius = def.radius;
+	c->m_friction = def.friction;
+	c->m_density = def.density;
+	c->m_meshIndex = def.meshIndex;
+
+	b3AABB aabb = c->ComputeAABB();
+	c->m_broadPhaseId = m_contactManager.m_broadPhase.CreateProxy(aabb, c);
+
+	m_capsuleShapeList.PushFront(c);
+
+	return c;
+}
+
+void b3Cloth::DestroyCapsuleShape(b3ClothCapsuleShape* shape)
+{
+	// Destroy contacts
+	shape->DestroyContacts();
+
+	// Remove shape from broadphase
+	m_contactManager.m_broadPhase.DestroyProxy(shape->m_broadPhaseId);
+
+	m_capsuleShapeList.Remove(shape);
+	shape->~b3ClothCapsuleShape();
+	m_capsuleShapeBlocks.Free(shape);
+}
+
+b3ClothTriangleShape* b3Cloth::CreateTriangleShape(const b3ClothTriangleShapeDef& def)
+{
+	b3ClothParticle* p1 = def.p1;
+	b3ClothParticle* p2 = def.p2;
+	b3ClothParticle* p3 = def.p3;
+
+	for (b3ClothTriangleShape* t = m_triangleShapeList.m_head; t; t = t->m_next)
+	{
+		bool hasP1 = t->m_p1 == p1 || t->m_p2 == p1 || t->m_p3 == p1;
+		bool hasP2 = t->m_p1 == p2 || t->m_p2 == p2 || t->m_p3 == p2;
+		bool hasP3 = t->m_p1 == p3 || t->m_p2 == p3 || t->m_p3 == p3;
+
+		if (hasP1 && hasP2 && hasP3)
+		{
+			return t;
+		}
+	}
+
+	void* mem = m_triangleShapeBlocks.Allocate();
+	b3ClothTriangleShape* t = new (mem)b3ClothTriangleShape(def, this);
+	
+	t->m_radius = def.radius;
+	t->m_friction = def.friction;
+	t->m_density = def.density;
+	t->m_meshIndex = def.meshIndex;
+
+	if (t->m_meshIndex != B3_MAX_U32)
+	{
+		B3_ASSERT(m_triangles[t->m_meshIndex] == nullptr);
+		m_triangles[t->m_meshIndex] = t;
+	}
+
+	b3AABB aabb = t->ComputeAABB();
+	t->m_broadPhaseId = m_contactManager.m_broadPhase.CreateProxy(aabb, t);
+
+	m_triangleShapeList.PushFront(t);
+
+	// Reset the cloth mass
+	ResetMass();
+
+	return t;
+}
+
+void b3Cloth::DestroyTriangleShape(b3ClothTriangleShape* shape)
+{
+	if (shape->m_meshIndex != B3_MAX_U32)
+	{
+		m_triangles[shape->m_meshIndex] = nullptr;
+	}
+
+	// Destroy contacts
+	shape->DestroyContacts();
+
+	// Remove shape from broadphase
+	m_contactManager.m_broadPhase.DestroyProxy(shape->m_broadPhaseId);
+
+	m_triangleShapeList.Remove(shape);
+	shape->~b3ClothTriangleShape();
+	m_triangleShapeBlocks.Free(shape);
+
+	// Reset the cloth mass
+	ResetMass();
 }
 
 b3Force* b3Cloth::CreateForce(const b3ForceDef& def)
@@ -363,93 +463,163 @@ void b3Cloth::DestroyForce(b3Force* force)
 	b3Force::Destroy(force);
 }
 
-float32 b3Cloth::GetEnergy() const
+b3ClothWorldShape* b3Cloth::CreateWorldShape(const b3ClothWorldShapeDef& def)
 {
-	float32 E = 0.0f;
-	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
+	void* mem = m_worldShapeBlocks.Allocate();
+	b3ClothWorldShape* s = new (mem)b3ClothWorldShape(def, this);
+
+	b3AABB aabb = s->ComputeAABB();
+	s->m_broadPhaseId = m_contactManager.m_broadPhase.CreateProxy(aabb, s);
+
+	m_worldShapeList.PushFront(s);
+
+	return s;
+}
+
+void b3Cloth::DestroyWorldShape(b3ClothWorldShape* shape)
+{
+	// Destroy contacts
+	shape->DestroyContacts();
+
+	// Remote from broadphase
+	m_contactManager.m_broadPhase.DestroyProxy(shape->m_broadPhaseId);
+
+	m_worldShapeList.Remove(shape);
+}
+
+b3ClothParticle* b3Cloth::GetParticle(u32 index)
+{
+	B3_ASSERT(index < m_mesh->vertexCount);
+	return m_particles[index];
+}
+
+b3ClothSphereShape* b3Cloth::GetSphere(u32 index)
+{
+	B3_ASSERT(index < m_mesh->vertexCount);
+	return m_spheres[index];
+}
+
+b3ClothTriangleShape* b3Cloth::GetTriangle(u32 index)
+{
+	B3_ASSERT(index < m_mesh->triangleCount);
+	return m_triangles[index];
+}
+
+void b3Cloth::EnableSelfCollision(bool flag)
+{
+	if (m_enableSelfCollision == true && flag == false)
+	{
+		{
+			// Destroy triangle contacts
+			b3ClothSphereAndTriangleContact* c = m_contactManager.m_sphereAndTriangleContactList.m_head;
+			while (c)
+			{
+				b3ClothSphereAndTriangleContact* boom = c;
+				c = c->m_next;
+				m_contactManager.Destroy(boom);
+			}
+		}
+	
+		{
+			// Destroy capsule contacts
+			b3ClothCapsuleAndCapsuleContact* c = m_contactManager.m_capsuleAndCapsuleContactList.m_head;
+			while (c)
+			{
+				b3ClothCapsuleAndCapsuleContact* boom = c;
+				c = c->m_next;
+				m_contactManager.Destroy(boom);
+			}
+		}
+	}
+
+	m_enableSelfCollision = flag;
+}
+
+scalar b3Cloth::GetEnergy() const
+{
+	scalar E = scalar(0);
+	for (b3ClothParticle* p = m_particleList.m_head; p; p = p->m_next)
 	{
 		E += p->m_mass * b3Dot(p->m_velocity, p->m_velocity);
 	}
-	return 0.5f * E;
+	return scalar(0.5) * E;
 }
 
-b3Particle* b3Cloth::GetParticle(u32 i)
+void b3Cloth::ResetMass()
 {
-	B3_ASSERT(i < m_mesh->vertexCount);
-	return m_particles[i];
-}
-
-b3ClothTriangle* b3Cloth::GetTriangle(u32 i)
-{
-	B3_ASSERT(i < m_mesh->triangleCount);
-	return m_triangles + i;
-}
-
-void b3Cloth::ComputeMass()
-{
-	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
+	for (b3ClothTriangleShape* t = m_triangleShapeList.m_head; t; t = t->m_next)
 	{
-		p->m_mass = 0.0f;
-		p->m_invMass = 0.0f;
+		t->m_p1->m_mass = scalar(0);
+		t->m_p2->m_mass = scalar(0);
+		t->m_p3->m_mass = scalar(0);
 	}
 
-	const float32 inv3 = 1.0f / 3.0f;
-	const float32 rho = m_density;
+	const scalar inv3 = scalar(1) / scalar(3);
 
-	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
+	for (b3ClothTriangleShape* t = m_triangleShapeList.m_head; t; t = t->m_next)
 	{
-		b3ClothMeshTriangle* triangle = m_mesh->triangles + i;
+		b3ClothParticle* p1 = t->m_p1;
+		b3ClothParticle* p2 = t->m_p2;
+		b3ClothParticle* p3 = t->m_p3;
 
-		b3Vec3 v1 = m_mesh->vertices[triangle->v1];
-		b3Vec3 v2 = m_mesh->vertices[triangle->v2];
-		b3Vec3 v3 = m_mesh->vertices[triangle->v3];
-
-		float32 area = b3Area(v1, v2, v3);
-		B3_ASSERT(area > 0.0f);
-
-		float32 mass = rho * area;
-
-		b3Particle* p1 = m_particles[triangle->v1];
-		b3Particle* p2 = m_particles[triangle->v2];
-		b3Particle* p3 = m_particles[triangle->v3];
-
+		scalar mass = t->m_density * t->m_area;
+		
 		p1->m_mass += inv3 * mass;
 		p2->m_mass += inv3 * mass;
 		p3->m_mass += inv3 * mass;
 	}
 
 	// Invert
-	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
+	for (b3ClothParticle* p = m_particleList.m_head; p; p = p->m_next)
 	{
-		B3_ASSERT(p->m_mass > 0.0f);
-		p->m_invMass = 1.0f / p->m_mass;
+		// Static and kinematic particles have zero mass.
+		if (p->m_type == e_staticClothParticle || p->m_type == e_kinematicClothParticle)
+		{
+			p->m_mass = scalar(0);
+			p->m_invMass = scalar(0);
+			continue;
+		}
+
+		if (p->m_mass > scalar(0))
+		{
+			p->m_invMass = scalar(1) / p->m_mass;
+		}
+		else
+		{
+			// Force all dynamic particles to have non-zero mass.
+			p->m_mass = scalar(1);
+			p->m_invMass = scalar(1);
+		}
 	}
 }
 
 struct b3ClothRayCastSingleCallback
 {
-	float32 Report(const b3RayCastInput& input, u32 proxyId)
+	scalar Report(const b3RayCastInput& input, u32 proxyId)
 	{
-		// Get primitive associated with the proxy.
+		// Get shape associated with the proxy.
 		void* userData = broadPhase->GetUserData(proxyId);
-		b3ClothAABBProxy* proxy = (b3ClothAABBProxy*)userData;
+		b3ClothShape* shape = (b3ClothShape*)userData;
 
-		if (proxy->type != e_triangleProxy)
+		if (shape->GetType() != e_clothTriangleShape)
 		{
 			// Continue search from where we stopped.
 			return input.maxFraction;
 		}
 
-		b3ClothTriangle* triangle = (b3ClothTriangle*)proxy->owner;
-		u32 triangleIndex = triangle->GetTriangle();
+		b3ClothTriangleShape* triangleShape = (b3ClothTriangleShape*)shape;
+
+		b3Vec3 v1 = triangleShape->GetParticle1()->GetPosition();
+		b3Vec3 v2 = triangleShape->GetParticle2()->GetPosition();
+		b3Vec3 v3 = triangleShape->GetParticle3()->GetPosition();
 
 		b3RayCastOutput subOutput;
-		if (cloth->RayCast(&subOutput, &input, triangleIndex))
+		if (b3RayCast(&subOutput, &input, v1, v2, v3))
 		{
 			// Ray hits triangle.
 			if (subOutput.fraction < output0.fraction)
 			{
-				triangle0 = triangleIndex;
+				triangle0 = triangleShape;
 				output0.fraction = subOutput.fraction;
 				output0.normal = subOutput.normal;
 			}
@@ -461,7 +631,7 @@ struct b3ClothRayCastSingleCallback
 
 	const b3Cloth* cloth;
 	const b3BroadPhase* broadPhase;
-	u32 triangle0;
+	b3ClothTriangleShape* triangle0;
 	b3RayCastOutput output0;
 };
 
@@ -470,17 +640,17 @@ bool b3Cloth::RayCastSingle(b3ClothRayCastSingleOutput* output, const b3Vec3& p1
 	b3RayCastInput input;
 	input.p1 = p1;
 	input.p2 = p2;
-	input.maxFraction = 1.0f;
+	input.maxFraction = scalar(1);
 
 	b3ClothRayCastSingleCallback callback;
 	callback.cloth = this;
 	callback.broadPhase = &m_contactManager.m_broadPhase;
-	callback.triangle0 = ~0;
-	callback.output0.fraction = B3_MAX_FLOAT;
+	callback.triangle0 = nullptr;
+	callback.output0.fraction = B3_MAX_SCALAR;
 
 	m_contactManager.m_broadPhase.RayCast(&callback, input);
 
-	if (callback.triangle0 != ~0)
+	if (callback.triangle0 != nullptr)
 	{
 		output->triangle = callback.triangle0;
 		output->fraction = callback.output0.fraction;
@@ -492,19 +662,7 @@ bool b3Cloth::RayCastSingle(b3ClothRayCastSingleOutput* output, const b3Vec3& p1
 	return false;
 }
 
-bool b3Cloth::RayCast(b3RayCastOutput* output, const b3RayCastInput* input, u32 triangleIndex) const
-{
-	B3_ASSERT(triangleIndex < m_mesh->triangleCount);
-	b3ClothMeshTriangle* triangle = m_mesh->triangles + triangleIndex;
-
-	b3Vec3 v1 = m_particles[triangle->v1]->m_position;
-	b3Vec3 v2 = m_particles[triangle->v2]->m_position;
-	b3Vec3 v3 = m_particles[triangle->v3]->m_position;
-
-	return b3RayCast(output, input, v1, v2, v3);
-}
-
-void b3Cloth::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations)
+void b3Cloth::Solve(const b3ClothTimeStep& step)
 {
 	B3_PROFILE("Cloth Solve");
 
@@ -513,12 +671,13 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u
 	solverDef.stack = &m_stackAllocator;
 	solverDef.particleCapacity = m_particleList.m_count;
 	solverDef.forceCapacity = m_forceList.m_count;
-	solverDef.bodyContactCapacity = m_contactManager.m_particleBodyContactList.m_count;
-	solverDef.triangleContactCapacity = m_contactManager.m_particleTriangleContactList.m_count;
-
+	solverDef.shapeContactCapacity = m_contactManager.m_sphereAndShapeContactList.m_count;
+	solverDef.triangleContactCapacity = m_contactManager.m_sphereAndTriangleContactList.m_count;
+	solverDef.capsuleContactCapacity = m_contactManager.m_capsuleAndCapsuleContactList.m_count;
+	
 	b3ClothSolver solver(solverDef);
 
-	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
+	for (b3ClothParticle* p = m_particleList.m_head; p; p = p->m_next)
 	{
 		solver.Add(p);
 	}
@@ -528,7 +687,7 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u
 		solver.Add(f);
 	}
 
-	for (b3ParticleTriangleContact* c = m_contactManager.m_particleTriangleContactList.m_head; c; c = c->m_next)
+	for (b3ClothSphereAndTriangleContact* c = m_contactManager.m_sphereAndTriangleContactList.m_head; c; c = c->m_next)
 	{
 		if (c->m_active)
 		{
@@ -536,7 +695,7 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u
 		}
 	}
 
-	for (b3ParticleBodyContact* c = m_contactManager.m_particleBodyContactList.m_head; c; c = c->m_next)
+	for (b3ClothCapsuleAndCapsuleContact* c = m_contactManager.m_capsuleAndCapsuleContactList.m_head; c; c = c->m_next)
 	{
 		if (c->m_active)
 		{
@@ -544,56 +703,102 @@ void b3Cloth::Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u
 		}
 	}
 	
+	for (b3ClothSphereAndShapeContact* c = m_contactManager.m_sphereAndShapeContactList.m_head; c; c = c->m_next)
+	{
+		if (c->m_active)
+		{
+			solver.Add(c);
+		}
+	}
+
 	// Solve	
-	solver.Solve(dt, gravity, velocityIterations, positionIterations);
+	solver.Solve(step, m_gravity);
 }
 
-void b3Cloth::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
+void b3Cloth::Step(scalar dt, u32 velocityIterations, u32 positionIterations)
 {
 	B3_PROFILE("Cloth Step");
 
 	// Update contacts
 	m_contactManager.UpdateContacts();
 
+	// Time step parameters
+	b3ClothTimeStep step;
+	step.dt = dt;
+	step.velocityIterations = velocityIterations;
+	step.positionIterations = positionIterations;
+	step.inv_dt = dt > scalar(0) ? scalar(1) / dt : scalar(0);
+	step.dt_ratio = m_inv_dt0 * dt;
+
 	// Integrate state, solve constraints. 
-	if (dt > 0.0f)
+	if (step.dt > scalar(0))
 	{
-		Solve(dt, m_gravity, velocityIterations, positionIterations);
+		Solve(step);
+	}
+
+	if (step.dt > scalar(0))
+	{
+		m_inv_dt0 = step.inv_dt;
 	}
 
 	// Clear external applied forces and translations
-	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
+	for (b3ClothParticle* p = m_particleList.m_head; p; p = p->m_next)
 	{
 		p->m_force.SetZero();
 		p->m_translation.SetZero();
 	}
-
-	// Synchronize particles
-	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
+	
+	// Synchronize sphere shapes
+	for (b3ClothSphereShape* s = m_sphereShapeList.m_head; s; s = s->m_next)
 	{
-		b3Vec3 displacement = dt * p->m_velocity;
+		b3ClothParticle* p = s->m_p;
 
-		p->Synchronize(displacement);
+		// Synchronize unconditionally  because all particles can be translated.
+		b3Vec3 displacement = dt * p->m_velocity;
+		
+		s->Synchronize(displacement);
 	}
 
-	// Synchronize triangles
-	for (u32 i = 0; i < m_mesh->triangleCount; ++i)
+	// Synchronize capsule shapes
+	for (b3ClothCapsuleShape* c = m_capsuleShapeList.m_head; c; c = c->m_next)
 	{
-		b3ClothMeshTriangle* triangle = m_mesh->triangles + i;
+		b3ClothParticle* p1 = c->m_p1;
+		b3ClothParticle* p2 = c->m_p2;
 
-		b3Particle* p1 = m_particles[triangle->v1];
-		b3Particle* p2 = m_particles[triangle->v2];
-		b3Particle* p3 = m_particles[triangle->v3];
+		b3Vec3 v1 = p1->m_velocity;
+		b3Vec3 v2 = p2->m_velocity;
+
+		// Center velocity
+		b3Vec3 velocity = scalar(0.5) * (v1 + v2);
+
+		b3Vec3 displacement = dt * velocity;
+
+		c->Synchronize(displacement);
+	}
+	
+	// Synchronize triangle shapes
+	for (b3ClothTriangleShape* t = m_triangleShapeList.m_head; t; t = t->m_next)
+	{
+		b3ClothParticle* p1 = t->m_p1;
+		b3ClothParticle* p2 = t->m_p2;
+		b3ClothParticle* p3 = t->m_p3;
 
 		b3Vec3 v1 = p1->m_velocity;
 		b3Vec3 v2 = p2->m_velocity;
 		b3Vec3 v3 = p3->m_velocity;
 
-		b3Vec3 velocity = (v1 + v2 + v3) / 3.0f;
+		// Center velocity
+		b3Vec3 velocity = (v1 + v2 + v3) / scalar(3);
 
 		b3Vec3 displacement = dt * velocity;
 
-		m_triangles[i].Synchronize(displacement);
+		t->Synchronize(displacement);
+	}
+
+	// Synchronize world shapes
+	for (b3ClothWorldShape* s = m_worldShapeList.m_head; s; s = s->m_next)
+	{
+		s->Synchronize(b3Vec3_zero);
 	}
 
 	// Find new contacts
@@ -602,74 +807,95 @@ void b3Cloth::Step(float32 dt, u32 velocityIterations, u32 positionIterations)
 
 void b3Cloth::Draw() const
 {
-	for (b3Particle* p = m_particleList.m_head; p; p = p->m_next)
+	for (b3ClothParticle* p = m_particleList.m_head; p; p = p->m_next)
 	{
-		if (p->m_type == e_staticParticle)
+		if (p->m_type == e_staticClothParticle)
 		{
-			b3Draw_draw->DrawPoint(p->m_position, 4.0f, b3Color_white);
+			b3Draw_draw->DrawPoint(p->m_position, 4.0, b3Color_white);
 		}
 
-		if (p->m_type == e_kinematicParticle)
+		if (p->m_type == e_kinematicClothParticle)
 		{
-			b3Draw_draw->DrawPoint(p->m_position, 4.0f, b3Color_blue);
+			b3Draw_draw->DrawPoint(p->m_position, 4.0, b3Color_blue);
 		}
 
-		if (p->m_type == e_dynamicParticle)
+		if (p->m_type == e_dynamicClothParticle)
 		{
-			b3Draw_draw->DrawPoint(p->m_position, 4.0f, b3Color_green);
-		}
-	}
-
-	for (b3Force* f = m_forceList.m_head; f; f = f->m_next)
-	{
-		if (f->m_type == e_springForce)
-		{
-			b3SpringForce* s = (b3SpringForce*)f;
-			b3Particle* p1 = s->m_p1;
-			b3Particle* p2 = s->m_p2;
-
-			b3Draw_draw->DrawSegment(p1->m_position, p2->m_position, b3Color_black);
+			b3Draw_draw->DrawPoint(p->m_position, 4.0, b3Color_green);
 		}
 	}
 
-	const b3ClothMesh* m = m_mesh;
-
-	for (u32 i = 0; i < m->sewingLineCount; ++i)
+	for (b3ClothCapsuleShape* c = m_capsuleShapeList.m_head; c; c = c->m_next)
 	{
-		b3ClothMeshSewingLine* s = m->sewingLines + i;
-		b3Particle* p1 = m_particles[s->v1];
-		b3Particle* p2 = m_particles[s->v2];
+		b3ClothParticle* p1 = c->m_p1;
+		b3ClothParticle* p2 = c->m_p2;
 
-		b3Draw_draw->DrawSegment(p1->m_position, p2->m_position, b3Color_white);
+		b3Draw_draw->DrawSegment(p1->m_position, p2->m_position, b3Color_black);
 	}
 
-	for (u32 i = 0; i < m->triangleCount; ++i)
+	for (b3ClothTriangleShape* t = m_triangleShapeList.m_head; t; t = t->m_next)
 	{
-		b3ClothMeshTriangle* t = m->triangles + i;
-
-		b3Particle* p1 = m_particles[t->v1];
-		b3Particle* p2 = m_particles[t->v2];
-		b3Particle* p3 = m_particles[t->v3];
+		b3ClothParticle* p1 = t->m_p1;
+		b3ClothParticle* p2 = t->m_p2;
+		b3ClothParticle* p3 = t->m_p3;
 
 		b3Vec3 v1 = p1->m_position;
 		b3Vec3 v2 = p2->m_position;
 		b3Vec3 v3 = p3->m_position;
+		
+		b3Vec3 c = (v1 + v2 + v3) / scalar(3);
 
-		b3Draw_draw->DrawTriangle(v1, v2, v3, b3Color_black);
-
-		b3Vec3 c = (v1 + v2 + v3) / 3.0f;
-
-		float32 s = 0.9f;
+		scalar s(0.9);
 
 		v1 = s * (v1 - c) + c;
 		v2 = s * (v2 - c) + c;
 		v3 = s * (v3 - c) + c;
 
-		b3Vec3 n1 = b3Cross(v2 - v1, v3 - v1);
-		n1.Normalize();
-		b3Draw_draw->DrawSolidTriangle(n1, v1, v2, v3, b3Color_blue);
+		b3Vec3 n = b3Cross(v2 - v1, v3 - v1);
+		n.Normalize();
 
-		b3Vec3 n2 = -n1;
-		b3Draw_draw->DrawSolidTriangle(n2, v3, v2, v1, b3Color_blue);
+		// Solid radius
+		const scalar rs(0.05);
+		
+		// Frame radius plus a small tolerance to prevent z-fighting
+		const scalar rf = rs + scalar(0.005);
+
+		b3Color frontSolidColor(scalar(0), scalar(0), scalar(1));
+		b3Color frontFrameColor(scalar(0), scalar(0), scalar(0.5));
+
+		b3Color backSolidColor(scalar(0.5), scalar(0.5), scalar(0.5));
+		b3Color backFrameColor(scalar(0.25), scalar(0.25), scalar(0.25));
+
+		{
+			b3Vec3 x1 = v1 + rf * n;
+			b3Vec3 x2 = v2 + rf * n;
+			b3Vec3 x3 = v3 + rf * n;
+
+			b3Draw_draw->DrawTriangle(x1, x2, x3, frontFrameColor);
+		}
+		
+		{
+			b3Vec3 x1 = v1 - rf * n;
+			b3Vec3 x2 = v2 - rf * n;
+			b3Vec3 x3 = v3 - rf * n;
+
+			b3Draw_draw->DrawTriangle(x1, x2, x3, backFrameColor);
+		}
+
+		{
+			b3Vec3 x1 = v1 + rs * n;
+			b3Vec3 x2 = v2 + rs * n;
+			b3Vec3 x3 = v3 + rs * n;
+
+			b3Draw_draw->DrawSolidTriangle(n, x1, x2, x3, frontSolidColor);
+		}
+		
+		{
+			b3Vec3 x1 = v1 - rs * n;
+			b3Vec3 x2 = v2 - rs * n;
+			b3Vec3 x3 = v3 - rs * n;
+
+			b3Draw_draw->DrawSolidTriangle(-n, x3, x2, x1, backSolidColor);
+		}
 	}
 }

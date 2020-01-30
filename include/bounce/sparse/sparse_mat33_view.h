@@ -20,6 +20,7 @@
 #define B3_SPARSE_MAT_33_VIEW_H
 
 #include <bounce/sparse/sparse_mat33.h>
+#include <bounce/sparse/sparse.h>
 
 struct b3ArrayRowValue
 {
@@ -36,14 +37,43 @@ struct b3RowValueArray
 // A read-only sparse matrix.
 struct b3SparseMat33View
 {
-	//
+	// Construct this sparse matrix view from a sparse matrix.
 	b3SparseMat33View(const b3SparseMat33& _m);
 
-	//
+	// Destruct this matrix view.
 	~b3SparseMat33View();
 
-	//
+	// Read an indexed element from this matrix.
 	const b3Mat33& operator()(u32 i, u32 j) const;
+
+	// Return the total number of elements in the original matrix.
+	u32 GetElementCount() const
+	{
+		return 3 * rowCount * 3 * rowCount;
+	}
+
+	// Return an element in the original matrix given the element indices 
+	// in the corresponding original matrix.
+	scalar GetElement(u32 i, u32 j) const
+	{
+		B3_ASSERT(i < 3 * rowCount);
+		B3_ASSERT(j < 3 * rowCount);
+
+		u32 i0 = i / 3;
+		u32 j0 = j / 3;
+
+		const b3Mat33& a = (*this)(i0, j0);
+
+		u32 ii = i - 3 * i0;
+		u32 jj = j - 3 * j0;
+
+		return a(ii, jj);
+	}
+
+	// Create the original matrix.
+	// The output matrix is stored in column-major order.
+	// Use the function GetElementCount() for computing the required output memory size.
+	void CreateMatrix(scalar* out) const;
 
 	u32 rowCount;
 	b3RowValueArray* rows;
@@ -52,14 +82,14 @@ struct b3SparseMat33View
 inline b3SparseMat33View::b3SparseMat33View(const b3SparseMat33& _m)
 {
 	rowCount = _m.rowCount;
-	rows = (b3RowValueArray*)b3Alloc(rowCount * sizeof(b3RowValueArray));
+	rows = (b3RowValueArray*)b3FrameAllocator_sparseAllocator->Allocate(rowCount * sizeof(b3RowValueArray));
 	for (u32 i = 0; i < _m.rowCount; ++i)
 	{
 		b3RowValueList* rowList = _m.rows + i;
 		b3RowValueArray* rowArray = rows + i;
 
 		rowArray->count = rowList->count;
-		rowArray->values = (b3ArrayRowValue*)b3Alloc(rowArray->count * sizeof(b3ArrayRowValue));
+		rowArray->values = (b3ArrayRowValue*)b3FrameAllocator_sparseAllocator->Allocate(rowArray->count * sizeof(b3ArrayRowValue));
 
 		u32 valueIndex = 0;
 		for (b3RowValue* v = rowList->head; v; v = v->next)
@@ -76,9 +106,9 @@ inline b3SparseMat33View::~b3SparseMat33View()
 	for (u32 i = 0; i < rowCount; ++i)
 	{
 		b3RowValueArray* rowArray = rows + i;
-		b3Free(rowArray->values);
+		b3FrameAllocator_sparseAllocator->Free(rowArray->values);
 	}
-	b3Free(rows);
+	b3FrameAllocator_sparseAllocator->Free(rows);
 }
 
 inline const b3Mat33& b3SparseMat33View::operator()(u32 i, u32 j) const
@@ -88,9 +118,9 @@ inline const b3Mat33& b3SparseMat33View::operator()(u32 i, u32 j) const
 	
 	b3RowValueArray* vs = rows + i;
 
-	for (u32 c = 0; c < vs->count; ++c)
+	for (u32 k = 0; k < vs->count; ++k)
 	{
-		b3ArrayRowValue* rv = vs->values + c;
+		b3ArrayRowValue* rv = vs->values + k;
 		if (rv->column == j)
 		{
 			return rv->value;
@@ -98,6 +128,42 @@ inline const b3Mat33& b3SparseMat33View::operator()(u32 i, u32 j) const
 	}
 
 	return b3Mat33_zero;
+}
+
+inline void b3SparseMat33View::CreateMatrix(scalar* out) const
+{
+	u32 AM = 3 * rowCount;
+	u32 AN = AM;
+	scalar* A = out;
+
+	for (u32 i = 0; i < AM * AN; ++i)
+	{
+		A[i] = scalar(0);
+	}
+
+	for (u32 i = 0; i < rowCount; ++i)
+	{
+		b3RowValueArray* vs = rows + i;
+
+		for (u32 k = 0; k < vs->count; ++k)
+		{
+			b3ArrayRowValue* v = vs->values + k;
+
+			u32 j = v->column;
+			b3Mat33 a = v->value;
+
+			for (u32 ii = 0; ii < 3; ++ii)
+			{
+				for (u32 jj = 0; jj < 3; ++jj)
+				{
+					u32 row = 3 * i + ii;
+					u32 col = 3 * j + jj;
+
+					A[row + AM * col] = a(ii, jj);
+				}
+			}
+		}
+	}
 }
 
 inline void b3Mul(b3DenseVec3& out, const b3SparseMat33View& A, const b3DenseVec3& v)
@@ -110,9 +176,9 @@ inline void b3Mul(b3DenseVec3& out, const b3SparseMat33View& A, const b3DenseVec
 	{
 		b3RowValueArray* rowArray = A.rows + i;
 
-		for (u32 c = 0; c < rowArray->count; ++c)
+		for (u32 k = 0; k < rowArray->count; ++k)
 		{
-			b3ArrayRowValue* rv = rowArray->values + c;
+			b3ArrayRowValue* rv = rowArray->values + k;
 
 			u32 j = rv->column;
 			b3Mat33 a = rv->value;

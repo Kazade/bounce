@@ -23,23 +23,22 @@
 #include <cstdlib> // For abs() with integral types
 #include <bounce/common/settings.h>
 
-inline bool b3IsInf(float32 x)
+inline bool b3IsInf(scalar x)
 {
 	return std::isinf(x);
 }
 
-inline bool b3IsNaN(float32 x)
+inline bool b3IsNaN(scalar x)
 {
 	return std::isnan(x);
 }
 
-inline bool b3IsValid(float32 fx)
+inline bool b3IsValid(scalar fx)
 {
-	i32 ix = *(i32*)(&fx);
-	return (ix & 0x7F800000) != 0x7F800000;
+	return std::isfinite(fx);
 }
 
-inline float32 b3Sqrt(float32 x) 
+inline scalar b3Sqrt(scalar x) 
 {
 	return std::sqrt(x);
 }
@@ -83,7 +82,7 @@ inline T b3Sign(T x)
 }
 
 template <class T>
-inline u32 b3UniqueCount(T* V, u32 N)
+inline u32 b3UniqueCount(const T* V, u32 N)
 {
 	u32 count = 0;
 	for (u32 i = 0; i < N; ++i) 
@@ -102,6 +101,51 @@ inline u32 b3UniqueCount(T* V, u32 N)
 		}
 	}
 	return count;
+}
+
+// Multiply two matrices stored in column-major order.
+// C = A * B
+inline void b3Mul(scalar* C, const scalar* A, u32 AM, u32 AN, const scalar* B, u32 BM, u32 BN)
+{
+	B3_ASSERT(AN == BM);
+
+	for (u32 i = 0; i < AM; ++i)
+	{
+		for (u32 j = 0; j < BN; ++j)
+		{
+			C[i + AM * j] = scalar(0);
+
+			for (u32 k = 0; k < AN; ++k)
+			{
+				C[i + AM * j] += A[i + AM * k] * B[k + BM * j];
+			}
+		}
+	}
+}
+
+// Return the transpose of a given matrix stored in column-major order.
+// B = A^T
+inline void b3Transpose(scalar* B, const scalar* A, u32 AM, u32 AN)
+{
+	for (u32 i = 0; i < AM; ++i)
+	{
+		for (u32 j = 0; j < AN; ++j)
+		{
+			B[j + AN * i] = A[i + AM * j];
+		}
+	}
+}
+
+// Return the lenght of a given vector.
+// ||v||
+inline scalar b3Length(const scalar* v, u32 n)
+{
+	scalar result(0);
+	for (u32 i = 0; i < n; ++i)
+	{
+		result += v[i] * v[i];
+	}
+	return b3Sqrt(result);
 }
 
 #endif

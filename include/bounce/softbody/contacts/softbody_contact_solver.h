@@ -19,79 +19,56 @@
 #ifndef B3_SOFT_BODY_CONTACT_SOLVER_H
 #define B3_SOFT_BODY_CONTACT_SOLVER_H
 
-#include <bounce/common/math/mat22.h>
-#include <bounce/common/math/mat33.h>
+#include <bounce/common/math/vec2.h>
+#include <bounce/common/math/vec3.h>
+#include <bounce/softbody/softbody_time_step.h>
 
 class b3StackAllocator;
+class b3SoftBodyNode;
+class b3SoftBodySphereAndShapeContact;
 
-struct b3SoftBodyNode;
-class b3Body;
-
-struct b3NodeBodyContact;
-
-struct b3DenseVec3;
-
-struct b3SoftBodySolverBodyContactVelocityConstraint
+struct b3SoftBodySolverShapeContactVelocityConstraint
 {
 	u32 indexA;
-	float32 invMassA;
-	b3Mat33 invIA;
+	scalar invMassA;
 
-	b3Body* bodyB;
-	float32 invMassB;
-	b3Mat33 invIB;
-
-	float32 friction;
-
-	b3Vec3 point;
-	b3Vec3 rA;
-	b3Vec3 rB;
+	scalar friction;
 
 	b3Vec3 normal;
-	float32 normalMass;
-	float32 normalImpulse;
-	float32 velocityBias;
+	scalar normalMass;
+	scalar normalImpulse;
 
 	b3Vec3 tangent1;
 	b3Vec3 tangent2;
-	b3Mat22 tangentMass;
+	scalar tangentMass;
 	b3Vec2 tangentImpulse;
 };
 
-struct b3SoftBodySolverBodyContactPositionConstraint
+struct b3SoftBodySolverShapeContactPositionConstraint
 {
 	u32 indexA;
-	float32 invMassA;
-	b3Mat33 invIA;
-	float32 radiusA;
-	b3Vec3 localCenterA;
+	scalar invMassA;
+	scalar radiusA;
 
-	b3Body* bodyB;
-	float32 invMassB;
-	b3Mat33 invIB;
-	float32 radiusB;
-	b3Vec3 localCenterB;
+	scalar radiusB;
 
-	b3Vec3 rA;
-	b3Vec3 rB;
-
-	b3Vec3 normalA;
-	b3Vec3 localPointA;
-	b3Vec3 localPointB;
+	b3Vec3 normalB;
+	b3Vec3 pointB;
 };
 
 struct b3SoftBodyContactSolverDef
 {
+	b3SoftBodyTimeStep step;
 	b3StackAllocator* allocator;
 
 	b3Vec3* positions;
 	b3Vec3* velocities;
 
-	u32 bodyContactCount;
-	b3NodeBodyContact** bodyContacts;
+	u32 shapeContactCount;
+	b3SoftBodySphereAndShapeContact** shapeContacts;
 };
 
-inline float32 b3MixFriction(float32 u1, float32 u2)
+inline scalar b3MixFriction(scalar u1, scalar u2)
 {
 	return b3Sqrt(u1 * u2);
 }
@@ -102,26 +79,28 @@ public:
 	b3SoftBodyContactSolver(const b3SoftBodyContactSolverDef& def);
 	~b3SoftBodyContactSolver();
 
-	void InitializeBodyContactConstraints();
+	void InitializeShapeContactConstraints();
 
 	void WarmStart();
 
-	void SolveBodyContactVelocityConstraints();
+	void SolveShapeContactVelocityConstraints();
 
 	void StoreImpulses();
 
-	bool SolveBodyContactPositionConstraints();
+	bool SolveShapeContactPositionConstraints();
 protected:
+	b3SoftBodyTimeStep m_step;
+
 	b3StackAllocator* m_allocator;
 
 	b3Vec3* m_positions;
 	b3Vec3* m_velocities;
 
-	u32 m_bodyContactCount;
-	b3NodeBodyContact** m_bodyContacts;
+	u32 m_shapeContactCount;
+	b3SoftBodySphereAndShapeContact** m_shapeContacts;
 	
-	b3SoftBodySolverBodyContactVelocityConstraint* m_bodyVelocityConstraints;
-	b3SoftBodySolverBodyContactPositionConstraint* m_bodyPositionConstraints;
+	b3SoftBodySolverShapeContactVelocityConstraint* m_shapeVelocityConstraints;
+	b3SoftBodySolverShapeContactPositionConstraint* m_shapePositionConstraints;
 };
 
 #endif

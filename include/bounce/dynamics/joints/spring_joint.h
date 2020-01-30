@@ -28,9 +28,9 @@ struct b3SpringJointDef : public b3JointDef
 		type = e_springJoint;
 		localAnchorA.SetZero();
 		localAnchorB.SetZero();
-		length = 0.0f;
-		frequencyHz = 0.0f;
-		dampingRatio = 0.0f;
+		length = scalar(0);
+		frequencyHz = scalar(0);
+		dampingRatio = scalar(0);
 	}
 
 	// Initialize this definition from bodies and world anchors.
@@ -43,16 +43,16 @@ struct b3SpringJointDef : public b3JointDef
 	b3Vec3 localAnchorB;
 	
 	// The spring rest length.
-	float32 length;
+	scalar length;
 	
 	// The mass-spring-damper frequency in Hz
 	// 0 = disable softness
-	float32 frequencyHz;
+	scalar frequencyHz;
 	
 	// The damping ration in the interval [0, 1]
 	// 0 = undamped spring
 	// 1 = critical damping
-	float32 dampingRatio;
+	scalar dampingRatio;
 };
 
 // A spring joint constrains the bodies to rotate relative to each 
@@ -76,22 +76,22 @@ public:
 	const b3Vec3& GetLocalAnchorB() const;
 
 	// Get the natural spring length.
-	float32 GetLength() const;
+	scalar GetLength() const;
 	
 	// Set the natural spring length.
-	void SetLength(float32 length);
+	void SetLength(scalar length);
 	
 	// Get the damper frequency in Hz.
-	float32 GetFrequency() const;
+	scalar GetFrequency() const;
 
 	// Set the damper frequency in Hz.
-	void SetFrequency(float32 frequency);
+	void SetFrequency(scalar frequency);
 
 	// Get the damping ratio.
-	float32 GetDampingRatio() const;
+	scalar GetDampingRatio() const;
 	
 	// Set the damping ratio.
-	void SetDampingRatio(float32 ratio);
+	void SetDampingRatio(scalar ratio);
 
 	// Draw this joint.
 	void Draw() const;
@@ -110,15 +110,15 @@ private:
 	// Solver shared
 	b3Vec3 m_localAnchorA;
 	b3Vec3 m_localAnchorB;
-	float32 m_length;
-	float32 m_frequencyHz;
-	float32 m_dampingRatio;
+	scalar m_length;
+	scalar m_frequencyHz;
+	scalar m_dampingRatio;
 
 	// Solver temp
 	u32 m_indexA;
 	u32 m_indexB;
-	float32 m_mA;
-	float32 m_mB;
+	scalar m_mA;
+	scalar m_mB;
 	b3Mat33 m_iA;
 	b3Mat33 m_iB;
 	b3Vec3 m_localCenterA;
@@ -126,13 +126,13 @@ private:
 	b3Mat33 m_localInvIA;
 	b3Mat33 m_localInvIB;
 
-	float32 m_bias;
-	float32 m_gamma;
+	scalar m_bias;
+	scalar m_gamma;
 	b3Vec3 m_n;
 	b3Vec3 m_rA;
 	b3Vec3 m_rB;
-	float32 m_mass;
-	float32 m_impulse;
+	scalar m_mass;
+	scalar m_impulse;
 };
 
 #endif

@@ -72,19 +72,19 @@ inline b3MotionVec operator-(const b3MotionVec& a)
 }
 
 // a * s
-inline b3MotionVec operator*(const b3MotionVec& a, float32 s)
+inline b3MotionVec operator*(const b3MotionVec& a, scalar s)
 {
 	return b3MotionVec(s * a.w, s * a.v);
 }
 
 // s * a
-inline b3MotionVec operator*(float32 s, const b3MotionVec& a)
+inline b3MotionVec operator*(scalar s, const b3MotionVec& a)
 {
 	return b3MotionVec(s * a.w, s * a.v);
 }
 
 // a / s
-inline b3MotionVec operator/(const b3MotionVec& a, float32 s)
+inline b3MotionVec operator/(const b3MotionVec& a, scalar s)
 {
 	return b3MotionVec(a.w / s, a.v / s);
 }
@@ -151,26 +151,26 @@ inline b3ForceVec operator-(const b3ForceVec& a)
 }
 
 // a * s
-inline b3ForceVec operator*(const b3ForceVec& a, float32 s)
+inline b3ForceVec operator*(const b3ForceVec& a, scalar s)
 {
 	return b3ForceVec(s * a.n, s * a.f);
 }
 
 // s * a
-inline b3ForceVec operator*(float32 s, const b3ForceVec& a)
+inline b3ForceVec operator*(scalar s, const b3ForceVec& a)
 {
 	return b3ForceVec(s * a.n, s * a.f);
 }
 
 // a / s
-inline b3ForceVec operator/(const b3ForceVec& a, float32 s)
+inline b3ForceVec operator/(const b3ForceVec& a, scalar s)
 {
 	return b3ForceVec(a.n / s, a.f / s);
 }
 
 // a^T = [a.b^T, a.a^T]
 // a^T * b = a.b * b.a + a.a * b.b
-inline float32 b3Dot(const b3MotionVec& a, const b3ForceVec& b)
+inline scalar b3Dot(const b3MotionVec& a, const b3ForceVec& b)
 {
 	return b3Dot(a.v, b.n) + b3Dot(a.w, b.f);
 }
@@ -191,7 +191,7 @@ struct b3SpInertia
 
 	// Set this matrix from mass and rotational inertia 
 	// about the local center of mass (zero vector).
-	void SetLocalInertia(float32 m, const b3Mat33& I)
+	void SetLocalInertia(scalar m, const b3Mat33& I)
 	{
 		A.SetZero();
 		B = b3Diagonal(m);
@@ -233,9 +233,9 @@ inline b3MotionVec b3SpInertia::Solve(const b3ForceVec& b) const
 	invA_D = b3Transpose(invA_A);
 
 	b3Mat33 T = A * invA_A;
-	T[0][0] -= 1.0f;
-	T[1][1] -= 1.0f;
-	T[2][2] -= 1.0f;
+	T[0][0] -= scalar(1);
+	T[1][1] -= scalar(1);
+	T[2][2] -= scalar(1);
 
 	invA_C = NinvB * T;
 

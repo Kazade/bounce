@@ -26,7 +26,7 @@ struct b3GJKProxy
 {
 	const b3Vec3* vertices; // vertices in this proxy
 	u32 vertexCount; // number of vertices
-	float32 radius; // proxy radius
+	scalar radius; // proxy radius
 	b3Vec3 vertexBuffer[3]; // vertex buffer for convenience
 
 	// Get the number of vertices in this proxy.
@@ -57,10 +57,10 @@ inline const b3Vec3& b3GJKProxy::GetVertex(u32 index) const
 inline u32 b3GJKProxy::GetSupportIndex(const b3Vec3& d) const
 {
 	u32 maxIndex = 0;
-	float32 maxProjection = b3Dot(d, vertices[maxIndex]);
+	scalar maxProjection = b3Dot(d, vertices[maxIndex]);
 	for (u32 i = 1; i < vertexCount; ++i)
 	{
-		float32 projection = b3Dot(d, vertices[i]);
+		scalar projection = b3Dot(d, vertices[i]);
 		if (projection > maxProjection)
 		{
 			maxIndex = i;

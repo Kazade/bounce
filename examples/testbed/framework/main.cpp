@@ -24,6 +24,8 @@
 	// error
 #endif
 
+#include <stdio.h>
+
 #include <glfw/glfw3.h>
 
 #include <testbed/framework/model.h>
@@ -103,13 +105,11 @@ static void Run()
 
 	while (glfwWindowShouldClose(g_window) == 0)
 	{
+		g_frameAllocator->Reset();
+
 		g_profiler->Begin();
-		
-		g_profilerSt->Begin();
 
 		g_profiler->BeginScope("Frame");
-
-		g_profilerSt->BeginScope("Frame");
 
 		g_view->BeginInterface();
 
@@ -126,21 +126,12 @@ static void Run()
 
 		g_model->Update();
 
-		g_profilerSt->EndScope();
-		
 		g_profiler->EndScope();
 		
-		if (g_settings->drawProfileTree)
+		if (g_settings->drawProfiler)
 		{
-			g_view->InterfaceProfileTree();
+			g_view->InterfaceProfiler();
 		}
-
-		if (g_settings->drawProfileTreeStats)
-		{
-			g_view->InterfaceProfileTreeStats();
-		}
-
-		g_profilerSt->End();
 
 #if PROFILE_JSON == 1
 		g_model->UpdateJson();
@@ -160,7 +151,7 @@ int main(int argc, char** args)
 #if defined(_WIN32)
 	// Report memory leaks
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF | _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG));
-	//_CrtSetBreakAlloc(0);
+	//_CrtSetBreakAlloc();
 #endif
 
 	if (glfwInit() == 0)
@@ -186,7 +177,7 @@ int main(int argc, char** args)
 	glfwSwapInterval(1);
 
 	glfwMakeContextCurrent(g_window);
-
+	
 	if (gladLoadGL() == 0)
 	{
 		fprintf(stderr, "Failed to load OpenGL extensions\n");

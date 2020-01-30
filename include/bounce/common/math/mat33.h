@@ -43,13 +43,13 @@ struct b3Mat33
 	}
 
 	// Read an indexed element from this matrix.
-	float32 operator()(u32 i, u32 j) const
+	scalar operator()(u32 i, u32 j) const
 	{
 		return (&x.x)[i + 3 * j];
 	}
 
 	// Write an indexed element from this matrix.
-	float32& operator()(u32 i, u32 j) 
+	scalar& operator()(u32 i, u32 j) 
 	{
 		return (&x.x)[i + 3 * j];
 	}
@@ -81,9 +81,9 @@ struct b3Mat33
 	// Set this matrix to the identity matrix.
 	void SetIdentity() 
 	{
-		x.Set(1.0f, 0.0f, 0.0f);
-		y.Set(0.0f, 1.0f, 0.0f);
-		z.Set(0.0f, 0.0f, 1.0f);
+		x.Set(scalar(1), scalar(0), scalar(0));
+		y.Set(scalar(0), scalar(1), scalar(0));
+		z.Set(scalar(0), scalar(0), scalar(1));
 	}
 
 	// Solve Ax = b. 
@@ -112,7 +112,7 @@ inline b3Mat33 operator-(const b3Mat33& A, const b3Mat33& B)
 }
 
 // Multiply a scalar times a matrix.
-inline b3Mat33 operator*(float32 s, const b3Mat33& A) 
+inline b3Mat33 operator*(scalar s, const b3Mat33& A) 
 {
 	return b3Mat33(s * A.x, s * A.y, s * A.z);
 }
@@ -120,7 +120,7 @@ inline b3Mat33 operator*(float32 s, const b3Mat33& A)
 // Negate a matrix.
 inline b3Mat33 operator-(const b3Mat33& A)
 {
-	return -1.0f * A;
+	return scalar(-1) * A;
 }
 
 // Multiply a matrix times a vector. If the matrix 
@@ -168,6 +168,12 @@ inline b3Mat33 b3MulT(const b3Mat33& A, const b3Mat33& B)
 		b3Vec3(b3Dot(A.x, B.z), b3Dot(A.y, B.z), b3Dot(A.z, B.z)));
 }
 
+// Return the absolute matrix of a given matrix.
+inline b3Mat33 b3Abs(const b3Mat33& A)
+{
+	return b3Mat33(b3Abs(A.x), b3Abs(A.y), b3Abs(A.z));
+}
+
 // Transpose a matrix.
 inline b3Mat33 b3Transpose(const b3Mat33& A) 
 {
@@ -179,23 +185,21 @@ inline b3Mat33 b3Transpose(const b3Mat33& A)
 }
 
 // Uniform scale matrix.
-inline b3Mat33 b3Diagonal(float32 s) 
+inline b3Mat33 b3Diagonal(scalar s) 
 {
 	return b3Mat33(
-		b3Vec3(s, 0.0f, 0.0f),
-		b3Vec3(0.0f, s, 0.0f),
-		b3Vec3(0.0f, 0.0f, s)
-		);
+		b3Vec3(s, scalar(0), scalar(0)),
+		b3Vec3(scalar(0), s, scalar(0)),
+		b3Vec3(scalar(0), scalar(0), s));
 }
 
 // Uniform or non-uniform scale matrix.
-inline b3Mat33 b3Diagonal(float32 x, float32 y, float32 z)
+inline b3Mat33 b3Diagonal(scalar x, scalar y, scalar z)
 {
 	return b3Mat33(
-		b3Vec3(x, 0.0f, 0.0f),
-		b3Vec3(0.0f, y, 0.0f),
-		b3Vec3(0.0f, 0.0f, z)
-		);
+		b3Vec3(x, scalar(0), scalar(0)),
+		b3Vec3(scalar(0), y, scalar(0)),
+		b3Vec3(scalar(0), scalar(0), z));
 }
 
 // Invert a matrix.
@@ -212,14 +216,13 @@ b3Mat33 b3SymInverse(const b3Mat33& A);
 inline b3Mat33 b3Skew(const b3Vec3& v) 
 {
 	return b3Mat33(
-		b3Vec3(0.0f, v.z, -v.y),
-		b3Vec3(-v.z, 0.0f, v.x),
-		b3Vec3(v.y, -v.x, 0.0f)
-		);
+		b3Vec3(scalar(0), v.z, -v.y),
+		b3Vec3(-v.z, scalar(0), v.x),
+		b3Vec3(v.y, -v.x, scalar(0)));
 }
 
 // Compute the dot product of two vectors.
-inline float32 b3Inner(const b3Vec3& a, const b3Vec3& b)
+inline scalar b3Inner(const b3Vec3& a, const b3Vec3& b)
 {
 	return b3Dot(a, b);
 }
@@ -235,14 +238,19 @@ inline b3Mat33 b3Outer(const b3Vec3& a, const b3Vec3& b)
 // The vector must be normalized.
 inline void b3ComputeBasis(const b3Vec3& a, b3Vec3& b, b3Vec3& c)
 {
-	// https://box2d.org/2014/02/computing-a-basis/
-	if (b3Abs(a.x) >= float32(0.57735027))
+	// https://box2d.org/2014/02/computing-a-basis/, (Erin)
+	// Suppose vector a has all equal components and is a unit vector : a = (s, s, s)
+	// Then 3*s*s = 1, s = sqrt(1/3). 
+	// This means that at least one component of a unit vector must be greater or equal to s.
+	static const scalar sqrt_inv3 = b3Sqrt(scalar(1) / scalar(3));
+
+	if (b3Abs(a.x) >= sqrt_inv3)
 	{
-		b.Set(a.y, -a.x, 0.0f);
+		b.Set(a.y, -a.x, scalar(0));
 	}
 	else
 	{
-		b.Set(0.0f, a.z, -a.y);
+		b.Set(scalar(0), a.z, -a.y);
 	}
 	
 	b.Normalize();
@@ -250,41 +258,41 @@ inline void b3ComputeBasis(const b3Vec3& a, b3Vec3& b, b3Vec3& c)
 }
 
 // Rotation about the x-axis.
-inline b3Mat33 b3Mat33RotationX(float32 angle)
+inline b3Mat33 b3Mat33RotationX(scalar angle)
 {
-	float32 c = cos(angle);
-	float32 s = sin(angle);
+	scalar c = cos(angle);
+	scalar s = sin(angle);
 
 	b3Mat33 R;
-	R.x.Set(1.0f, 0.0f, 0.0f);
-	R.y.Set(0.0f, c, s);
-	R.z.Set(0.0f, -s, c);
+	R.x.Set(scalar(1), scalar(0), scalar(0));
+	R.y.Set(scalar(0), c, s);
+	R.z.Set(scalar(0), -s, c);
 	return R;
 }
 
 // Rotation about the y-axis.
-inline b3Mat33 b3Mat33RotationY(float32 angle)
+inline b3Mat33 b3Mat33RotationY(scalar angle)
 {
-	float32 c = cos(angle);
-	float32 s = sin(angle);
+	scalar c = cos(angle);
+	scalar s = sin(angle);
 
 	b3Mat33 R;
-	R.x.Set(c, 0.0f, -s);
-	R.y.Set(0.0f, 1.0f, 0.0f);
-	R.z.Set(s, 0.0f, c);
+	R.x.Set(c, scalar(0), -s);
+	R.y.Set(scalar(0), scalar(1), scalar(0));
+	R.z.Set(s, scalar(0), c);
 	return R;
 }
 
 // Rotation about the z-axis.
-inline b3Mat33 b3Mat33RotationZ(float32 angle)
+inline b3Mat33 b3Mat33RotationZ(scalar angle)
 {
-	float32 c = cos(angle);
-	float32 s = sin(angle);
+	scalar c = cos(angle);
+	scalar s = sin(angle);
 
 	b3Mat33 R;
-	R.x.Set(c, s, 0.0f);
-	R.y.Set(-s, c, 0.0f);
-	R.z.Set(0.0f, 0.0f, 1.0f);
+	R.x.Set(c, s, scalar(0));
+	R.y.Set(-s, c, scalar(0));
+	R.z.Set(scalar(0), scalar(0), scalar(1));
 	return R;
 }
 

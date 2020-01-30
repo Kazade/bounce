@@ -47,9 +47,9 @@ public:
 
 		// shift to ground center
 		b3Vec3 translation;
-		translation.x = -0.5f * float32(e_count) * boxSize.x;
+		translation.x = -0.5f * scalar(e_count) * boxSize.x;
 		translation.y = 1.5f * boxSize.y;
-		translation.z = -0.5f * float32(e_count) * boxSize.z;
+		translation.z = -0.5f * scalar(e_count) * boxSize.z;
 
 		u32 count = e_count;
 		for (u32 i = 0; i < e_count; ++i)
@@ -61,9 +61,9 @@ public:
 				{
 					b3BodyDef bd;
 					bd.type = b3BodyType::e_dynamicBody;
-					bd.position.x = 1.05f * float32(j) * boxSize.x;
+					bd.position.x = 1.05f * scalar(j) * boxSize.x;
 					bd.position.y = 0.0f;
-					bd.position.z = 1.05f * float32(k) * boxSize.z;
+					bd.position.z = 1.05f * scalar(k) * boxSize.z;
 					bd.position += translation;
 
 					b3Body* body = m_world.CreateBody(bd);

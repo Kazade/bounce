@@ -21,20 +21,29 @@
 
 #include <bounce/common/math/mat22.h>
 #include <bounce/common/math/mat33.h>
+#include <bounce/softbody/softbody_time_step.h>
 
 class b3StackAllocator;
 
 class b3SoftBody;
-class b3SoftBodyMesh;
+struct b3SoftBodyMesh;
 
-struct b3SoftBodyNode;
-struct b3SoftBodyElement;
+class b3SoftBodyNode;
+class b3SoftBodyElement;
 
-struct b3NodeBodyContact;
+class b3SoftBodySphereAndShapeContact;
+class b3SoftBodyAnchor;
 
 struct b3SoftBodySolverDef
 {
 	b3SoftBody* body;
+};
+
+struct b3SoftBodySolverData
+{
+	b3SoftBodyTimeStep step;
+	b3Vec3* positions;
+	b3Vec3* velocities;
 };
 
 class b3SoftBodySolver
@@ -43,18 +52,24 @@ public:
 	b3SoftBodySolver(const b3SoftBodySolverDef& def);
 	~b3SoftBodySolver();
 
-	void Add(b3NodeBodyContact* c);
+	void Add(b3SoftBodySphereAndShapeContact* c);
+	void Add(b3SoftBodyAnchor* a);
 
-	void Solve(float32 dt, const b3Vec3& gravity, u32 velocityIterations, u32 positionIterations);
+	void Solve(const b3SoftBodyTimeStep& step, const b3Vec3& gravity);
 private:
 	b3SoftBody* m_body;
-	b3StackAllocator* m_allocator;
+	b3StackAllocator* m_stack;
 	const b3SoftBodyMesh* m_mesh;
 	b3SoftBodyNode* m_nodes;
 	b3SoftBodyElement* m_elements;
-	u32 m_bodyContactCapacity;
-	u32 m_bodyContactCount;
-	b3NodeBodyContact** m_bodyContacts;
+	
+	u32 m_shapeContactCapacity;
+	u32 m_shapeContactCount;
+	b3SoftBodySphereAndShapeContact** m_shapeContacts;
+	
+	u32 m_anchorCapacity;
+	u32 m_anchorCount;
+	b3SoftBodyAnchor** m_anchors;
 };
 
 #endif

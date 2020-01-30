@@ -37,7 +37,7 @@ b3ContactSolver::b3ContactSolver(const b3ContactSolverDef* def)
 	m_positionConstraints = (b3ContactPositionConstraint*)m_allocator->Allocate(m_count * sizeof(b3ContactPositionConstraint));
 	m_velocityConstraints = (b3ContactVelocityConstraint*)m_allocator->Allocate(m_count * sizeof(b3ContactVelocityConstraint));
 	m_dt = def->dt;
-	m_invDt = m_dt != 0.0f ? 1.0f / m_dt : 0.0f;
+	m_invDt = m_dt != scalar(0) ? scalar(1) / m_dt : scalar(0);
 }
 
 b3ContactSolver::~b3ContactSolver()
@@ -128,7 +128,10 @@ void b3ContactSolver::InitializeConstraints()
 			
 			vcm->tangentImpulse = m->tangentImpulse;
 			vcm->motorImpulse = m->motorImpulse;
-			
+			vcm->motorSpeed = m->motorSpeed;
+			vcm->tangentSpeed1 = m->tangentSpeed1;
+			vcm->tangentSpeed2 = m->tangentSpeed2;
+
 			for (u32 k = 0; k < m->pointCount; ++k)
 			{
 				b3ManifoldPoint* cp = m->points + k;
@@ -152,18 +155,18 @@ void b3ContactSolver::InitializeConstraints()
 		b3ContactPositionConstraint* pc = m_positionConstraints + i;
 		b3ContactVelocityConstraint* vc = m_velocityConstraints + i;
 
-		float32 radiusA = pc->radiusA;
-		float32 radiusB = pc->radiusB;
+		scalar radiusA = pc->radiusA;
+		scalar radiusB = pc->radiusB;
 
 		b3Vec3 localCenterA = pc->localCenterA;
 		b3Vec3 localCenterB = pc->localCenterB;
 
 		u32 indexA = vc->indexA;
-		float32 mA = vc->invMassA;
+		scalar mA = vc->invMassA;
 		b3Mat33 iA = vc->invIA;
 
 		u32 indexB = vc->indexB;
-		float32 mB = vc->invMassB;
+		scalar mB = vc->invMassB;
 		b3Mat33 iB = vc->invIB;
 
 		b3Vec3 xA = m_positions[indexA].x;
@@ -177,12 +180,12 @@ void b3ContactSolver::InitializeConstraints()
 		b3Vec3 wB = m_velocities[indexB].w;
 
 		b3Transform xfA;
-		xfA.rotation = b3QuatMat33(qA);
-		xfA.position = xA - b3Mul(xfA.rotation, localCenterA);
+		xfA.rotation = qA;
+		xfA.translation = xA - b3Mul(qA, localCenterA);
 		
 		b3Transform xfB;
-		xfB.rotation = b3QuatMat33(qB);
-		xfB.position = xB - b3Mul(xfB.rotation, localCenterB);
+		xfB.rotation = qB;
+		xfB.translation = xB - b3Mul(qB, localCenterB);
 
 		for (u32 j = 0; j < manifoldCount; ++j)
 		{
@@ -220,13 +223,13 @@ void b3ContactSolver::InitializeConstraints()
 					// Compute effective mass.
 					b3Vec3 rnA = b3Cross(rA, normal);
 					b3Vec3 rnB = b3Cross(rB, normal);
-					float32 K = mA + mB + b3Dot(iA * rnA, rnA) + b3Dot(iB * rnB, rnB);
-					vcp->normalMass = K > 0.0f ? 1.0f / K : 0.0f;
+					scalar K = mA + mB + b3Dot(iA * rnA, rnA) + b3Dot(iB * rnB, rnB);
+					vcp->normalMass = K > scalar(0) ? scalar(1) / K : scalar(0);
 
 					// Add restitution to the velocity constraint.
 					b3Vec3 dv = vB + b3Cross(wB, rB) - vA - b3Cross(wA, rA);
-					float32 vn = b3Dot(normal, dv);
-					vcp->velocityBias = 0.0f;
+					scalar vn = b3Dot(normal, dv);
+					vcp->velocityBias = scalar(0);
 					if (vn < -B3_VELOCITY_THRESHOLD)
 					{
 						vcp->velocityBias = -vc->restitution * vn;
@@ -256,9 +259,9 @@ void b3ContactSolver::InitializeConstraints()
 
 					// dot(t1, t2) = 0
 					// J1_l1 * M1 * J2_l1 = J1_l2 * M2 * J2_l2 = 0
-					float32 k11 = mA + mB + b3Dot(iA * rn1A, rn1A) + b3Dot(iB * rn1B, rn1B);
-					float32 k12 = b3Dot(iA * rn1A, rn2A) + b3Dot(iB * rn1B, rn2B);
-					float32 k22 = mA + mB + b3Dot(iA * rn2A, rn2A) + b3Dot(iB * rn2B, rn2B);
+					scalar k11 = mA + mB + b3Dot(iA * rn1A, rn1A) + b3Dot(iB * rn1B, rn1B);
+					scalar k12 = b3Dot(iA * rn1A, rn2A) + b3Dot(iB * rn1B, rn2B);
+					scalar k22 = mA + mB + b3Dot(iA * rn2A, rn2A) + b3Dot(iB * rn2B, rn2B);
 
 					b3Mat22 K;
 					K.x.Set(k11, k12);
@@ -269,8 +272,8 @@ void b3ContactSolver::InitializeConstraints()
 
 				// Add twist constraint.
 				{
-					float32 mass = b3Dot(vcm->normal, (iA + iB) * vcm->normal);
-					vcm->motorMass = mass > 0.0f ? 1.0f / mass : 0.0f;
+					scalar mass = b3Dot(vcm->normal, (iA + iB) * vcm->normal);
+					vcm->motorMass = mass > scalar(0) ? scalar(1) / mass : scalar(0);
 				}
 			}
 		}
@@ -284,11 +287,11 @@ void b3ContactSolver::WarmStart()
 		b3ContactVelocityConstraint* vc = m_velocityConstraints + i;
 
 		u32 indexA = vc->indexA;
-		float32 mA = vc->invMassA;
+		scalar mA = vc->invMassA;
 		b3Mat33 iA = vc->invIA;
 
 		u32 indexB = vc->indexB;
-		float32 mB = vc->invMassB;
+		scalar mB = vc->invMassB;
 		b3Mat33 iB = vc->invIB;
 
 		u32 manifoldCount = vc->manifoldCount;
@@ -345,11 +348,11 @@ void b3ContactSolver::SolveVelocityConstraints()
 		u32 manifoldCount = vc->manifoldCount;
 
 		u32 indexA = vc->indexA;
-		float32 mA = vc->invMassA;
+		scalar mA = vc->invMassA;
 		b3Mat33 iA = vc->invIA;
 
 		u32 indexB = vc->indexB;
-		float32 mB = vc->invMassB;
+		scalar mB = vc->invMassB;
 		b3Mat33 iB = vc->invIB;
 
 		b3Vec3 vA = m_velocities[indexA].v;
@@ -362,21 +365,25 @@ void b3ContactSolver::SolveVelocityConstraints()
 			b3VelocityConstraintManifold* vcm = vc->manifolds + j;
 			u32 pointCount = vcm->pointCount;
 
-			float32 normalImpulse = 0.0f;
+			scalar motorSpeed = vcm->motorSpeed;
+			scalar tangentSpeed1 = vcm->tangentSpeed1;
+			scalar tangentSpeed2 = vcm->tangentSpeed2;
+
+			scalar normalImpulse = scalar(0);
 			for (u32 k = 0; k < pointCount; ++k)
 			{
 				b3VelocityConstraintPoint* vcp = vcm->points + k;
-				B3_ASSERT(vcp->normalImpulse >= 0.0f);
+				B3_ASSERT(vcp->normalImpulse >= scalar(0));
 
 				// Solve normal constraints.
 				{
 					b3Vec3 dv = vB + b3Cross(wB, vcp->rB) - vA - b3Cross(wA, vcp->rA);
-					float32 Cdot = b3Dot(vcp->normal, dv);
+					scalar Cdot = b3Dot(vcp->normal, dv);
 
-					float32 impulse = -vcp->normalMass * (Cdot - vcp->velocityBias);
+					scalar impulse = -vcp->normalMass * (Cdot - vcp->velocityBias);
 
-					float32 oldImpulse = vcp->normalImpulse;
-					vcp->normalImpulse = b3Max(vcp->normalImpulse + impulse, 0.0f);
+					scalar oldImpulse = vcp->normalImpulse;
+					vcp->normalImpulse = b3Max(vcp->normalImpulse + impulse, scalar(0));
 					impulse = vcp->normalImpulse - oldImpulse;
 
 					b3Vec3 P = impulse * vcp->normal;
@@ -398,14 +405,14 @@ void b3ContactSolver::SolveVelocityConstraints()
 					b3Vec3 dv = vB + b3Cross(wB, vcm->rB) - vA - b3Cross(wA, vcm->rA);
 					
 					b3Vec2 Cdot;
-					Cdot.x = b3Dot(dv, vcm->tangent1);
-					Cdot.y = b3Dot(dv, vcm->tangent2);
+					Cdot.x = b3Dot(dv, vcm->tangent1) - tangentSpeed1;
+					Cdot.y = b3Dot(dv, vcm->tangent2) - tangentSpeed2;
 
 					b3Vec2 impulse = vcm->tangentMass * -Cdot;
 					b3Vec2 oldImpulse = vcm->tangentImpulse;
 					vcm->tangentImpulse += impulse;
 					
-					float32 maxImpulse = vc->friction * normalImpulse;
+					scalar maxImpulse = vc->friction * normalImpulse;
 					if (b3Dot(vcm->tangentImpulse, vcm->tangentImpulse) > maxImpulse * maxImpulse)
 					{
 						vcm->tangentImpulse.Normalize();
@@ -427,10 +434,10 @@ void b3ContactSolver::SolveVelocityConstraints()
 
 				// Solve motor constraint.
 				{
-					float32 Cdot = b3Dot(vcm->normal, wB - wA);
-					float32 impulse = -vcm->motorMass * Cdot;
-					float32 oldImpulse = vcm->motorImpulse;
-					float32 maxImpulse = vc->friction * normalImpulse;
+					scalar Cdot = b3Dot(vcm->normal, wB - wA) - motorSpeed;
+					scalar impulse = -vcm->motorMass * Cdot;
+					scalar oldImpulse = vcm->motorImpulse;
+					scalar maxImpulse = vc->friction * normalImpulse;
 					vcm->motorImpulse = b3Clamp(vcm->motorImpulse + impulse, -maxImpulse, maxImpulse);
 					impulse = vcm->motorImpulse - oldImpulse;
 
@@ -491,23 +498,23 @@ struct b3ContactPositionSolverPoint
 
 	b3Vec3 normal;
 	b3Vec3 point;
-	float32 separation;
+	scalar separation;
 };
 
 bool b3ContactSolver::SolvePositionConstraints()
 {
-	float32 minSeparation = 0.0f;
+	scalar minSeparation = scalar(0);
 
 	for (u32 i = 0; i < m_count; ++i)
 	{
 		b3ContactPositionConstraint* pc = m_positionConstraints + i;
 
 		u32 indexA = pc->indexA;
-		float32 mA = pc->invMassA;
+		scalar mA = pc->invMassA;
 		b3Vec3 localCenterA = pc->localCenterA;
 
 		u32 indexB = pc->indexB;
-		float32 mB = pc->invMassB;
+		scalar mB = pc->invMassB;
 		b3Vec3 localCenterB = pc->localCenterB;
 
 		b3Vec3 cA = m_positions[indexA].x;
@@ -531,25 +538,25 @@ bool b3ContactSolver::SolvePositionConstraints()
 				b3PositionConstraintPoint* pcp = pcm->points + k;
 
 				b3Transform xfA;
-				xfA.rotation = b3QuatMat33(qA);
-				xfA.position = cA - b3Mul(xfA.rotation, localCenterA);
+				xfA.rotation = qA;
+				xfA.translation = cA - b3Mul(qA, localCenterA);
 
 				b3Transform xfB;
-				xfB.rotation = b3QuatMat33(qB);
-				xfB.position = cB - b3Mul(xfB.rotation, localCenterB);
+				xfB.rotation = qB;
+				xfB.translation = cB - b3Mul(qB, localCenterB);
 
 				b3ContactPositionSolverPoint cpcp;
 				cpcp.Initialize(pc, pcp, xfA, xfB);
 
 				b3Vec3 normal = cpcp.normal;
 				b3Vec3 point = cpcp.point;
-				float32 separation = cpcp.separation;
+				scalar separation = cpcp.separation;
 
 				// Update max constraint error.
 				minSeparation = b3Min(minSeparation, separation);
 
 				// Allow some slop and prevent large corrections.
-				float32 C = b3Clamp(B3_BAUMGARTE * (separation + B3_LINEAR_SLOP), -B3_MAX_LINEAR_CORRECTION, 0.0f);
+				scalar C = b3Clamp(B3_BAUMGARTE * (separation + B3_LINEAR_SLOP), -B3_MAX_LINEAR_CORRECTION, scalar(0));
 
 				// Compute effective mass.
 				b3Vec3 rA = point - cA;
@@ -557,10 +564,10 @@ bool b3ContactSolver::SolvePositionConstraints()
 				
 				b3Vec3 rnA = b3Cross(rA, normal);
 				b3Vec3 rnB = b3Cross(rB, normal);
-				float32 K = mA + mB + b3Dot(rnA, iA * rnA) + b3Dot(rnB, iB * rnB);
+				scalar K = mA + mB + b3Dot(rnA, iA * rnA) + b3Dot(rnB, iB * rnB);
 
 				// Compute normal impulse.
-				float32 impulse = K > 0.0f ? -C / K : 0.0f;
+				scalar impulse = K > scalar(0) ? -C / K : scalar(0);
 				b3Vec3 P = impulse * normal;
 
 				cA -= mA * P;
@@ -584,5 +591,5 @@ bool b3ContactSolver::SolvePositionConstraints()
 		m_inertias[indexB] = iB;
 	}
 
-	return minSeparation >= -3.0f * B3_LINEAR_SLOP;
+	return minSeparation >= scalar(-3) * B3_LINEAR_SLOP;
 }

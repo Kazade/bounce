@@ -32,10 +32,10 @@ struct b3RectanglePattern : public b3SewingPattern
 {
 	b3Vec2 rectangleVertices[4];
 
-	b3RectanglePattern(float32 ex = 1.0f, float32 ey = 1.0f)
+	b3RectanglePattern(scalar ex = scalar(1), scalar ey = scalar(1))
 	{
-		B3_ASSERT(ex > 0.0f);
-		B3_ASSERT(ey > 0.0f);
+		B3_ASSERT(ex > scalar(0));
+		B3_ASSERT(ey > scalar(0));
 
 		// R, CCW
 		rectangleVertices[0].Set(ex, -ey);
@@ -55,19 +55,19 @@ struct b3CirclePattern : public b3SewingPattern
 {
 	b3Vec2 circleVertices[E];
 
-	b3CirclePattern(float32 radius = 1.0f)
+	b3CirclePattern(scalar radius = scalar(1))
 	{
 		b3Vec2 center = b3Vec2_zero;
 
-		float32 x = 2.0f * B3_PI / float32(E);
-		float32 c = cos(x);
-		float32 s = sin(x);
+		scalar x = scalar(2) * B3_PI / scalar(E);
+		scalar c = cos(x);
+		scalar s = sin(x);
 
 		b3Mat22 R;
 		R.x.Set(c, s);
 		R.y.Set(-s, c);
 
-		b3Vec2 n(1.0f, 0.0f);
+		b3Vec2 n(1, 0);
 		circleVertices[0] = center + radius * n;
 		for (u32 i = 1; i < E; ++i)
 		{

@@ -22,7 +22,10 @@
 #include <bounce/common/math/math.h>
 #include <bounce/common/template/list.h>
 #include <bounce/common/template/array.h>
+#include <bounce/dynamics/shapes/shape.h>
 #include <bounce/dynamics/contacts/manifold.h>
+
+class b3BlockPool;
 
 class b3Shape;
 class b3Body;
@@ -53,17 +56,28 @@ struct b3OverlappingPair
 	b3ContactEdge edgeB;
 };
 
-// todo
-struct b3TOIEvent
-{
-	float32 t;
-};
-
 enum b3ContactType
 {
 	e_convexContact,
 	e_meshContact,
 	e_maxContact
+};
+
+typedef b3Contact* b3ContactCreateFcn(b3Shape* shapeA, b3Shape* shapeB, b3BlockPool* allocator);
+typedef void b3ContactDestroyFcn(b3Contact* contact, b3BlockPool* allocator);
+
+struct b3ContactRegister
+{
+	b3ContactRegister()
+	{
+		createFcn = nullptr;
+		destroyFcn = nullptr;
+	}
+
+	b3ContactType contactType;
+	b3ContactCreateFcn* createFcn;
+	b3ContactDestroyFcn* destroyFcn;
+	bool primary;
 };
 
 class b3Contact
@@ -96,6 +110,12 @@ public:
 	// Are the shapes in this contact overlapping?
 	bool IsOverlapping() const;
 
+	// Has this contact at least one sensor shape?
+	bool IsSensorContact() const;
+
+	// Has this contact at least one dynamic body?
+	bool HasDynamicBody() const;
+
 	// Get the next contact in the world contact list.
 	const b3Contact* GetNext() const;
 	b3Contact* GetNext();
@@ -113,8 +133,23 @@ protected:
 		e_islandFlag = 0x0002,
 	};
 
-	b3Contact() { }
+	b3Contact(b3Shape* shapeA, b3Shape* shapeB);
 	virtual ~b3Contact() { }
+
+	static b3ContactRegister s_registers[e_maxShapes][e_maxShapes];
+	static bool s_initialized;
+	
+	static void AddPrimaryRegister(b3ContactCreateFcn* createFcn, b3ContactDestroyFcn* destoryFcn,
+		b3ShapeType type1, b3ShapeType type2, 
+		b3ContactType contactType);
+	
+	static void InitializePrimaryRegisters();
+
+	// Factory create.
+	static b3Contact* Create(b3Shape* shapeA, b3Shape* shapeB, b3BlockPool* allocators[e_maxContact]);
+	
+	// Factory destroy.
+	static void Destroy(b3Contact* contact, b3BlockPool* allocators[e_maxContact]);
 
 	// Update the contact state.
 	void Update(b3ContactListener* listener);
@@ -122,22 +157,17 @@ protected:
 	// Test if the shapes in this contact are overlapping.
 	virtual bool TestOverlap() = 0;
 
-	// Initialize contact constraits.
+	// Initialize contact constraints.
 	virtual void Collide() = 0;
 
 	b3ContactType m_type;
 	u32 m_flags;
 	b3OverlappingPair m_pair;
 
-	// Collision event from discrete collision to 
-	// discrete physics.
+	// Contact manifolds.
 	u32 m_manifoldCapacity;
 	b3Manifold* m_manifolds;
 	u32 m_manifoldCount;
-
-	// Time of impact event from continuous collision
-	// to continuous physics.
-	//b3TOIEvent m_toi;
 
 	// Links to the world contact list.
 	b3Contact* m_prev;

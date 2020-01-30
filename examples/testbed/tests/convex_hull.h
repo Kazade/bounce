@@ -66,9 +66,9 @@ public:
 		m_count = 0;
 		for (u32 i = 0; i < e_count; ++i)
 		{
-			float32 x = 3.0f * RandomFloat(-1.0f, 1.0f);
-			float32 y = 3.0f * RandomFloat(-1.0f, 1.0f);
-			float32 z = 3.0f * RandomFloat(-1.0f, 1.0f);
+			float x = 3.0f * RandomFloat(-1.0f, 1.0f);
+			float y = 3.0f * RandomFloat(-1.0f, 1.0f);
+			float z = 3.0f * RandomFloat(-1.0f, 1.0f);
 			
 			// Clamp to force coplanarities.
 			// This will stress the convex hull creation code.
@@ -135,7 +135,7 @@ public:
 				edge = m_hull.GetEdge(edge->next);
 			} while (edge != begin);
 
-			c /= float32(vn);
+			c /= scalar(vn);
 			g_draw->DrawSegment(c, c + n, b3Color_white);
 		}
 

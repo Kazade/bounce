@@ -81,7 +81,7 @@ public:
 	// 
 	void Run(b3Manifold mOut[3], u32& numOut,
 	const b3Manifold* mIn, u32 numIn,
-		const b3Transform& xfA, float32 radiusA, const b3Transform& xfB, float32 radiusB);
+		const b3Transform& xfA, scalar radiusA, const b3Transform& xfB, scalar radiusB);
 
 	//
 	void Solve();
@@ -97,8 +97,8 @@ private:
 
 	u32 m_iterations;
 
-	b3StackArray<b3Observation, 32> m_observations;
-	b3StackArray<b3Cluster, 32> m_clusters;
+	b3StackArray<b3Observation, 256> m_observations;
+	b3StackArray<b3Cluster, 256> m_clusters;
 };
 
 inline void b3ClusterSolver::AddObservation(const b3Observation& observation)

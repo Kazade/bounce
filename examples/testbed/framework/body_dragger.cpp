@@ -35,12 +35,23 @@ bool b3BodyDragger::StartDragging()
 {
 	B3_ASSERT(IsDragging() == false);
 
+	class RayCastFilter : public b3RayCastFilter
+	{
+	public:
+		bool ShouldRayCast(b3Shape* shape)
+		{
+			return true;
+		}
+	};
+
+	RayCastFilter filter;
+
 	b3RayCastSingleOutput out;
-	if (m_world->RayCastSingle(&out, m_ray->A(), m_ray->B()) == false)
+	if (m_world->RayCastSingle(&out, &filter, m_ray->A(), m_ray->B()) == false)
 	{
 		return false;
 	}
-
+	
 	m_x = out.fraction;
 	m_shape = out.shape;
 
@@ -54,7 +65,7 @@ bool b3BodyDragger::StartDragging()
 	jd.bodyA = groundBody;
 	jd.bodyB = body;
 	jd.target = out.point;
-	jd.maxForce = 2000.0f * body->GetMass();
+	jd.maxForce = 1000.0f * body->GetMass();
 
 	m_mouseJoint = (b3MouseJoint*)m_world->CreateJoint(jd);
 
@@ -79,10 +90,10 @@ void b3BodyDragger::StopDragging()
 	m_shape = nullptr;
 }
 
-b3Body* b3BodyDragger::GetBody() const
+b3Shape* b3BodyDragger::GetShape() const
 {
 	B3_ASSERT(IsDragging() == true);
-	return m_shape->GetBody();
+	return m_shape;
 }
 
 b3Vec3 b3BodyDragger::GetPointA() const

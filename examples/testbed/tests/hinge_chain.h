@@ -24,16 +24,10 @@ class HingeChain : public Test
 public:
 	HingeChain()
 	{
-		static b3BoxHull doorHull;
-		{
-			b3Transform xf;
-			xf.position.SetZero();
-			xf.rotation = b3Diagonal(2.0f, 4.0f, 0.5f);
-			doorHull.SetTransform(xf);
-		}
+		static b3BoxHull box(2.0f, 4.0f, 0.5f);
 
-		float32 x = -50.0f;
-		float32 y = 0.0f;
+		scalar x = -50.0f;
+		scalar y = 0.0f;
 
 		b3Body* lastHinge;
 		{
@@ -42,7 +36,7 @@ public:
 			lastHinge = m_world.CreateBody(bd);
 
 			b3HullShape hull;
-			hull.m_hull = &doorHull;
+			hull.m_hull = &box;
 
 			b3ShapeDef sdef;
 			sdef.shape = &hull;
@@ -60,7 +54,7 @@ public:
 			b3Body* hinge = m_world.CreateBody(bd);
 
 			b3HullShape hull;
-			hull.m_hull = &doorHull;
+			hull.m_hull = &box;
 			
 			b3ShapeDef sdef;
 			sdef.shape = &hull;

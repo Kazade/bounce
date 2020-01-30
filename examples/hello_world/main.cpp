@@ -45,7 +45,7 @@ int main(int argc, char** argv)
 	world->SetGravity(gravity);
 	
 	// The fixed time step size.
-	const float32 timeStep = 1.0f / 60.0f;
+	const scalar timeStep = 1.0f / 60.0f;
 	
 	// Number of iterations for the velocity constraint solver.
 	const u32 velocityIterations = 8;
@@ -59,14 +59,8 @@ int main(int argc, char** argv)
 
 	// Create a box positioned at the world origin and 
 	// aligned with the world frame.
-	b3BoxHull groundBox;
-	
-	// Set the ground box dimensions using a linear scale transform.
-	b3Transform scale;
-	scale.position.SetZero();
-	scale.rotation = b3Diagonal(10.0f, 1.0f, 10.0f);
-	groundBox.SetTransform(scale);
-	
+	b3BoxHull groundBox(10.0f, 1.0f, 10.0f);
+
 	// Create the box physics wrapper.
 	b3HullShape groundShape;
 	groundShape.m_hull = &groundBox;
@@ -115,7 +109,7 @@ int main(int argc, char** argv)
 		
 		// Decode the axis and angle of rotation about it from the quaternion.
 		b3Vec3 axis;
-		float32 angle;
+		scalar angle;
 		orientation.GetAxisAngle(&axis, &angle);
 
 		// Visualize the body state in this frame.

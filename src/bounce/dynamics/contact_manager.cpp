@@ -23,23 +23,26 @@
 #include <bounce/dynamics/body.h>
 #include <bounce/dynamics/world_listeners.h>
 
-b3ContactManager::b3ContactManager() : 
+b3ContactManager::b3ContactManager() :
 	m_convexBlocks(sizeof(b3ConvexContact)),
 	m_meshBlocks(sizeof(b3MeshContact))
 {
-	m_contactListener = NULL;
-	m_contactFilter = NULL;
+	m_contactListener = nullptr;
+	m_contactFilter = nullptr;
+
+	m_allocators[e_convexContact] = &m_convexBlocks;
+	m_allocators[e_meshContact] = &m_meshBlocks;
 }
 
-void b3ContactManager::AddPair(void* dataA, void* dataB) 
+void b3ContactManager::AddPair(void* dataA, void* dataB)
 {
 	b3Shape* shapeA = (b3Shape*)dataA;
 	b3Shape* shapeB = (b3Shape*)dataB;
 
 	b3Body* bodyA = shapeA->GetBody();
 	b3Body* bodyB = shapeB->GetBody();
-	
-	if (bodyA == bodyB) 
+
+	if (bodyA == bodyB)
 	{
 		// Two shapes that belong to the same body cannot collide.
 		return;
@@ -52,7 +55,7 @@ void b3ContactManager::AddPair(void* dataA, void* dataB)
 		if (ce->other == shapeA)
 		{
 			b3Contact* c = ce->contact;
-			
+
 			b3Shape* sA = c->GetShapeA();
 			b3Shape* sB = c->GetShapeB();
 
@@ -70,7 +73,8 @@ void b3ContactManager::AddPair(void* dataA, void* dataB)
 		}
 	}
 
-	// Check if a joint prevents collision between the bodies.
+	// Is at least one of the bodies kinematic or dynamic? 
+	// Does a joint prevent the collision?
 	if (bodyA->ShouldCollide(bodyB) == false)
 	{
 		// The bodies must not collide with each other.
@@ -88,13 +92,12 @@ void b3ContactManager::AddPair(void* dataA, void* dataB)
 
 	// Create contact.
 	b3Contact* c = Create(shapeA, shapeB);
-	if (c == NULL)
+	if (c == nullptr)
 	{
 		return;
 	}
 
-	// Get the shapes from the contact again
-	// because contact creation will swap the shapes if typeA > typeB.
+	// Get the shapes from the contact again because contact creation can swap the shapes.
 	shapeA = c->GetShapeA();
 	shapeB = c->GetShapeB();
 	bodyA = shapeA->GetBody();
@@ -106,7 +109,7 @@ void b3ContactManager::AddPair(void* dataA, void* dataB)
 	// Initialize edge A
 	pair->edgeA.contact = c;
 	pair->edgeA.other = shapeB;
-	
+
 	// Add edge A to shape A's contact list.
 	shapeA->m_contactEdges.PushFront(&pair->edgeA);
 
@@ -118,7 +121,7 @@ void b3ContactManager::AddPair(void* dataA, void* dataB)
 	shapeB->m_contactEdges.PushFront(&pair->edgeB);
 
 	// Awake the bodies if both are not sensors.
-	if (!shapeA->IsSensor() && !shapeB->IsSensor()) 
+	if (!shapeA->IsSensor() && !shapeB->IsSensor())
 	{
 		bodyA->SetAwake(true);
 		bodyB->SetAwake(true);
@@ -126,12 +129,12 @@ void b3ContactManager::AddPair(void* dataA, void* dataB)
 
 	// Add the contact to the world contact list.
 	m_contactList.PushFront(c);
-	
+
 	if (c->m_type == e_meshContact)
 	{
 		// Add the contact to the world mesh contact list.
 		b3MeshContact* mc = (b3MeshContact*)c;
-		
+
 		// Find new shape-child overlapping pairs.
 		mc->FindNewPairs();
 
@@ -164,10 +167,10 @@ void b3ContactManager::FindNewContacts()
 	}
 }
 
-void b3ContactManager::UpdateContacts() 
-{	
+void b3ContactManager::UpdateContacts()
+{
 	B3_PROFILE("Update Contacts");
-	
+
 	// Update the state of all contacts.
 	b3Contact* c = m_contactList.m_head;
 	while (c)
@@ -177,11 +180,11 @@ void b3ContactManager::UpdateContacts()
 		b3Shape* shapeA = pair->shapeA;
 		u32 proxyA = shapeA->m_broadPhaseID;
 		b3Body* bodyA = shapeA->m_body;
-		
+
 		b3Shape* shapeB = pair->shapeB;
 		u32 proxyB = shapeB->m_broadPhaseID;
 		b3Body* bodyB = shapeB->m_body;
-		
+
 		// Check if the bodies must not collide with each other.
 		if (bodyA->ShouldCollide(bodyB) == false)
 		{
@@ -207,7 +210,7 @@ void b3ContactManager::UpdateContacts()
 		// At least one body must be dynamic or kinematic.
 		bool activeA = bodyA->IsAwake() && bodyA->m_type != e_staticBody;
 		bool activeB = bodyB->IsAwake() && bodyB->m_type != e_staticBody;
-		if (activeA == false && activeB == false) 
+		if (activeA == false && activeB == false)
 		{
 			c = c->m_next;
 			continue;
@@ -230,83 +233,40 @@ void b3ContactManager::UpdateContacts()
 	}
 }
 
-b3Contact* b3ContactManager::Create(b3Shape* shapeA, b3Shape* shapeB) 
+b3Contact* b3ContactManager::Create(b3Shape* shapeA, b3Shape* shapeB)
 {
-	b3ShapeType typeA = shapeA->GetType();
-	b3ShapeType typeB = shapeB->GetType();
-
-	if (typeA > typeB) 
-	{
-		b3Swap(typeA, typeB);
-		b3Swap(shapeA, shapeB);
-	}
-
-	B3_ASSERT(typeA <= typeB);
-
-	b3Contact* c = NULL;
-	if (typeA != e_meshShape && typeB != e_meshShape) 
-	{
-		void* block = m_convexBlocks.Allocate();
-		b3ConvexContact* cxc = new (block) b3ConvexContact(shapeA, shapeB);
-		c = cxc;
-	}
-	else 
-	{
-		if (typeB == e_meshShape) 
-		{
-			void* block = m_meshBlocks.Allocate();
-			b3MeshContact* mxc = new (block) b3MeshContact(shapeA, shapeB);
-			c = mxc;
-		}
-		else 
-		{
-			// Collisions between meshes are not implemented.
-			return NULL;
-		}
-	}
-
-	// The shapes might be swapped.
-	c->m_pair.shapeA = shapeA;
-	c->m_pair.shapeB = shapeB;
-	return c;
+	return b3Contact::Create(shapeA, shapeB, m_allocators);
 }
 
-void b3ContactManager::Destroy(b3Contact* c) 
+void b3ContactManager::Destroy(b3Contact* c)
 {
 	// Report to the contact listener the contact will be destroyed.
-	if (m_contactListener) 
+	if (m_contactListener)
 	{
-		if (c->IsOverlapping()) 
+		if (c->IsOverlapping())
 		{
 			m_contactListener->EndContact(c);
 		}
 	}
-	
+
 	b3OverlappingPair* pair = &c->m_pair;
-	
+
 	b3Shape* shapeA = c->GetShapeA();
 	b3Shape* shapeB = c->GetShapeB();
-	
+
 	shapeA->m_contactEdges.Remove(&pair->edgeA);
 	shapeB->m_contactEdges.Remove(&pair->edgeB);
 
 	// Remove the contact from the world contact list.
 	m_contactList.Remove(c);
 
-	if (c->m_type == e_convexContact)
+	if (c->m_type == e_meshContact)
 	{
-		b3ConvexContact* cc = (b3ConvexContact*)c;
-		cc->~b3ConvexContact();
-		m_convexBlocks.Free(cc);
-	}
-	else
-	{
-		b3MeshContact* mc = (b3MeshContact*)c;
-		
 		// Remove the mesh contact from the world mesh contact list.
+		b3MeshContact* mc = (b3MeshContact*)c;
 		m_meshContactList.Remove(&mc->m_link);
-		
-		mc->~b3MeshContact();
-		m_meshBlocks.Free(mc);
 	}
+
+	// Free the contact.
+	b3Contact::Destroy(c, m_allocators);
 }

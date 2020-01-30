@@ -38,15 +38,15 @@ public:
 		}
 
 		b3CapsuleShape edge;
-		edge.m_centers[0].Set(0.0f, -10.0f, 0.0f);
-		edge.m_centers[1].Set(0.0f, 10.0f, 0.0f);
+		edge.m_vertex1.Set(0.0f, -10.0f, 0.0f);
+		edge.m_vertex2.Set(0.0f, 10.0f, 0.0f);
 		edge.m_radius = 0.5f;
 
 		b3Body* frame1, *frame2;
 
 		{
 			b3BodyDef bd;
-			bd.orientation = b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.5f * B3_PI);
+			bd.orientation = b3QuatRotationZ(0.5f * B3_PI);
 			bd.position.Set(0.0f, 10.0f, -5.0f);
 
 			frame1 = m_world.CreateBody(bd);
@@ -59,7 +59,7 @@ public:
 
 		{
 			b3BodyDef bd;
-			bd.orientation = b3Quat(b3Vec3(0.0f, 0.0f, 1.0f), 0.5f * B3_PI);
+			bd.orientation = b3QuatRotationZ(0.5f * B3_PI);
 			bd.position.Set(0.0f, 10.0f, 5.0f);
 
 			frame2 = m_world.CreateBody(bd);

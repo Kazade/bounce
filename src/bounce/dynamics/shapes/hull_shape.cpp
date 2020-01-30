@@ -18,15 +18,16 @@
 
 #include <bounce/dynamics/shapes/hull_shape.h>
 #include <bounce/dynamics/time_step.h>
-#include <bounce/dynamics/contacts/collide/collide.h>
+#include <bounce/common/template/array.h>
 #include <bounce/collision/shapes/hull.h>
 #include <bounce/collision/gjk/gjk.h>
+#include <bounce/collision/gjk/gjk_proxy.h>
 
 b3HullShape::b3HullShape()
 {
 	m_type = e_hullShape;
 	m_radius = B3_HULL_RADIUS;
-	m_hull = NULL;
+	m_hull = nullptr;
 }
 
 b3HullShape::~b3HullShape()
@@ -39,7 +40,7 @@ void b3HullShape::Swap(const b3HullShape& other)
 	m_hull = other.m_hull;
 }
 
-void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
+void b3HullShape::ComputeMass(b3MassData* massData, scalar density) const
 {
 	// M. Kallay - "Computing the Moment of Inertia of a Solid Defined by a Triangle Mesh"
 	// https://github.com/erich666/jgt-code/blob/master/Volume_11/Number_2/Kallay2006/Moment_of_Inertia.cpp
@@ -73,18 +74,18 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 	{
 		s += m_hull->vertices[i];
 	}
-	s /= float32(m_hull->vertexCount);
+	s /= scalar(m_hull->vertexCount);
 
-	float32 volume = 0.0f;
+	scalar volume = scalar(0);
 
 	b3Vec3 center; center.SetZero();
 	
-	float32 xx = 0.0f;
-	float32 xy = 0.0f;
-	float32 yy = 0.0f;
-	float32 xz = 0.0f;
-	float32 zz = 0.0f;
-	float32 yz = 0.0f;
+	scalar xx = scalar(0);
+	scalar xy = scalar(0);
+	scalar yy = scalar(0);
+	scalar xz = scalar(0);
+	scalar zz = scalar(0);
+	scalar yz = scalar(0);
 
 	for (u32 i = 0; i < m_hull->faceCount; ++i)
 	{
@@ -105,7 +106,7 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 			b3Vec3 v3 = m_hull->GetVertex(i3) - s;
 
 			// Signed tetrahedron volume
-			float32 D = b3Det(v1, v2, v3);
+			scalar D = b3Det(v1, v2, v3);
 
 			// Contribution to the mass
 			volume += D;
@@ -146,11 +147,11 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 	
 	// Center of mass
 	B3_ASSERT(volume > B3_EPSILON);
-	center /= 4.0f * volume;
+	center /= scalar(4) * volume;
 	massData->center = center + s;
 
 	// Inertia relative to the local origin (s).
-	massData->I = (density / 120.0f) * I;
+	massData->I = (density / scalar(120)) * I;
 	
 	// Shift the inertia to center of mass then to the body origin.
 	// Ib = Ic - m * c^2 + m * m.c^2
@@ -159,7 +160,7 @@ void b3HullShape::ComputeMass(b3MassData* massData, float32 density) const
 	massData->I += massData->mass * (b3Steiner(massData->center) - b3Steiner(center));
 }
 
-void b3HullShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const
+void b3HullShape::ComputeAABB(b3AABB* aabb, const b3Transform& xf) const
 {
 	aabb->Set(m_hull->vertices, m_hull->vertexCount, xf);
 	aabb->Extend(m_radius);
@@ -167,92 +168,109 @@ void b3HullShape::ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const
 
 bool b3HullShape::TestSphere(const b3Sphere& sphere, const b3Transform& xf) const
 {
-	b3Vec3 support = b3MulT(xf, sphere.vertex);
-	float32 radius = m_radius + sphere.radius;
+	b3GJKProxy proxy1;
+	proxy1.vertexCount = m_hull->vertexCount;
+	proxy1.vertices = m_hull->vertices;
 
-	for (u32 i = 0; i < m_hull->faceCount; ++i)
+	b3GJKProxy proxy2;
+	proxy2.vertexBuffer[0] = b3MulT(xf, sphere.vertex);
+	proxy2.vertexCount = 1;
+	proxy2.vertices = proxy2.vertexBuffer;
+
+	b3GJKOutput gjk = b3GJK(b3Transform_identity, proxy1, b3Transform_identity, proxy2, false);
+
+	if (gjk.distance <= m_radius + sphere.radius)
 	{
-		b3Plane plane = m_hull->GetPlane(i);
-		float32 separation = b3Distance(support, plane);
-
-		if (separation > radius)
-		{
-			return false;
-		}
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
 bool b3HullShape::TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere, const b3Transform& xf) const
 {
-	b3Transform xf1 = xf;
-	b3Transform xf2 = b3Transform_identity;
+	scalar radius = m_radius + sphere.radius;
+	const b3Hull* hull = m_hull;
 
-	b3ShapeGJKProxy proxy1(this, 0);
-	
+	// Sphere center in the frame of the hull.
+	b3Vec3 cLocal = b3MulT(xf, sphere.vertex);
+
+	// Find the minimum separation face.	
+	u32 faceIndex = 0;
+	scalar separation = -B3_MAX_SCALAR;
+
+	for (u32 i = 0; i < hull->faceCount; ++i)
+	{
+		b3Plane plane = hull->GetPlane(i);
+		scalar s = b3Distance(cLocal, plane);
+
+		if (s > radius)
+		{
+			// Early out.
+			return false;
+		}
+
+		if (s > separation)
+		{
+			faceIndex = i;
+			separation = s;
+		}
+	}
+
+	if (separation < scalar(0))
+	{
+		// The center is inside the hull.
+		b3Plane plane = b3Mul(xf, m_hull->GetPlane(faceIndex));
+
+		output->point = b3ClosestPointOnPlane(sphere.vertex, plane);
+		output->normal = plane.normal;	
+		return true;
+	}
+
+	// Vertices that subtend the incident face.
+	b3StackArray<b3Vec3, 64> incidentPolygon;
+
+	const b3Face* face = hull->GetFace(faceIndex);
+	const b3HalfEdge* begin = hull->GetEdge(face->edge);
+	const b3HalfEdge* edge = begin;
+	do
+	{
+		b3Vec3 vertex = hull->GetVertex(edge->origin);
+		incidentPolygon.PushBack(vertex);
+		edge = hull->GetEdge(edge->next);
+	} while (edge != begin);
+
+	b3GJKProxy proxy1;
+	proxy1.vertexCount = incidentPolygon.Count();
+	proxy1.vertices = incidentPolygon.Begin();
+
 	b3GJKProxy proxy2;
-	proxy2.vertexCount = 1;
 	proxy2.vertexBuffer[0] = sphere.vertex;
+	proxy2.vertexCount = 1;
 	proxy2.vertices = proxy2.vertexBuffer;
-	proxy2.radius = sphere.radius;
 
-	b3GJKOutput gjk = b3GJK(xf1, proxy1, xf2, proxy2);
+	b3Transform xf1 = xf;
+	b3Transform xf2; xf2.SetIdentity();
 
-	float32 r1 = proxy1.radius;
-	float32 r2 = proxy2.radius;
+	b3GJKOutput gjk = b3GJK(xf1, proxy1, xf2, proxy2, false);
 
-	float32 totalRadius = r1 + r2;
-
-	if (gjk.distance > totalRadius)
+	if (gjk.distance > radius)
 	{
 		return false;
 	}
 
-	if (gjk.distance > 0.0f)
+	if (gjk.distance > scalar(0))
 	{
 		b3Vec3 c1 = gjk.point1;
 		b3Vec3 c2 = gjk.point2;
-		b3Vec3 n = (c2 - c1) / gjk.distance;
+		b3Vec3 normal = (c2 - c1) / gjk.distance;
 
 		output->point = c1;
-		output->normal = n;
-		output->separation = gjk.distance - totalRadius;
-
+		output->normal = normal;
 		return true;
 	}
 
-	// Perform computations in the local space of the first hull.
-	b3Vec3 support = b3MulT(xf1, sphere.vertex);
-
-	u32 maxIndex = ~0;
-	float32 maxSeparation = -B3_MAX_FLOAT;
-
-	for (u32 i = 0; i < m_hull->faceCount; ++i)
-	{
-		b3Plane plane = m_hull->GetPlane(i);
-		float32 separation = b3Distance(support, plane);
-
-		if (separation > totalRadius)
-		{
-			return false;
-		}
-
-		if (separation > maxSeparation)
-		{
-			maxIndex = i;
-			maxSeparation = separation;
-		}
-	}
-
-	B3_ASSERT(maxIndex != ~0);
-
-	b3Plane plane = b3Mul(xf1, m_hull->GetPlane(maxIndex));
-	
-	output->point = b3ClosestPointOnPlane(sphere.vertex, plane);
-	output->separation = maxSeparation - totalRadius;
-	output->normal = plane.normal;
-	return true;
+	return false;
 }
 
 bool b3HullShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf) const
@@ -261,12 +279,12 @@ bool b3HullShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 	const b3Plane* planes = m_hull->planes;
 
 	// Put the segment into the poly's frame of reference.
-	b3Vec3 p1 = b3MulT(xf.rotation, input.p1 - xf.position);
-	b3Vec3 p2 = b3MulT(xf.rotation, input.p2 - xf.position);
+	b3Vec3 p1 = b3MulC(xf.rotation, input.p1 - xf.translation);
+	b3Vec3 p2 = b3MulC(xf.rotation, input.p2 - xf.translation);
 	b3Vec3 d = p2 - p1;
 
-	float32 lower = 0.0f;
-	float32 upper = input.maxFraction;
+	scalar lower = scalar(0);
+	scalar upper = input.maxFraction;
 
 	u32 index = B3_MAX_U32;
 
@@ -284,13 +302,13 @@ bool b3HullShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 
 	for (u32 i = 0; i < planeCount; ++i)
 	{
-		float32 numerator = planes[i].offset - b3Dot(planes[i].normal, p1);
-		float32 denominator = b3Dot(planes[i].normal, d);
+		scalar numerator = planes[i].offset - b3Dot(planes[i].normal, p1);
+		scalar denominator = b3Dot(planes[i].normal, d);
 
-		if (denominator == 0.0f)
+		if (denominator == scalar(0))
 		{
 			// s is parallel to this half-space.
-			if (numerator < 0.0f)
+			if (numerator < scalar(0))
 			{
 				// s is outside of this half-space.
 				// dot(n, p1) and dot(n, p2) < 0.
@@ -305,7 +323,7 @@ bool b3HullShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 			// Optimized predicates:
 			// lower * denominator > numerator
 			// upper * denominator > numerator
-			if (denominator < 0.0f)
+			if (denominator < scalar(0))
 			{
 				// s enters this half-space.
 				if (numerator < lower * denominator)
@@ -333,7 +351,7 @@ bool b3HullShape::RayCast(b3RayCastOutput* output, const b3RayCastInput& input, 
 		}
 	}
 
-	B3_ASSERT(lower >= 0.0f && lower <= input.maxFraction);
+	B3_ASSERT(lower >= scalar(0) && lower <= input.maxFraction);
 
 	if (index != B3_MAX_U32)
 	{

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2016 Irlan Robson http://www.irlan.net
+* Copyright (c) 2016-2019 Irlan Robson https://irlanrobson.github.io
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -26,7 +26,7 @@
 
 extern "C"
 {
-        #include "../../../../external/triangle/triangle.h"
+	#include <triangle/triangle.h>
 }
 
 b3GarmentMesh::b3GarmentMesh()
@@ -51,7 +51,7 @@ b3GarmentMesh::~b3GarmentMesh()
 }
 
 // 
-static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3SewingPattern* pattern)
+static void b3Set(b3SewingPatternMesh* mesh, scalar desiredArea, const b3SewingPattern* pattern)
 {
 	B3_ASSERT(desiredArea > B3_EPSILON);
 	
@@ -59,12 +59,12 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 
 	// Prepare the input structure
 	in.pointlist = (REAL*)malloc(pattern->vertexCount * 2 * sizeof(REAL));
-	const float32* fp = (float32*)pattern->vertices;
+	const scalar* fp = (scalar*)pattern->vertices;
 	for (u32 i = 0; i < 2 * pattern->vertexCount; ++i)
 	{
 		in.pointlist[i] = (REAL)fp[i];
 	}
-	in.pointattributelist = NULL;
+	in.pointattributelist = nullptr;
 	in.pointmarkerlist = (int*)malloc(pattern->vertexCount * sizeof(int));
 	for (u32 i = 0; i < pattern->vertexCount; ++i)
 	{
@@ -74,43 +74,43 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 	in.numberofpoints = pattern->vertexCount;
 	in.numberofpointattributes = 0;
 
-	in.trianglelist = NULL;
-	in.triangleattributelist = NULL;
+	in.trianglelist = nullptr;
+	in.triangleattributelist = nullptr;
 
-	in.trianglearealist = NULL;
+	in.trianglearealist = nullptr;
 
 	in.numberoftriangles = 0;
 	in.numberofcorners = 0;
 	in.numberoftriangleattributes = 0;
 
-	in.segmentlist = NULL;
-	in.segmentmarkerlist = NULL;
+	in.segmentlist = nullptr;
+	in.segmentmarkerlist = nullptr;
 	in.numberofsegments = 0;
 
-	in.holelist = NULL;
+	in.holelist = nullptr;
 	in.numberofholes = 0;
 
-	in.regionlist = NULL;
+	in.regionlist = nullptr;
 	in.numberofregions = 0;
 
 	// Prepare the middle structure
-	mid.pointlist = NULL;
-	mid.pointmarkerlist = NULL;
+	mid.pointlist = nullptr;
+	mid.pointmarkerlist = nullptr;
 
-	mid.trianglelist = NULL;
-	mid.triangleattributelist = NULL;
-	mid.trianglearealist = NULL;
-	mid.neighborlist = NULL;
+	mid.trianglelist = nullptr;
+	mid.triangleattributelist = nullptr;
+	mid.trianglearealist = nullptr;
+	mid.neighborlist = nullptr;
 
-	mid.segmentlist = NULL;
-	mid.segmentmarkerlist = NULL;
+	mid.segmentlist = nullptr;
+	mid.segmentmarkerlist = nullptr;
 
 	// Run triangulation
 	// Q - quiet
 	// z - zero based indices
 	// p - PSLG
 	// c - preserve the convex hull
-	triangulate("Qzpc", &in, &mid, NULL);
+	triangulate("Qzpc", &in, &mid, nullptr);
 
 	// Refine
 
@@ -122,14 +122,14 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 	}
 
 	// Prepare output structure
-	out.pointlist = NULL;
-	out.pointmarkerlist = NULL;
+	out.pointlist = nullptr;
+	out.pointmarkerlist = nullptr;
 
-	out.trianglelist = NULL;
-	out.trianglearealist = NULL;
+	out.trianglelist = nullptr;
+	out.trianglearealist = nullptr;
 
-	out.segmentlist = NULL;
-	out.segmentmarkerlist = NULL;
+	out.segmentlist = nullptr;
+	out.segmentmarkerlist = nullptr;
 
 	// Run triangulation
 	// Q - quiet
@@ -137,7 +137,7 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 	// p - PSLG
 	// c - preserve the convex hull
 	// r - read triangles
-	triangulate("Qzpcra", &mid, &out, NULL);
+	triangulate("Qzpcra", &mid, &out, nullptr);
 
 	// The first vertices of the output structure must be the vertices of the input structure.
 	for (int i = 0; i < in.numberofpoints; ++i)
@@ -158,8 +158,8 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 	mesh->vertexCount = out.numberofpoints;
 	for (int i = 0; i < out.numberofpoints; ++i)
 	{
-		mesh->vertices[i].x = (float32)out.pointlist[2 * i + 0];
-		mesh->vertices[i].y = (float32)out.pointlist[2 * i + 1];
+		mesh->vertices[i].x = (scalar)out.pointlist[2 * i + 0];
+		mesh->vertices[i].y = (scalar)out.pointlist[2 * i + 1];
 	}
 
 	mesh->triangles = (b3SewingPatternMeshTriangle*)b3Alloc(out.numberoftriangles * sizeof(b3SewingPatternMeshTriangle));
@@ -197,7 +197,7 @@ static void b3Set(b3SewingPatternMesh* mesh, float32 desiredArea, const b3Sewing
 	free(out.segmentmarkerlist);
 }
 
-void b3GarmentMesh::Set(b3Garment* g, float32 desiredArea)
+void b3GarmentMesh::Set(b3Garment* g, scalar desiredArea)
 {
 	garment = g;
 	meshCount = garment->patternCount;

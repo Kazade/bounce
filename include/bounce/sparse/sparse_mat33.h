@@ -20,38 +20,10 @@
 #define B3_SPARSE_MAT_33_H
 
 #include <bounce/common/math/mat33.h>
+#include <bounce/sparse/sparse.h>
+#include <bounce/sparse/sparse_mat33_pattern.h>
 #include <bounce/sparse/diag_mat33.h>
 #include <bounce/sparse/dense_vec3.h>
-
-// An element in a sparse matrix.
-struct b3RowValue
-{
-	u32 column;
-	b3Mat33 value;
-	b3RowValue* next;
-};
-
-// Singly linked list of row elements.
-struct b3RowValueList
-{
-	b3RowValueList()
-	{
-		head = nullptr;
-		count = 0;
-	}
-
-	~b3RowValueList() { }
-
-	void PushFront(b3RowValue* link)
-	{
-		link->next = head;
-		head = link;
-		++count;
-	}
-
-	b3RowValue* head;
-	u32 count;
-};
 
 // A sparse matrix.
 // Each row is a list of non-zero elements in the row.
@@ -66,6 +38,9 @@ struct b3SparseMat33
 	//
 	b3SparseMat33(const b3SparseMat33& _m);
 
+	//
+	b3SparseMat33(const b3SparseMat33Pattern& _m);
+	
 	//
 	~b3SparseMat33();
 
@@ -90,6 +65,12 @@ struct b3SparseMat33
 	// 
 	void operator-=(const b3SparseMat33& m);
 
+	// 
+	void operator+=(const b3DiagMat33& m);
+	
+	// 
+	void operator-=(const b3DiagMat33& m);
+
 	u32 rowCount;
 	b3RowValueList* rows;
 };
@@ -103,7 +84,7 @@ inline b3SparseMat33::b3SparseMat33()
 inline b3SparseMat33::b3SparseMat33(u32 m)
 {
 	rowCount = m;
-	rows = (b3RowValueList*)b3Alloc(rowCount * sizeof(b3RowValueList));
+	rows = (b3RowValueList*)b3FrameAllocator_sparseAllocator->Allocate(rowCount * sizeof(b3RowValueList));
 	for (u32 i = 0; i < rowCount; ++i)
 	{
 		new (rows + i)b3RowValueList();
@@ -113,13 +94,38 @@ inline b3SparseMat33::b3SparseMat33(u32 m)
 inline b3SparseMat33::b3SparseMat33(const b3SparseMat33& m)
 {
 	rowCount = m.rowCount;
-	rows = (b3RowValueList*)b3Alloc(rowCount * sizeof(b3RowValueList));
+	rows = (b3RowValueList*)b3FrameAllocator_sparseAllocator->Allocate(rowCount * sizeof(b3RowValueList));
 	for (u32 i = 0; i < rowCount; ++i)
 	{
 		new (rows + i)b3RowValueList();
 	}
 
 	Copy(m);
+}
+
+inline b3SparseMat33::b3SparseMat33(const b3SparseMat33Pattern& m)
+{
+	rowCount = m.rowCount;
+	rows = (b3RowValueList*)b3FrameAllocator_sparseAllocator->Allocate(rowCount * sizeof(b3RowValueList));
+	for (u32 i = 0; i < rowCount; ++i)
+	{
+		b3RowValueList* list1 = m.rows + i;
+
+		b3RowValueList* list2 = rows + i;
+		new (list2) b3RowValueList();
+
+		b3RowValue* v1 = list1->head;
+		while(v1)
+		{
+			b3RowValue* v2 = (b3RowValue*)b3FrameAllocator_sparseAllocator->Allocate(sizeof(b3RowValue));
+			v2->column = v1->column;
+			v2->value = v1->value;
+
+			list2->PushFront(v2);
+
+			v1 = v1->next;
+		}
+	}
 }
 
 inline b3SparseMat33::~b3SparseMat33()
@@ -137,14 +143,14 @@ inline void b3SparseMat33::Destroy()
 		while (v)
 		{
 			b3RowValue* v0 = v->next;
-			b3Free(v);
+			b3FrameAllocator_sparseAllocator->Free(v);
 			v = v0;
 		}
 
 		vs->~b3RowValueList();
 	}
 
-	b3Free(rows);
+	b3FrameAllocator_sparseAllocator->Free(rows);
 }
 
 inline b3SparseMat33& b3SparseMat33::operator=(const b3SparseMat33& _m)
@@ -157,7 +163,7 @@ inline b3SparseMat33& b3SparseMat33::operator=(const b3SparseMat33& _m)
 	Destroy();
 
 	rowCount = _m.rowCount;
-	rows = (b3RowValueList*)b3Alloc(rowCount * sizeof(b3RowValueList));
+	rows = (b3RowValueList*)b3FrameAllocator_sparseAllocator->Allocate(rowCount * sizeof(b3RowValueList));
 	for (u32 i = 0; i < rowCount; ++i)
 	{
 		new (rows + i)b3RowValueList();
@@ -181,7 +187,7 @@ inline void b3SparseMat33::Copy(const b3SparseMat33& _m)
 
 		for (b3RowValue* v1 = vs1->head; v1; v1 = v1->next)
 		{
-			b3RowValue* v2 = (b3RowValue*)b3Alloc(sizeof(b3RowValue));
+			b3RowValue* v2 = (b3RowValue*)b3FrameAllocator_sparseAllocator->Allocate(sizeof(b3RowValue));
 
 			v2->column = v1->column;
 			v2->value = v1->value;
@@ -224,7 +230,7 @@ inline b3Mat33& b3SparseMat33::operator()(u32 i, u32 j)
 		}
 	}
 
-	b3RowValue* v = (b3RowValue*)b3Alloc(sizeof(b3RowValue));
+	b3RowValue* v = (b3RowValue*)b3FrameAllocator_sparseAllocator->Allocate(sizeof(b3RowValue));
 	v->column = j;
 	v->value.SetZero();
 
@@ -267,6 +273,26 @@ inline void b3SparseMat33::operator-=(const b3SparseMat33& m)
 	}
 }
 
+inline void b3SparseMat33::operator+=(const b3DiagMat33& m)
+{
+	B3_ASSERT(rowCount == m.n);
+
+	for (u32 i = 0; i < m.n; ++i)
+	{
+		(*this)(i, i) += m[i];
+	}
+}
+
+inline void b3SparseMat33::operator-=(const b3DiagMat33& m)
+{
+	B3_ASSERT(rowCount == m.n);
+
+	for (u32 i = 0; i < m.n; ++i)
+	{
+		(*this)(i, i) -= m[i];
+	}
+}
+
 inline void b3Add(b3SparseMat33& out, const b3SparseMat33& a, const b3SparseMat33& b)
 {
 	out = a;
@@ -276,6 +302,36 @@ inline void b3Add(b3SparseMat33& out, const b3SparseMat33& a, const b3SparseMat3
 inline void b3Sub(b3SparseMat33& out, const b3SparseMat33& a, const b3SparseMat33& b)
 {
 	out = a;
+	out -= b;
+}
+
+inline void b3Add(b3SparseMat33& out, const b3SparseMat33& a, const b3DiagMat33& b)
+{
+	out = a;
+	out += b;
+}
+
+inline void b3Sub(b3SparseMat33& out, const b3SparseMat33& a, const b3DiagMat33& b)
+{
+	out = a;
+	out -= b;
+}
+
+inline void b3Add(b3SparseMat33& out, const b3DiagMat33& a, const b3SparseMat33& b)
+{
+	out = b;
+	out += a;
+}
+
+inline void b3Sub(b3SparseMat33& out, const b3DiagMat33& a, const b3SparseMat33& b)
+{
+	B3_ASSERT(out.rowCount == a.n);
+
+	for (u32 i = 0; i < a.n; ++i)
+	{
+		out(i, i) = a[i];
+	}
+
 	out -= b;
 }
 
@@ -299,11 +355,11 @@ inline void b3Mul(b3DenseVec3& out, const b3SparseMat33& A, const b3DenseVec3& v
 	}
 }
 
-inline void b3Mul(b3SparseMat33& out, float32 s, const b3SparseMat33& B)
+inline void b3Mul(b3SparseMat33& out, scalar s, const b3SparseMat33& B)
 {
 	B3_ASSERT(out.rowCount == B.rowCount);
 
-	if (s == 0.0f)
+	if (s == scalar(0))
 	{
 		return;
 	}
@@ -334,7 +390,35 @@ inline b3SparseMat33 operator-(const b3SparseMat33& A, const b3SparseMat33& B)
 	return result;
 }
 
-inline b3SparseMat33 operator*(float32 A, const b3SparseMat33& B)
+inline b3SparseMat33 operator+(const b3SparseMat33& A, const b3DiagMat33& B)
+{
+	b3SparseMat33 result(A.rowCount);
+	b3Add(result, A, B);
+	return result;
+}
+
+inline b3SparseMat33 operator-(const b3SparseMat33& A, const b3DiagMat33& B)
+{
+	b3SparseMat33 result(A.rowCount);
+	b3Sub(result, A, B);
+	return result;
+}
+
+inline b3SparseMat33 operator+(const b3DiagMat33& A, const b3SparseMat33& B)
+{
+	b3SparseMat33 result(B.rowCount);
+	b3Add(result, A, B);
+	return result;
+}
+
+inline b3SparseMat33 operator-(const b3DiagMat33& A, const b3SparseMat33& B)
+{
+	b3SparseMat33 result(B.rowCount);
+	b3Sub(result, A, B);
+	return result;
+}
+
+inline b3SparseMat33 operator*(scalar A, const b3SparseMat33& B)
 {
 	b3SparseMat33 result(B.rowCount);
 	b3Mul(result, A, B);

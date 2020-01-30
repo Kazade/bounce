@@ -41,7 +41,7 @@ public:
 		{
 			b3Free(m_elements);
 		}
-		m_elements = NULL;
+		m_elements = nullptr;
 	}
 
 	const T& Top() const

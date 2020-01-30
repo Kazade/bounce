@@ -14,38 +14,35 @@ Bounce uses [premake](https://premake.github.io/) for generating project files i
 
 * Put premake into bounce/.
 
-### Visual Studio 2017
+### Windows 
 
-* Ensure you have installed the Visual Studio 2015 libraries.
-* Say { premake5 vs2017 } on a command line. 
-* Open build/vs2017/bounce.sln.
+#### Visual Studio 2019
+
+* Say { premake5 vs2019 } on a command line. 
+* Open build/vs2019/bounce.sln.
 * Set testbed as the startup project.
-* In the testbed debugging properties, set the Working Directory to ..\\..\examples\testbed.
+* In the testbed debugging properties, set Working Directory to ..\\..\examples\testbed.
 * Press F5 to run.
 
 ### Linux
 
-* On a clean Ubuntu 16.04 install these packages first:
+#### GNU Make
 
-* mesa-common-dev
+##### x86
 
-* libgl1-mesa-dev
-
-* libglu1-mesa-dev 
-
-#### x32
-
-* Say { premake5 gmake } on a terminal.
-* From build/gmake say { make config="debug_x32" }.
+* Say { ./premake5 gmake2 } on a terminal.
+* From build/gmake2 say { make config="debug_x86" }.
 * Set the testbed directory as the working directory.
-* Open testbed from /bin/x32/testbed/.
+* From bin/x86/debug/testbed say { ./testbed }.
 
-#### x64
+##### x64
 
-* Say { premake5 gmake } on a terminal.
-* From build/gmake say { make config="debug_x64" }.
+* Say { ./premake5 gmake2 } on a terminal.
+* From build/gmake2 say { make config="debug_x86_64" }.
 * Set the testbed directory as the working directory.
-* Open testbed from /bin/x64/testbed/.
+* From bin/x86_64/debug/testbed say { ./testbed }.
+
+**Note**: If any errors appears during the compilation then there is probably a missing package. In this case you can search the error in the Internet to identify the package that needs to be installed.
 
 ### Mac
 
@@ -78,15 +75,24 @@ Below are the external dependencies for testbed. If you don't care about testbed
 * [GLAD](https://glad.dav1d.de/)
 * [imgui](https://github.com/ocornut/imgui)
 * [RapidJSON](http://rapidjson.org/index.html)
+* [tinyobjloader](https://github.com/syoyo/tinyobjloader)
 
 ## Features
 
 ### Common
 
 * Efficient data structures with no use of STL
-* Stack and small block allocators
+* Frame, stack, and pool allocators
 * Built-in math library
 * Tunable settings used across the entire library
+
+### Sparse
+
+* Fairly efficient data structures for representing sparse linear systems
+
+### MeshGen
+
+* Sphere, cylinder mesh generators 
 
 ### Quickhull
 
@@ -98,14 +104,16 @@ Below are the external dependencies for testbed. If you don't care about testbed
 * Static tree "midphase"
 * SAT
 * GJK
-* Spheres, capsules, convex hulls, triangle meshes
+* Spheres, capsules, convex hulls, triangle meshes, signed distance fields
 * Optimized pair management
 
 ### Dynamics
 
 * Rigid bodies
+* Gyroscopic motion solver
 * Contact, friction, restitution
-* Mouse, spring, sphere, cone, revolute joint types
+* Mouse, spring, sphere, cone, revolute, friction, weld, motor, prismatic, wheel joint types
+* Soft constraints
 * Quaternion constraints
 * Joint motors, limits
 * Constraint graphs
@@ -115,7 +123,7 @@ Below are the external dependencies for testbed. If you don't care about testbed
 * One-shot contact manifolds
 * Contact clustering, reduction, and persistence
 * Contact callbacks: begin, pre-solve, post-solve
-* Ray-casting and volume queries
+* Ray-casting, convex-casting, and volume queries
 
 ### Rope
 
@@ -125,6 +133,7 @@ Below are the external dependencies for testbed. If you don't care about testbed
 ### Cloth
 
 * Cloth
+* Grid, garment mesh types
 * Vertex contact, friction
 * Strech, shear, spring, mouse force types
 * Linear time solver
@@ -142,7 +151,7 @@ Below are the external dependencies for testbed. If you don't care about testbed
 
 ### Testbed
 	
-* OpenGL with GLFW and GLAD
+* OpenGL 2/4 with GLFW and GLAD
 * UI by imgui
 * Mouse picking
 * premake build system

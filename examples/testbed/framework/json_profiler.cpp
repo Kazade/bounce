@@ -77,7 +77,7 @@ void JsonProfiler::EndEvents()
 	m_file = nullptr;
 }
 
-void JsonProfiler::BeginEvent(const char* name, float64 t)
+void JsonProfiler::BeginEvent(const char* name, scalar64 t)
 {
 	if (!m_writer)
 	{
@@ -86,7 +86,7 @@ void JsonProfiler::BeginEvent(const char* name, float64 t)
 
 	const char* phase = "B";
 
-	float64 scale = 1000.0;
+	scalar64 scale = 1000.0;
 
 	m_writer->StartObject();
 	m_writer->STRING("pid");  m_writer->Int(0);
@@ -99,7 +99,7 @@ void JsonProfiler::BeginEvent(const char* name, float64 t)
 	m_writer->EndObject();
 }
 
-void JsonProfiler::EndEvent(const char* name, float64 t)
+void JsonProfiler::EndEvent(const char* name, scalar64 t)
 {
 	if (!m_writer)
 	{
@@ -108,7 +108,7 @@ void JsonProfiler::EndEvent(const char* name, float64 t)
 
 	const char* phase = "E";
 
-	float64 scale = 1000.0;
+	scalar64 scale = 1000.0;
 
 	m_writer->StartObject();
 	m_writer->STRING("pid");  m_writer->Int(0);

@@ -18,13 +18,13 @@
 
 #include <bounce/bounce.h>
 
-const b3Color b3Color_black(0.0f, 0.0f, 0.0f);
-const b3Color b3Color_white(1.0f, 1.0f, 1.0f);
-const b3Color b3Color_red(1.0f, 0.0f, 0.0f);
-const b3Color b3Color_green(0.0f, 1.0f, 0.0f);
-const b3Color b3Color_blue(0.0f, 0.0f, 1.0f);
-const b3Color b3Color_yellow(1.0f, 1.0f, 0.0f);
-const b3Color b3Color_pink(1.0f, 0.0f, 1.0f);
+const b3Color b3Color_black(scalar(0), scalar(0), scalar(0));
+const b3Color b3Color_white(scalar(1), scalar(1), scalar(1));
+const b3Color b3Color_red(scalar(1), scalar(0), scalar(0));
+const b3Color b3Color_green(scalar(0), scalar(1), scalar(0));
+const b3Color b3Color_blue(scalar(0), scalar(0), scalar(1));
+const b3Color b3Color_yellow(scalar(1), scalar(1), scalar(0));
+const b3Color b3Color_pink(scalar(1), scalar(0), scalar(1));
 
 b3Draw* b3Draw_draw(nullptr);
 
@@ -38,8 +38,9 @@ void b3World::Draw() const
 	{
 		for (b3Body* b = m_bodyList.m_head; b; b = b->m_next)
 		{
-			b3Transform xf = b->m_xf;
-			xf.position = b->m_sweep.worldCenter;
+			b3Transform xf;
+			xf.rotation = b->m_sweep.orientation;
+			xf.translation = b->m_sweep.worldCenter;
 			b3Draw_draw->DrawTransform(xf);
 		}
 	}
@@ -62,7 +63,7 @@ void b3World::Draw() const
 		{
 			for (b3Shape* s = b->m_shapeList.m_head; s; s = s->m_next)
 			{
-				const b3AABB3& aabb = m_contactMan.m_broadPhase.GetAABB(s->m_broadPhaseID);
+				const b3AABB& aabb = m_contactMan.m_broadPhase.GetAABB(s->m_broadPhaseID);
 				b3Draw_draw->DrawAABB(aabb, b3Color_pink);
 			}
 		}
@@ -103,7 +104,7 @@ void b3World::Draw() const
 
 				if (flags & b3Draw::e_contactPointsFlag)
 				{
-					b3Draw_draw->DrawPoint(p, 4.0f, mp->persisting ? b3Color_green : b3Color_red);
+					b3Draw_draw->DrawPoint(p, scalar(4), mp->persistCount > 0 ? b3Color_green : b3Color_red);
 				}
 
 				if (flags & b3Draw::e_contactNormalsFlag)
@@ -150,17 +151,28 @@ void b3World::DrawShape(const b3Transform& xf, const b3Shape* shape, const b3Col
 	{
 		const b3SphereShape* sphere = (b3SphereShape*)shape;
 		b3Vec3 p = xf * sphere->m_center;
-		b3Draw_draw->DrawPoint(p, 4.0f, color);
+		b3Draw_draw->DrawPoint(p, scalar(4), color);
 		break;
 	}
 	case e_capsuleShape:
 	{
 		const b3CapsuleShape* capsule = (b3CapsuleShape*)shape;
-		b3Vec3 p1 = xf * capsule->m_centers[0];
-		b3Vec3 p2 = xf * capsule->m_centers[1];
-		b3Draw_draw->DrawPoint(p1, 4.0f, color);
-		b3Draw_draw->DrawPoint(p2, 4.0f, color);
+		b3Vec3 p1 = xf * capsule->m_vertex1;
+		b3Vec3 p2 = xf * capsule->m_vertex2;
+		b3Draw_draw->DrawPoint(p1, scalar(4), color);
+		b3Draw_draw->DrawPoint(p2, scalar(4), color);
 		b3Draw_draw->DrawSegment(p1, p2, color);
+		break;
+	}
+	case e_triangleShape:
+	{
+		const b3TriangleShape* triangle = (b3TriangleShape*)shape;
+		b3Vec3 v1 = xf * triangle->m_vertex1;
+		b3Vec3 v2 = xf * triangle->m_vertex2;
+		b3Vec3 v3 = xf * triangle->m_vertex3;
+		b3Vec3 n = b3Cross(v2 - v1, v3 - v1);
+		n.Normalize();
+		b3Draw_draw->DrawTriangle(v1, v2, v3, color);
 		break;
 	}
 	case e_hullShape:
@@ -185,14 +197,21 @@ void b3World::DrawShape(const b3Transform& xf, const b3Shape* shape, const b3Col
 		const b3Mesh* mesh = ms->m_mesh;
 		for (u32 i = 0; i < mesh->triangleCount; ++i)
 		{
-			const b3Triangle* t = mesh->triangles + i;
+			const b3MeshTriangle* t = mesh->triangles + i;
 
-			b3Vec3 p1 = xf * mesh->vertices[t->v1];
-			b3Vec3 p2 = xf * mesh->vertices[t->v2];
-			b3Vec3 p3 = xf * mesh->vertices[t->v3];
+			b3Vec3 p1 = xf * b3MulCW(ms->m_scale, mesh->vertices[t->v1]);
+			b3Vec3 p2 = xf * b3MulCW(ms->m_scale, mesh->vertices[t->v2]);
+			b3Vec3 p3 = xf * b3MulCW(ms->m_scale, mesh->vertices[t->v3]);
 
 			b3Draw_draw->DrawTriangle(p1, p2, p3, color);
 		}
+		break;
+	}
+	case e_sdfShape:
+	{
+		const b3SDFShape* ms = (b3SDFShape*)shape;
+		const b3SDF* sdf = ms->m_sdf;
+		
 		break;
 	}
 	default:
@@ -209,19 +228,19 @@ void b3World::DrawSolid() const
 		b3Color c;
 		if (b->IsAwake() == false)
 		{
-			c = b3Color(0.5f, 0.25f, 0.25f, 1.0f);
+			c = b3Color(scalar(0.5), scalar(0.25), scalar(0.25), scalar(1));
 		}
 		else if (b->GetType() == e_staticBody)
 		{
-			c = b3Color(0.5f, 0.5f, 0.5f, 1.0f);
+			c = b3Color(scalar(0.5), scalar(0.5), scalar(0.5), scalar(1));
 		}
 		else if (b->GetType() == e_dynamicBody)
 		{
-			c = b3Color(1.0f, 0.5f, 0.5f, 1.0f);
+			c = b3Color(scalar(1), scalar(0.5), scalar(0.5), scalar(1));
 		}
 		else
 		{
-			c = b3Color(0.5f, 0.5f, 1.0f, 1.0f);
+			c = b3Color(scalar(0.5), scalar(0.5), scalar(1), scalar(1));
 		}
 
 		b3Transform xf = b->GetTransform();
@@ -250,10 +269,26 @@ void b3World::DrawSolidShape(const b3Transform& xf, const b3Shape* shape, const 
 	{
 		const b3CapsuleShape* capsule = (b3CapsuleShape*)shape;
 
-		b3Vec3 c1 = xf * capsule->m_centers[0];
-		b3Vec3 c2 = xf * capsule->m_centers[1];
+		b3Vec3 c1 = xf * capsule->m_vertex1;
+		b3Vec3 c2 = xf * capsule->m_vertex2;
 
 		b3Draw_draw->DrawSolidCapsule(c1, c2, capsule->m_radius, xf.rotation, color);
+
+		break;
+	}
+	case e_triangleShape:
+	{
+		const b3TriangleShape* triangle = (b3TriangleShape*)shape;
+		
+		b3Vec3 v1 = xf * triangle->m_vertex1;
+		b3Vec3 v2 = xf * triangle->m_vertex2;
+		b3Vec3 v3 = xf * triangle->m_vertex3;
+		
+		b3Vec3 n = b3Cross(v2 - v1, v3 - v1);
+		n.Normalize();
+		
+		b3Draw_draw->DrawSolidTriangle(-n, v3, v2, v1, color);
+		b3Draw_draw->DrawSolidTriangle(n, v1, v2, v3, color);
 
 		break;
 	}
@@ -268,7 +303,7 @@ void b3World::DrawSolidShape(const b3Transform& xf, const b3Shape* shape, const 
 			const b3Face* face = hull->GetFace(i);
 			const b3HalfEdge* begin = hull->GetEdge(face->edge);
 
-			b3Vec3 n = xf.rotation * hull->planes[i].normal;
+			b3Vec3 n = b3Mul(xf.rotation, hull->planes[i].normal);
 
 			const b3HalfEdge* edge = hull->GetEdge(begin->next);
 			do
@@ -297,11 +332,11 @@ void b3World::DrawSolidShape(const b3Transform& xf, const b3Shape* shape, const 
 		const b3Mesh* mesh = meshShape->m_mesh;
 		for (u32 i = 0; i < mesh->triangleCount; ++i)
 		{
-			const b3Triangle* t = mesh->triangles + i;
+			const b3MeshTriangle* t = mesh->triangles + i;
 
-			b3Vec3 p1 = xf * mesh->vertices[t->v1];
-			b3Vec3 p2 = xf * mesh->vertices[t->v2];
-			b3Vec3 p3 = xf * mesh->vertices[t->v3];
+			b3Vec3 p1 = xf * b3MulCW(meshShape->m_scale, mesh->vertices[t->v1]);
+			b3Vec3 p2 = xf * b3MulCW(meshShape->m_scale, mesh->vertices[t->v2]);
+			b3Vec3 p3 = xf * b3MulCW(meshShape->m_scale, mesh->vertices[t->v3]);
 
 			b3Vec3 n1 = b3Cross(p2 - p1, p3 - p1);
 			n1.Normalize();

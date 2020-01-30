@@ -70,7 +70,7 @@ u32 b3DynamicTree::AllocateNode()
 	m_nodes[node].child1 = B3_NULL_NODE_D;
 	m_nodes[node].child2 = B3_NULL_NODE_D;
 	m_nodes[node].height = 0;
-	m_nodes[node].userData = NULL;
+	m_nodes[node].userData = nullptr;
 
 	++m_nodeCount;
 
@@ -104,7 +104,7 @@ void b3DynamicTree::AddToFreeList(u32 node)
 	m_freeList = node;
 }
 
-u32 b3DynamicTree::InsertNode(const b3AABB3& aabb, void* userData) 
+u32 b3DynamicTree::InsertNode(const b3AABB& aabb, void* userData) 
 {
 	// Insert into the array.
 	u32 node = AllocateNode();
@@ -128,7 +128,7 @@ void b3DynamicTree::RemoveNode(u32 proxyId)
 	FreeNode(proxyId);
 }
 
-void b3DynamicTree::UpdateNode(u32 proxyId, const b3AABB3& aabb)
+void b3DynamicTree::UpdateNode(u32 proxyId, const b3AABB& aabb)
 {
 	B3_ASSERT(m_root != B3_NULL_NODE_D);
 	B3_ASSERT(m_nodes[proxyId].IsLeaf());
@@ -141,53 +141,53 @@ void b3DynamicTree::UpdateNode(u32 proxyId, const b3AABB3& aabb)
 	InsertLeaf(proxyId);
 }
 
-u32 b3DynamicTree::FindBest(const b3AABB3& leafAABB) const 
+u32 b3DynamicTree::PickBest(const b3AABB& leafAABB) const 
 {
 	u32 index = m_root;
 	while (!m_nodes[index].IsLeaf()) 
 	{
-		float32 branchArea = m_nodes[index].aabb.SurfaceArea();
+		scalar branchArea = m_nodes[index].aabb.GetSurfaceArea();
 
 		// Minumum cost of pushing the leaf down the tree.
-		b3AABB3 combinedAABB = b3Combine(leafAABB, m_nodes[index].aabb);
-		float32 combinedArea = combinedAABB.SurfaceArea();
+		b3AABB combinedAABB = b3Combine(leafAABB, m_nodes[index].aabb);
+		scalar combinedArea = combinedAABB.GetSurfaceArea();
 
 		// Cost for creating a new parent node.
-		float32 branchCost = 2.0f * combinedArea;
+		scalar branchCost = scalar(2) * combinedArea;
 
-		float32 inheritanceCost = 2.0f * (combinedArea - branchArea);
+		scalar inheritanceCost = scalar(2) * (combinedArea - branchArea);
 
 		// The branch node child nodes cost.
 		u32 child1 = m_nodes[index].child1;
 		u32 child2 = m_nodes[index].child2;
 
 		// Cost of descending onto child1.
-		float32 childCost1 = 0.0f;
+		scalar childCost1 = scalar(0);
 		if (m_nodes[child1].IsLeaf()) 
 		{
-			b3AABB3 aabb = b3Combine(leafAABB, m_nodes[child1].aabb);
-			childCost1 = aabb.SurfaceArea();
+			b3AABB aabb = b3Combine(leafAABB, m_nodes[child1].aabb);
+			childCost1 = aabb.GetSurfaceArea();
 		}
 		else 
 		{
-			b3AABB3 aabb = b3Combine(leafAABB, m_nodes[child1].aabb);
-			float32 oldArea = m_nodes[child1].aabb.SurfaceArea();
-			float32 newArea = aabb.SurfaceArea();
+			b3AABB aabb = b3Combine(leafAABB, m_nodes[child1].aabb);
+			scalar oldArea = m_nodes[child1].aabb.GetSurfaceArea();
+			scalar newArea = aabb.GetSurfaceArea();
 			childCost1 = (newArea - oldArea) + inheritanceCost;
 		}
 
 		// Cost of descending onto child1.
-		float32 childCost2 = 0.0f;
+		scalar childCost2 = scalar(0);
 		if (m_nodes[child2].IsLeaf()) 
 		{
-			b3AABB3 aabb = b3Combine(leafAABB, m_nodes[child2].aabb);
-			childCost2 = aabb.SurfaceArea();
+			b3AABB aabb = b3Combine(leafAABB, m_nodes[child2].aabb);
+			childCost2 = aabb.GetSurfaceArea();
 		}
 		else 
 		{
-			b3AABB3 aabb = b3Combine(leafAABB, m_nodes[child2].aabb);
-			float32 oldArea = m_nodes[child2].aabb.SurfaceArea();
-			float32 newArea = aabb.SurfaceArea();
+			b3AABB aabb = b3Combine(leafAABB, m_nodes[child2].aabb);
+			scalar oldArea = m_nodes[child2].aabb.GetSurfaceArea();
+			scalar newArea = aabb.GetSurfaceArea();
 			childCost2 = (newArea - oldArea) + inheritanceCost;
 		}
 
@@ -216,10 +216,10 @@ void b3DynamicTree::InsertLeaf(u32 leaf)
 	}
 
 	// Get the inserted leaf AABB.
-	b3AABB3 leafAabb = m_nodes[leaf].aabb;
+	b3AABB leafAabb = m_nodes[leaf].aabb;
 	
 	// Search for the best branch node of this tree starting from the tree root node.
-	u32 sibling = FindBest(leafAabb);
+	u32 sibling = PickBest(leafAabb);
 
 	u32 oldParent = m_nodes[sibling].parent;
 	
@@ -230,7 +230,7 @@ void b3DynamicTree::InsertLeaf(u32 leaf)
 	m_nodes[sibling].parent = newParent;	
 	m_nodes[newParent].child2 = leaf;
 	m_nodes[leaf].parent = newParent;	
-	m_nodes[newParent].userData = NULL;
+	m_nodes[newParent].userData = nullptr;
 	m_nodes[newParent].aabb = b3Combine(leafAabb, m_nodes[sibling].aabb);
 	m_nodes[newParent].height = m_nodes[sibling].height + 1;
 
@@ -256,7 +256,7 @@ void b3DynamicTree::InsertLeaf(u32 leaf)
 	}
 
 	// If we have ancestor nodes then adjust its AABBs.
-	WalkBackNodeAndCombineVolumes(newParent);
+	Refit(newParent);
 }
 
 void b3DynamicTree::RemoveLeaf(u32 leaf) 
@@ -295,7 +295,7 @@ void b3DynamicTree::RemoveLeaf(u32 leaf)
 		FreeNode(parent);
 
 		// If we have ancestor then nodes adjust its AABBs.
-		WalkBackNodeAndCombineVolumes(grandParent);
+		Refit(grandParent);
 	}
 	else 
 	{
@@ -306,7 +306,7 @@ void b3DynamicTree::RemoveLeaf(u32 leaf)
 	}
 }
 
-void b3DynamicTree::WalkBackNodeAndCombineVolumes(u32 node) 
+void b3DynamicTree::Refit(u32 node) 
 {
 	while (node != B3_NULL_NODE_D) 
 	{

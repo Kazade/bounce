@@ -19,6 +19,7 @@
 #include <bounce/dynamics/contacts/collide/collide.h>
 #include <bounce/dynamics/shapes/sphere_shape.h>
 #include <bounce/dynamics/shapes/capsule_shape.h>
+#include <bounce/dynamics/shapes/triangle_shape.h>
 #include <bounce/dynamics/shapes/hull_shape.h>
 #include <bounce/dynamics/shapes/mesh_shape.h>
 #include <bounce/collision/shapes/sphere.h>
@@ -43,8 +44,16 @@ void b3ShapeGJKProxy::Set(const b3Shape* shape, u32 index)
 	{
 		const b3CapsuleShape* capsule = (b3CapsuleShape*)shape;
 		vertexCount = 2;
-		vertices = capsule->m_centers;
+		vertices = &capsule->m_vertex1;
 		radius = capsule->m_radius;
+		break;
+	}
+	case e_triangleShape:
+	{
+		const b3TriangleShape* triangle = (b3TriangleShape*)shape;
+		vertexCount = 3;
+		vertices = &triangle->m_vertex1;
+		radius = triangle->m_radius;
 		break;
 	}
 	case e_hullShape:
@@ -62,11 +71,11 @@ void b3ShapeGJKProxy::Set(const b3Shape* shape, u32 index)
 		B3_ASSERT(index >= 0);
 		B3_ASSERT(index < mesh->m_mesh->triangleCount);
 
-		const b3Triangle& triangle = mesh->m_mesh->GetTriangle(index);
+		const b3MeshTriangle* triangle = mesh->m_mesh->GetTriangle(index);
 
-		vertexBuffer[0] = mesh->m_mesh->vertices[triangle.v1];
-		vertexBuffer[1] = mesh->m_mesh->vertices[triangle.v2];
-		vertexBuffer[2] = mesh->m_mesh->vertices[triangle.v3];
+		vertexBuffer[0] = b3MulCW(mesh->m_scale, mesh->m_mesh->vertices[triangle->v1]);
+		vertexBuffer[1] = b3MulCW(mesh->m_scale, mesh->m_mesh->vertices[triangle->v2]);
+		vertexBuffer[2] = b3MulCW(mesh->m_scale, mesh->m_mesh->vertices[triangle->v3]);
 
 		vertexCount = 3;
 		vertices = vertexBuffer;
@@ -90,7 +99,7 @@ bool b3TestOverlap(const b3Transform& xfA, u32 indexA, const b3Shape* shapeA,
 	
 	b3GJKOutput distance = b3GJK(xfA, proxyA, xfB, proxyB, true, &cache->simplexCache);
 
-	const float32 kTol = 10.0f * B3_EPSILON;
+	const scalar kTol = scalar(10) * B3_EPSILON;
 	return distance.distance <= kTol;
 }
 
@@ -100,56 +109,88 @@ void b3CollideSphereAndSphereShapes(b3Manifold& manifold,
 	b3ConvexCache* cache)
 {
 	B3_NOT_USED(cache);
-	b3SphereShape* hullA = (b3SphereShape*)shapeA;
-	b3SphereShape* hullB = (b3SphereShape*)shapeB;
-	b3CollideSphereAndSphere(manifold, xfA, hullA, xfB, hullB);
+	b3SphereShape* sphereA = (b3SphereShape*)shapeA;
+	b3SphereShape* sphereB = (b3SphereShape*)shapeB;
+	b3CollideSphereAndSphere(manifold, xfA, sphereA, xfB, sphereB);
 }
 
-void b3CollideSphereAndHullShapes(b3Manifold& manifold, 
+void b3CollideCapsuleAndSphereShapes(b3Manifold& manifold,
 	const b3Transform& xfA, const b3Shape* shapeA,
 	const b3Transform& xfB, const b3Shape* shapeB,
 	b3ConvexCache* cache)
 {
 	B3_NOT_USED(cache);
-	b3SphereShape* hullA = (b3SphereShape*)shapeA;
+	b3CapsuleShape* capsuleA = (b3CapsuleShape*)shapeA;
+	b3SphereShape* sphereB = (b3SphereShape*)shapeB;
+	b3CollideCapsuleAndSphere(manifold, xfA, capsuleA, xfB, sphereB);
+}
+
+void b3CollideCapsuleAndCapsuleShapes(b3Manifold& manifold,
+	const b3Transform& xfA, const b3Shape* shapeA,
+	const b3Transform& xfB, const b3Shape* shapeB,
+	b3ConvexCache* cache)
+{
+	B3_NOT_USED(cache);
+	b3CapsuleShape* capsuleA = (b3CapsuleShape*)shapeA;
+	b3CapsuleShape* capsuleB = (b3CapsuleShape*)shapeB;
+	b3CollideCapsuleAndCapsule(manifold, xfA, capsuleA, xfB, capsuleB);
+}
+
+void b3CollideTriangleAndSphereShapes(b3Manifold& manifold,
+	const b3Transform& xfA, const b3Shape* shapeA,
+	const b3Transform& xfB, const b3Shape* shapeB,
+	b3ConvexCache* cache)
+{
+	B3_NOT_USED(cache);
+	b3TriangleShape* triangleA = (b3TriangleShape*)shapeA;
+	b3SphereShape* sphereB = (b3SphereShape*)shapeB;
+	b3CollideTriangleAndSphere(manifold, xfA, triangleA, xfB, sphereB);
+}
+
+void b3CollideTriangleAndCapsuleShapes(b3Manifold& manifold,
+	const b3Transform& xfA, const b3Shape* shapeA,
+	const b3Transform& xfB, const b3Shape* shapeB,
+	b3ConvexCache* cache)
+{
+	B3_NOT_USED(cache);
+	b3TriangleShape* triangleA = (b3TriangleShape*)shapeA;
+	b3CapsuleShape* capsuleB = (b3CapsuleShape*)shapeB;
+	b3CollideTriangleAndCapsule(manifold, xfA, triangleA, xfB, capsuleB);
+}
+
+void b3CollideTriangleAndHullShapes(b3Manifold& manifold,
+	const b3Transform& xfA, const b3Shape* shapeA,
+	const b3Transform& xfB, const b3Shape* shapeB,
+	b3ConvexCache* cache)
+{
+	b3TriangleShape* triangleA = (b3TriangleShape*)shapeA;
 	b3HullShape* hullB = (b3HullShape*)shapeB;
-	b3CollideSphereAndHull(manifold, xfA, hullA, xfB, hullB);
+	b3CollideTriangleAndHull(manifold, xfA, triangleA, xfB, hullB, cache);
 }
 
-void b3CollideSphereAndCapsuleShapes(b3Manifold& manifold, 
+void b3CollideHullAndSphereShapes(b3Manifold& manifold,
 	const b3Transform& xfA, const b3Shape* shapeA,
 	const b3Transform& xfB, const b3Shape* shapeB,
 	b3ConvexCache* cache)
 {
 	B3_NOT_USED(cache);
-	b3SphereShape* hullA = (b3SphereShape*)shapeA;
-	b3CapsuleShape* hullB = (b3CapsuleShape*)shapeB;
-	b3CollideSphereAndCapsule(manifold, xfA, hullA, xfB, hullB);
+	b3HullShape* hullA = (b3HullShape*)shapeA;
+	b3SphereShape* sphereB = (b3SphereShape*)shapeB;
+	b3CollideHullAndSphere(manifold, xfA, hullA, xfB, sphereB);
 }
 
-void b3CollideCapsuleAndCapsuleShapes(b3Manifold& manifold, 
+void b3CollideHullAndCapsuleShapes(b3Manifold& manifold,
 	const b3Transform& xfA, const b3Shape* shapeA,
 	const b3Transform& xfB, const b3Shape* shapeB,
 	b3ConvexCache* cache)
 {
 	B3_NOT_USED(cache);
-	b3CapsuleShape* hullA = (b3CapsuleShape*)shapeA;
-	b3CapsuleShape* hullB = (b3CapsuleShape*)shapeB;
-	b3CollideCapsuleAndCapsule(manifold, xfA, hullA, xfB, hullB);
+	b3HullShape* hullA = (b3HullShape*)shapeA;
+	b3CapsuleShape* capsuleB = (b3CapsuleShape*)shapeB;
+	b3CollideHullAndCapsule(manifold, xfA, hullA, xfB, capsuleB);
 }
 
-void b3CollideCapsuleAndHullShapes(b3Manifold& manifold, 
-	const b3Transform& xfA, const b3Shape* shapeA,
-	const b3Transform& xfB, const b3Shape* shapeB,
-	b3ConvexCache* cache)
-{
-    B3_NOT_USED(cache);
-	b3CapsuleShape* hullA = (b3CapsuleShape*)shapeA;
-	b3HullShape* hullB = (b3HullShape*)shapeB;
-	b3CollideCapsuleAndHull(manifold, xfA, hullA, xfB, hullB);
-}
-
-void b3CollideHullAndHullShapes(b3Manifold& manifold, 
+void b3CollideHullAndHullShapes(b3Manifold& manifold,
 	const b3Transform& xfA, const b3Shape* shapeA,
 	const b3Transform& xfB, const b3Shape* shapeB,
 	b3ConvexCache* cache)
@@ -159,30 +200,54 @@ void b3CollideHullAndHullShapes(b3Manifold& manifold,
 	b3CollideHullAndHull(manifold, xfA, hullA, xfB, hullB, cache);
 }
 
+typedef void(*b3CollideFcn)(b3Manifold&,
+	const b3Transform&, const b3Shape*,
+	const b3Transform&, const b3Shape*,
+	b3ConvexCache*);
+
+static b3CollideFcn s_functions[e_maxShapes][e_maxShapes];
+
+static void b3SetCollideFunction(b3ShapeType typeA, b3ShapeType typeB, b3CollideFcn fcn)
+{
+	B3_ASSERT(0 <= typeA && typeA < e_maxShapes);
+	B3_ASSERT(0 <= typeB && typeB < e_maxShapes);
+
+	s_functions[typeA][typeB] = fcn;
+}
+
+static void b3InitializeCollideFunctions()
+{
+	b3SetCollideFunction(e_sphereShape, e_sphereShape, &b3CollideSphereAndSphereShapes);
+
+	b3SetCollideFunction(e_capsuleShape, e_sphereShape, &b3CollideCapsuleAndSphereShapes);
+	b3SetCollideFunction(e_capsuleShape, e_capsuleShape, &b3CollideCapsuleAndCapsuleShapes);
+
+	b3SetCollideFunction(e_triangleShape, e_sphereShape, &b3CollideTriangleAndSphereShapes);
+	b3SetCollideFunction(e_triangleShape, e_capsuleShape, &b3CollideTriangleAndCapsuleShapes);
+	b3SetCollideFunction(e_triangleShape, e_hullShape, &b3CollideTriangleAndHullShapes);
+
+	b3SetCollideFunction(e_hullShape, e_capsuleShape, &b3CollideHullAndCapsuleShapes);
+	b3SetCollideFunction(e_hullShape, e_sphereShape, &b3CollideHullAndSphereShapes);
+	b3SetCollideFunction(e_hullShape, e_hullShape, &b3CollideHullAndHullShapes);
+}
+
 void b3CollideShapeAndShape(b3Manifold& manifold, 
 	const b3Transform& xfA, const b3Shape* shapeA,
 	const b3Transform& xfB, const b3Shape* shapeB, 
 	b3ConvexCache* cache)
 {
-	typedef void(*b3CollideFunction)(b3Manifold&, 
-		const b3Transform&, const b3Shape*,
-		const b3Transform&, const b3Shape*,
-		b3ConvexCache*);
-
-	static const b3CollideFunction s_CollideMatrix[e_maxShapes][e_maxShapes] =
+	static bool b3Collide_initilized = false;
+	if (b3Collide_initilized == false)
 	{
-		{ &b3CollideSphereAndSphereShapes,	&b3CollideSphereAndCapsuleShapes,	&b3CollideSphereAndHullShapes  },
-		{ NULL,							&b3CollideCapsuleAndCapsuleShapes,	&b3CollideCapsuleAndHullShapes },
-		{ NULL,							NULL,							&b3CollideHullAndHullShapes	   },
-	};
+		b3InitializeCollideFunctions();
+		b3Collide_initilized = true;
+	}
 
 	b3ShapeType typeA = shapeA->GetType();
 	b3ShapeType typeB = shapeB->GetType();
 
-	B3_ASSERT(typeA <= typeB);
+	b3CollideFcn fcn = s_functions[typeA][typeB];
 	
-	b3CollideFunction CollideFunc = s_CollideMatrix[typeA][typeB];
-	
-	B3_ASSERT(CollideFunc);
-	CollideFunc(manifold, xfA, shapeA, xfB, shapeB, cache);
+	B3_ASSERT(fcn != nullptr);
+	fcn(manifold, xfA, shapeA, xfB, shapeB, cache);
 }

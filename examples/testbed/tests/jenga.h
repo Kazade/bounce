@@ -45,15 +45,9 @@ public:
 
 		b3Vec3 boxScale(1.0f, 0.5f, 3.0f);
 
-		static b3BoxHull boxHull;
+		static b3BoxHull boxHull(boxScale.x, boxScale.y, boxScale.z);
 
-		b3Transform m;
-		m.rotation = b3Diagonal(boxScale.x, boxScale.y, boxScale.z);
-		m.position.SetZero();
-
-		boxHull.SetTransform(m);
-
-		float32 y = 2.0f;
+		scalar y = 2.0f;
 
 		for (u32 i = 0; i < e_layerCount / 2; ++i)
 		{
@@ -62,7 +56,7 @@ public:
 				b3BodyDef bd;
 				bd.type = b3BodyType::e_dynamicBody;
 
-				bd.position.x = 2.0f * float32(j) * boxScale.x;
+				bd.position.x = 2.0f * scalar(j) * boxScale.x;
 				bd.position.y = y;
 				bd.position.z = 0.0f;
 				
@@ -86,11 +80,11 @@ public:
 				b3BodyDef bd;
 				bd.type = b3BodyType::e_dynamicBody;
 
-				bd.orientation.Set(b3Vec3(0.0f, 1.0f, 0.0f), 0.5f * B3_PI);
+				bd.orientation = b3QuatRotationY(0.5f * B3_PI);
 
 				bd.position.x = 2.0f * boxScale.x;
 				bd.position.y = y;
-				bd.position.z = -2.0f * boxScale.x + 2.0f * float32(j) * boxScale.x;
+				bd.position.z = -2.0f * boxScale.x + 2.0f * scalar(j) * boxScale.x;
 				
 				b3Body* body = m_world.CreateBody(bd);
 

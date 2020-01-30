@@ -52,8 +52,8 @@ public:
 			hip->ApplyForceToCenter(b3Vec3(0.0f, 0.0f, -5000.0f), true);
 
 			b3CapsuleShape cs;
-			cs.m_centers[0].Set(0.0f, 0.5f, 0.0f);
-			cs.m_centers[1].Set(0.0f, -0.5f, 0.0f);
+			cs.m_vertex1.Set(0.0f, 0.5f, 0.0f);
+			cs.m_vertex2.Set(0.0f, -0.5f, 0.0f);
 			cs.m_radius = 1.0f;
 
 			b3ShapeDef sd;
@@ -70,8 +70,8 @@ public:
 			head = m_world.CreateBody(bd);
 
 			b3CapsuleShape cs;
-			cs.m_centers[0].Set(0.0f, 0.15f, 0.0f);
-			cs.m_centers[1].Set(0.0f, -0.15f, 0.0f);
+			cs.m_vertex1.Set(0.0f, 0.15f, 0.0f);
+			cs.m_vertex2.Set(0.0f, -0.15f, 0.0f);
 			cs.m_radius = 0.5f;
 
 			b3ShapeDef sd;
@@ -86,7 +86,7 @@ public:
 			cd.bodyA = hip;
 			cd.bodyB = head;
 			cd.collideLinked = false;
-			cd.enableLimit = true;
+			cd.enableConeLimit = true;
 			cd.Initialize(hip, head, b3Vec3(0.0f, 1.0f, 0.0f), b3Vec3(0.0f, 11.55f, 0.0f), 0.25f * B3_PI);
 			b3ConeJoint* cj = (b3ConeJoint*)m_world.CreateJoint(cd);
 		}
@@ -95,12 +95,12 @@ public:
 			b3BodyDef bd;
 			bd.type = e_dynamicBody;
 			bd.position.Set(-2.5f, 11.0f, 0.0f);
-			bd.orientation.Set(b3Vec3(0.0f, 0.0f, 1.0f), 0.5f * B3_PI);
+			bd.orientation = b3QuatRotationZ(0.5f * B3_PI);
 			lArm = m_world.CreateBody(bd);
 
 			b3CapsuleShape cs;
-			cs.m_centers[0].Set(0.0f, 1.0f, 0.0f);
-			cs.m_centers[1].Set(0.0f, -1.0f, 0.0f);
+			cs.m_vertex1.Set(0.0f, 1.0f, 0.0f);
+			cs.m_vertex2.Set(0.0f, -1.0f, 0.0f);
 			cs.m_radius = 0.5f;
 
 			b3ShapeDef sd;
@@ -116,7 +116,7 @@ public:
 			cd.bodyA = hip;
 			cd.bodyB = lArm;
 			cd.collideLinked = false;
-			cd.enableLimit = true;
+			cd.enableConeLimit = true;
 			cd.Initialize(hip, lArm, b3Vec3(-1.0f, 0.0f, 0.0f), b3Vec3(-1.0f, 11.0f, 0.0f), B3_PI);
 			b3ConeJoint* cj = (b3ConeJoint*)m_world.CreateJoint(cd);
 		}
@@ -125,12 +125,12 @@ public:
 			b3BodyDef bd;
 			bd.type = e_dynamicBody;
 			bd.position.Set(2.5f, 11.0f, 0.0f);
-			bd.orientation.Set(b3Vec3(0.0f, 0.0f, 1.0f), 0.5f * B3_PI);
+			bd.orientation.SetAxisAngle(b3Vec3(0.0f, 0.0f, 1.0f), 0.5f * B3_PI);
 			rArm = m_world.CreateBody(bd);
 
 			b3CapsuleShape cs;
-			cs.m_centers[0].Set(0.0f, 1.0f, 0.0f);
-			cs.m_centers[1].Set(0.0f, -1.0f, 0.0f);
+			cs.m_vertex1.Set(0.0f, 1.0f, 0.0f);
+			cs.m_vertex2.Set(0.0f, -1.0f, 0.0f);
 			cs.m_radius = 0.5f;
 
 			b3ShapeDef sd;
@@ -146,7 +146,7 @@ public:
 			cd.bodyA = hip;
 			cd.bodyB = rArm;
 			cd.collideLinked = false;
-			cd.enableLimit = true;
+			cd.enableConeLimit = true;
 			cd.Initialize(hip, rArm, b3Vec3(1.0f, 0.0f, 0.0f), b3Vec3(1.0f, 11.0f, 0.0f), B3_PI);
 			b3ConeJoint* cj = (b3ConeJoint*)m_world.CreateJoint(cd);
 		}
@@ -158,8 +158,8 @@ public:
 			lLeg = m_world.CreateBody(bd);
 
 			b3CapsuleShape cs;
-			cs.m_centers[0].Set(0.0f, 2.0f, 0.0f);
-			cs.m_centers[1].Set(0.0f, -2.0f, 0.0f);
+			cs.m_vertex1.Set(0.0f, 2.0f, 0.0f);
+			cs.m_vertex2.Set(0.0f, -2.0f, 0.0f);
 			cs.m_radius = 0.45f;
 
 			b3ShapeDef sd;
@@ -175,7 +175,7 @@ public:
 			cd.bodyA = hip;
 			cd.bodyB = lLeg;
 			cd.collideLinked = false;
-			cd.enableLimit = true;
+			cd.enableConeLimit = true;
 			cd.Initialize(hip, lLeg, b3Vec3(0.0f, -1.0f, 0.0f), b3Vec3(-0.5f, 8.5f, 0.0f), 0.25f * B3_PI);
 			b3ConeJoint* cj = (b3ConeJoint*)m_world.CreateJoint(cd);
 		}
@@ -187,8 +187,8 @@ public:
 			rLeg = m_world.CreateBody(bd);
 
 			b3CapsuleShape cs;
-			cs.m_centers[0].Set(0.0f, 2.0f, 0.0f);
-			cs.m_centers[1].Set(0.0f, -2.0f, 0.0f);
+			cs.m_vertex1.Set(0.0f, 2.0f, 0.0f);
+			cs.m_vertex2.Set(0.0f, -2.0f, 0.0f);
 			cs.m_radius = 0.45f;
 
 			b3ShapeDef sd;
@@ -204,7 +204,7 @@ public:
 			cd.bodyA = hip;
 			cd.bodyB = rLeg;
 			cd.collideLinked = false;
-			cd.enableLimit = true;
+			cd.enableConeLimit = true;
 			cd.Initialize(hip, rLeg, b3Vec3(0.0f, -1.0f, 0.0f), b3Vec3(0.5f, 8.5f, 0.0f), 0.25f * B3_PI);
 			b3ConeJoint* cj = (b3ConeJoint*)m_world.CreateJoint(cd);
 		}

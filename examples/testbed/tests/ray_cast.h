@@ -159,8 +159,8 @@ public:
 			b3Body* body = m_world.CreateBody(bdef);
 
 			b3CapsuleShape hs;
-			hs.m_centers[0].Set(0.0f, 1.0f, 0.0f);
-			hs.m_centers[1].Set(0.0f, -1.0f, 0.0f);
+			hs.m_vertex1.Set(0.0f, 1.0f, 0.0f);
+			hs.m_vertex2.Set(0.0f, -1.0f, 0.0f);
 			hs.m_radius = 3.0f;
 
 			b3ShapeDef sdef;
@@ -175,11 +175,22 @@ public:
 		m_p12.Set(0.0f, 2.0f, 0.0f);
 		m_p22.Set(-50.0f, 2.0f, 0.0f);
 	}
-
+	
 	void CastRay(const b3Vec3 p1, const b3Vec3 p2) const
 	{
+		class RayCastFilter : public b3RayCastFilter
+		{
+		public:
+			bool ShouldRayCast(b3Shape* shape)
+			{
+				return true;
+			}
+		};
+
+		RayCastFilter filter;
+
 		b3RayCastSingleOutput out;
-		if (m_world.RayCastSingle(&out, p1, p2))
+		if (m_world.RayCastSingle(&out, &filter, p1, p2))
 		{
 			g_draw->DrawSegment(p1, out.point, b3Color_green);
 			
@@ -194,7 +205,7 @@ public:
 
 	void Step()
 	{
-		float32 dt = g_testSettings->inv_hertz;
+		scalar dt = g_testSettings->inv_hertz;
 		b3Quat dq = b3QuatRotationY(0.05f * B3_PI * dt);
 		
 		m_p1 = b3Mul(dq, m_p1);

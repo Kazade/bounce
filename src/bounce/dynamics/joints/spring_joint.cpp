@@ -41,7 +41,7 @@ b3SpringJoint::b3SpringJoint(const b3SpringJointDef* def)
 	m_length = def->length;
 	m_frequencyHz = def->frequencyHz;
 	m_dampingRatio = def->dampingRatio;
-	m_impulse = 0.0f;
+	m_impulse = scalar(0);
 }
 
 b3Vec3 b3SpringJoint::GetAnchorA() const
@@ -64,32 +64,32 @@ const b3Vec3& b3SpringJoint::GetLocalAnchorB() const
 	return m_localAnchorB;
 }
 
-float32 b3SpringJoint::GetLength() const
+scalar b3SpringJoint::GetLength() const
 {
 	return m_length;
 }
 
-void b3SpringJoint::SetLength(float32 length)
+void b3SpringJoint::SetLength(scalar length)
 {
 	m_length = length;
 }
 
-float32 b3SpringJoint::GetFrequency() const
+scalar b3SpringJoint::GetFrequency() const
 {
 	return m_frequencyHz;
 }
 
-void b3SpringJoint::SetFrequency(float32 frequency)
+void b3SpringJoint::SetFrequency(scalar frequency)
 {
 	m_frequencyHz = frequency;
 }
 
-float32 b3SpringJoint::GetDampingRatio() const
+scalar b3SpringJoint::GetDampingRatio() const
 {
 	return m_dampingRatio;
 }
 
-void b3SpringJoint::SetDampingRatio(float32 ratio)
+void b3SpringJoint::SetDampingRatio(scalar ratio)
 {
 	m_dampingRatio = ratio;
 }
@@ -124,7 +124,7 @@ void b3SpringJoint::InitializeConstraints(const b3SolverData* data)
 
 	// Singularity check.
 	m_n = xB + m_rB - xA - m_rA;
-	float32 length = b3Length(m_n);
+	scalar length = b3Length(m_n);
 	if (length > B3_LINEAR_SLOP)
 	{
 		m_n /= length;
@@ -138,36 +138,46 @@ void b3SpringJoint::InitializeConstraints(const b3SolverData* data)
 	b3Vec3 rnA = b3Cross(m_rA, m_n);
 	b3Vec3 rnB = b3Cross(m_rB, m_n);
 
-	float32 mass = m_mA + m_mB + b3Dot(m_iA * rnA, rnA) + b3Dot(m_iB * rnB, rnB);
+	scalar mass = m_mA + m_mB + b3Dot(m_iA * rnA, rnA) + b3Dot(m_iB * rnB, rnB);
 	
-	m_mass = mass > 0.0f ? 1.0f / mass : 0.0f;
+	m_mass = mass > scalar(0) ? scalar(1) / mass : scalar(0);
 
-	if (m_frequencyHz > 0.0f)
+	if (m_frequencyHz > scalar(0))
 	{
-		float32 C = length - m_length;
+		scalar C = length - m_length;
 		
 		// Angular frequency
-		float32 omega = 2.0f * B3_PI * m_frequencyHz;
+		scalar omega = scalar(2) * B3_PI * m_frequencyHz;
 
 		// Damping coefficient
-		float32 d = 2.0f * m_mass * m_dampingRatio * omega;
+		scalar d = scalar(2) * m_mass * m_dampingRatio * omega;
 
 		// Spring stiffness
-		float32 k = m_mass * omega * omega;
+		scalar k = m_mass * omega * omega;
 
-		// Box2D's Soft Constraints talk
-		float32 h = data->dt;
+		// Magic formulas
+
+		// gamma = 1 / (d + h * k)
+		
+		// m_gamma = gamma / h = 1 / (h * (d + h * k))
+
+		// beta = gamma * h * k
+
+		// bias = beta / h * C
+		// bias = (m_gamma * h * k) * C
+
+		scalar h = data->dt;
 		m_gamma = h * (d + h * k);
-		m_gamma = m_gamma != 0.0f ? 1.0f / m_gamma : 0.0f;
-		m_bias = h * C * k * m_gamma;
+		m_gamma = m_gamma != scalar(0) ? scalar(1) / m_gamma : scalar(0);
+		m_bias = m_gamma * h * k * C;
 
 		mass += m_gamma;
-		m_mass = mass != 0.0f ? 1.0f / mass : 0.0f;
+		m_mass = mass != scalar(0) ? scalar(1) / mass : scalar(0);
 	}
 	else
 	{
-		m_bias = 0.0f;
-		m_gamma = 0.0f;
+		m_bias = scalar(0);
+		m_gamma = scalar(0);
 	}
 }
 
@@ -189,9 +199,9 @@ void b3SpringJoint::SolveVelocityConstraints(const b3SolverData* data)
 	b3Vec3 wB = data->velocities[m_indexB].w;
 
 	b3Vec3 dv = vB + b3Cross(wB, m_rB) - vA - b3Cross(wA, m_rA);
-	float32 Cdot = b3Dot(m_n, dv);
+	scalar Cdot = b3Dot(m_n, dv);
 	
-	float32 impulse = -m_mass * (Cdot + m_bias + m_gamma * m_impulse);
+	scalar impulse = -m_mass * (Cdot + m_bias + m_gamma * m_impulse);
 	m_impulse += impulse;
 	
 	b3Vec3 P = impulse * m_n;
@@ -210,7 +220,7 @@ void b3SpringJoint::SolveVelocityConstraints(const b3SolverData* data)
 
 bool b3SpringJoint::SolvePositionConstraints(const b3SolverData* data) 
 {
-	if (m_frequencyHz > 0.0f)
+	if (m_frequencyHz > scalar(0))
 	{
 		// There is no position correction for spring joints.
 		B3_NOT_USED(data);
@@ -223,15 +233,15 @@ bool b3SpringJoint::SolvePositionConstraints(const b3SolverData* data)
 	b3Quat qB = data->positions[m_indexB].q;
 	b3Mat33 iA = data->invInertias[m_indexA];
 	b3Mat33 iB = data->invInertias[m_indexB];
-	float32 mA = m_mA;
-	float32 mB = m_mB;
+	scalar mA = m_mA;
+	scalar mB = m_mB;
 
 	b3Vec3 rA = b3Mul(qA, m_localAnchorA - m_localCenterA);
 	b3Vec3 rB = b3Mul(qB, m_localAnchorB - m_localCenterB);
 	
 	b3Vec3 n = xB + rB - xA - rA;
-	float32 length = b3Length(n);
-	float32 C = length - m_length;
+	scalar length = b3Length(n);
+	scalar C = length - m_length;
 	C = b3Clamp(C, -B3_MAX_LINEAR_CORRECTION, B3_MAX_LINEAR_CORRECTION);
 	
 	// Compute effective mass
@@ -239,9 +249,9 @@ bool b3SpringJoint::SolvePositionConstraints(const b3SolverData* data)
 	
 	b3Vec3 rnA = b3Cross(rA, n);
 	b3Vec3 rnB = b3Cross(rB, n);
-	float32 kMass = mA + mB + b3Dot(iA * rnA, rnA) + b3Dot(iB * rnB, rnB);
-	float32 mass = kMass > 0.0f ? 1.0f / kMass : 0.0f;
-	float32 lambda = -mass * C;
+	scalar kMass = mA + mB + b3Dot(iA * rnA, rnA) + b3Dot(iB * rnB, rnB);
+	scalar mass = kMass > scalar(0) ? scalar(1) / kMass : scalar(0);
+	scalar lambda = -mass * C;
 
 	b3Vec3 impulse = lambda * n;
 		
@@ -266,10 +276,10 @@ bool b3SpringJoint::SolvePositionConstraints(const b3SolverData* data)
 void b3SpringJoint::Draw() const 
 {
 	b3Vec3 a = GetBodyA()->GetWorldPoint(m_localAnchorA);
-	b3Draw_draw->DrawPoint(a, 4.0f, b3Color_red);
+	b3Draw_draw->DrawPoint(a, scalar(4), b3Color_red);
 	
 	b3Vec3 b = GetBodyB()->GetWorldPoint(m_localAnchorB);
-	b3Draw_draw->DrawPoint(b, 4.0f, b3Color_green);
+	b3Draw_draw->DrawPoint(b, scalar(4), b3Color_green);
 
 	b3Draw_draw->DrawSegment(a, b, b3Color_yellow);
 }

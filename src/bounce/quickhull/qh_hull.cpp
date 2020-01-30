@@ -19,14 +19,14 @@
 #include <bounce/quickhull/qh_hull.h>
 #include <bounce/common/draw.h>
 
-static float32 qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Vec3* vs, u32 count)
+static scalar qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Vec3* vs, u32 count)
 {
-	b3Vec3 min(B3_MAX_FLOAT, B3_MAX_FLOAT, B3_MAX_FLOAT);
+	b3Vec3 min(B3_MAX_SCALAR, B3_MAX_SCALAR, B3_MAX_SCALAR);
 	iMin[0] = 0;
 	iMin[1] = 0;
 	iMin[2] = 0;
 
-	b3Vec3 max(-B3_MAX_FLOAT, -B3_MAX_FLOAT, -B3_MAX_FLOAT);
+	b3Vec3 max(-B3_MAX_SCALAR, -B3_MAX_SCALAR, -B3_MAX_SCALAR);
 	iMax[0] = 0;
 	iMax[1] = 0;
 	iMax[2] = 0;
@@ -51,18 +51,18 @@ static float32 qhFindAABB(u32 iMin[3], u32 iMax[3], const b3Vec3* vs, u32 count)
 		}
 	}
 
-	return 3.0f * (b3Abs(max.x) + b3Abs(max.y) + b3Abs(max.z)) * B3_EPSILON;
+	return scalar(3) * (b3Abs(max.x) + b3Abs(max.y) + b3Abs(max.z)) * B3_EPSILON;
 }
 
 qhHull::qhHull()
 {
-	m_vertexList.head = NULL;
+	m_vertexList.head = nullptr;
 	m_vertexList.count = 0;
 
-	m_faceList.head = NULL;
+	m_faceList.head = nullptr;
 	m_faceList.count = 0;
 
-	m_buffer = NULL;
+	m_buffer = nullptr;
 
 	m_vertexCapacity = 0;
 	m_vertexCount = 0;
@@ -113,7 +113,7 @@ qhHull::~qhHull()
 
 void qhHull::Construct(const b3Vec3* vs, u32 count)
 {
-	B3_ASSERT(m_buffer == NULL);
+	B3_ASSERT(m_buffer == nullptr);
 	B3_ASSERT(count > 0 && count >= 4);
 
 	// Compute memory buffer size for the worst case.
@@ -149,7 +149,7 @@ void qhHull::Construct(const b3Vec3* vs, u32 count)
 	// Initialize free lists
 	m_vertexCapacity = V;
 	m_vertexCount = m_vertexCapacity;
-	m_freeVertices = NULL;
+	m_freeVertices = nullptr;
 	qhVertex* vertices = (qhVertex*)m_buffer;
 	for (u32 i = 0; i < V; ++i)
 	{
@@ -160,7 +160,7 @@ void qhHull::Construct(const b3Vec3* vs, u32 count)
 
 	m_edgeCapacity = HE;
 	m_edgeCount = m_edgeCapacity;
-	m_freeEdges = NULL;
+	m_freeEdges = nullptr;
 	qhHalfEdge* edges = (qhHalfEdge*)((u8*)vertices + V * sizeof(qhVertex));
 	for (u32 i = 0; i < HE; ++i)
 	{
@@ -171,12 +171,12 @@ void qhHull::Construct(const b3Vec3* vs, u32 count)
 
 	m_faceCapacity = F;
 	m_faceCount = m_faceCapacity;
-	m_freeFaces = NULL;
+	m_freeFaces = nullptr;
 	qhFace* faces = (qhFace*)((u8*)edges + HE * sizeof(qhHalfEdge));
 	for (u32 i = 0; i < F; ++i)
 	{
 		qhFace* f = faces + i;
-		f->conflictList.head = NULL;
+		f->conflictList.head = nullptr;
 		f->conflictList.count = 0;
 		f->active = true;
 		FreeFace(f);
@@ -227,7 +227,7 @@ void qhHull::Construct(const b3Vec3* vs, u32 count)
 
 		for (qhFace* f = m_faceList.head; f; f = f->next)
 		{
-			float32 d = b3Distance(v, f->plane);
+			scalar d = b3Distance(v, f->plane);
 			B3_ASSERT(d < m_tolerance);
 		}
 	}
@@ -252,14 +252,14 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 		m_tolerance = qhFindAABB(aabbMin, aabbMax, vertices, vertexCount);
 		
 		// Find the longest segment.
-		float32 d0 = 0.0f;
+		scalar d0 = scalar(0);
 
 		for (u32 i = 0; i < 3; ++i)
 		{
 			b3Vec3 A = vertices[aabbMin[i]];
 			b3Vec3 B = vertices[aabbMax[i]];
 
-			float32 d = b3DistanceSquared(A, B);
+			scalar d = b3DistanceSquared(A, B);
 
 			if (d > d0)
 			{
@@ -286,7 +286,7 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 
 	{
 		// Find the triangle which has the largest area.
-		float32 a0 = 0.0f;
+		scalar a0 = scalar(0);
 
 		for (u32 i = 0; i < vertexCount; ++i)
 		{
@@ -297,7 +297,7 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 
 			b3Vec3 C = vertices[i];
 
-			float32 a = b3AreaSquared(A, B, C);
+			scalar a = b3AreaSquared(A, B, C);
 
 			if (a > a0)
 			{
@@ -307,7 +307,7 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 		}
 
 		// Colinear check.
-		if (a0 <= (2.0f * B3_EPSILON) * (2.0f * B3_EPSILON))
+		if (a0 <= (scalar(2) * B3_EPSILON) * (scalar(2) * B3_EPSILON))
 		{
 			B3_ASSERT(false);
 			return false;
@@ -327,7 +327,7 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 
 	{
 		// Find the furthest point from the triangle plane.
-		float32 d0 = 0.0f;
+		scalar d0 = scalar(0);
 
 		for (u32 i = 0; i < vertexCount; ++i)
 		{
@@ -338,7 +338,7 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 
 			b3Vec3 D = vertices[i];
 
-			float32 d = b3Abs(b3Distance(D, plane));
+			scalar d = b3Abs(b3Distance(D, plane));
 
 			if (d > d0)
 			{
@@ -365,7 +365,7 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 	qhVertex* v3 = AddVertex(C);
 	qhVertex* v4 = AddVertex(D);
 
-	if (b3Distance(D, plane) < 0.0f)
+	if (b3Distance(D, plane) < scalar(0))
 	{
 		AddFace(v1, v2, v3);
 		AddFace(v4, v2, v1);
@@ -396,12 +396,12 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 		b3Vec3 p = vertices[i];
 
 		// Ignore internal points since they can't be in the hull.
-		float32 d0 = m_tolerance;
-		qhFace* f0 = NULL;
+		scalar d0 = m_tolerance;
+		qhFace* f0 = nullptr;
 
-		for (qhFace* f = m_faceList.head; f != NULL; f = f->next)
+		for (qhFace* f = m_faceList.head; f != nullptr; f = f->next)
 		{
-			float32 d = b3Distance(p, f->plane);
+			scalar d = b3Distance(p, f->plane);
 			if (d > d0)
 			{
 				d0 = d;
@@ -424,14 +424,14 @@ bool qhHull::BuildInitialHull(const b3Vec3* vertices, u32 vertexCount)
 qhVertex* qhHull::FindEyeVertex() const
 {
 	// Find the furthest conflict point.
-	float32 d0 = m_tolerance;
-	qhVertex* v0 = NULL;
+	scalar d0 = m_tolerance;
+	qhVertex* v0 = nullptr;
 
-	for (qhFace* f = m_faceList.head; f != NULL; f = f->next)
+	for (qhFace* f = m_faceList.head; f != nullptr; f = f->next)
 	{
-		for (qhVertex* v = f->conflictList.head; v != NULL; v = v->next)
+		for (qhVertex* v = f->conflictList.head; v != nullptr; v = v->next)
 		{
-			float32 d = b3Distance(v->position, f->plane);
+			scalar d = b3Distance(v->position, f->plane);
 			if (d > d0)
 			{
 				d0 = d;
@@ -454,9 +454,9 @@ void qhHull::AddEyeVertex(qhVertex* eye)
 void qhHull::FindHorizon(qhVertex* eye)
 {
 	// Mark faces
-	for (qhFace* face = m_faceList.head; face != NULL; face = face->next)
+	for (qhFace* face = m_faceList.head; face != nullptr; face = face->next)
 	{
-		float32 d = b3Distance(eye->position, face->plane);
+		scalar d = b3Distance(eye->position, face->plane);
 		if (d > m_tolerance)
 		{
 			face->mark = qhFaceMark::e_visible;
@@ -469,7 +469,7 @@ void qhHull::FindHorizon(qhVertex* eye)
 
 	// Find the horizon 
 	m_horizonCount = 0;
-	for (qhFace* face = m_faceList.head; face != NULL; face = face->next)
+	for (qhFace* face = m_faceList.head; face != nullptr; face = face->next)
 	{
 		if (face->mark == qhFaceMark::e_invisible)
 		{
@@ -569,7 +569,7 @@ void qhHull::AddNewFaces(qhVertex* eye)
 			m_conflictVertices[m_conflictCount++] = v;
 
 			// Remove vertex from face
-			v->conflictFace = NULL;
+			v->conflictFace = nullptr;
 			v = f->conflictList.Remove(v);
 		}
 
@@ -600,8 +600,8 @@ void qhHull::ResolveOrphans()
 
 		b3Vec3 p = v->position;
 
-		float32 d0 = m_tolerance;
-		qhFace* f0 = NULL;
+		scalar d0 = m_tolerance;
+		qhFace* f0 = nullptr;
 
 		for (u32 j = 0; j < m_newFaceCount; ++j)
 		{
@@ -613,7 +613,7 @@ void qhHull::ResolveOrphans()
 				continue;
 			}
 
-			float32 d = b3Distance(p, nf->plane);
+			scalar d = b3Distance(p, nf->plane);
 			if (d > d0)
 			{
 				d0 = d;
@@ -639,7 +639,7 @@ qhVertex* qhHull::AddVertex(const b3Vec3& position)
 {
 	qhVertex* v = AllocateVertex();
 	v->position = position;
-	v->conflictFace = NULL;
+	v->conflictFace = nullptr;
 
 	m_vertexList.PushFront(v);
 
@@ -648,13 +648,13 @@ qhVertex* qhHull::AddVertex(const b3Vec3& position)
 
 qhHalfEdge* qhHull::FindHalfEdge(const qhVertex* v1, const qhVertex* v2) const
 {
-	for (qhFace* face = m_faceList.head; face != NULL; face = face->next)
+	for (qhFace* face = m_faceList.head; face != nullptr; face = face->next)
 	{
 		qhHalfEdge* e = face->edge;
 		do
 		{
 			B3_ASSERT(e->active == true);
-			B3_ASSERT(e->twin != NULL);
+			B3_ASSERT(e->twin != nullptr);
 			B3_ASSERT(e->twin->active == true);
 
 			if (e->tail == v1 && e->twin->tail == v2)
@@ -670,7 +670,7 @@ qhHalfEdge* qhHull::FindHalfEdge(const qhVertex* v1, const qhVertex* v2) const
 			e = e->next;
 		} while (e != face->edge);
 	}
-	return NULL;
+	return nullptr;
 }
 
 static B3_FORCE_INLINE b3Vec3 b3Newell(const b3Vec3& a, const b3Vec3& b)
@@ -696,7 +696,7 @@ static void b3ResetFaceData(qhFace* face)
 	} while (e != face->edge);
 
 	B3_ASSERT(count >= 3);
-	c /= float32(count);
+	c /= scalar(count);
 
 	// Compute normal  
 	b3Vec3 n;
@@ -721,12 +721,12 @@ static void b3ResetFaceData(qhFace* face)
 	// Centroid
 	face->center = c;
 
-	float32 len = b3Length(n);
+	scalar len = b3Length(n);
 	B3_ASSERT(len > B3_EPSILON);
 	n /= len;
 
 	// Area
-	face->area = 0.5f * len;
+	face->area = scalar(0.5) * len;
 
 	// Normal
 	face->plane.normal = n;
@@ -890,7 +890,7 @@ qhFace* qhHull::RemoveEdge(qhHalfEdge* edge)
 	qhFace* face2 = edge->twin->face;
 
 	// Edge must be shared.
-	B3_ASSERT(face2 != NULL);
+	B3_ASSERT(face2 != nullptr);
 	B3_ASSERT(face2->active == true);
 	B3_ASSERT(face2 != face1);
 
@@ -962,7 +962,7 @@ bool qhHull::FixFace(qhFace* face)
 
 	// Search a incoming (and outgoing edge) in the face 1
 	// which have the same neighbour face.
-	qhHalfEdge* edge = NULL;
+	qhHalfEdge* edge = nullptr;
 	
 	qhHalfEdge* ein = face->edge;
 	do
@@ -993,115 +993,115 @@ bool qhHull::FixFace(qhFace* face)
 qhFace* qhHull::AddFace(qhVertex* v1, qhVertex* v2, qhVertex* v3)
 {
 	// Each vertex must be free.
-	//B3_ASSERT(v1->edge == NULL);
-	//B3_ASSERT(v2->edge == NULL);
-	//B3_ASSERT(v3->edge == NULL);
+	//B3_ASSERT(v1->edge == nullptr);
+	//B3_ASSERT(v2->edge == nullptr);
+	//B3_ASSERT(v3->edge == nullptr);
 	qhFace* face = AllocateFace();
 
 	qhHalfEdge* e1 = FindHalfEdge(v1, v2);
-	if (e1 == NULL)
+	if (e1 == nullptr)
 	{
 		e1 = AllocateEdge();
 		e1->tail = v1;
 		e1->face = face;
-		e1->prev = NULL;
-		e1->next = NULL;
+		e1->prev = nullptr;
+		e1->next = nullptr;
 
 		e1->twin = AllocateEdge();
 		e1->twin->tail = v2;
-		e1->twin->face = NULL;
-		e1->twin->prev = NULL;
-		e1->twin->next = NULL;
+		e1->twin->face = nullptr;
+		e1->twin->prev = nullptr;
+		e1->twin->next = nullptr;
 		e1->twin->twin = e1;
 	}
 	else
 	{
 		// Edge must be free.
-		B3_ASSERT(e1->face == NULL);
+		B3_ASSERT(e1->face == nullptr);
 		e1->face = face;
 
 		B3_ASSERT(e1->tail == v1);
-		B3_ASSERT(e1->twin != NULL);
+		B3_ASSERT(e1->twin != nullptr);
 		B3_ASSERT(e1->twin->active == true);
 		B3_ASSERT(e1->twin->tail == v2);
 	}
 
 	qhHalfEdge* e2 = FindHalfEdge(v2, v3);
-	if (e2 == NULL)
+	if (e2 == nullptr)
 	{
 		e2 = AllocateEdge();
 		e2->tail = v2;
 		e2->face = face;
-		e2->prev = NULL;
-		e2->next = NULL;
+		e2->prev = nullptr;
+		e2->next = nullptr;
 
 		e2->twin = AllocateEdge();
 		e2->twin->tail = v3;
-		e2->twin->face = NULL;
-		e2->twin->prev = NULL;
-		e2->twin->next = NULL;
+		e2->twin->face = nullptr;
+		e2->twin->prev = nullptr;
+		e2->twin->next = nullptr;
 		e2->twin->twin = e2;
 	}
 	else
 	{
 		// Edge must be free.
-		B3_ASSERT(e2->face == NULL);
+		B3_ASSERT(e2->face == nullptr);
 		e2->face = face;
 
 		B3_ASSERT(e2->tail == v2);
-		B3_ASSERT(e2->twin != NULL);
+		B3_ASSERT(e2->twin != nullptr);
 		B3_ASSERT(e2->twin->active == true);
 		B3_ASSERT(e2->twin->tail == v3);
 	}
 
 	qhHalfEdge* e3 = FindHalfEdge(v3, v1);
-	if (e3 == NULL)
+	if (e3 == nullptr)
 	{
 		e3 = AllocateEdge();
 		e3->tail = v3;
 		e3->face = face;
-		e3->prev = NULL;
-		e3->next = NULL;
+		e3->prev = nullptr;
+		e3->next = nullptr;
 
 		e3->twin = AllocateEdge();
 		e3->twin->tail = v1;
-		e3->twin->face = NULL;
-		e3->twin->prev = NULL;
-		e3->twin->next = NULL;
+		e3->twin->face = nullptr;
+		e3->twin->prev = nullptr;
+		e3->twin->next = nullptr;
 		e3->twin->twin = e3;
 	}
 	else
 	{
 		// Edge must be free.
-		B3_ASSERT(e3->face == NULL);
+		B3_ASSERT(e3->face == nullptr);
 		e3->face = face;
 
 		B3_ASSERT(e3->tail == v3);
-		B3_ASSERT(e3->twin != NULL);
+		B3_ASSERT(e3->twin != nullptr);
 		B3_ASSERT(e3->twin->active == true);
 		B3_ASSERT(e3->twin->tail == v1);
 	}
 
-	B3_ASSERT(e1->prev == NULL);
+	B3_ASSERT(e1->prev == nullptr);
 	e1->prev = e3;
-	B3_ASSERT(e1->next == NULL);
+	B3_ASSERT(e1->next == nullptr);
 	e1->next = e2;
 
-	B3_ASSERT(e2->prev == NULL);
+	B3_ASSERT(e2->prev == nullptr);
 	e2->prev = e1;
-	B3_ASSERT(e2->next == NULL);
+	B3_ASSERT(e2->next == nullptr);
 	e2->next = e3;
 
-	B3_ASSERT(e3->prev == NULL);
+	B3_ASSERT(e3->prev == nullptr);
 	e3->prev = e2;
-	B3_ASSERT(e3->next == NULL);
+	B3_ASSERT(e3->next == nullptr);
 	e3->next = e1;
 
 	face->edge = e1;
 
 	b3ResetFaceData(face);
 
-	face->conflictList.head = NULL;
+	face->conflictList.head = nullptr;
 	face->conflictList.count = 0;
 
 	Validate(face);
@@ -1124,7 +1124,7 @@ qhFace* qhHull::RemoveFace(qhFace* face)
 		e = e->next;
 
 		// Is the edge a boundary?
-		if (e0->twin->face == NULL)
+		if (e0->twin->face == nullptr)
 		{
 			// Edge is non-shared.
 			FreeEdge(e0->twin);
@@ -1134,11 +1134,11 @@ qhFace* qhHull::RemoveFace(qhFace* face)
 		{
 			// Edge is shared. 
 			// Mark the twin edge as a boundary edge.
-			B3_ASSERT(e0->twin != NULL);
+			B3_ASSERT(e0->twin != nullptr);
 			B3_ASSERT(e0->twin->twin == e0);
-			e0->face = NULL;
-			e0->prev = NULL;
-			e0->next = NULL;
+			e0->face = nullptr;
+			e0->prev = nullptr;
+			e0->next = nullptr;
 		}
 
 	} while (e != face->edge);
@@ -1154,7 +1154,7 @@ qhFace* qhHull::RemoveFace(qhFace* face)
 bool qhHull::MergeFace(qhFace* face1)
 {
 	// Non-convex edge
-	qhHalfEdge* edge = NULL;
+	qhHalfEdge* edge = nullptr;
 
 	qhHalfEdge* e = face1->edge;
 
@@ -1163,11 +1163,11 @@ bool qhHull::MergeFace(qhFace* face1)
 		qhHalfEdge* twin = e->twin;
 		qhFace* face2 = twin->face;
 
-		B3_ASSERT(face2 != NULL);
+		B3_ASSERT(face2 != nullptr);
 		B3_ASSERT(face2 != face1);
 
-		float32 d1 = b3Distance(face2->center, face1->plane);
-		float32 d2 = b3Distance(face1->center, face2->plane);
+		scalar d1 = b3Distance(face2->center, face1->plane);
+		scalar d2 = b3Distance(face1->center, face2->plane);
 
 		if (d1 < -m_tolerance && d2 < -m_tolerance)
 		{
@@ -1194,7 +1194,7 @@ bool qhHull::MergeFace(qhFace* face1)
 bool qhHull::MergeLargeFace(qhFace* face1)
 {
 	// Find a non-convex edge
-	qhHalfEdge* edge = NULL;
+	qhHalfEdge* edge = nullptr;
 
 	qhHalfEdge* e = face1->edge;
 
@@ -1205,13 +1205,13 @@ bool qhHull::MergeLargeFace(qhFace* face1)
 		qhHalfEdge* twin = e->twin;
 		qhFace* face2 = twin->face;
 
-		B3_ASSERT(face2 != NULL);
+		B3_ASSERT(face2 != nullptr);
 		B3_ASSERT(face2 != face1);
 
 		if (face1->area > face2->area)
 		{
 			// Face 1 merge
-			float32 d = b3Distance(face2->center, face1->plane);
+			scalar d = b3Distance(face2->center, face1->plane);
 			if (d < -m_tolerance)
 			{
 				// Edge is convex wrt to the face 1
@@ -1226,7 +1226,7 @@ bool qhHull::MergeLargeFace(qhFace* face1)
 		else
 		{
 			// Face 2 merge
-			float32 d = b3Distance(face1->center, face2->plane);
+			scalar d = b3Distance(face1->center, face2->plane);
 			if (d < -m_tolerance)
 			{
 				// Edge is convex wrt to the face 2
@@ -1286,7 +1286,7 @@ void qhHull::MergeNewFaces()
 void qhHull::Translate(const b3Vec3& translation)
 {
 	// Shift vertices
-	for (qhVertex* v = m_vertexList.head; v != NULL; v = v->next)
+	for (qhVertex* v = m_vertexList.head; v != nullptr; v = v->next)
 	{
 		v->position += translation;
 	}
@@ -1300,7 +1300,7 @@ void qhHull::Translate(const b3Vec3& translation)
 
 void qhHull::ValidateConvexity() const
 {
-	for (qhFace* face = m_faceList.head; face != NULL; face = face->next)
+	for (qhFace* face = m_faceList.head; face != nullptr; face = face->next)
 	{
 		B3_ASSERT(face->active == true);
 
@@ -1310,22 +1310,22 @@ void qhHull::ValidateConvexity() const
 			B3_ASSERT(edge->active == true);
 			B3_ASSERT(edge->face == face);
 
-			B3_ASSERT(edge->twin != NULL);
+			B3_ASSERT(edge->twin != nullptr);
 			B3_ASSERT(edge->twin->active == true);
 			qhFace* other = edge->twin->face;
 
 			// Ensure closed volume
-			B3_ASSERT(other != NULL);
+			B3_ASSERT(other != nullptr);
 			B3_ASSERT(other->active == true);
 
 			// Ensure topological health
 			B3_ASSERT(face != other);
 
 			// Ensure edge convexity
-			float32 d1 = b3Distance(other->center, face->plane);
+			scalar d1 = b3Distance(other->center, face->plane);
 			B3_ASSERT(d1 < -m_tolerance);
 
-			float32 d2 = b3Distance(face->center, other->plane);
+			scalar d2 = b3Distance(face->center, other->plane);
 			B3_ASSERT(d2 < -m_tolerance);
 
 			// Ensure polygon convexity
@@ -1344,8 +1344,8 @@ void qhHull::ValidateConvexity() const
 			const qhHalfEdge* eother = edge->prev;
 			do
 			{
-				float32 d = b3Distance(eother->tail->position, plane);
-				B3_ASSERT(d <= 0.0f);
+				scalar d = b3Distance(eother->tail->position, plane);
+				B3_ASSERT(d <= scalar(0));
 
 				eother = eother->prev;
 			} while (eother != edge->next);
@@ -1424,10 +1424,10 @@ void qhHull::Validate(const qhFace* face) const
 			B3_ASSERT(edge->active == true);
 			B3_ASSERT(edge->face == face);
 
-			B3_ASSERT(edge->twin != NULL);
+			B3_ASSERT(edge->twin != nullptr);
 			B3_ASSERT(edge->twin->active == true);
 
-			if (edge->twin->face != NULL)
+			if (edge->twin->face != nullptr)
 			{
 				B3_ASSERT(edge->twin->face->active == true);
 				B3_ASSERT(edge->twin->face != face);
@@ -1445,10 +1445,10 @@ void qhHull::Validate(const qhFace* face) const
 			B3_ASSERT(edge->active == true);
 			B3_ASSERT(edge->face == face);
 
-			B3_ASSERT(edge->twin != NULL);
+			B3_ASSERT(edge->twin != nullptr);
 			B3_ASSERT(edge->twin->active == true);
 
-			if (edge->twin->face != NULL)
+			if (edge->twin->face != nullptr)
 			{
 				B3_ASSERT(edge->twin->face->active == true);
 				B3_ASSERT(edge->twin->face != face);
@@ -1471,16 +1471,16 @@ void qhHull::Validate(const qhFace* face) const
 
 void qhHull::Validate() const
 {
-	for (qhVertex* vertex = m_vertexList.head; vertex != NULL; vertex = vertex->next)
+	for (qhVertex* vertex = m_vertexList.head; vertex != nullptr; vertex = vertex->next)
 	{
 		B3_ASSERT(vertex->active == true);
 	}
 
-	for (qhFace* face = m_faceList.head; face != NULL; face = face->next)
+	for (qhFace* face = m_faceList.head; face != nullptr; face = face->next)
 	{
 		B3_ASSERT(face->active == true);
 
-		for (qhVertex* vertex = face->conflictList.head; vertex != NULL; vertex = vertex->next)
+		for (qhVertex* vertex = face->conflictList.head; vertex != nullptr; vertex = vertex->next)
 		{
 			B3_ASSERT(vertex->active == true);
 		}
@@ -1502,12 +1502,12 @@ void qhHull::Validate() const
 
 void qhHull::Draw() const
 {
-	for (qhFace* face = m_faceList.head; face != NULL; face = face->next)
+	for (qhFace* face = m_faceList.head; face != nullptr; face = face->next)
 	{
 		b3Vec3 c = face->center;
 		b3Vec3 n = face->plane.normal;
 
-		b3Draw_draw->DrawSegment(c, c + n, b3Color(1.0f, 1.0f, 1.0f));
+		b3Draw_draw->DrawSegment(c, c + n, b3Color(scalar(1), scalar(1), scalar(1)));
 		
 		const qhHalfEdge* edge = face->edge;
 		do
@@ -1517,8 +1517,8 @@ void qhHull::Draw() const
 			const qhHalfEdge* next = edge->next;
 			qhVertex* v3 = next->tail;
 
-			b3Draw_draw->DrawSegment(v2->position, v3->position, b3Color(0.0f, 0.0f, 0.0f, 1.0f));
-			b3Draw_draw->DrawSolidTriangle(n, v1->position, v2->position, v3->position, b3Color(1.0f, 1.0f, 1.0f, 0.5f));
+			b3Draw_draw->DrawSegment(v2->position, v3->position, b3Color(scalar(0), scalar(0), scalar(0), scalar(1)));
+			b3Draw_draw->DrawSolidTriangle(n, v1->position, v2->position, v3->position, b3Color(scalar(1), scalar(1), scalar(1), scalar(0.5)));
 
 			edge = next;
 		} while (edge->next != face->edge);
@@ -1526,8 +1526,8 @@ void qhHull::Draw() const
 		qhVertex* v = face->conflictList.head;
 		while (v)
 		{
-			b3Draw_draw->DrawPoint(v->position, 4.0f, b3Color(1.0f, 1.0f, 0.0f));
-			b3Draw_draw->DrawSegment(c, v->position, b3Color(1.0f, 1.0f, 0.0f));
+			b3Draw_draw->DrawPoint(v->position, 4.0f, b3Color(scalar(1), scalar(1), scalar(0)));
+			b3Draw_draw->DrawSegment(c, v->position, b3Color(scalar(1), scalar(1), scalar(0)));
 			v = v->next;
 		}
 	}

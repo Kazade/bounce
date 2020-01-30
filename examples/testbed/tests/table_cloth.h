@@ -22,6 +22,12 @@
 class TableCloth : public Test
 {
 public:
+	enum
+	{
+		e_w = 10,
+		e_h = 10
+	};
+	
 	TableCloth()
 	{
 		// Translate the mesh
@@ -35,15 +41,13 @@ public:
 		def.mesh = &m_clothMesh;
 		def.density = 0.2f;
 		def.streching = 10000.0f;
-		//def.shearing = 10000.0f;
-		def.damping = 100.0f;
+		def.strechDamping = 100.0f;
 		def.thickness = 0.2f;
 		def.friction = 0.1f;
 
 		m_cloth = new b3Cloth(def);
 
 		m_cloth->SetGravity(b3Vec3(0.0f, -9.8f, 0.0f));
-		m_cloth->SetWorld(&m_world);
 
 		{
 			b3BodyDef bd;
@@ -51,7 +55,7 @@ public:
 
 			b3Body* b = m_world.CreateBody(bd);
 
-			m_tableHull.SetAsCylinder(5.0f, 2.0f);
+			m_tableHull.SetExtents(5.0f, 2.0f);
 
 			b3HullShape tableShape;
 			tableShape.m_hull = &m_tableHull;
@@ -60,7 +64,12 @@ public:
 			sd.shape = &tableShape;
 			sd.friction = 1.0f;
 
-			b->CreateShape(sd);
+			b3Shape* shape = b->CreateShape(sd);
+
+			b3ClothWorldShapeDef csd;
+			csd.shape = shape;
+
+			m_cloth->CreateWorldShape(csd);
 		}
 
 		m_clothDragger = new b3ClothDragger(&m_ray, m_cloth);
@@ -85,9 +94,9 @@ public:
 			b3Vec3 pA = m_clothDragger->GetPointA();
 			b3Vec3 pB = m_clothDragger->GetPointB();
 
-			g_draw->DrawPoint(pA, 2.0f, b3Color_green);
+			g_draw->DrawPoint(pA, 4.0f, b3Color_green);
 
-			g_draw->DrawPoint(pB, 2.0f, b3Color_green);
+			g_draw->DrawPoint(pB, 4.0f, b3Color_green);
 
 			g_draw->DrawSegment(pA, pB, b3Color_white);
 		}
@@ -95,7 +104,7 @@ public:
 		extern u32 b3_clothSolverIterations;
 		g_draw->DrawString(b3Color_white, "Iterations = %d", b3_clothSolverIterations);
 
-		float32 E = m_cloth->GetEnergy();
+		scalar E = m_cloth->GetEnergy();
 		g_draw->DrawString(b3Color_white, "E = %f", E);
 	}
 
@@ -134,11 +143,11 @@ public:
 		return new TableCloth();
 	}
 
-	b3GridClothMesh<10, 10> m_clothMesh;
+	b3GridClothMesh<e_w, e_h> m_clothMesh;
 	b3Cloth* m_cloth;
 	b3ClothDragger* m_clothDragger;
 
-	b3QHull m_tableHull;
+	b3CylinderHull m_tableHull;
 };
 
 #endif

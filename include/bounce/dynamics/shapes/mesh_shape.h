@@ -31,11 +31,11 @@ public:
 
 	void Swap(const b3MeshShape& other);
 
-	void ComputeMass(b3MassData* data, float32 density) const;
+	void ComputeMass(b3MassData* data, scalar density) const;
 
-	void ComputeAABB(b3AABB3* output, const b3Transform& xf) const;
+	void ComputeAABB(b3AABB* output, const b3Transform& xf) const;
 
-	void ComputeAABB(b3AABB3* output, const b3Transform& xf, u32 childIndex) const;
+	void ComputeAABB(b3AABB* output, const b3Transform& xf, u32 childIndex) const;
 
 	bool TestSphere(const b3Sphere& sphere, const b3Transform& xf) const;
 
@@ -48,6 +48,8 @@ public:
 	bool RayCast(b3RayCastOutput* output, const b3RayCastInput& input, const b3Transform& xf, u32 childIndex) const;
 
 	const b3Mesh* m_mesh;
+
+	b3Vec3 m_scale;
 };
 
 #endif

@@ -19,8 +19,9 @@
 #ifndef B3_CLOTH_CONTACT_MANAGER_H
 #define B3_CLOTH_CONTACT_MANAGER_H
 
-#include <bounce/cloth/contacts/cloth_particle_body_contact.h>
-#include <bounce/cloth/contacts/cloth_particle_triangle_contact.h>
+#include <bounce/cloth/contacts/cloth_sphere_triangle_contact.h>
+#include <bounce/cloth/contacts/cloth_sphere_shape_contact.h>
+#include <bounce/cloth/contacts/cloth_capsule_capsule_contact.h>
 #include <bounce/collision/broad_phase.h>
 #include <bounce/common/memory/block_pool.h>
 #include <bounce/common/template/list.h>
@@ -34,30 +35,27 @@ public:
 	b3ClothContactManager();
 
 	void FindNewContacts();
-	
 	void AddPair(void* data1, void* data2);
-	void FindNewClothContacts();
-
-	void AddPSPair(b3Particle* p1, b3Shape* s2);
-	void FindNewBodyContacts();
-
 	void UpdateContacts();
-	void UpdateClothContacts();
-	void UpdateBodyContacts();
 
-	b3ParticleTriangleContact* CreateParticleTriangleContact();
-	void Destroy(b3ParticleTriangleContact* c);
+	b3ClothSphereAndTriangleContact* CreateSphereAndTriangleContact();
+	void Destroy(b3ClothSphereAndTriangleContact* c);
 
-	b3ParticleBodyContact* CreateParticleBodyContact();
-	void Destroy(b3ParticleBodyContact* c);
+	b3ClothSphereAndShapeContact* CreateSphereAndShapeContact();
+	void Destroy(b3ClothSphereAndShapeContact* c);
 
-	b3BlockPool m_particleTriangleContactBlocks;
-	b3BlockPool m_particleBodyContactBlocks;
+	b3ClothCapsuleAndCapsuleContact* CreateCapsuleAndCapsuleContact();
+	void Destroy(b3ClothCapsuleAndCapsuleContact* c);
+	
+	b3BlockPool m_sphereAndTriangleContactBlocks;
+	b3BlockPool m_sphereAndShapeContactBlocks;
+	b3BlockPool m_capsuleAndCapsuleContactBlocks;
 
 	b3Cloth* m_cloth;
 	b3BroadPhase m_broadPhase;
-	b3List2<b3ParticleTriangleContact> m_particleTriangleContactList;
-	b3List2<b3ParticleBodyContact> m_particleBodyContactList;
+	b3List2<b3ClothSphereAndTriangleContact> m_sphereAndTriangleContactList;
+	b3List2<b3ClothSphereAndShapeContact> m_sphereAndShapeContactList;
+	b3List2<b3ClothCapsuleAndCapsuleContact> m_capsuleAndCapsuleContactList;
 };
 
 #endif

@@ -22,15 +22,82 @@
 class ClothSelfCollision : public Test
 {
 public:
+	enum
+	{
+		e_w1 = 5,
+		e_h1 = 5,
+		e_w2 = 5,
+		e_h2 = 5
+	};
+
 	ClothSelfCollision()
 	{
-		// Translate the mesh
-		for (u32 i = 0; i < m_clothMesh.vertexCount; ++i)
+		b3GridClothMesh<e_w1, e_h1> mesh1;
+		b3Quat qX = b3QuatRotationX(0.5f * B3_PI);
+		for (u32 i = 0; i < mesh1.vertexCount; ++i)
 		{
-			m_clothMesh.vertices[i].y += 5.0f;
+			mesh1.vertices[i] = b3Mul(qX, mesh1.vertices[i]);
+			mesh1.vertices[i].y += 5.0f;
 		}
 
-		// Create cloth
+		b3GridClothMesh<e_w2, e_h2> mesh2;
+		b3Quat qY = b3QuatRotationY(0.5f * B3_PI);
+		for (u32 i = 0; i < mesh2.vertexCount; ++i)
+		{
+			mesh2.vertices[i] = b3Mul(qY * qX, mesh2.vertices[i]);
+			mesh2.vertices[i].y += 12.0f;
+		}
+
+		// Merge the meshes
+		m_clothMesh.vertexCount = mesh1.vertexCount + mesh2.vertexCount;
+		m_clothMesh.vertices = (b3Vec3*)b3Alloc(m_clothMesh.vertexCount * sizeof(b3Vec3));
+		
+		u32* newVertices1 = (u32*)b3Alloc(mesh1.vertexCount * sizeof(u32));
+		u32 vertexIndex = 0;
+		for (u32 i = 0; i < mesh1.vertexCount; ++i)
+		{
+			newVertices1[i] = vertexIndex;
+			m_clothMesh.vertices[vertexIndex++] = mesh1.vertices[i];
+		}
+
+		u32* newVertices2 = (u32*)b3Alloc(mesh2.vertexCount * sizeof(u32));
+		for (u32 i = 0; i < mesh2.vertexCount; ++i)
+		{
+			newVertices2[i] = vertexIndex;
+			m_clothMesh.vertices[vertexIndex++] = mesh2.vertices[i];
+		}
+		
+		m_clothMesh.triangleCount = mesh1.triangleCount + mesh2.triangleCount;
+		m_clothMesh.triangles = (b3ClothMeshTriangle*)b3Alloc(m_clothMesh.triangleCount * sizeof(b3ClothMeshTriangle));
+		u32 triangleIndex = 0;
+		for (u32 i = 0; i < mesh1.triangleCount; ++i)
+		{
+			m_clothMesh.triangles[triangleIndex].v1 = newVertices1[mesh1.triangles[i].v1];
+			m_clothMesh.triangles[triangleIndex].v2 = newVertices1[mesh1.triangles[i].v2];
+			m_clothMesh.triangles[triangleIndex].v3 = newVertices1[mesh1.triangles[i].v3];
+			++triangleIndex;
+		}
+
+		for (u32 i = 0; i < mesh2.triangleCount; ++i)
+		{
+			m_clothMesh.triangles[triangleIndex].v1 = newVertices2[mesh2.triangles[i].v1];
+			m_clothMesh.triangles[triangleIndex].v2 = newVertices2[mesh2.triangles[i].v2];
+			m_clothMesh.triangles[triangleIndex].v3 = newVertices2[mesh2.triangles[i].v3];
+			++triangleIndex;
+		}
+
+		m_clothMesh.meshCount = 1;
+		m_clothMesh.meshes = (b3ClothMeshMesh*)b3Alloc(sizeof(b3ClothMeshMesh));
+		m_clothMesh.meshes->startTriangle = 0;
+		m_clothMesh.meshes->triangleCount = m_clothMesh.triangleCount;
+		m_clothMesh.meshes->startVertex = 0;
+		m_clothMesh.meshes->vertexCount = m_clothMesh.vertexCount;
+
+		m_clothMesh.shearingLineCount = 0;
+		m_clothMesh.bendingLineCount = 0;
+		m_clothMesh.sewingLineCount = 0;
+
+		// Create the cloth
 		b3ClothDef def;
 		def.mesh = &m_clothMesh;
 		def.density = 1.0f;
@@ -41,24 +108,37 @@ public:
 		m_cloth = new b3Cloth(def);
 
 		m_cloth->SetGravity(b3Vec3(0.0f, -9.8f, 0.0f));
-		m_cloth->SetWorld(&m_world);
+		m_cloth->EnableSelfCollision(true);
+
+		for (u32 i = 0; i < mesh1.vertexCount; ++i)
+		{
+			u32 newVertex = newVertices1[i];
+
+			m_cloth->GetParticle(newVertex)->SetType(e_staticClothParticle);
+		}
+
+		b3Free(newVertices1);
+		b3Free(newVertices2);
 
 		{
 			b3BodyDef bd;
-			bd.type = e_staticBody;
 
 			b3Body* b = m_world.CreateBody(bd);
 
-			b3CapsuleShape capsuleShape;
-			capsuleShape.m_centers[0].Set(0.0f, 0.0f, -5.0f);
-			capsuleShape.m_centers[1].Set(0.0f, 0.0f, 5.0f);
-			capsuleShape.m_radius = 1.0f;;
+			b3HullShape hullShape;
+			hullShape.m_hull = &m_groundHull;
+			hullShape.m_radius = 0.0f;;
 
 			b3ShapeDef sd;
-			sd.shape = &capsuleShape;
+			sd.shape = &hullShape;
 			sd.friction = 1.0f;
 
-			b->CreateShape(sd);
+			b3Shape* s = b->CreateShape(sd);
+
+			b3ClothWorldShapeDef csd;
+			csd.shape = s;
+
+			m_cloth->CreateWorldShape(csd);
 		}
 
 		m_clothDragger = new b3ClothDragger(&m_ray, m_cloth);
@@ -66,6 +146,10 @@ public:
 
 	~ClothSelfCollision()
 	{
+		b3Free(m_clothMesh.vertices);
+		b3Free(m_clothMesh.triangles);
+		b3Free(m_clothMesh.meshes);
+
 		delete m_cloth;
 		delete m_clothDragger;
 	}
@@ -83,17 +167,27 @@ public:
 			b3Vec3 pA = m_clothDragger->GetPointA();
 			b3Vec3 pB = m_clothDragger->GetPointB();
 
-			g_draw->DrawPoint(pA, 2.0f, b3Color_green);
+			g_draw->DrawPoint(pA, 4.0f, b3Color_green);
 
-			g_draw->DrawPoint(pB, 2.0f, b3Color_green);
+			g_draw->DrawPoint(pB, 4.0f, b3Color_green);
 
 			g_draw->DrawSegment(pA, pB, b3Color_white);
+		}
+
+		g_draw->DrawString(b3Color_white, "S - Turn on/off self collision");
+		if (m_cloth->IsSelfCollisionEnabled())
+		{
+			g_draw->DrawString(b3Color_white, "Self collision enabled");
+		}
+		else
+		{
+			g_draw->DrawString(b3Color_white, "Self collision disabled");
 		}
 
 		extern u32 b3_clothSolverIterations;
 		g_draw->DrawString(b3Color_white, "Iterations = %d", b3_clothSolverIterations);
 
-		float32 E = m_cloth->GetEnergy();
+		scalar E = m_cloth->GetEnergy();
 		g_draw->DrawString(b3Color_white, "E = %f", E);
 	}
 
@@ -127,12 +221,20 @@ public:
 		}
 	}
 
+	void KeyDown(int key)
+	{
+		if (key == GLFW_KEY_S)
+		{
+			m_cloth->EnableSelfCollision(!m_cloth->IsSelfCollisionEnabled());
+		}
+	}
+
 	static Test* Create()
 	{
 		return new ClothSelfCollision();
 	}
 
-	b3GridClothMesh<10, 10> m_clothMesh;
+	b3ClothMesh m_clothMesh;
 	b3Cloth* m_cloth;
 	b3ClothDragger* m_clothDragger; 
 };

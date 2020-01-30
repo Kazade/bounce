@@ -21,12 +21,18 @@
 #include <bounce/collision/shapes/sphere.h>
 #include <bounce/collision/shapes/capsule.h>
 #include <bounce/collision/shapes/box_hull.h>
+#include <bounce/collision/shapes/cylinder_hull.h>
+#include <bounce/collision/shapes/cone_hull.h>
 
-const b3Sphere b3Sphere_identity(b3Vec3_zero, 1.0f); 
+const b3Sphere b3Sphere_identity(b3Vec3_zero, scalar(1)); 
 
-const b3Capsule b3Capsule_identity(b3Vec3(0.0f, -0.5f, 0.0f), b3Vec3(0.0f, 0.5f, 0.0f), 1.0f);
+const b3Capsule b3Capsule_identity(b3Vec3(scalar(0), scalar(-0.5), scalar(0)), b3Vec3(scalar(0), scalar(0.5), scalar(0)), scalar(1));
 
-const b3BoxHull b3BoxHull_identity(1.0f, 1.0f, 1.0f);
+const b3BoxHull b3BoxHull_identity(scalar(1), scalar(1), scalar(1));
+
+const b3CylinderHull b3CylinderHull_identity(scalar(1), scalar(1));
+
+const b3ConeHull b3ConeHull_identity(scalar(1), scalar(1));
 
 bool b3RayCast(b3RayCastOutput* output,
 	const b3RayCastInput* input,
@@ -34,7 +40,7 @@ bool b3RayCast(b3RayCastOutput* output,
 {
 	b3Vec3 p1 = input->p1;
 	b3Vec3 p2 = input->p2;
-	float32 maxFraction = input->maxFraction;
+	scalar maxFraction = input->maxFraction;
 	
 	b3Vec3 d = p2 - p1;
 	
@@ -44,27 +50,27 @@ bool b3RayCast(b3RayCastOutput* output,
 	}
 
 	b3Vec3 n = b3Cross(v2 - v1, v3 - v1);
-	float32 len = b3Length(n);
+	scalar len = b3Length(n);
 	
-	if (len == 0.0f)
+	if (len == scalar(0))
 	{
 		return false;
 	}
 
 	n /= len;
 
-	float32 num = b3Dot(n, v1 - p1);
-	float32 den = b3Dot(n, d);
+	scalar num = b3Dot(n, v1 - p1);
+	scalar den = b3Dot(n, d);
 
-	if (den == 0.0f)
+	if (den == scalar(0))
 	{
 		return false;
 	}
 
-	float32 fraction = num / den;
+	scalar fraction = num / den;
 
 	// Is the intersection not on the segment?
-	if (fraction < 0.0f || maxFraction < fraction)
+	if (fraction < scalar(0) || maxFraction < fraction)
 	{
 		return false;
 	}
@@ -89,17 +95,17 @@ bool b3RayCast(b3RayCastOutput* output,
 	b3Vec3 AB_x_AC = b3Cross(AB, AC);
 
 	// Barycentric coordinates for Q
-	float32 u = b3Dot(QB_x_QC, AB_x_AC);
-	float32 v = b3Dot(QC_x_QA, AB_x_AC);
-	float32 w = b3Dot(QA_x_QB, AB_x_AC);
+	scalar u = b3Dot(QB_x_QC, AB_x_AC);
+	scalar v = b3Dot(QC_x_QA, AB_x_AC);
+	scalar w = b3Dot(QA_x_QB, AB_x_AC);
 
 	// Is the intersection on the triangle?
-	if (u >= 0.0f && v >= 0.0f && w >= 0.0f)
+	if (u >= scalar(0) && v >= scalar(0) && w >= scalar(0))
 	{
 		output->fraction = fraction;
 
 		// Does the ray start from below or above the triangle?
-		if (num > 0.0f)
+		if (num > scalar(0))
 		{
 			output->normal = -n;
 		}

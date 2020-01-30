@@ -40,16 +40,15 @@ public:
 		{
 			b3BodyDef bdef;
 			bdef.type = e_dynamicBody;
+			
 			bdef.position.Set(0.0f, 10.0f, 0.0f);
-			bdef.orientation.Set(b3Vec3(0.0f, 0.0f, -1.0f), 1.5f * B3_PI);
-			bdef.linearVelocity.Set(0.005f, -10.0f, 0.005f);
-			bdef.angularVelocity.Set(2000.0f * B3_PI, 2000.0f * B3_PI, 10000.0f * B3_PI);
+			bdef.angularVelocity.Set(0.5f * B3_PI, 10.0f * B3_PI, 0.0f);
 			
 			b3Body* body = m_world.CreateBody(bdef);
 	
 			b3CapsuleShape capsule;
-			capsule.m_centers[0].Set(0.0f, 4.0f, 0.0f);
-			capsule.m_centers[1].Set(0.0f, -4.0f, 0.0f);
+			capsule.m_vertex1.Set(0.0f, 4.0f, 0.0f);
+			capsule.m_vertex2.Set(0.0f, -4.0f, 0.0f);
 			capsule.m_radius = 0.5f;
 
 			b3ShapeDef sd;

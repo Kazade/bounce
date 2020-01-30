@@ -34,6 +34,16 @@ struct b3ClothMeshMesh
 	u32 startTriangle;
 };
 
+struct b3ClothMeshShearingLine
+{
+	u32 v1, v2;
+};
+
+struct b3ClothMeshBendingLine
+{
+	u32 v1, v2;
+};
+
 struct b3ClothMeshSewingLine
 {
 	u32 s1, s2;
@@ -48,6 +58,10 @@ struct b3ClothMesh
 	b3ClothMeshTriangle* triangles;
 	u32 meshCount;
 	b3ClothMeshMesh* meshes;
+	u32 shearingLineCount;
+	b3ClothMeshShearingLine* shearingLines;
+	u32 bendingLineCount;
+	b3ClothMeshBendingLine* bendingLines;
 	u32 sewingLineCount;
 	b3ClothMeshSewingLine* sewingLines;
 };

@@ -21,6 +21,11 @@
 
 #include <bounce/common/math/vec3.h>
 
+struct b3SoftBodyMeshTriangle
+{
+	u32 v1, v2, v3;
+};
+
 struct b3SoftBodyMeshTetrahedron
 {
 	u32 v1, v2, v3, v4;
@@ -30,6 +35,8 @@ struct b3SoftBodyMesh
 {
 	u32 vertexCount;
 	b3Vec3* vertices;
+	u32 triangleCount;
+	b3SoftBodyMeshTriangle* triangles;
 	u32 tetrahedronCount;
 	b3SoftBodyMeshTetrahedron* tetrahedrons;
 };
@@ -39,9 +46,9 @@ struct b3QSoftBodyMesh : public b3SoftBodyMesh
 	b3QSoftBodyMesh();
 	~b3QSoftBodyMesh();
 
-	void SetAsSphere(float32 radius, u32 subdivisions);
+	void SetAsSphere(scalar radius, u32 subdivisions);
 	
-	void SetAsCylinder(float32 radius, float32 ey, u32 segments);
+	void SetAsCylinder(scalar radius, scalar ey, u32 segments);
 };
 
 #endif

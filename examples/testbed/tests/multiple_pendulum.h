@@ -39,8 +39,8 @@ public:
 			bs[1] = m_world.CreateBody(bd);
 
 			b3CapsuleShape s;
-			s.m_centers[0].Set(0.5f, 0.0f, 0.0f);
-			s.m_centers[1].Set(-0.5f, 0.0f, 0.0f);
+			s.m_vertex1.Set(0.5f, 0.0f, 0.0f);
+			s.m_vertex2.Set(-0.5f, 0.0f, 0.0f);
 			s.m_radius = 0.05f;
 
 			b3ShapeDef sd;
@@ -60,8 +60,8 @@ public:
 			bs[2] = m_world.CreateBody(bd);
 
 			b3CapsuleShape s;
-			s.m_centers[0].Set(0.5f, 0.0f, 0.0f);
-			s.m_centers[1].Set(-0.5f, 0.0f, 0.0f);
+			s.m_vertex1.Set(0.5f, 0.0f, 0.0f);
+			s.m_vertex2.Set(-0.5f, 0.0f, 0.0f);
 			s.m_radius = 0.05f;
 
 			b3ShapeDef sd;
@@ -81,8 +81,8 @@ public:
 			bs[3] = m_world.CreateBody(bd);
 
 			b3CapsuleShape s;
-			s.m_centers[0].Set(0.5f, 0.0f, 0.0f);
-			s.m_centers[1].Set(-0.5f, 0.0f, 0.0f);
+			s.m_vertex1.Set(0.5f, 0.0f, 0.0f);
+			s.m_vertex2.Set(-0.5f, 0.0f, 0.0f);
 			s.m_radius = 0.05f;
 
 			b3ShapeDef sd;
@@ -102,8 +102,8 @@ public:
 			bs[4] = m_world.CreateBody(bd);
 
 			b3CapsuleShape s;
-			s.m_centers[0].Set(0.5f, 0.0f, 0.0f);
-			s.m_centers[1].Set(-0.5f, 0.0f, 0.0f);
+			s.m_vertex1.Set(0.5f, 0.0f, 0.0f);
+			s.m_vertex2.Set(-0.5f, 0.0f, 0.0f);
 			s.m_radius = 0.05f;
 
 			b3ShapeDef sd;
@@ -123,8 +123,8 @@ public:
 			bs[5] = m_world.CreateBody(bd);
 
 			b3CapsuleShape s;
-			s.m_centers[0].Set(0.5f, 0.0f, 0.0f);
-			s.m_centers[1].Set(-0.5f, 0.0f, 0.0f);
+			s.m_vertex1.Set(0.5f, 0.0f, 0.0f);
+			s.m_vertex2.Set(-0.5f, 0.0f, 0.0f);
 			s.m_radius = 0.05f;
 
 			b3ShapeDef sd;

@@ -17,10 +17,7 @@
 */
 
 #include <bounce/cloth/forces/mouse_force.h>
-#include <bounce/cloth/particle.h>
-#include <bounce/cloth/cloth_triangle.h>
-#include <bounce/cloth/cloth.h>
-#include <bounce/cloth/cloth_mesh.h>
+#include <bounce/cloth/cloth_particle.h>
 #include <bounce/cloth/cloth_force_solver.h>
 #include <bounce/sparse/dense_vec3.h>
 #include <bounce/sparse/sparse_mat33.h>
@@ -28,13 +25,16 @@
 b3MouseForce::b3MouseForce(const b3MouseForceDef* def)
 {
 	m_type = e_mouseForce;
-	m_particle = def->particle;
-	m_triangle = def->triangle;
+	m_p1 = def->p1;
+	m_p2 = def->p2;
+	m_p3 = def->p3;
+	m_p4 = def->p4;
 	m_w2 = def->w2;
 	m_w3 = def->w3;
 	m_w4 = def->w4;
 	m_km = def->mouse;
 	m_kd = def->damping;
+	m_L0 = def->restLength;
 	m_f1.SetZero();
 	m_f2.SetZero();
 	m_f3.SetZero();
@@ -46,34 +46,17 @@ b3MouseForce::~b3MouseForce()
 
 }
 
-bool b3MouseForce::HasParticle(const b3Particle* particle) const
+bool b3MouseForce::HasParticle(const b3ClothParticle* particle) const
 {
-	b3Cloth* cloth = m_triangle->m_cloth;
-	u32 triangleIndex = m_triangle->m_triangle;
-	b3ClothMeshTriangle* triangle = cloth->m_mesh->triangles + triangleIndex;
-
-	b3Particle* p1 = cloth->m_particles[triangle->v1];
-	b3Particle* p2 = cloth->m_particles[triangle->v2];
-	b3Particle* p3 = cloth->m_particles[triangle->v3];
-
-	return m_particle == particle || p1 == particle || p2 == particle || p3 == particle;
+	return m_p1 == particle || m_p2 == particle || m_p3 == particle || m_p4 == particle;
 }
 
 void b3MouseForce::Apply(const b3ClothForceSolverData* data)
 {
-	b3Cloth* cloth = m_triangle->m_cloth;
-	u32 triangleIndex = m_triangle->m_triangle;
-	b3ClothMeshTriangle* triangle = cloth->m_mesh->triangles + triangleIndex;
-
-	b3Particle* p1 = m_particle;
-	b3Particle* p2 = cloth->m_particles[triangle->v1];
-	b3Particle* p3 = cloth->m_particles[triangle->v2];
-	b3Particle* p4 = cloth->m_particles[triangle->v3];
-
-	u32 i1 = p1->m_solverId;
-	u32 i2 = p2->m_solverId;
-	u32 i3 = p3->m_solverId;
-	u32 i4 = p4->m_solverId;
+	u32 i1 = m_p1->m_solverId;
+	u32 i2 = m_p2->m_solverId;
+	u32 i3 = m_p3->m_solverId;
+	u32 i4 = m_p4->m_solverId;
 
 	b3DenseVec3& x = *data->x;
 	b3DenseVec3& v = *data->v;
@@ -98,83 +81,121 @@ void b3MouseForce::Apply(const b3ClothForceSolverData* data)
 	m_f3.SetZero();
 	m_f4.SetZero();
 
-	b3Vec3 c2 = m_w2 * x2 + m_w3 * x3 + m_w4 * x4;
+	scalar w2 = m_w2;
+	scalar w3 = m_w3;
+	scalar w4 = m_w4;
+
+	b3Vec3 c2 = w2 * x2 + w3 * x3 + w4 * x4;
 
 	b3Vec3 d = x1 - c2;
-	float32 len = b3Length(d);
+	scalar L = b3Length(d);
 
-	if (len > 0.0f)
+	if (L > scalar(0))
 	{
-		b3Vec3 n = d / len;
+		scalar inv_L = scalar(1) / L;
+
+		b3Vec3 n = inv_L * d;
 
 		// Jacobian
 		b3Vec3 dCdx[4];
 		dCdx[0] = n;
-		dCdx[1] = -m_w2 * n;
-		dCdx[2] = -m_w3 * n;
-		dCdx[3] = -m_w4 * n;
+		dCdx[1] = -w2 * n;
+		dCdx[2] = -w3 * n;
+		dCdx[3] = -w4 * n;
 
-		if (m_km > 0.0f)
+		if (m_km > scalar(0))
 		{
-			float32 C = len;
-
-			// Force
-			b3Vec3 fs[4];
-			for (u32 i = 0; i < 4; ++i)
+			if (L > m_L0)
 			{
-				fs[i] = -m_km * C * dCdx[i];
-			}
+				scalar C = L - m_L0;
 
-			m_f1 += fs[0];
-			m_f2 += fs[1];
-			m_f3 += fs[2];
-			m_f4 += fs[3];
-
-			// Force derivative
-			b3Mat33 K[4][4];
-			for (u32 i = 0; i < 4; ++i)
-			{
-				for (u32 j = 0; j < 4; ++j)
+				// Force
+				b3Vec3 fs[4];
+				for (u32 i = 0; i < 4; ++i)
 				{
-					//b3Mat33 d2Cvxij;
-					//b3Mat33 Kij = -m_km * (b3Outer(dCdx[i], dCdx[j]) + C * d2Cvxij);
-					b3Mat33 Kij = -m_km * b3Outer(dCdx[i], dCdx[j]);
-
-					K[i][j] = Kij;
+					fs[i] = -m_km * C * dCdx[i];
 				}
+
+				m_f1 += fs[0];
+				m_f2 += fs[1];
+				m_f3 += fs[2];
+				m_f4 += fs[3];
+
+				// Verification:
+				// http://www.matrixcalculus.org/
+
+				// Force derivative
+				scalar L3 = L * L * L;
+
+				scalar inv_L3 = L3 > scalar(0) ? scalar(1) / L3 : scalar(0);
+
+				b3Mat33 d2Cdxij[4][4];
+				
+				b3Mat33 A = inv_L * I - inv_L3 * b3Outer(d, d);
+
+				d2Cdxij[0][0] = A;
+				d2Cdxij[0][1] = -w2 * A;
+				d2Cdxij[0][2] = -w3 * A;
+				d2Cdxij[0][3] = -w4 * A;
+
+				b3Mat33 B = inv_L3 * b3Outer(d, d) - inv_L * I;
+
+				d2Cdxij[1][0] = w2 * B;
+				d2Cdxij[1][1] = -w2 * w2 * B;
+				d2Cdxij[1][2] = -w2 * w3 * B;
+				d2Cdxij[1][3] = -w2 * w4 * B;
+
+				d2Cdxij[2][0] = w3 * B;
+				d2Cdxij[2][1] = -w2 * w3 * B;
+				d2Cdxij[2][2] = -w3 * w3 * B;
+				d2Cdxij[2][3] = -w3 * w4 * B;
+
+				d2Cdxij[3][0] = w4 * B;
+				d2Cdxij[3][1] = -w2 * w4 * B;
+				d2Cdxij[3][2] = -w3 * w4 * B;
+				d2Cdxij[3][3] = -w4 * w4 * B;
+
+				b3Mat33 K[4][4];
+				for (u32 i = 0; i < 4; ++i)
+				{
+					for (u32 j = 0; j < 4; ++j)
+					{
+						b3Mat33 d2Cdx = d2Cdxij[i][j];
+						
+						b3Mat33 Kij = -m_km * (b3Outer(dCdx[i], dCdx[j]) + C * d2Cdx);
+
+						K[i][j] = Kij;
+					}
+				}
+
+				dfdx(i1, i1) += K[0][0];
+				dfdx(i1, i2) += K[0][1];
+				dfdx(i1, i3) += K[0][2];
+				dfdx(i1, i4) += K[0][3];
+
+				dfdx(i2, i1) += K[1][0];
+				dfdx(i2, i2) += K[1][1];
+				dfdx(i2, i3) += K[1][2];
+				dfdx(i2, i4) += K[1][3];
+
+				dfdx(i3, i1) += K[2][0];
+				dfdx(i3, i2) += K[2][1];
+				dfdx(i3, i3) += K[2][2];
+				dfdx(i3, i4) += K[2][3];
+
+				dfdx(i4, i1) += K[3][0];
+				dfdx(i4, i2) += K[3][1];
+				dfdx(i4, i3) += K[3][2];
+				dfdx(i4, i4) += K[3][3];
 			}
-
-			dfdx(i1, i1) += K[0][0];
-			dfdx(i1, i2) += K[0][1];
-			dfdx(i1, i3) += K[0][2];
-			dfdx(i1, i4) += K[0][3];
-
-			dfdx(i2, i1) += K[1][0];
-			dfdx(i2, i2) += K[1][1];
-			dfdx(i2, i3) += K[1][2];
-			dfdx(i2, i4) += K[1][3];
-
-			dfdx(i3, i1) += K[2][0];
-			dfdx(i3, i2) += K[2][1];
-			dfdx(i3, i3) += K[2][2];
-			dfdx(i3, i4) += K[2][3];
-
-			dfdx(i4, i1) += K[3][0];
-			dfdx(i4, i2) += K[3][1];
-			dfdx(i4, i3) += K[3][2];
-			dfdx(i4, i4) += K[3][3];
 		}
-		
-		if (m_kd > 0.0f)
+
+		if (m_kd > scalar(0))
 		{
-			b3Vec3 vs[4] = { v1, v2, v3, v4 };
+			b3Vec3 vc2 = m_w2 * v2 + m_w3 * v3 + m_w4 * v4;
 
-			float32 dCdt = 0.0f;
-			for (u32 i = 0; i < 4; ++i)
-			{
-				dCdt += b3Dot(dCdx[i], vs[i]);
-			}
-
+			scalar dCdt = b3Dot(v1 - vc2, n);
+			
 			// Force
 			b3Vec3 fs[4];
 			for (u32 i = 0; i < 4; ++i)

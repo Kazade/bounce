@@ -20,6 +20,7 @@
 #define B3_DENSE_VEC_3_H
 
 #include <bounce/common/math/vec3.h>
+#include <bounce/sparse/sparse.h>
 
 struct b3DenseVec3
 {
@@ -32,20 +33,20 @@ struct b3DenseVec3
 	b3DenseVec3(u32 _n)
 	{
 		n = _n;
-		v = (b3Vec3*)b3Alloc(n * sizeof(b3Vec3));
+		v = (b3Vec3*)b3FrameAllocator_sparseAllocator->Allocate(n * sizeof(b3Vec3));
 	}
 
 	b3DenseVec3(const b3DenseVec3& _v)
 	{
 		n = _v.n;
-		v = (b3Vec3*)b3Alloc(n * sizeof(b3Vec3));
+		v = (b3Vec3*)b3FrameAllocator_sparseAllocator->Allocate(n * sizeof(b3Vec3));
 
 		Copy(_v);
 	}
 
 	~b3DenseVec3()
 	{
-		b3Free(v);
+		b3FrameAllocator_sparseAllocator->Free(v);
 	}
 
 	const b3Vec3& operator[](u32 i) const
@@ -73,10 +74,10 @@ struct b3DenseVec3
 			return *this;
 		}
 
-		b3Free(v);
+		b3FrameAllocator_sparseAllocator->Free(v);
 
 		n = _v.n;
-		v = (b3Vec3*)b3Alloc(n * sizeof(b3Vec3));
+		v = (b3Vec3*)b3FrameAllocator_sparseAllocator->Allocate(n * sizeof(b3Vec3));
 		
 		Copy(_v);
 
@@ -121,7 +122,7 @@ inline void b3Sub(b3DenseVec3& out, const b3DenseVec3& a, const b3DenseVec3& b)
 	}
 }
 
-inline void b3Mul(b3DenseVec3& out, float32 a, const b3DenseVec3& b)
+inline void b3Mul(b3DenseVec3& out, scalar a, const b3DenseVec3& b)
 {
 	B3_ASSERT(out.n == b.n);
 
@@ -133,14 +134,14 @@ inline void b3Mul(b3DenseVec3& out, float32 a, const b3DenseVec3& b)
 
 inline void b3Negate(b3DenseVec3& out, const b3DenseVec3& v)
 {
-	b3Mul(out, -1.0f, v);
+	b3Mul(out, scalar(-1), v);
 }
 
-inline float32 b3Dot(const b3DenseVec3& a, const b3DenseVec3& b)
+inline scalar b3Dot(const b3DenseVec3& a, const b3DenseVec3& b)
 {
 	B3_ASSERT(a.n == b.n);
 
-	float32 result = 0.0f;
+	scalar result(0);
 
 	for (u32 i = 0; i < a.n; ++i)
 	{
@@ -148,6 +149,23 @@ inline float32 b3Dot(const b3DenseVec3& a, const b3DenseVec3& b)
 	}
 	
 	return result;
+}
+
+inline scalar b3LengthSquared(const b3DenseVec3& v)
+{
+	scalar result(0);
+
+	for (u32 i = 0; i < v.n; ++i)
+	{
+		result += b3LengthSquared(v[i]);
+	}
+
+	return result;
+}
+
+inline scalar b3Length(const b3DenseVec3& v)
+{
+	return b3Sqrt(b3LengthSquared(v));
 }
 
 inline b3DenseVec3 operator+(const b3DenseVec3& a, const b3DenseVec3& b)
@@ -164,7 +182,7 @@ inline b3DenseVec3 operator-(const b3DenseVec3& a, const b3DenseVec3& b)
 	return result;
 }
 
-inline b3DenseVec3 operator*(float32 a, const b3DenseVec3& b)
+inline b3DenseVec3 operator*(scalar a, const b3DenseVec3& b)
 {
 	b3DenseVec3 result(b.n);
 	b3Mul(result, a, b);

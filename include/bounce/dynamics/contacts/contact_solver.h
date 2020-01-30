@@ -45,15 +45,15 @@ struct b3PositionConstraintManifold
 struct b3ContactPositionConstraint 
 {
 	u32 indexA;
-	float32 invMassA;
+	scalar invMassA;
 	b3Mat33 localInvIA;
-	float32 radiusA;
+	scalar radiusA;
 	b3Vec3 localCenterA;
 	u32 indexB;
 	b3Vec3 localCenterB;
-	float32 invMassB;
+	scalar invMassB;
 	b3Mat33 localInvIB;
-	float32 radiusB;
+	scalar radiusB;
 	b3PositionConstraintManifold* manifolds;
 	u32 manifoldCount;
 };
@@ -64,9 +64,9 @@ struct b3VelocityConstraintPoint
 	b3Vec3 rB;
 
 	b3Vec3 normal;
-	float32 normalMass;
-	float32 normalImpulse;
-	float32 velocityBias;
+	scalar normalMass;
+	scalar normalImpulse;
+	scalar velocityBias;
 };
 
 struct b3VelocityConstraintManifold
@@ -75,41 +75,32 @@ struct b3VelocityConstraintManifold
 	b3Vec3 rB;
 	
 	b3Vec3 normal;
-	b3Vec3 tangent1;
-	b3Vec3 tangent2;
-	//float32 leverArm;
 
+	scalar motorImpulse;
+	scalar motorMass;
+	scalar motorSpeed;
+
+	b3Vec3 tangent1;
+	scalar tangentSpeed1;
+	b3Vec3 tangent2;
+	scalar tangentSpeed2;
 	b3Mat22 tangentMass;
 	b3Vec2 tangentImpulse;
-	float32 motorImpulse;
-	float32 motorMass;
-	
+
 	b3VelocityConstraintPoint* points;
 	u32 pointCount;
 };
 
-// The idea is to allow anything to bounce off an inelastic surface.
-inline float32 b3MixRestitution(float32 e1, float32 e2)
-{
-	return b3Max(e1, e2);
-}
-
-// The idea is to drive the restitution to zero. 
-inline float32 b3MixFriction(float32 u1, float32 u2)
-{
-	return b3Sqrt(u1 * u2);
-}
-
 struct b3ContactVelocityConstraint 
 {
 	u32 indexA;
-	float32 invMassA;
+	scalar invMassA;
 	b3Mat33 invIA;
-	float32 invMassB;
+	scalar invMassB;
 	u32 indexB;
 	b3Mat33 invIB;
-	float32 friction;
-	float32 restitution;
+	scalar friction;
+	scalar restitution;
 	b3VelocityConstraintManifold* manifolds;
 	u32 manifoldCount;
 };
@@ -122,8 +113,20 @@ struct b3ContactSolverDef
 	b3Contact** contacts;
 	u32 count;
 	b3StackAllocator* allocator;
-	float32 dt;
+	scalar dt;
 };
+
+// The idea is to allow anything to bounce off an inelastic surface.
+inline scalar b3MixRestitution(scalar e1, scalar e2)
+{
+	return b3Max(e1, e2);
+}
+
+// The idea is to drive the restitution to zero. 
+inline scalar b3MixFriction(scalar u1, scalar u2)
+{
+	return b3Sqrt(u1 * u2);
+}
 
 class b3ContactSolver 
 {
@@ -146,7 +149,7 @@ protected:
 	b3ContactPositionConstraint* m_positionConstraints;
 	b3ContactVelocityConstraint* m_velocityConstraints;
 	u32 m_count;
-	float32 m_dt, m_invDt;
+	scalar m_dt, m_invDt;
 	b3StackAllocator* m_allocator;
 };
 

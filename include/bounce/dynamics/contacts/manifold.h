@@ -71,8 +71,11 @@ struct b3ManifoldPoint
 
 	b3ManifoldPointKey key; // point identifier
 
-	float32 normalImpulse; // normal impulse
-	u32 persisting; // is this point persistent?
+	scalar normalImpulse; // normal impulse
+	u64 persistCount; // number of time steps this point is persisting
+
+	b3FeaturePair featurePair; // internal use
+	bool edgeContact; // internal use
 };
 
 // A contact manifold is a group of contact points with similar contact normal.
@@ -89,21 +92,25 @@ struct b3Manifold
 	u32 pointCount; // number of manifold points
 
 	b3Vec2 tangentImpulse;
-	float32 motorImpulse;
+	scalar motorImpulse;
+	
+	scalar motorSpeed; // target angular speed along the normal
+	scalar tangentSpeed1; // target speed along the first tangent
+	scalar tangentSpeed2; // target speed along the second tangent
 };
 
 struct b3WorldManifoldPoint
 {
-	void Initialize(const b3ManifoldPoint* p, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB);
+	void Initialize(const b3ManifoldPoint* p, scalar rA, const b3Transform& xfA, scalar rB, const b3Transform& xfB);
 	
 	b3Vec3 point;
 	b3Vec3 normal;
-	float32 separation;
+	scalar separation;
 };
 
 struct b3WorldManifold
 {
-	void Initialize(const b3Manifold* m, float32 rA, const b3Transform& xfA, float32 rB, const b3Transform& xfB);
+	void Initialize(const b3Manifold* m, scalar rA, const b3Transform& xfA, scalar rB, const b3Transform& xfB);
 
 	u32 pointCount; 
 	b3WorldManifoldPoint points[B3_MAX_MANIFOLD_POINTS]; 

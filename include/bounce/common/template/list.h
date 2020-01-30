@@ -28,7 +28,7 @@ class b3List1
 public:
 	b3List1()
 	{
-		m_head = NULL;
+		m_head = nullptr;
 		m_count = 0;
 	}
 	
@@ -58,7 +58,7 @@ class b3List2
 public:
 	b3List2()
 	{
-		m_head = NULL;
+		m_head = nullptr;
 		m_count = 0;
 	}
 
@@ -66,7 +66,7 @@ public:
 	
 	void PushFront(T* link)
 	{
-		link->m_prev = NULL;
+		link->m_prev = nullptr;
 		link->m_next = m_head;
 		if (m_head)
 		{
@@ -80,9 +80,9 @@ public:
 	{
 		link->m_prev = prev;
 		
-		if (prev->m_next == NULL)
+		if (prev->m_next == nullptr)
 		{
-			link->m_next = NULL;
+			link->m_next = nullptr;
 		}
 		else
 		{

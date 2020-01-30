@@ -84,7 +84,7 @@ void ViewModel::Action_ResetCamera()
 
 void ViewModel::Event_SetWindowSize(int w, int h)
 {
-	m_model->Command_ResizeCamera(float32(w), float32(h));
+	m_model->Command_ResizeCamera(scalar(w), scalar(h));
 }
 
 void ViewModel::Event_Press_Key(int button)
@@ -148,8 +148,7 @@ void ViewModel::Event_Move_Cursor(float x, float y)
 
 	b3Vec2 dp = ps - m_view->m_ps0;
 
-	float32 ndx = b3Clamp(dp.x, -1.0f, 1.0f);
-	float32 ndy = b3Clamp(dp.y, -1.0f, 1.0f);
+	b3Vec2 n = b3Normalize(dp);
 
 	bool shiftDown = glfwGetKey(m_view->m_window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
 	bool leftDown = glfwGetMouseButton(m_view->m_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
@@ -159,8 +158,8 @@ void ViewModel::Event_Move_Cursor(float x, float y)
 	{
 		if (leftDown)
 		{
-			float32 ax = -0.005f * B3_PI * ndx;
-			float32 ay = -0.005f * B3_PI * ndy;
+			scalar ax = -0.005f * B3_PI * n.x;
+			scalar ay = -0.005f * B3_PI * n.y;
 
 			m_model->Command_RotateCameraY(ax);
 			m_model->Command_RotateCameraX(ay);
@@ -168,8 +167,8 @@ void ViewModel::Event_Move_Cursor(float x, float y)
 
 		if (rightDown)
 		{
-			float32 tx = 0.2f * ndx;
-			float32 ty = -0.2f * ndy;
+			scalar tx = 0.2f * n.x;
+			scalar ty = -0.2f * n.y;
 
 			m_model->Command_TranslateCameraX(tx);
 			m_model->Command_TranslateCameraY(ty);
@@ -177,16 +176,18 @@ void ViewModel::Event_Move_Cursor(float x, float y)
 	}
 	else
 	{
-		m_model->Command_Move_Cursor(m_view->GetCursorPosition());
+		m_model->Command_Move_Cursor(ps);
 	}
 }
 
 void ViewModel::Event_Scroll(float dx, float dy)
 {
+	b3Vec2 n(dx, dy);
+	n.Normalize();
+
 	bool shiftDown = glfwGetKey(m_view->m_window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
 	if (shiftDown)
 	{
-		float32 ny = b3Clamp(dy, -1.0f, 1.0f);
-		m_model->Command_ZoomCamera(1.0f * ny);
+		m_model->Command_ZoomCamera(1.0f * n.y);
 	}
 }

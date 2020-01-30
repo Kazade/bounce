@@ -22,6 +22,7 @@
 #include <bounce/common/math/transform.h>
 #include <bounce/common/template/list.h>
 #include <bounce/collision/collision.h>
+#include <bounce/collision/shapes/aabb.h>
 #include <bounce/collision/shapes/sphere.h>
 
 struct b3ContactEdge;
@@ -33,36 +34,39 @@ enum b3ShapeType
 {
 	e_sphereShape,
 	e_capsuleShape,
+	e_triangleShape,
 	e_hullShape,
 	e_meshShape,
+	e_sdfShape,
 	e_maxShapes
 };
 
+// c2 = center
+// separation = dot(c2 - c1, normal) - r1 - r2
 struct b3TestSphereOutput
 {
-	b3Vec3 point;
-	float32 separation;
-	b3Vec3 normal;
+	b3Vec3 point; // contact point on the shape
+	b3Vec3 normal; // contact normal on the shape towards the sphere
 };
 
 struct b3ShapeDef 
 {
 	b3ShapeDef() 
 	{
-		shape = NULL;
-		userData = NULL;
+		shape = nullptr;
+		userData = nullptr;
 		isSensor = false;
-		density = 0.0f;
-		friction = 0.3f;
-		restitution = 0.0f;
+		density = scalar(0);
+		friction = scalar(0.3);
+		restitution = scalar(0);
 	}
 
 	const b3Shape* shape;
 	void* userData;
 	bool isSensor;
-	float32 density;
-	float32 restitution;
-	float32 friction;
+	scalar density;
+	scalar restitution;
+	scalar friction;
 };
 
 // This structure stores the mass-related data of a shape.
@@ -72,7 +76,7 @@ struct b3MassData
 	b3Vec3 center;
 
 	// The mass of the shape, typically in kg.
-	float32 mass;
+	scalar mass;
 
 	// The rotational inertia of the shape about the local origin.
 	b3Mat33 I;
@@ -92,17 +96,16 @@ public:
 	b3Body* GetBody();
 
 	// Calculate the mass data for this shape given the shape density.
-	virtual void ComputeMass(b3MassData* data, float32 density) const = 0;
+	virtual void ComputeMass(b3MassData* data, scalar density) const = 0;
 
 	// Compute the shape world AABB.
-	virtual void ComputeAABB(b3AABB3* aabb, const b3Transform& xf) const = 0;
+	virtual void ComputeAABB(b3AABB* aabb, const b3Transform& xf) const = 0;
 
 	// Test if a sphere is contained inside this shape.
 	virtual bool TestSphere(const b3Sphere& sphere, const b3Transform& xf) const = 0;
 
 	// Test if a sphere is contained inside this shape.
-	// If the sphere is inside this shape then return the minimum separation distance and normal.
-	// The direction of the normal points from this shape to the sphere.
+	// If the sphere is colliding with this shape then return the contact point and normal on the other shape.
 	virtual bool TestSphere(b3TestSphereOutput* output, const b3Sphere& sphere, const b3Transform& xf) const = 0;
 
 	// Compute the ray intersection point, normal of surface, and fraction.
@@ -115,24 +118,24 @@ public:
 	bool IsSensor() const;
 
 	// Get the shape density.
-	float32 GetDensity() const;
+	scalar GetDensity() const;
 
 	// Set the shape density.
-	void SetDensity(float32 density);
+	void SetDensity(scalar density);
 
 	// Get the shape coefficient of restitution.
-	float32 GetRestitution() const;
+	scalar GetRestitution() const;
 
 	// Set the shape coefficient of restitution.
 	// This is a value in the range [0, 1].
-	void SetRestitution(float32 restitution);
+	void SetRestitution(scalar restitution);
 
 	// Get the shape coefficient of friction.
-	float32 GetFriction() const;
+	scalar GetFriction() const;
 	
 	// Set the shape coefficient of friction.
 	// This is a value in the range [0, 1].
-	void SetFriction(float32 friction);
+	void SetFriction(scalar friction);
 
 	// Get the user data associated with this shape.
 	void* GetUserData() const;
@@ -141,7 +144,11 @@ public:
 	void SetUserData(void* data);
 
 	// Get broadphase AABB
-	const b3AABB3& GetAABB() const;
+	const b3AABB& GetAABB() const;
+
+	// Get the list of contacts that contains this body.
+	const b3List2<b3ContactEdge>& GetContactList() const;
+	b3List2<b3ContactEdge>& GetContactList();
 
 	// Dump this shape to the log file.
 	void Dump(u32 bodyIndex) const;
@@ -150,7 +157,10 @@ public:
 	const b3Shape* GetNext() const;
 	b3Shape* GetNext();
 
-	float32 m_radius;
+	// This function is used internally.
+	void SetShape(b3Shape* shape);
+
+	scalar m_radius;
 protected:
 	friend class b3World;
 	friend class b3Body;
@@ -171,9 +181,9 @@ protected:
 	b3ShapeType m_type;
 	bool m_isSensor;
 	void* m_userData;
-	float32 m_density;
-	float32 m_restitution;
-	float32 m_friction;
+	scalar m_density;
+	scalar m_restitution;
+	scalar m_friction;
 	u32 m_broadPhaseID;
 
 	// Contact edges for this shape contact graph.
@@ -191,32 +201,32 @@ inline b3ShapeType b3Shape::GetType() const
 	return m_type; 
 }
 
-inline float32 b3Shape::GetDensity() const 
+inline scalar b3Shape::GetDensity() const 
 { 
 	return m_density; 
 }
 
-inline void b3Shape::SetDensity(float32 density) 
+inline void b3Shape::SetDensity(scalar density) 
 { 
 	m_density = density; 
 }
 
-inline float32 b3Shape::GetRestitution() const 
+inline scalar b3Shape::GetRestitution() const 
 { 
 	return m_restitution; 
 }
 
-inline void b3Shape::SetRestitution(float32 restitution) 
+inline void b3Shape::SetRestitution(scalar restitution) 
 { 
 	m_restitution = restitution; 
 }
 
-inline float32 b3Shape::GetFriction() const 
+inline scalar b3Shape::GetFriction() const 
 {
 	return m_friction;
 }
 
-inline void b3Shape::SetFriction(float32 friction) 
+inline void b3Shape::SetFriction(scalar friction) 
 {
 	m_friction = friction;
 }
@@ -244,6 +254,16 @@ inline const b3Body* b3Shape::GetBody() const
 inline b3Body* b3Shape::GetBody() 
 {
 	return m_body;
+}
+
+inline const b3List2<b3ContactEdge>& b3Shape::GetContactList() const
+{
+	return m_contactEdges;
+}
+
+inline b3List2<b3ContactEdge>& b3Shape::GetContactList()
+{
+	return m_contactEdges;
 }
 
 inline const b3Shape* b3Shape::GetNext() const

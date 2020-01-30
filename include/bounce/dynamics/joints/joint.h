@@ -37,6 +37,10 @@ enum b3JointType
 	e_revoluteJoint,
 	e_sphereJoint,
 	e_coneJoint,
+	e_frictionJoint,
+	e_motorJoint,
+	e_prismaticJoint,
+	e_wheelJoint,
 	e_maxJoints,
 };
 
@@ -45,9 +49,9 @@ struct b3JointDef
 	b3JointDef()
 	{
 		type = e_unknownJoint;
-		bodyA = NULL;
-		bodyB = NULL;
-		userData = NULL;
+		bodyA = nullptr;
+		bodyB = nullptr;
+		userData = nullptr;
 		collideLinked = false;
 	}
 

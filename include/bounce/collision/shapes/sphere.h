@@ -27,7 +27,7 @@ struct b3Sphere
 	b3Sphere() { }
 	
 	//
-	b3Sphere(const b3Vec3& v, float32 r)
+	b3Sphere(const b3Vec3& v, scalar r)
 	{
 		vertex = v;
 		radius = r;
@@ -37,7 +37,7 @@ struct b3Sphere
 	~b3Sphere() { }
 
 	b3Vec3 vertex;
-	float32 radius;
+	scalar radius;
 	
 	const b3Vec3& GetVertex(u32 index) const;
 	u32 GetSupportVertex(const b3Vec3& direction) const;

@@ -21,10 +21,11 @@
 
 #include <bounce/common/math/mat22.h>
 #include <bounce/common/math/mat33.h>
+#include <bounce/cloth/cloth_time_step.h>
 
 class b3StackAllocator;
 
-class b3Particle;
+class b3ClothParticle;
 class b3Force;
 
 struct b3DenseVec3;
@@ -34,9 +35,10 @@ struct b3SparseMat33View;
 
 struct b3ClothForceSolverDef
 {
+	b3ClothTimeStep step;
 	b3StackAllocator* stack;
 	u32 particleCount;
-	b3Particle** particles;
+	b3ClothParticle** particles;
 	u32 forceCount;
 	b3Force** forces;
 };
@@ -59,14 +61,16 @@ public:
 	b3ClothForceSolver(const b3ClothForceSolverDef& def);
 	~b3ClothForceSolver();
 
-	void Solve(float32 dt, const b3Vec3& gravity);
+	void Solve(const b3Vec3& gravity);
 private:
 	void ApplyForces();
 
-	b3StackAllocator* m_allocator;
+	b3ClothTimeStep m_step;
+
+	b3StackAllocator* m_stack;
 
 	u32 m_particleCount;
-	b3Particle** m_particles;
+	b3ClothParticle** m_particles;
 
 	u32 m_forceCount;
 	b3Force** m_forces;

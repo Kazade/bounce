@@ -31,18 +31,28 @@ typedef unsigned int u32;
 typedef unsigned short u16;
 typedef unsigned char u8;
 typedef unsigned long long u64;
-typedef double float64;
-typedef float float32;
+typedef float scalar;
+typedef double scalar64;
 
 // You can modify the following parameters as long
 // as you know what you're doing.
 
-#define B3_PI (3.14159265359f)
-#define	B3_MAX_FLOAT (FLT_MAX)
-#define	B3_EPSILON (FLT_EPSILON)
-
 #define	B3_MAX_U8 (0xFF)
 #define	B3_MAX_U32 (0xFFFFFFFF)
+
+// This is a scalar type dependent variable.
+// If scalar is float, you must set this constant to FLT_MAX.
+// If scalar is double, you must set this constant to DBL_MAX.
+#define	B3_MAX_SCALAR (FLT_MAX)
+
+// This is scalar type dependent variable.
+// If scalar is float, you must set this constant to FLT_EPSILON.
+// If scalar is double, you must set this constant to DBL_EPSILON.
+#define	B3_EPSILON (FLT_EPSILON)
+
+// This is scalar type dependent variable.
+// This is computed using double precision by default.
+#define B3_PI scalar(3.14159265358979323846)
 
 // Collision
 
@@ -51,20 +61,19 @@ typedef float float32;
 // A larger value increases performance when there are 
 // no objects closer to the AABB because no contacts are 
 // even created.
-#define B3_AABB_EXTENSION (0.2f)
+#define B3_AABB_EXTENSION scalar(0.2)
 
 // This is used to extend AABBs in the broad-phase. 
 // Is used to predict the future position based on the current displacement.
 // This is a dimensionless multiplier.
-#define B3_AABB_MULTIPLIER (2.0f)
+#define B3_AABB_MULTIPLIER scalar(2)
 
 // Collision and constraint tolerance.
-#define B3_LINEAR_SLOP (0.005f)
-#define B3_ANGULAR_SLOP (2.0f / 180.0f * B3_PI)
+#define B3_LINEAR_SLOP scalar(0.005)
+#define B3_ANGULAR_SLOP (scalar(2.0) / scalar(180) * B3_PI)
 
 // The radius of the hull shape skin.
-#define B3_HULL_RADIUS (0.0f * B3_LINEAR_SLOP)
-#define B3_HULL_RADIUS_SUM (2.0f * B3_HULL_RADIUS)
+#define B3_HULL_RADIUS (scalar(0.0) * B3_LINEAR_SLOP)
 
 // Dynamics
 
@@ -82,32 +91,30 @@ typedef float float32;
 
 // Maximum translation per step to prevent numerical instability 
 // due to large linear velocity.
-#define B3_MAX_TRANSLATION (2.0f)
+#define B3_MAX_TRANSLATION scalar(2.0)
 #define B3_MAX_TRANSLATION_SQUARED (B3_MAX_TRANSLATION * B3_MAX_TRANSLATION)
 
 // Maximum rotation per step to prevent numerical instability due to 
 // large angular velocity.
-#define B3_MAX_ROTATION (0.5f * B3_PI)
+#define B3_MAX_ROTATION (scalar(0.5) * B3_PI)
 #define B3_MAX_ROTATION_SQUARED (B3_MAX_ROTATION * B3_MAX_ROTATION)
 
 // The maximum position correction used when solving constraints. This helps to
 // prevent overshoot.
-#define B3_MAX_LINEAR_CORRECTION (0.2f)
-#define B3_MAX_ANGULAR_CORRECTION (8.0f / 180.0f * B3_PI)
+#define B3_MAX_LINEAR_CORRECTION scalar(0.2)
+#define B3_MAX_ANGULAR_CORRECTION (scalar(8.0) / scalar(180) * B3_PI)
 
 // This controls how faster overlaps should be resolved per step.
 // This is less than and would be close to 1, so that the all overlap is resolved per step.
 // However values very close to 1 may lead to overshoot.
-#define B3_BAUMGARTE (0.1f)
+#define B3_BAUMGARTE scalar(0.1)
 
 // If the relative velocity of a contact point is below 
 // the threshold then restitution is not applied.
-#define B3_VELOCITY_THRESHOLD (1.0f)
+#define B3_VELOCITY_THRESHOLD scalar(1.0)
 
-// Sleep
-#define B3_TIME_TO_SLEEP (0.2f)
-#define B3_SLEEP_LINEAR_TOL (0.05f)
-#define B3_SLEEP_ANGULAR_TOL (2.0f / 180.0f * B3_PI)
+// Time to sleep in seconds
+#define B3_TIME_TO_SLEEP scalar(0.2)
 
 // Memory
 

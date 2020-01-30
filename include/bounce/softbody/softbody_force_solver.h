@@ -21,17 +21,19 @@
 
 #include <bounce/common/math/mat22.h>
 #include <bounce/common/math/mat33.h>
+#include <bounce/softbody/softbody_time_step.h>
 
 class b3StackAllocator;
 
 class b3SoftBody;
-class b3SoftBodyMesh;
+struct b3SoftBodyMesh;
 
-struct b3SoftBodyNode;
-struct b3SoftBodyElement;
+class b3SoftBodyNode;
+class b3SoftBodyElement;
 
 struct b3SoftBodyForceSolverDef
 {
+	b3SoftBodyTimeStep step;
 	b3SoftBody* body;
 };
 
@@ -41,10 +43,11 @@ public:
 	b3SoftBodyForceSolver(const b3SoftBodyForceSolverDef& def);
 	~b3SoftBodyForceSolver();
 
-	void Solve(float32 dt, const b3Vec3& gravity);
+	void Solve(const b3Vec3& gravity);
 private:
+	b3SoftBodyTimeStep m_step;
 	b3SoftBody* m_body;
-	b3StackAllocator* m_allocator;
+	b3StackAllocator* m_stack;
 	const b3SoftBodyMesh* m_mesh;
 	b3SoftBodyNode* m_nodes;
 	b3SoftBodyElement* m_elements;

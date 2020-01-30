@@ -21,9 +21,8 @@
 
 #include <bounce/common/geometry.h>
 #include <bounce/cloth/cloth.h>
-#include <bounce/cloth/cloth_mesh.h>
-#include <bounce/cloth/particle.h>
-#include <bounce/cloth/cloth_triangle.h>
+#include <bounce/cloth/cloth_particle.h>
+#include <bounce/cloth/shapes/cloth_triangle_shape.h>
 #include <bounce/cloth/forces/mouse_force.h>
 
 // A cloth triangle dragger.
@@ -37,13 +36,13 @@ public:
 
 	bool GetStaticDrag() const;
 
-	void SetMouseStiffness(float32 k);
+	void SetMouseStiffness(scalar k);
 
-	float32 GetMouseStiffness();
+	scalar GetMouseStiffness();
 
-	void SetMouseDamping(float32 k);
+	void SetMouseDamping(scalar k);
 
-	float32 GetMouseDamping();
+	scalar GetMouseDamping();
 	
 	bool IsDragging() const;
 
@@ -58,21 +57,23 @@ public:
 	b3Vec3 GetPointB() const;
 private:
 	b3Ray3* m_ray;
-	float32 m_x;
+	scalar m_x;
 
 	b3Cloth* m_cloth;
-	const b3ClothMesh* m_mesh;
-	u32 m_triangleIndex;
-	b3ClothMeshTriangle* m_triangle;
-	float32 m_u, m_v;
+	
+	bool m_isDragging;
+	b3ClothParticle* m_p1;
+	b3ClothParticle* m_p2;
+	b3ClothParticle* m_p3;
+	scalar m_u, m_v;
 
-	float32 m_km;
-	float32 m_kd;
-	b3Particle* m_particle;
+	scalar m_km;
+	scalar m_kd;
+	b3ClothParticle* m_particle;
 	b3MouseForce* m_mf;
 
 	bool m_staticDrag;
-	b3ParticleType m_t1, m_t2, m_t3;
+	b3ClothParticleType m_t1, m_t2, m_t3;
 };
 
 inline bool b3ClothDragger::GetStaticDrag() const
@@ -80,29 +81,29 @@ inline bool b3ClothDragger::GetStaticDrag() const
 	return m_staticDrag;
 }
 
-inline void b3ClothDragger::SetMouseStiffness(float32 k)
+inline void b3ClothDragger::SetMouseStiffness(scalar k)
 {
 	m_km = k;
 }
 
-inline float32 b3ClothDragger::GetMouseStiffness()
+inline scalar b3ClothDragger::GetMouseStiffness()
 {
 	return m_km;
 }
 
-inline void b3ClothDragger::SetMouseDamping(float32 k)
+inline void b3ClothDragger::SetMouseDamping(scalar k)
 {
 	m_kd = k;
 }
 
-inline float32 b3ClothDragger::GetMouseDamping()
+inline scalar b3ClothDragger::GetMouseDamping()
 {
 	return m_kd;
 }
 
 inline bool b3ClothDragger::IsDragging() const
 {
-	return m_triangle != nullptr;
+	return m_isDragging;
 }
 
 #endif

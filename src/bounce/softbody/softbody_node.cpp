@@ -18,24 +18,46 @@
 
 #include <bounce/softbody/softbody_node.h>
 #include <bounce/softbody/softbody.h>
+#include <bounce/softbody/shapes/softbody_sphere_shape.h>
 
-void b3SoftBodyNode::Synchronize(const b3Vec3& displacement)
+void b3SoftBodyNode::SetType(b3SoftBodyNodeType type)
 {
-	b3AABB3 aabb;
-	aabb.Set(m_position, m_radius);
+	if (m_type == type)
+	{
+		return;
+	}
 
-	m_body->m_contactManager.m_broadPhase.MoveProxy(m_broadPhaseId, aabb, displacement);
+	m_type = type;
+	m_force.SetZero();
+
+	if (type == e_staticSoftBodyNode)
+	{
+		m_velocity.SetZero();
+		SynchronizeSpheres();
+	}
+
+	DestroyContacts();
+}
+
+void b3SoftBodyNode::SynchronizeSpheres()
+{
+	for (b3SoftBodySphereShape* s = m_body->m_sphereShapeList.m_head; s; s = s->m_next)
+	{
+		if (s->m_node == this)
+		{
+			s->Synchronize(b3Vec3_zero);
+		}
+	}
 }
 
 void b3SoftBodyNode::DestroyContacts()
 {
-	// Destroy body contacts
-	b3NodeBodyContact* c = m_body->m_contactManager.m_nodeBodyContactList.m_head;
+	b3SoftBodySphereAndShapeContact* c = m_body->m_contactManager.m_sphereAndShapeContactList.m_head;
 	while (c)
 	{
-		if (c->m_n1 == this)
+		if (c->m_s1->m_node == this)
 		{
-			b3NodeBodyContact* quack = c;
+			b3SoftBodySphereAndShapeContact* quack = c;
 			c = c->m_next;
 			m_body->m_contactManager.Destroy(quack);
 			continue;

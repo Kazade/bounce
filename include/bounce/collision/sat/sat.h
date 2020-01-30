@@ -28,10 +28,10 @@ struct b3Hull;
 struct b3FaceQuery
 {
 	u32 index;
-	float32 separation;
+	scalar separation;
 };
 
-float32 b3Project(const b3Hull* hull, const b3Plane& plane);
+scalar b3Project(const b3Hull* hull, const b3Plane& plane);
 
 b3FaceQuery b3QueryFaceSeparation(const b3Transform& xf1, const b3Hull* hull1,
 	const b3Transform& xf2, const b3Hull* hull2);
@@ -42,12 +42,12 @@ struct b3EdgeQuery
 {
 	u32 index1;
 	u32 index2;
-	float32 separation;
+	scalar separation;
 };
 
 bool b3IsMinkowskiFace(const b3Vec3& A, const b3Vec3& B, const b3Vec3& B_x_A, const b3Vec3& C, const b3Vec3& D, const b3Vec3& D_x_C);
 
-float32 b3Project(const b3Vec3& P1, const b3Vec3& E1, const b3Vec3& P2, const b3Vec3& E2, const b3Vec3& C1);
+scalar b3Project(const b3Vec3& P1, const b3Vec3& E1, const b3Vec3& P2, const b3Vec3& E2, const b3Vec3& C1);
 
 b3EdgeQuery b3QueryEdgeSeparation(const b3Transform& xf1, const b3Hull* hull1,
 	const b3Transform& xf2, const b3Hull* hull2);
@@ -94,13 +94,13 @@ struct b3FeatureCache
 	// Read the current state of the cache.
 	// Return e_unkown if neither a separation or penetration was detected.
 	b3SATCacheType ReadState(const b3Transform& xf1, const b3Hull* hull1,
-		const b3Transform& xf2, const b3Hull* hull2, float32 totalRadius);
+		const b3Transform& xf2, const b3Hull* hull2, scalar totalRadius);
 
 	b3SATCacheType ReadEdge(const b3Transform& xf1, const b3Hull* hull1,
-		const b3Transform& xf2, const b3Hull* hull2, float32 totalRadius);
+		const b3Transform& xf2, const b3Hull* hull2, scalar totalRadius);
 
 	b3SATCacheType ReadFace(const b3Transform& xf1, const b3Hull* hull1,
-		const b3Transform& xf2, const b3Hull* hull2, float32 totalRadius);
+		const b3Transform& xf2, const b3Hull* hull2, scalar totalRadius);
 	
 	b3SATFeaturePair m_featurePair;
 };

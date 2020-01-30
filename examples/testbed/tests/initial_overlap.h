@@ -38,14 +38,7 @@ public:
 		}
 
 		b3Vec3 boxScale(1.0f, 0.5f, 2.0f);
-
-		static b3BoxHull boxHull;
-
-		b3Transform m;
-		m.rotation = b3Diagonal(boxScale.x, boxScale.y, boxScale.z);
-		m.position.SetZero();
-
-		boxHull.SetTransform(m);
+		static b3BoxHull boxHull(boxScale.x, boxScale.y, boxScale.z);
 
 		{
 			b3BodyDef bd;
@@ -70,8 +63,8 @@ public:
 			bd.type = e_dynamicBody;
 			bd.position.Set(0.0f, 1.5f, 0.0f);
 
-			b3Quat q_y(b3Vec3(0.0f, 1.0f, 0.0f), 0.4f * B3_PI);
-			b3Quat q_z(b3Vec3(0.0f, 0.0f, 1.0f), 0.04f * B3_PI);
+			b3Quat q_y = b3QuatRotationY(0.4f * B3_PI);
+			b3Quat q_z = b3QuatRotationZ(0.04f * B3_PI);
 			b3Quat q = q_z * q_y;
 
 			bd.orientation = q;
